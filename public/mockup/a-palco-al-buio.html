@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>A · Palco al buio — Harmonia Vocalis (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --nero: #0b0a09;
+    --nero-2: #161412;
+    --bianco: #f4efe8;
+    --grigio: #8d857b;
+    --fuoco: #ff4a1c;
+    --f: 'Bricolage Grotesque', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--nero); color: var(--bianco); font: 400 17px/1.55 var(--f); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+  .w { max-width: 1320px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 760px) { .w { padding: 0 40px; } }
+
+  /* Testata */
+  header { position: absolute; inset: 0 0 auto; z-index: 10; }
+  header .w { display: flex; align-items: center; justify-content: space-between; height: 88px; }
+  .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; line-height: 1; }
+  .logo svg { width: 40px; height: 40px; }
+  nav { display: none; gap: 32px; font-size: 15px; font-weight: 500; }
+  nav a { opacity: .75; } nav a:hover { opacity: 1; }
+  @media (min-width: 960px) { nav { display: flex; } }
+  .coristi { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border: 1px solid rgba(244,239,232,.35); padding: 10px 16px; border-radius: 999px; }
+
+  /* Apertura: foto in bicromia per uniformare scatti diversi e a bassa risoluzione */
+  .apertura { position: relative; min-height: min(100svh, 940px); display: flex; align-items: flex-end; overflow: hidden; }
+  .foto { position: absolute; inset: 0; }
+  .foto img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(.8); }
+  .foto::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,10,9,.6) 0%, rgba(11,10,9,.2) 30%, rgba(11,10,9,.88) 70%, var(--nero) 100%), linear-gradient(90deg, rgba(11,10,9,.55), rgba(255,74,28,.18) 45%, transparent 75%); mix-blend-mode: normal; }
+  .grana { position: absolute; inset: 0; opacity: .12; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .apertura .w { position: relative; width: 100%; padding-bottom: 64px; }
+  .etichetta { font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--fuoco); }
+  .apertura h1 { font-size: clamp(64px, 15vw, 230px); font-weight: 800; line-height: .82; letter-spacing: -0.055em; margin: 18px 0 28px; }
+  .apertura h1 span { display: block; font-weight: 300; font-size: .42em; letter-spacing: -0.03em; line-height: 1; color: var(--grigio); margin-bottom: .2em; }
+  .riga-evento { display: flex; flex-wrap: wrap; gap: 24px 48px; align-items: stretch; }
+  .data { background: var(--fuoco); color: var(--nero); padding: 18px 22px; min-width: 150px; font-weight: 700; line-height: 1; border-radius: 2px; }
+  .data b { display: block; font-size: 64px; letter-spacing: -0.04em; font-weight: 800; }
+  .data small { display: block; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin-top: 6px; }
+  .info { display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 18px; }
+  .info .grande { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .info .tenue { color: var(--grigio); }
+  .azioni { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; font-weight: 600; font-size: 15px; background: var(--bianco); color: var(--nero); }
+  .btn.o { background: transparent; color: var(--bianco); border: 1px solid rgba(244,239,232,.4); }
+
+  /* Programmazione */
+  section { padding: 120px 0; }
+  .testa { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 48px; flex-wrap: wrap; }
+  h2 { font-size: clamp(44px, 7vw, 104px); font-weight: 800; letter-spacing: -0.05em; line-height: .9; }
+  .elenco { border-top: 1px solid #2b2724; }
+  .voce { display: grid; grid-template-columns: 110px 1fr; gap: 8px 24px; padding: 32px 0; border-bottom: 1px solid #2b2724; align-items: baseline; transition: background .2s; }
+  @media (min-width: 900px) { .voce { grid-template-columns: 180px 1.3fr 1fr 150px; } }
+  .voce:hover { background: var(--nero-2); }
+  .voce .g { font-size: 44px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+  .voce .g small { display: block; font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fuoco); margin-top: 6px; }
+  .voce .t { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  .voce .t small { display: block; font-size: 16px; font-weight: 400; color: var(--grigio); letter-spacing: 0; margin-top: 6px; }
+  .voce .l { color: var(--grigio); grid-column: 2; }
+  .voce .p { grid-column: 2; font-size: 14px; font-weight: 600; }
+  @media (min-width: 900px) { .voce .l, .voce .p { grid-column: auto; } .voce .p { text-align: right; } }
+  .passato { opacity: .45; }
+
+  /* Ascolta */
+  .ascolta { background: var(--nero-2); }
+  .video { display: grid; gap: 20px; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .video { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; } .video .grande { grid-row: span 2; } }
+  .v { position: relative; overflow: hidden; border-radius: 4px; min-height: 240px; display: flex; align-items: flex-end; }
+  .v img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(.65); transition: transform .5s, filter .5s; }
+  .v:hover img { transform: scale(1.04); filter: grayscale(.2) brightness(.7); }
+  .v .txt { position: relative; padding: 24px; }
+  .v .txt b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+  .v.grande .txt b { font-size: clamp(32px, 4vw, 56px); }
+  .v .txt span { color: #c9c0b5; font-size: 14px; }
+  .play { position: absolute; top: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--fuoco); display: grid; place-items: center; color: var(--nero); }
+
+  /* Maestro */
+  .maestro { display: grid; gap: 48px; align-items: center; }
+  @media (min-width: 900px) { .maestro { grid-template-columns: 5fr 7fr; gap: 80px; } }
+  .ritratto { position: relative; aspect-ratio: 4/5; overflow: hidden; border-radius: 4px; }
+  .ritratto img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.2); }
+  .ritratto::after { content: ''; position: absolute; inset: 0; background: var(--fuoco); mix-blend-mode: multiply; opacity: .4; }
+  .cit { font-size: clamp(30px, 3.6vw, 52px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; margin: 20px 0 28px; }
+  .cit em { font-style: normal; color: var(--fuoco); }
+  .nome { font-weight: 700; } .ruolo { color: var(--grigio); }
+
+  /* Numeri */
+  .numeri { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #2b2724; border: 1px solid #2b2724; }
+  @media (min-width: 900px) { .numeri { grid-template-columns: repeat(4, 1fr); } }
+  .numeri div { background: var(--nero); padding: 32px 24px; }
+  .numeri b { display: block; font-size: clamp(56px, 7vw, 96px); font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
+  .numeri span { color: var(--grigio); font-size: 15px; }
+
+  /* Invito */
+  .invito { background: var(--fuoco); color: var(--nero); }
+  .invito h2 { max-width: 12ch; }
+  .invito p { font-size: 20px; max-width: 34ch; }
+  .invito .btn { background: var(--nero); color: var(--bianco); }
+  .invito .testa { align-items: end; }
+
+  footer { padding: 64px 0 40px; color: var(--grigio); font-size: 14px; }
+  footer .w { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; }
+</style>
+</head>
+<body>
+<header>
+  <div class="w">
+    <a class="logo" href="#">
+      <!-- Diapason stilizzato, ripreso dal logo attuale -->
+      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14a8 8 0 0 0 16 0V5"/><path d="M20 27v10"/></svg>
+      <span>Harmonia<br>Vocalis</span>
+    </a>
+    <nav><a href="#">Concerti</a><a href="#">Ascolta</a><a href="#">Il coro</a><a href="#">Il Maestro</a><a href="#">Canta con noi</a></nav>
+    <a class="coristi" href="#">Area coristi</a>
+  </div>
+</header>
+
+<section class="apertura" style="padding:0">
+  <div class="foto"><img src="img/terme.jpg" alt="Il coro in concerto all'aperto al tramonto"></div>
+  <div class="grana"></div>
+  <div class="w">
+    <p class="etichetta">Prossimo concerto · Autunno Musicale 2026</p>
+    <h1><span>W. A. Mozart</span>Requiem</h1>
+    <div class="riga-evento">
+      <div class="data"><b>04</b><small>Domenica · Ottobre</small></div>
+      <div class="info">
+        <span class="grande">Rignano Flaminio</span>
+        <span class="tenue">Coro Harmonia Vocalis e orchestra · Dir. Claudio Maria Micheli</span>
+        <div class="azioni"><a class="btn" href="#">Aggiungi al calendario</a><a class="btn o" href="#">Come arrivare</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="w">
+    <div class="testa"><h2>In scena</h2><a class="btn o" href="#">Tutto il calendario</a></div>
+    <div class="elenco">
+      <a class="voce" href="#"><span class="g">04<small>ott 2026</small></span><span class="t">Requiem K 626<small>W. A. Mozart</small></span><span class="l">Rignano Flaminio</span><span class="p">Dettagli →</span></a>
+      <a class="voce passato" href="#"><span class="g">06<small>giu 2026</small></span><span class="t">Carmina Burana<small>C. Orff</small></span><span class="l">Roma</span><span class="p">Guarda il video</span></a>
+      <a class="voce passato" href="#"><span class="g">28<small>mar 2026</small></span><span class="t">Requiem K 626<small>W. A. Mozart</small></span><span class="l">Roma</span><span class="p">Guarda il video</span></a>
+      <a class="voce passato" href="#"><span class="g">24<small>ott 2025</small></span><span class="t">Stabat Mater<small>G. Rossini</small></span><span class="l">Roma</span><span class="p">Guarda il video</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="ascolta">
+  <div class="w">
+    <div class="testa"><h2>Ascolta</h2><a class="btn o" href="#">Canale YouTube</a></div>
+    <div class="video">
+      <a class="v grande" href="#"><img src="img/palco.jpg" alt=""><span class="play">▶</span><div class="txt"><b>Messiah<br>G. F. Händel</b><span>Concerto completo · 1h 45′</span></div></a>
+      <a class="v" href="#"><img src="img/anagni.jpg" alt="" style="transform:scale(1.4)"><span class="play">▶</span><div class="txt"><b>Carmina Burana</b><span>Concerto completo · 1h 14′</span></div></a>
+      <a class="v" href="#"><img src="img/chiesa.jpg" alt=""><span class="play">▶</span><div class="txt"><b>Grande Messa K 427</b><span>21 dicembre 2023</span></div></a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="w maestro">
+    <div class="ritratto"><img src="img/maestro.jpg" alt="Il M° Claudio Maria Micheli"></div>
+    <div>
+      <p class="etichetta">Il Maestro</p>
+      <p class="cit">«Siamo cantori amatoriali, ma dobbiamo aspirare a cantare <em>come professionisti</em>.»</p>
+      <p><span class="nome">Claudio Maria Micheli</span> <span class="ruolo">— trent'anni sul podio, collaboratore di Ennio Morricone.</span></p>
+      <div class="azioni" style="margin-top:28px"><a class="btn o" href="#">Il Maestro</a></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="w numeri">
+    <div><b>44</b><span>voci</span></div>
+    <div><b>70</b><span>con il Coro Giovannelli</span></div>
+    <div><b>2019</b><span>primo concerto</span></div>
+    <div><b>30+</b><span>concerti</span></div>
+  </div>
+</section>
+
+<section class="invito">
+  <div class="w testa">
+    <h2>Cerchiamo nuove voci</h2>
+    <div><p>Prove il mercoledì e due venerdì al mese, a Roma. Grandi opere con orchestra.</p><div class="azioni"><a class="btn" href="#">Canta con noi</a></div></div>
+  </div>
+</section>
+
+<footer><div class="w"><span>Coro Harmonia Vocalis · Associazione Roma Musicanta</span><span>Mockup A — Palco al buio</span></div></footer>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Tre direzioni — Harmonia Vocalis</title>
+<style>
+  :root { --fondo: #f3f1ec; --testo: #1b1a18; --tenue: #6b675f; --linea: #d9d5cc; }
+  @media (prefers-color-scheme: dark) { :root { --fondo: #151412; --testo: #eeeae2; --tenue: #a39d92; --linea: #34312c; } }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--fondo); color: var(--testo); font: 400 17px/1.55 system-ui, -apple-system, sans-serif; padding: 56px 16px; }
+  .w { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: clamp(32px, 5vw, 52px); letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 14px; }
+  .intro { color: var(--tenue); max-width: 60ch; margin-bottom: 48px; }
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  a.card { display: flex; flex-direction: column; text-decoration: none; color: inherit; border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; transition: transform .2s, box-shadow .2s; background: var(--fondo); }
+  a.card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.12); }
+  .anteprima { height: 180px; display: flex; align-items: flex-end; padding: 20px; font-weight: 800; font-size: 40px; letter-spacing: -0.04em; line-height: .9; }
+  .a { background: #0b0a09; color: #f4efe8; } .a span { color: #ff4a1c; }
+  .b { background: #f2ece1; color: #16130f; border-bottom: 1px solid var(--linea); } .b span { color: #c4161c; }
+  .c { background: #13235b; color: #fff; } .c span { color: #f2b41b; }
+  .testo { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .testo b { font-size: 20px; }
+  .testo p { color: var(--tenue); font-size: 15px; }
+  .nota { margin-top: 48px; color: var(--tenue); font-size: 15px; max-width: 70ch; border-top: 1px solid var(--linea); padding-top: 20px; }
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>Coro Harmonia Vocalis<br>tre direzioni visive</h1>
+  <p class="intro">Tre mockup della sola home page, ispirati ai siti delle grandi orchestre e dei cori europei. I contenuti sono veri, i link non portano ancora da nessuna parte. Scegliete una direzione, o gli elementi da prendere da ciascuna.</p>
+  <div class="grid">
+    <a class="card" href="a-palco-al-buio.html">
+      <div class="anteprima a">Palco<br>al <span>buio</span></div>
+      <div class="testo"><b>A · Palco al buio</b><p>Nero, foto di scena in bianco e nero, un solo colore acceso per le date. Teatrale e contemporanea. Ispirata a Rundfunkchor Berlin e Filarmonica della Scala.</p></div>
+    </a>
+    <a class="card" href="b-il-segno.html">
+      <div class="anteprima b">Il <span>segno</span></div>
+      <div class="testo"><b>B · Il segno</b><p>Chiara e calda, costruita attorno al diapason del vostro logo, con un sistema di locandine riconoscibile. Ispirata a Monteverdi Choir e LSO.</p></div>
+    </a>
+    <a class="card" href="c-stagione.html">
+      <div class="anteprima c">26<span>/</span>27</div>
+      <div class="testo"><b>C · Stagione</b><p>Istituzionale e ordinata: la stagione come titolo, schede concerto leggibili, blocchi di colore. Ispirata a Santa Cecilia e Berliner Philharmoniker.</p></div>
+    </a>
+  </div>
+  <p class="nota">Le foto sono quelle, a bassa risoluzione, della scheda italiacori del coro: servono solo a dare l'idea. Con foto di scena di buona qualità il risultato cambia molto, in particolare per la direzione A.</p>
+</div>
+</body>
+</html>

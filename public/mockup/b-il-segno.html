@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>B · Il segno — Harmonia Vocalis (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --carta: #f2ece1;
+    --carta-2: #e8dfcf;
+    --inchiostro: #16130f;
+    --tenue: #6f665b;
+    --rosso: #c4161c;
+    --ocra: #d99a2b;
+    --blu: #1f2a44;
+    --d: 'Syne', system-ui, sans-serif;
+    --t: 'Inter Tight', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--carta); color: var(--inchiostro); font: 400 18px/1.6 var(--t); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+  .w { max-width: 1280px; margin: 0 auto; padding: 0 16px; position: relative; }
+  @media (min-width: 760px) { .w { padding: 0 40px; } }
+
+  header .w { display: flex; justify-content: space-between; align-items: center; height: 96px; }
+  .marchio { display: flex; align-items: center; gap: 14px; }
+  .marchio svg { width: 34px; height: 44px; color: var(--rosso); }
+  .marchio span { font: 700 19px/1 var(--d); letter-spacing: -0.01em; }
+  .marchio span i { font-style: normal; color: var(--rosso); }
+  nav { display: none; gap: 30px; font-size: 15px; font-weight: 500; }
+  @media (min-width: 960px) { nav { display: flex; } }
+  nav a:hover { color: var(--rosso); }
+  .pill { font-size: 14px; font-weight: 600; padding: 10px 18px; border-radius: 999px; background: var(--inchiostro); color: var(--carta); }
+
+  /* Apertura: il diapason come segno che incornicia il titolo */
+  .apertura { position: relative; padding: 40px 0 0; }
+  .diapason { position: absolute; left: 16px; right: 16px; top: 0; bottom: 0; width: calc(100% - 32px); height: 100%; color: var(--rosso); pointer-events: none; overflow: visible; }
+  @media (min-width: 760px) { .diapason { left: 40px; width: calc(100% - 80px); } }
+  .apertura .w { text-align: center; padding-top: clamp(64px, 9vw, 120px); padding-bottom: clamp(56px, 7vw, 96px); }
+  .apertura .testo { position: relative; padding: 0 clamp(14px, 5vw, 80px); }
+  .apertura h1 { font: 800 clamp(30px, 8.4vw, 124px)/.9 var(--d); letter-spacing: -0.045em; text-transform: uppercase; }
+  .apertura h1 .v { color: var(--rosso); }
+  .sotto { font-size: clamp(18px, 1.8vw, 22px); color: var(--tenue); max-width: 36ch; margin: 28px auto 0; }
+  .gambo { width: 3px; height: clamp(80px, 10vw, 140px); background: var(--rosso); margin: 0 auto; border-radius: 2px; }
+
+  /* Prossimo concerto, attaccato al gambo del diapason */
+  .prossimo { display: grid; gap: 0; background: var(--inchiostro); color: var(--carta); border-radius: 6px; overflow: hidden; }
+  @media (min-width: 900px) { .prossimo { grid-template-columns: 1.1fr 1fr; } }
+  .prossimo .foto { position: relative; min-height: 340px; }
+  .prossimo .foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .prossimo .corpo { padding: clamp(28px, 4vw, 56px); display: flex; flex-direction: column; gap: 18px; justify-content: center; }
+  .occhiello { font: 600 13px/1 var(--t); letter-spacing: .16em; text-transform: uppercase; color: var(--ocra); }
+  .prossimo h2 { font: 700 clamp(30px, 3.4vw, 46px)/1 var(--d); letter-spacing: -0.03em; }
+  .prossimo .quando { display: flex; gap: 20px; align-items: center; border-top: 1px solid #3a342d; padding-top: 20px; }
+  .prossimo > * { min-width: 0; }
+  .prossimo .quando b { font: 800 clamp(40px, 11vw, 64px)/1 var(--d); color: var(--rosso); letter-spacing: -0.04em; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; font-weight: 600; font-size: 15px; background: var(--rosso); color: #fff; align-self: flex-start; }
+  .btn.chiaro { background: var(--carta); color: var(--inchiostro); }
+
+  section { padding: 120px 0; }
+  h3.titolo { font: 800 clamp(40px, 6vw, 88px)/.9 var(--d); letter-spacing: -0.045em; text-transform: uppercase; }
+  .intesta { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 20px; margin-bottom: 48px; }
+  .intesta p { max-width: 38ch; color: var(--tenue); }
+
+  /* Sistema di locandine: stesso impianto, cambiano colore, autore, data */
+  .locandine { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+  .loc { position: relative; aspect-ratio: 3/4.2; border-radius: 6px; overflow: hidden; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; transition: transform .3s; }
+  .loc:hover { transform: translateY(-6px) rotate(-.6deg); }
+  .loc.r { background: var(--rosso); } .loc.b { background: var(--blu); } .loc.o { background: var(--ocra); color: var(--inchiostro); }
+  .loc .forca { position: absolute; right: -30px; bottom: 90px; width: 170px; height: 280px; opacity: .28; }
+  .loc .autore { font: 800 clamp(34px, 3.3vw, 46px)/.9 var(--d); letter-spacing: -0.05em; text-transform: uppercase; position: relative; }
+  .loc .opera { font: 500 19px/1.2 var(--t); margin-top: 10px; position: relative; max-width: 14ch; }
+  .loc .piede { display: flex; justify-content: space-between; align-items: end; gap: 12px; text-align: right; border-top: 1.5px solid currentColor; padding-top: 14px; position: relative; font-size: 14px; }
+  .loc .piede b { font: 800 30px/1 var(--d); letter-spacing: -0.03em; }
+  .loc .firma { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; position: relative; }
+
+  /* Racconto */
+  .racconto { background: var(--carta-2); }
+  .racconto .griglia { display: grid; gap: 48px; }
+  @media (min-width: 900px) { .racconto .griglia { grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; } }
+  .grande-cit { font: 700 clamp(30px, 3.4vw, 48px)/1.08 var(--d); letter-spacing: -0.03em; }
+  .grande-cit span { color: var(--rosso); }
+  .collage { position: relative; aspect-ratio: 1; }
+  .collage img { position: absolute; border-radius: 6px; object-fit: cover; box-shadow: 0 20px 50px rgba(22,19,15,.18); }
+  .collage .a { width: 72%; height: 62%; left: 0; top: 0; }
+  .collage .b { width: 56%; height: 50%; right: 0; bottom: 0; border: 8px solid var(--carta-2); }
+  .collage .m { width: 30%; aspect-ratio: 1; height: auto; left: 8%; bottom: 4%; border-radius: 50%; border: 6px solid var(--carta-2); }
+
+  /* Ascolta */
+  .brani { border-top: 2px solid var(--inchiostro); }
+  .brano { display: grid; grid-template-columns: 56px 1fr auto; gap: 20px; align-items: center; padding: 22px 0; border-bottom: 1px solid #cfc4b1; }
+  .brano .p { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--inchiostro); display: grid; place-items: center; font-size: 14px; transition: all .2s; }
+  .brano:hover .p { background: var(--rosso); border-color: var(--rosso); color: #fff; }
+  .brano b { font: 700 24px/1.1 var(--d); letter-spacing: -0.02em; display: block; }
+  .brano span { color: var(--tenue); font-size: 15px; }
+  .brano em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--tenue); }
+
+  .invito { text-align: center; }
+  .invito .diapason-piccolo { width: 80px; color: var(--rosso); margin: 0 auto 28px; }
+  .invito p { color: var(--tenue); max-width: 40ch; margin: 20px auto 32px; }
+
+  footer { background: var(--inchiostro); color: #b8ad9e; padding: 56px 0; font-size: 14px; }
+  footer .w { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- Il diapason: il segno del coro, ripreso dal logo esistente -->
+    <symbol id="forca" viewBox="0 0 120 200"><path d="M22 6v88a38 38 0 0 0 76 0V6" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><path d="M60 132v62" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<header>
+  <div class="w">
+    <a class="marchio" href="#"><svg><use href="#forca"/></svg><span><i>H</i>armonia <i>V</i>ocalis</span></a>
+    <nav><a href="#">Concerti</a><a href="#">Ascolta</a><a href="#">Il coro</a><a href="#">Il Maestro</a><a href="#">Canta con noi</a></nav>
+    <a class="pill" href="#">Area coristi</a>
+  </div>
+</header>
+
+<section class="apertura" style="padding-bottom:0">
+  <div class="w">
+    <!-- Il diapason incornicia nome e sottotitolo, poi il gambo scende verso il prossimo concerto -->
+    <svg class="diapason" viewBox="0 0 1000 1000" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path d="M4 0V560C4 860 260 1000 500 1000S996 860 996 560V0" stroke="currentColor" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    </svg>
+    <div class="testo">
+      <h1>Harmonia<br><span class="v">Vocalis</span></h1>
+      <p class="sotto">Coro polifonico di Roma. Grandi messe, requiem e oratori, con orchestra, dal 2019.</p>
+    </div>
+  </div>
+  <div class="gambo"></div>
+</section>
+
+<section style="padding-top:0">
+  <div class="w">
+    <article class="prossimo">
+      <div class="foto"><img src="img/terme.jpg" alt="Il coro in concerto all'aperto"></div>
+      <div class="corpo">
+        <span class="occhiello">Prossimo concerto</span>
+        <h2>Mozart<br>Requiem K 626</h2>
+        <p>Autunno Musicale 2026 · Rignano Flaminio<br>Direttore Claudio Maria Micheli</p>
+        <div class="quando"><b>04.10</b><span>Domenica<br>2026</span></div>
+        <a class="btn" href="#">Aggiungi al calendario</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section style="padding-top:40px">
+  <div class="w">
+    <div class="intesta">
+      <h3 class="titolo">Stagione</h3>
+      <p>Ogni programma ha la sua locandina, sempre con lo stesso impianto: il diapason, l'autore in grande, la data. Riconoscibili a colpo d'occhio, sul sito come sui muri.</p>
+    </div>
+    <div class="locandine">
+      <a class="loc r" href="#">
+        <svg class="forca"><use href="#forca"/></svg>
+        <div><p class="autore">Mozart</p><p class="opera">Requiem in re minore K 626</p></div>
+        <div><p class="firma">Coro Harmonia Vocalis · Dir. C. M. Micheli</p><div class="piede"><b>04.10</b><span>Rignano Flaminio</span></div></div>
+      </a>
+      <a class="loc b" href="#">
+        <svg class="forca"><use href="#forca"/></svg>
+        <div><p class="autore">Orff</p><p class="opera">Carmina Burana</p></div>
+        <div><p class="firma">Coro Harmonia Vocalis · Dir. C. M. Micheli</p><div class="piede"><b>06.06</b><span>Roma · 2026</span></div></div>
+      </a>
+      <a class="loc o" href="#">
+        <svg class="forca"><use href="#forca"/></svg>
+        <div><p class="autore">Rossini</p><p class="opera">Stabat Mater</p></div>
+        <div><p class="firma">Coro Harmonia Vocalis · Dir. C. M. Micheli</p><div class="piede"><b>24.10</b><span>Roma · 2025</span></div></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="racconto">
+  <div class="w griglia">
+    <div>
+      <span class="occhiello" style="color:var(--rosso)">Il coro</span>
+      <p class="grande-cit" style="margin:20px 0 24px">Cantiamo perché la grande musica <span>non è un privilegio</span>, ma un linguaggio che unisce.</p>
+      <p style="color:var(--tenue);max-width:44ch">44 voci, un Maestro che dirige da trent'anni e ha lavorato con Ennio Morricone, orchestre sinfoniche al nostro fianco. Dalla Missa in Angustiis di Haydn, nel 2019, al Messiah di Händel.</p>
+      <a class="btn chiaro" style="margin-top:28px;background:var(--inchiostro);color:var(--carta)" href="#">La nostra storia</a>
+    </div>
+    <div class="collage">
+      <img class="a" src="img/palco.jpg" alt="">
+      <img class="b" src="img/chiesa.jpg" alt="">
+      <img class="m" src="img/maestro.jpg" alt="Il M° Claudio Maria Micheli">
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="w">
+    <div class="intesta"><h3 class="titolo">Ascolta</h3><p>Concerti completi, registrati dal vivo.</p></div>
+    <div class="brani">
+      <a class="brano" href="#"><span class="p">▶</span><div><b>Messiah HWV 56</b><span>G. F. Händel · concerto completo</span></div><em>1:45:35</em></a>
+      <a class="brano" href="#"><span class="p">▶</span><div><b>Grande Messa in do minore K 427</b><span>W. A. Mozart · 21 dicembre 2023</span></div><em>1:10:01</em></a>
+      <a class="brano" href="#"><span class="p">▶</span><div><b>Carmina Burana</b><span>C. Orff · Velletri, 22 giugno 2024</span></div><em>1:14:09</em></a>
+      <a class="brano" href="#"><span class="p">▶</span><div><b>Stabat Mater</b><span>G. Rossini · Cerveteri, 5 dicembre 2021</span></div><em>1:07:59</em></a>
+    </div>
+  </div>
+</section>
+
+<section class="invito" style="background:var(--carta-2)">
+  <div class="w">
+    <svg class="diapason-piccolo" viewBox="0 0 120 200"><use href="#forca"/></svg>
+    <h3 class="titolo">Accorda<br>la tua voce</h3>
+    <p>Cerchiamo soprani, contralti, tenori e bassi con esperienza corale. Prove a Roma il mercoledì e due venerdì al mese.</p>
+    <a class="btn" href="#">Canta con noi</a>
+  </div>
+</section>
+
+<footer><div class="w"><span>Coro Harmonia Vocalis · Associazione Roma Musicanta</span><span>Mockup B — Il segno</span></div></footer>
+</body>
+</html>
