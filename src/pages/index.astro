@@ -1,0 +1,163 @@
+---
+import Base from '../layouts/Base.astro';
+import SchedaConcerto from '../components/SchedaConcerto.astro';
+import VideoLite from '../components/VideoLite.astro';
+import { site } from '../config';
+import { getProssimiConcerti } from '../lib/concerti';
+import { getVideo } from '../lib/youtube';
+import { archivio } from '../data/concerti';
+
+const [concerti, video] = await Promise.all([getProssimiConcerti(), getVideo()]);
+const [prossimo, ...altri] = concerti;
+
+// In evidenza: l'ultimo concerto completo con registrazione, poi gli ultimi video del canale
+const evidenza = archivio.find((p) => p.video)!;
+const recenti = video.filter((v) => v.id !== evidenza.video).slice(0, 3);
+const totale = site.organico.reduce((s, o) => s + o.n, 0);
+---
+
+<Base>
+  <section class="apertura">
+    <div class="pentagramma" aria-hidden="true"></div>
+    <div class="contenitore apertura__contenuto">
+      <span class="occhiello">Coro polifonico · Roma · dal 2019</span>
+      <h1>Harmonia<br /><em>Vocalis</em></h1>
+      <p class="introduzione">
+        Da Händel a Morricone, portiamo la grande musica corale sacra e sinfonica a un pubblico sempre più
+        ampio, a Roma e nel Lazio.
+      </p>
+      <div class="azioni">
+        <a class="pulsante" href="/concerti">Prossimi concerti</a>
+        <a class="pulsante pulsante--vuoto" href="/ascolta">Ascoltaci</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sezione">
+    <div class="contenitore">
+      <span class="occhiello">Prossimo concerto</span>
+      {prossimo ? (
+        <SchedaConcerto concerto={prossimo} inEvidenza />
+      ) : (
+        <p class="introduzione">Stiamo preparando la prossima stagione. Seguici su YouTube per non perdere gli aggiornamenti.</p>
+      )}
+      {altri.length > 0 && (
+        <p class="altri"><a href="/concerti">Altri {altri.length} concerti in calendario →</a></p>
+      )}
+    </div>
+  </section>
+
+  <section class="sezione sezione--alt">
+    <div class="contenitore due-colonne">
+      <div>
+        <span class="occhiello">Il coro</span>
+        <h2>Cantori amatoriali, con l'ambizione dei professionisti</h2>
+        <p>
+          Nato nel 2019 come espressione artistica dell'Associazione Roma Musicanta, il Coro Harmonia Vocalis
+          riunisce {totale} voci guidate dal M° {site.maestro}. Insieme al Coro Ruggero Giovannelli forma un
+          ensemble di circa 70 coristi che, con le orchestre sinfoniche coinvolte dal Maestro, affronta il
+          grande repertorio dal Barocco al Novecento.
+        </p>
+        <p>
+          Crediamo che la musica colta non sia un privilegio: per questo la offriamo in contesti sociali diversi
+          e sosteniamo con il canto le iniziative di solidarietà.
+        </p>
+        <div class="azioni"><a class="pulsante pulsante--vuoto" href="/il-coro">La nostra storia</a></div>
+      </div>
+      <blockquote class="citazione">
+        <p>«Là dove senti cantare, fermati. Gli uomini malvagi non hanno canzoni.»</p>
+        <cite>Léopold Sédar Senghor</cite>
+      </blockquote>
+    </div>
+  </section>
+
+  <section class="sezione">
+    <div class="contenitore">
+      <div class="titolo-riga">
+        <div>
+          <span class="occhiello">Ascolta</span>
+          <h2>Dal vivo, in concerto</h2>
+        </div>
+        <a href="/ascolta">Tutte le registrazioni →</a>
+      </div>
+      <div class="video-principale">
+        <VideoLite
+          id={evidenza.video!}
+          titolo={`${evidenza.autore} — ${evidenza.opera}`}
+          sottotitolo={`Concerto completo · ${evidenza.anno}`}
+        />
+        <div>
+          <p class="introduzione">
+            Registriamo i nostri concerti con orchestra e li pubblichiamo integralmente: un archivio che cresce a ogni
+            stagione.
+          </p>
+          <a class="pulsante pulsante--vuoto" href="/concerti">Archivio dei programmi</a>
+        </div>
+      </div>
+      <div class="griglia">
+        {recenti.map((v) => <VideoLite id={v.id} titolo={v.titolo} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="sezione invito">
+    <div class="contenitore invito__riga">
+      <div>
+        <span class="occhiello">Canta con noi</span>
+        <h2>Cerchiamo nuove voci</h2>
+        <p class="testo">
+          Se hai esperienza di canto corale e voglia di impegnarti su grandi opere con orchestra, vieni a
+          conoscerci. Proviamo {site.prove.orari.toLowerCase()}.
+        </p>
+      </div>
+      <a class="pulsante" href="/canta-con-noi">Scopri come entrare</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .apertura {
+    position: relative; overflow: hidden;
+    padding-block: clamp(5rem, 14vw, 10rem) clamp(4rem, 10vw, 7rem);
+    border-bottom: 1px solid var(--linea);
+  }
+  .apertura__contenuto { position: relative; }
+  .apertura h1 { font-size: clamp(3.4rem, 11vw, 8rem); line-height: 0.92; margin-bottom: 1.5rem; }
+  .apertura h1 em { color: var(--bordeaux); font-style: italic; padding-left: 0.6em; }
+
+  /* Pentagramma decorativo sullo sfondo */
+  .pentagramma {
+    position: absolute; right: -10%; top: 50%; width: 70%; height: 9rem; transform: translateY(-50%) rotate(-6deg);
+    background: repeating-linear-gradient(
+      to bottom, var(--linea) 0 1px, transparent 1px 2.25rem
+    );
+    opacity: 0.7;
+    mask-image: linear-gradient(to right, transparent, #000 35%, #000 70%, transparent);
+  }
+  @media (max-width: 48rem) { .pentagramma { width: 120%; right: -40%; top: 30%; } }
+
+  .altri { margin-top: 1.25rem; }
+
+  .due-colonne { display: grid; gap: 3rem; align-items: center; }
+  @media (min-width: 56rem) { .due-colonne { grid-template-columns: 1.4fr 1fr; gap: 5rem; } }
+
+  .citazione {
+    margin: 0; padding: 2rem 0 2rem 2rem; border-left: 2px solid var(--oro);
+  }
+  .citazione p { font: italic 500 clamp(1.6rem, 3vw, 2.1rem)/1.3 var(--serif); margin-bottom: 1rem; }
+  .citazione cite { font-style: normal; font-size: 0.85rem; letter-spacing: 0.08em; color: var(--inchiostro-2); }
+
+  .titolo-riga { display: flex; justify-content: space-between; align-items: end; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .titolo-riga h2 { margin: 0; }
+  .video-principale { display: grid; gap: 1.5rem 3rem; align-items: center; margin-bottom: 3rem; }
+  @media (min-width: 56rem) { .video-principale { grid-template-columns: 1.6fr 1fr; } }
+
+  .invito { background: var(--bordeaux); color: #f6f1e8; border-top: 0 !important; }
+  .invito .occhiello { color: #e8cfa0; }
+  .invito__riga { display: flex; justify-content: space-between; align-items: center; gap: 2rem; flex-wrap: wrap; }
+  .invito .pulsante { background: #f6f1e8; border-color: #f6f1e8; color: var(--bordeaux); }
+  @media (prefers-color-scheme: dark) {
+    .invito { background: #3a1219; }
+    .invito .pulsante { color: #3a1219; }
+  }
+</style>

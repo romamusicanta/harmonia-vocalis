@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro';
+import VideoLite from '../components/VideoLite.astro';
+import { site } from '../config';
+import { getVideo } from '../lib/youtube';
+
+const video = await getVideo();
+const anno = (iso: string) => iso.slice(0, 4);
+---
+
+<Base titolo="Ascolta" descrizione="Registrazioni dei concerti del Coro Harmonia Vocalis: Mozart, Rossini, Händel, Orff, Liszt.">
+  <header class="intestazione-pagina">
+    <div class="contenitore">
+      <span class="occhiello">Ascolta e guarda</span>
+      <h1>Le nostre registrazioni</h1>
+      <p class="introduzione">
+        I concerti ripresi dal vivo, pubblicati sul canale YouTube dell'Associazione Roma Musicanta. La pagina si
+        aggiorna da sola a ogni nuovo video.
+      </p>
+      <div class="azioni">
+        <a class="pulsante" href={`${site.link.youtube}?sub_confirmation=1`} rel="noopener">Iscriviti al canale</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="sezione">
+    <div class="contenitore griglia">
+      {video.map((v) => <VideoLite id={v.id} titolo={v.titolo} sottotitolo={`Pubblicato nel ${anno(v.pubblicato)}`} />)}
+    </div>
+    <p class="contenitore altro">
+      <a href={`${site.link.youtube}/videos`} rel="noopener">Tutti i video su YouTube →</a>
+    </p>
+  </section>
+</Base>
+
+<style>
+  .griglia { row-gap: 2.5rem; }
+  .altro { margin-top: 3rem; }
+</style>

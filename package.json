@@ -1,0 +1,23 @@
+{
+  "name": "harmonia-vocalis",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "aggiorna-video": "node scripts/aggiorna-video.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.3.5",
+    "fast-xml-parser": "^5.11.2",
+    "node-ical": "^0.27.2"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

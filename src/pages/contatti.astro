@@ -1,0 +1,52 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../config';
+import { linkMappa } from '../lib/concerti';
+---
+
+<Base titolo="Contatti" descrizione="Contatti del Coro Harmonia Vocalis e dell'Associazione Roma Musicanta.">
+  <header class="intestazione-pagina">
+    <div class="contenitore">
+      <span class="occhiello">Contatti</span>
+      <h1>Scrivici</h1>
+      <p class="introduzione">
+        Per concerti, collaborazioni, audizioni o semplicemente per conoscerci.
+      </p>
+    </div>
+  </header>
+
+  <section class="sezione">
+    <div class="contenitore griglia">
+      <div class="blocco">
+        <span class="occhiello">Email</span>
+        <p><a class="grande" href={`mailto:${site.email}`}>{site.email}</a></p>
+      </div>
+      <div class="blocco">
+        <span class="occhiello">Prove</span>
+        <p>
+          {site.prove.luogo}<br />
+          <a href={linkMappa(site.prove.indirizzo)} rel="noopener">{site.prove.indirizzo}</a>
+        </p>
+        <p class="nota">{site.prove.orari}</p>
+      </div>
+      <div class="blocco">
+        <span class="occhiello">{site.sede.nome}</span>
+        <p>{site.associazione}<br />{site.sede.indirizzo}</p>
+      </div>
+      <div class="blocco">
+        <span class="occhiello">Online</span>
+        <p>
+          <a href={site.link.youtube} rel="noopener">YouTube · @romamusicanta</a><br />
+          <a href={site.link.italiacori} rel="noopener">Scheda su Italiacori (Feniarco)</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .blocco { padding: 1.5rem; border: 1px solid var(--linea); border-radius: var(--raggio); }
+  .blocco p:last-child { margin: 0; }
+  .grande { font: 500 1.4rem/1.3 var(--serif); word-break: break-word; }
+  .nota { font-size: 0.9rem; color: var(--inchiostro-2); }
+</style>

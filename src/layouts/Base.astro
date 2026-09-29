@@ -1,0 +1,189 @@
+---
+import '../styles/global.css';
+import { site } from '../config';
+
+interface Props {
+  titolo?: string;
+  descrizione?: string;
+}
+const { titolo, descrizione = site.descrizione } = Astro.props;
+const titoloCompleto = titolo ? `${titolo} · ${site.nome}` : `${site.nome} · Roma`;
+
+const voci = [
+  { href: '/il-coro', etichetta: 'Il coro' },
+  { href: '/il-maestro', etichetta: 'Il Maestro' },
+  { href: '/concerti', etichetta: 'Concerti' },
+  { href: '/ascolta', etichetta: 'Ascolta' },
+  { href: '/canta-con-noi', etichetta: 'Canta con noi' },
+  { href: '/contatti', etichetta: 'Contatti' },
+];
+const percorso = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titoloCompleto}</title>
+    <meta name="description" content={descrizione} />
+    <!-- Prototipo: da togliere quando il sito va online su romamusicanta.org -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta property="og:title" content={titoloCompleto} />
+    <meta property="og:description" content={descrizione} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap"
+    />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="salta nascosto" href="#contenuto">Vai al contenuto</a>
+    <header class="testata">
+      <div class="contenitore testata__riga">
+        <a class="marchio" href="/" aria-label={`${site.nome}, pagina iniziale`}>
+          <span class="marchio__coro">Coro</span>
+          <span class="marchio__nome">Harmonia Vocalis</span>
+        </a>
+        <input type="checkbox" id="menu" class="nascosto" />
+        <label for="menu" class="menu-apri" aria-label="Apri il menu">
+          <span></span><span></span><span></span>
+        </label>
+        <nav class="navigazione" aria-label="Principale">
+          <ul>
+            {voci.map((v) => (
+              <li>
+                <a href={v.href} aria-current={percorso === v.href ? 'page' : undefined}>
+                  {v.etichetta}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a class="area-coristi" href={site.link.areaCoristi} rel="noopener">
+            Area coristi
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="contenuto">
+      <slot />
+    </main>
+
+    <footer class="piede">
+      <div class="contenitore piede__griglia">
+        <div>
+          <p class="piede__nome">{site.nome}</p>
+          <p>
+            Espressione artistica dell'{site.associazione}.<br />
+            Direttore: M° {site.maestro}
+          </p>
+        </div>
+        <div>
+          <p class="piede__titolo">Prove</p>
+          <p>{site.prove.orari}<br />{site.prove.luogo}, {site.prove.indirizzo}</p>
+        </div>
+        <div>
+          <p class="piede__titolo">Seguici</p>
+          <ul class="piede__link">
+            <li><a href={site.link.youtube} rel="noopener">YouTube</a></li>
+            <li><a href={site.link.italiacori} rel="noopener">Italiacori · Feniarco</a></li>
+            <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
+            <li><a href={site.link.areaCoristi} rel="noopener">Area coristi</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="contenitore piede__fondo">
+        © {new Date().getFullYear()} {site.associazione} · {site.sede.indirizzo}
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .salta:focus {
+    position: fixed; top: 0.5rem; left: 0.5rem; z-index: 100;
+    width: auto; height: auto; clip: auto; padding: 0.5rem 1rem;
+    background: var(--carta); border: 1px solid var(--oro);
+  }
+
+  .testata {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--carta) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--linea);
+  }
+  .testata__riga {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 4.25rem; gap: 1rem;
+  }
+
+  .marchio { text-decoration: none; color: var(--inchiostro); display: flex; flex-direction: column; line-height: 1; }
+  .marchio__coro {
+    font: 600 0.65rem/1 var(--sans); letter-spacing: 0.3em; text-transform: uppercase; color: var(--oro);
+    margin-bottom: 0.3rem;
+  }
+  .marchio__nome { font: 500 1.6rem/1 var(--serif); }
+
+  .navigazione { display: flex; align-items: center; gap: 1.75rem; }
+  .navigazione ul { display: flex; gap: 1.5rem; list-style: none; margin: 0; padding: 0; }
+  .navigazione ul a {
+    color: var(--inchiostro); text-decoration: none; font-size: 0.93rem; padding-block: 0.4rem;
+    border-bottom: 1px solid transparent;
+  }
+  .navigazione ul a:hover, .navigazione ul a[aria-current='page'] { border-bottom-color: var(--oro); }
+
+  .area-coristi {
+    font-size: 0.85rem; font-weight: 500; text-decoration: none;
+    padding: 0.5rem 0.9rem; border: 1px solid var(--linea); border-radius: var(--raggio);
+    color: var(--inchiostro-2); white-space: nowrap;
+  }
+  .area-coristi:hover { border-color: var(--oro); color: var(--inchiostro); }
+
+  .menu-apri { display: none; }
+
+  @media (max-width: 62rem) {
+    .menu-apri {
+      display: flex; flex-direction: column; justify-content: center; gap: 5px;
+      width: 2.75rem; height: 2.75rem; cursor: pointer; padding: 0.6rem;
+    }
+    .menu-apri span { display: block; height: 1.5px; background: var(--inchiostro); transition: transform 0.2s, opacity 0.2s; }
+    #menu:checked ~ .menu-apri span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    #menu:checked ~ .menu-apri span:nth-child(2) { opacity: 0; }
+    #menu:checked ~ .menu-apri span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+    #menu:focus-visible ~ .menu-apri { outline: 2px solid var(--oro); }
+
+    .navigazione {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      flex-direction: column; align-items: stretch; gap: 0;
+      background: var(--carta); border-bottom: 1px solid var(--linea);
+      padding: 0.5rem 1rem 1.25rem;
+    }
+    #menu:checked ~ .navigazione { display: flex; }
+    .navigazione ul { flex-direction: column; gap: 0; }
+    .navigazione ul a { display: block; padding: 0.85rem 0; border-bottom: 1px solid var(--linea); font-size: 1.05rem; }
+    .navigazione ul a[aria-current='page'] { color: var(--bordeaux); }
+    .area-coristi { margin-top: 1rem; text-align: center; padding: 0.8rem; }
+  }
+
+  .piede {
+    background: var(--scuro); color: #cfc4b4; font-size: 0.93rem;
+    padding-top: 3.5rem; margin-top: 0;
+  }
+  .piede a { color: #efe4d2; }
+  .piede__griglia { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+  .piede__nome { font: 500 1.6rem/1.2 var(--serif); color: #f6f1e8; margin-bottom: 0.75rem; }
+  .piede__titolo {
+    font: 600 0.72rem/1 var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: #c9a66b;
+    margin-bottom: 0.9rem;
+  }
+  .piede__link { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; }
+  .piede__fondo {
+    margin-top: 2.5rem; padding-block: 1.25rem; border-top: 1px solid #3a322b;
+    font-size: 0.8rem; color: #8f8474;
+  }
+</style>

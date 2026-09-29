@@ -1,0 +1,120 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../config';
+
+const totale = site.organico.reduce((s, o) => s + o.n, 0);
+const massimo = Math.max(...site.organico.map((o) => o.n));
+---
+
+<Base titolo="Il coro" descrizione="La storia, la missione e le voci del Coro Harmonia Vocalis di Roma.">
+  <header class="intestazione-pagina">
+    <div class="contenitore">
+      <span class="occhiello">Il coro</span>
+      <h1>Una voce per la musica colta, in ogni luogo</h1>
+      <p class="introduzione">
+        Il Coro Harmonia Vocalis nasce alla fine del 2019 come espressione artistica dell'{site.associazione},
+        fondata nel 2018 per diffondere la musica d'arte sul territorio di Roma.
+      </p>
+    </div>
+  </header>
+
+  <section class="sezione">
+    <div class="contenitore storia">
+      <div class="testo">
+        <h2>La nostra storia</h2>
+        <p>
+          L'idea è nata da alcuni coristi: rendere la cultura musicale accessibile a un pubblico più vasto di quello
+          che frequenta teatri e auditorium. L'ascolto della musica colta non è prerogativa di contesti privilegiati,
+          e offrirla indifferentemente in contesti sociali diversi è la missione che il nostro Direttore ci ricorda
+          di non tradire.
+        </p>
+        <p>
+          Quei coristi cercarono, e trovarono, un Direttore capace di farsi interprete di questo pensiero: il
+          M° {site.maestro}, alla guida del coro fin dalla nascita e artefice della sua crescita.
+        </p>
+        <p>
+          Il primo concerto, alla fine del 2019, fu la <em>Missa in Angustiis</em> di Haydn, eseguita a Roma e a
+          Segni. Da allora abbiamo affrontato il Requiem di Mozart, lo Stabat Mater e la Petite Messe Solennelle di
+          Rossini, la Messa di Gloria di Puccini, i Carmina Burana di Orff, il Messiah di Händel.
+        </p>
+        <p>
+          Il coro è giovane, ma non altrettanto le voci che lo animano: buona parte dei coristi vanta un'esperienza
+          pluriennale in altre formazioni corali del territorio romano.
+        </p>
+
+        <h2 class="spazio">Cosa ci muove</h2>
+        <p>
+          Cantiamo per far crescere in chi ascolta la consapevolezza del significato e del valore del messaggio
+          musicale, sacro o profano che sia: un linguaggio universale che travalica le barriere e favorisce le
+          relazioni umane. Per questo sosteniamo con la musica anche le iniziative di solidarietà.
+        </p>
+        <p>
+          Il Maestro ci ricorda che siamo cantori amatoriali, ma dobbiamo aspirare a cantare come professionisti.
+          Quando al termine di un concerto il pubblico applaude siamo felici; ancora di più quando è l'orchestra a
+          dimostrarci il suo apprezzamento.
+        </p>
+      </div>
+
+      <aside class="scheda">
+        <div class="scheda__blocco">
+          <span class="occhiello">L'organico</span>
+          <p class="cifra">{totale} <span>voci</span></p>
+          <ul class="organico">
+            {site.organico.map((o) => (
+              <li>
+                <span class="organico__voce">{o.voce}</span>
+                <span class="organico__barra" style={`--quota:${o.n / massimo}`}></span>
+                <span class="organico__n">{o.n}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="nota">
+            Con il Coro Ruggero Giovannelli, anch'esso diretto dal M° Micheli, l'ensemble conta circa 70 coristi.
+          </p>
+        </div>
+        <div class="scheda__blocco">
+          <span class="occhiello">Il direttivo</span>
+          <dl class="direttivo">
+            {site.direttivo.map((p) => (
+              <>
+                <dt>{p.ruolo}</dt>
+                <dd>{p.nome}</dd>
+              </>
+            ))}
+          </dl>
+        </div>
+        <div class="scheda__blocco">
+          <span class="occhiello">Associati a</span>
+          <p class="nota">Associazione Regionale Cori del Lazio APS · Feniarco</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .storia { display: grid; gap: 3.5rem; }
+  @media (min-width: 60rem) { .storia { grid-template-columns: 1fr 22rem; gap: 5rem; align-items: start; } }
+  .spazio { margin-top: 2.5rem; }
+
+  .scheda { display: grid; gap: 1.5rem; }
+  @media (min-width: 60rem) { .scheda { position: sticky; top: 6rem; } }
+  .scheda__blocco { padding: 1.5rem; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--carta-2); }
+  .cifra { font: 500 3.5rem/1 var(--serif); margin-bottom: 1.25rem; }
+  .cifra span { font-size: 1.3rem; color: var(--inchiostro-2); }
+
+  .organico { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.6rem; }
+  .organico li { display: grid; grid-template-columns: 8.5rem 1fr 1.5rem; align-items: center; gap: 0.75rem; font-size: 0.9rem; }
+  .organico__barra { height: 6px; border-radius: 3px; background: var(--linea); position: relative; overflow: hidden; }
+  .organico__barra::after {
+    content: ''; position: absolute; inset: 0; width: calc(var(--quota) * 100%);
+    background: var(--bordeaux); border-radius: 3px;
+  }
+  .organico__n { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .nota { font-size: 0.88rem; color: var(--inchiostro-2); margin: 0; }
+
+  .direttivo { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.93rem; }
+  .direttivo dt { color: var(--inchiostro-2); }
+  .direttivo dd { margin: 0; font-weight: 500; }
+</style>
