@@ -28,3 +28,11 @@ export function link(veste: Veste, percorso: string) {
   const p = prefisso(veste);
   return p ? `/${p}${percorso === '/' ? '/' : percorso}` : percorso;
 }
+
+// Collegamento all'area coristi: quella del sito (per ora solo nella demo) oppure, finché quella
+// vera non è pronta, un indirizzo esterno indicato in coro.link.areaCoristi. Senza nessuna delle
+// due, undefined: le vesti non mostrano il collegamento.
+export function linkArea(veste: Veste): string | undefined {
+  if (!coro.funzioni.areaCoristi) return undefined;
+  return DEMO ? link(veste, '/area') : coro.link.areaCoristi;
+}

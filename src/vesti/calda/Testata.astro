@@ -3,8 +3,8 @@
 // menu mobile a tutta larghezza con voci grandi e comode da toccare.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import { AREA_CORISTI, coro } from '../../motore/coro';
-import { link } from '../../motore/url';
+import { coro } from '../../motore/coro';
+import { link, linkArea } from '../../motore/url';
 import { vociMenu, type Pagina } from '../../motore/navigazione';
 import type { Veste } from '../../motore/aspetto';
 
@@ -26,7 +26,7 @@ const vociNav = voci.filter((v) => !(f.cantaConNoi && v.id === 'canta-con-noi'))
       {vociNav.map((v) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}</a>)}
     </nav>
     <div class="azioni">
-      {AREA_CORISTI && <a class="accesso-area" href={link(veste, '/area')} aria-label="Area coristi" title="Area coristi"><Icona nome="lucchetto" /><span>Area coristi</span></a>}
+      {linkArea(veste) && <a class="accesso-area" href={linkArea(veste)} aria-label="Area coristi" title="Area coristi"><Icona nome="lucchetto" /><span>Area coristi</span></a>}
       <a class="btn g invito" href={invito.href} aria-current={f.cantaConNoi && pagina === 'canta-con-noi' ? 'page' : undefined}><Icona nome={invito.icona} />{invito.testo}</a>
       <button class="hamb" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
     </div>
@@ -39,7 +39,7 @@ const vociNav = voci.filter((v) => !(f.cantaConNoi && v.id === 'canta-con-noi'))
       <div class="extra">
         <a class="btn g" href={link(veste, '/concerti#in-programma')}><Icona nome="calendario" />Calendario concerti</a>
         {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-        {AREA_CORISTI && <a class="btn o" href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+        {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
       </div>
     </div>
   </div>

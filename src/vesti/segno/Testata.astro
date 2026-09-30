@@ -3,8 +3,8 @@
 // servizi a destra), poi la testata con il marchio e il menu numerato; menu mobile a tutta pagina.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import { AREA_CORISTI, coro } from '../../motore/coro';
-import { link } from '../../motore/url';
+import { coro } from '../../motore/coro';
+import { link, linkArea } from '../../motore/url';
 import { vociMenu, type Pagina } from '../../motore/navigazione';
 import type { Veste } from '../../motore/aspetto';
 
@@ -21,7 +21,7 @@ const due = (n: number) => String(n + 1).padStart(2, '0');
     <span class="dx">
       <span class="sg-stagione">Stagione {coro.stagione.sigla}</span>
       {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-      {AREA_CORISTI && <a href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+      {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
     </span>
   </div>
 </div>
@@ -40,7 +40,7 @@ const due = (n: number) => String(n + 1).padStart(2, '0');
       {voci.map((v, i) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href}><small aria-hidden="true">{due(i)}</small>{v.testo}</a>)}
       <div class="extra">
         {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-        {AREA_CORISTI && <a class="btn o" href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+        {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
       </div>
     </div>
   </div>

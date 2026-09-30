@@ -71,6 +71,9 @@ export const schemaCoro = z.object({
     youtubeCanale: z.string().optional(),
     instagram: z.url().optional(),
     facebook: z.url().optional(),
+    // Area coristi esterna (per esempio un Google Site, o un'anteprima in public/), usata
+    // finché l'area coristi del sito non è pronta: indirizzo completo o percorso "/…"
+    areaCoristi: z.string().optional(),
     // Scheda del coro in PDF per gli organizzatori, dentro public/
     schedaPdf: z.string().optional(),
   }),
@@ -86,6 +89,9 @@ export const schemaCoro = z.object({
     veste: z.enum(chiavi(VESTI)),
     palette: z.enum(chiavi(PALETTE)),
     carattere: z.enum(chiavi(CARATTERI)),
+    // Caratteri Google Fonts usati solo dal logo (coro/Logo.astro), come parametro "family":
+    // 'Archivo:wdth,wght@125,300;125,900'
+    caratteriLogo: z.array(z.string()).optional(),
   }),
 
   funzioni: z.object({

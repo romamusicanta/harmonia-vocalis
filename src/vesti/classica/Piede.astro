@@ -4,8 +4,8 @@
 import Marchio from './Marchio.astro';
 import Fregio from './Fregio.astro';
 import FirmaDimora from '../../componenti/FirmaDimora.astro';
-import { AREA_CORISTI, coro } from '../../motore/coro';
-import { link } from '../../motore/url';
+import { coro } from '../../motore/coro';
+import { link, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste }
@@ -55,7 +55,7 @@ const social = [
 
     <div class="cl-colophon">
       <p>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</p>
-      <p><a href={link(veste, '/privacy')}>Privacy</a>{AREA_CORISTI && <> · <a href={link(veste, '/area')}>Area coristi</a></>} · <FirmaDimora /></p>
+      <p><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>} · <FirmaDimora /></p>
     </div>
   </div>
 </footer>

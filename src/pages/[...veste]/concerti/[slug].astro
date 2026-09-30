@@ -6,6 +6,7 @@ import Icona from '../../../componenti/Icona.astro';
 import Video from '../../../componenti/Video.astro';
 import NotaVideo from '../../../componenti/NotaVideo.astro';
 import { coro } from '../../../motore/coro';
+import { Logo } from '../../../motore/logo';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { archivio, linkGoogleCalendar, linkMappa, luogoCompleto, parti, prossimiConcerti, slug, stagione } from '../../../motore/concerti';
 import { trovaVideo } from '../../../motore/video';
@@ -72,9 +73,9 @@ const altri = [
           <div class="locandina-cont"><div class="locandina" role="img" aria-label={`Locandina: ${titoloBreve}, ${quando}${c.luogo ? `, ${c.luogo}` : ''}`}>
             <svg class="diap" viewBox="0 0 22 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 2v9a8 8 0 0 0 16 0V2" /><path d="M11 19v7" /></svg>
             <div class="fascia-g"></div>
-            {/* Marchio testuale del coro (sigla e nome) al posto del logo */}
+            {/* Logo del coro, se c'è; altrimenti marchio testuale (sigla e nome) */}
             <div class="testa-l">
-              <span style="display:flex;align-items:center;gap:2cqw;color:#fff;letter-spacing:.08em"><b style="display:grid;place-items:center;width:6.4cqw;height:6.4cqw;background:var(--accento);color:var(--primario);border-radius:var(--raggio);letter-spacing:0">{coro.sigla}</b>{coro.nome}</span>
+              {Logo ? <span class="logo-coro locandina-logo"><Logo /></span> : <span style="display:flex;align-items:center;gap:2cqw;color:#fff;letter-spacing:.08em"><b style="display:grid;place-items:center;width:6.4cqw;height:6.4cqw;background:var(--accento);color:var(--primario);border-radius:var(--raggio);letter-spacing:0">{coro.sigla}</b>{coro.nome}</span>}
               {c.rassegna && <span style="text-align:right">{c.rassegna}</span>}
             </div>
             <div class="autore">{cognome ?? c.titolo}</div>

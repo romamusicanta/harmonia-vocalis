@@ -75,7 +75,7 @@ export type Carattere = keyof typeof CARATTERI;
 const conStile = Object.keys(import.meta.glob('../vesti/*/stile.css')).map((p) => p.split('/')[2]);
 export const vestiPronte = (Object.keys(VESTI) as Veste[]).filter((v) => conStile.includes(v));
 
-export function urlCaratteri(elenco: Carattere[]) {
-  const famiglie = elenco.flatMap((c) => CARATTERI[c].famiglie).map((f) => `family=${f}`);
+export function urlCaratteri(elenco: Carattere[], altre: string[] = []) {
+  const famiglie = [...elenco.flatMap((c) => CARATTERI[c].famiglie), ...altre].map((f) => `family=${f}`);
   return `https://fonts.googleapis.com/css2?${famiglie.join('&')}&display=swap`;
 }

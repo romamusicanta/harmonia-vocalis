@@ -3,8 +3,8 @@
 // menu in maiuscoletto tra due filetti doppi. Su telefono: marchio centrato e menu a comparsa.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import { AREA_CORISTI, coro } from '../../motore/coro';
-import { link } from '../../motore/url';
+import { coro } from '../../motore/coro';
+import { link, linkArea } from '../../motore/url';
 import { vociMenu, type Pagina } from '../../motore/navigazione';
 import type { Veste } from '../../motore/aspetto';
 
@@ -22,7 +22,7 @@ const info = [coro.associazione, coro.affiliazioni].filter(Boolean).join(' · ')
       <span class="dx">
         <a href={link(veste, '/concerti#in-programma')}>Calendario</a>
         {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-        {AREA_CORISTI && <a href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+        {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
       </span>
     </div>
   </div>
@@ -43,7 +43,7 @@ const info = [coro.associazione, coro.affiliazioni].filter(Boolean).join(' · ')
       <div class="extra">
         <a href={link(veste, '/concerti#in-programma')}>Calendario dei concerti</a>
         {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-        {AREA_CORISTI && <a href={link(veste, '/area')}>Area coristi</a>}
+        {linkArea(veste) && <a href={linkArea(veste)}>Area coristi</a>}
       </div>
     </div>
   </div>
