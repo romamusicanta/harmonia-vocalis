@@ -3,31 +3,30 @@
 Sito statico del Coro Harmonia Vocalis (Associazione Culturale Musicale Roma Musicanta), destinato a `romamusicanta.org`.
 L'associazione usa Google Workspace for Nonprofits (edizione gratuita) sul dominio `romamusicanta.org`.
 
-Dal 30/09/2026 il sito è **una copia del modello Dimora Choir** (`~/projects/dimorachoir`, prodotto di Mario per vendere siti ai cori): il motore viene dal modello, i dati del coro stanno in `coro/`. Per come funziona il motore vale l'AGENTS.md del modello; qui c'è solo ciò che è proprio di Harmonia Vocalis.
+Il sito è nato il 30/09/2026 come copia del modello Dimora Choir (`~/projects/dimorachoir`, prodotto di Mario per vendere siti ai cori), ma **da allora è indipendente**: il modello resta solo una vetrina e non si portano più aggiornamenti da lì. Il motore (`src/`) si modifica direttamente qui; i dati del coro stanno in `coro/`.
 
 ## Comandi verificati
 
 - `npm ci` — dipendenze, versioni bloccate (Node ≥ 22.12)
 - `npm run dev:sito` — server di sviluppo del sito su http://localhost:4321 (in `.claude/launch.json` come `sito`). `npm run dev` invece apre la **demo** del modello (pannello di scelta, tutte le vesti): utile per provare il logo e i dati di HV nelle altre vesti, ma l'area di esempio usa foto del Coro Esempio che qui non ci sono.
 - `npm run build` — genera il sito statico in `dist/` (è quello che costruisce Vercel, vedi `vercel.json`)
-- `git fetch modello && git merge modello/main` — porta dentro correzioni e novità del modello (vedi Workflow)
 
 ## Architettura
 
-- **Motore** (`src/`, `package.json`, `astro.config.mjs`…): dal modello, **non modificarlo qui**. Una correzione va fatta nel modello e poi portata con un merge; una modifica fatta qui entra in conflitto al prossimo aggiornamento.
+- **Motore** (`src/`, `package.json`, `astro.config.mjs`…): venuto dal modello, ora si corregge e si estende qui. Contiene ancora le vesti che HV non usa (`src/vesti/` oltre a `classica`) e la demo (`src/demo/`, `npm run dev`).
 - **Dati del coro** (`coro/`):
-  - `coro.config.ts` — dati generali (email, sede, prove, Maestro, direttivo, organico, link), aspetto e funzioni attive. Aspetto: veste **Classica**, palette **porpora**, carattere **EB Garamond** (`garamond`).
+  - `coro.config.ts` — dati generali (email, sede, prove, Maestro, direttivo, organico, link), aspetto e funzioni attive. Aspetto: veste **Classica**, palette **porpora**, carattere **EB Garamond** (`garamond`). In prova fino alla scelta definitiva (`aspetto.inProva`): la grafica di prima, veste **Stagione** con porpora e **Manrope**, generata anche nel sito vero sotto `/stagione/` (pagine `noindex`) con un selettore fisso in basso (`src/componenti/SceltaVeste.astro`) per passare dall'una all'altra. Per nasconderli basta svuotare `inProva`.
   - `Logo.astro` — logo 3 "Diapason orizzontale" in SVG, disegnato con `currentColor` e il punto in `var(--accento)`. Il carattere Archivo largo è in `aspetto.caratteriLogo`.
-  - `concerti.ts` — prossimi di riserva e archivio curato a mano, con gli ID dei video YouTube.
+  - `concerti.ts` — archivio storico curato a mano (con gli ID dei video YouTube) e prossimi di riserva, usati solo se il calendario non c'è o non risponde.
   - `video.ts` — ID del canale, video in evidenza, istantanea di riserva con l'autore per il raggruppamento.
   - `testi/*.md` — storia, Maestro, canta con noi, organizzatori, privacy.
   - `immagini/` — foto, con i crediti in `CREDITI.md`.
 - **Dati letti in fase di build**:
   - **Video**: feed RSS del canale `@romamusicanta`.
-  - **Prossimi concerti**: indirizzo iCal pubblico del calendario Google "Concerti", nella variabile `CALENDARIO_CONCERTI_ICS` (e `CALENDARIO_CONCERTI_ID` per il pulsante "Iscriviti"). Convenzione per gli eventi: titolo = rassegna/evento, luogo = città e sala, prima riga della descrizione = programma, righe successive = note.
+  - **Concerti**: indirizzo iCal pubblico del calendario Google "Concerti", nella variabile `CALENDARIO_CONCERTI_ICS` (e `CALENDARIO_CONCERTI_ID` per il pulsante "Iscriviti"). Gli eventi futuri sono "in programma"; quelli passati entrano da soli nell'archivio, accanto a quello storico di `coro/concerti.ts` (a parità di giorno vale il file). Convenzione per gli eventi, descritta per esteso in testa a `src/motore/concerti.ts`: titolo = rassegna/evento; luogo = "città, sala" oppure un indirizzo scelto da Google Maps; "Tutto il giorno" = orario da definire; descrizione = prima riga "Autore · Opera" (altre opere sulle righe seguenti), poi righe `Organizza:`, `Ingresso:`, `Organico:`, `Brani:`, `Foto:` (file in `coro/immagini`), `Video:` (ID YouTube), `Evidenza:`; ogni altra etichetta è un interprete (`Soprano: Maria Rossi`, `Solisti: (soprano, contralto…)` = da annunciare). Righe senza etichetta, foto inesistenti ed eventi annullati sono scartati con un avviso `[calendario]`.
   - Se una fonte non risponde, il sito usa i dati di `coro/` e lo scrive a console con `[youtube]` / `[calendario]`.
-- **Area coristi**: il sito non la genera ancora, perché l'accesso con Google è da fare nel modello. Il collegamento "Area coristi" porta all'anteprima del mockup (`link.areaCoristi: '/mockup/sito/area.html'`).
-- **File propri del coro**: in `.gitattributes` sono marcati `merge=ours`, così un aggiornamento del modello non li sovrascrive. Sono `coro/**`, `AGENTS.md`, `vercel.json`, `.claude/launch.json` e `public/favicon.svg`. Serve una volta per clone: `git config merge.ours.driver true`. `CLAUDE.md` è un collegamento simbolico ad `AGENTS.md`.
+- **Area coristi**: il sito non la genera ancora, perché l'accesso con Google è da fare. Il collegamento "Area coristi" porta all'anteprima del mockup (`link.areaCoristi: '/mockup/sito/area.html'`).
+- `CLAUDE.md` è un collegamento simbolico ad `AGENTS.md`.
 - **Mockup** (`public/mockup/`, HTML statico servito così com'è):
   - le tre direzioni visive iniziali;
   - le proposte di logo (`logo/`);
@@ -47,8 +46,8 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: in produzion
 ## Workflow
 
 1. Aggiornare i dati in `coro/`, oppure direttamente nel calendario Google e su YouTube.
-2. Un problema del motore o delle vesti si corregge in `~/projects/dimorachoir`, poi qui `git fetch modello && git merge modello/main`. Il remote `modello` punta per ora alla cartella locale del modello; il ramo `modello/logo-del-coro` contiene le novità nate per HV (logo del coro, area coristi esterna) finché non entra in `main` del modello.
-3. `npm run build` per verificare che la build passi.
+2. Motore e veste Classica si modificano qui, in `src/`. Il modello `~/projects/dimorachoir` non si tocca da qui e non se ne portano aggiornamenti.
+3. `npm run build` per verificare che la build passi. Per provare il calendario senza quello vero: servire un file `.ics` in locale (`python3 -m http.server`) e lanciare la build con `CALENDARIO_CONCERTI_ICS=http://localhost:<porta>/file.ics`.
 4. Controllo visivo con `npm run dev:sito`, anche a larghezza mobile (375px).
 
 ## Trappole note
@@ -58,5 +57,5 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: in produzion
 - Le miniature YouTube del canale esistono solo fino a `sddefault` (640×480): `maxresdefault` restituisce 404.
 - Il luogo delle prove è discordante tra italiacori (Via del Frantoio 2) e YouTube (Via di Casal Bruciato 15): da confermare prima della pubblicazione.
 - Le foto in `coro/immagini/` vengono dalla scheda italiacori: autori e permessi sono da verificare (`CREDITI.md`).
-- La sezione "Baritoni e Bassi" dell'organico nel modello dà due rese sbagliate: "Baritoni e basso" nel modulo di candidatura e "tenori e baritoni e bassi" negli organizzatori. Va corretto nel modello.
+- La sezione "Baritoni e Bassi" dell'organico dà due rese sbagliate: "Baritoni e basso" nel modulo di candidatura e "tenori e baritoni e bassi" negli organizzatori. Da correggere nel motore.
 - Gli screenshot del pannello browser integrato risultano neri dopo lo scorrimento; per verifiche visive a pagina intera usare Chrome headless (`--screenshot`), che però ha una larghezza minima di circa 500px.

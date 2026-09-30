@@ -92,6 +92,11 @@ export const schemaCoro = z.object({
     // Caratteri Google Fonts usati solo dal logo (coro/Logo.astro), come parametro "family":
     // 'Archivo:wdth,wght@125,300;125,900'
     caratteriLogo: z.array(z.string()).optional(),
+    // Vesti in prova: generate anche nel sito vero sotto /<veste>/, con un selettore per passare
+    // dall'una all'altra. Si svuota quando la scelta è fatta.
+    inProva: z
+      .array(z.object({ veste: z.enum(chiavi(VESTI)), palette: z.enum(chiavi(PALETTE)), carattere: z.enum(chiavi(CARATTERI)) }))
+      .default([]),
   }),
 
   funzioni: z.object({

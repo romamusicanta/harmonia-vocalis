@@ -23,6 +23,8 @@ export function immagine(nome: string) {
   return trovata.default;
 }
 
+export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in immagini;
+
 export const indirizzo = (l: { indirizzo: string; cap: string; citta: string }) => `${l.indirizzo}, ${l.cap} ${l.citta}`;
 
 // L'area coristi vera (accesso con Google) è ancora da fare: per ora esiste solo nella demo.

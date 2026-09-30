@@ -18,6 +18,7 @@ export type Concerto = {
   rassegna?: string;
   luogo?: string;        // città: "Bologna"
   sala?: string;         // "Chiesa di San Giacomo"
+  indirizzo?: string;    // indirizzo completo, per la mappa (dal calendario, se scelto da Google Maps)
   organizza?: string;
   ingresso?: string;
   programma?: Brano[];

@@ -102,6 +102,9 @@ export default {
     carattere: 'garamond',
     // Archivo largo, solo per il logo (coro/Logo.astro)
     caratteriLogo: ['Archivo:wdth,wght@125,300;125,900'],
+    // In prova fino alla scelta definitiva: la grafica di prima, sotto /stagione/.
+    // Per nascondere selettore e copie delle pagine basta svuotare l'elenco.
+    inProva: [{ veste: 'stagione', palette: 'porpora', carattere: 'manrope' }],
   },
 
   funzioni: {

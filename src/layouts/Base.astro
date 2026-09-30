@@ -8,6 +8,8 @@ import Pannello from '../demo/Pannello.astro';
 import PannelloIniziale from '../demo/PannelloIniziale.astro';
 import { coro, DEMO } from '../motore/coro';
 import { CARATTERI, urlCaratteri, type Carattere, type Veste } from '../motore/aspetto';
+import SceltaVeste from '../componenti/SceltaVeste.astro';
+import { aspettoDi } from '../motore/url';
 import { vesti } from '../vesti';
 import type { Pagina } from '../motore/navigazione';
 
@@ -22,17 +24,20 @@ interface Props {
 const { veste, titolo, descrizione = coro.descrizione, pagina, area } = Astro.props;
 const { Testata, Piede, TestataArea, PiedeArea, stili } = vesti[veste];
 const titoloCompleto = titolo ? `${titolo} — ${coro.nome}` : `${coro.nome} — ${coro.tipo} a ${coro.citta}`;
-const caratteri = DEMO ? (Object.keys(CARATTERI) as Carattere[]) : [coro.aspetto.carattere];
+const aspetto = aspettoDi(veste);
+const caratteri = DEMO ? (Object.keys(CARATTERI) as Carattere[]) : [aspetto.carattere];
+// Le copie delle pagine nelle vesti in prova non vanno indicizzate
+const inProva = !DEMO && veste !== coro.aspetto.veste;
 ---
 
 <!doctype html>
-<html lang="it" data-veste={veste} data-palette={coro.aspetto.palette} data-carattere={coro.aspetto.carattere}>
+<html lang="it" data-veste={veste} data-palette={aspetto.palette} data-carattere={aspetto.carattere}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{titoloCompleto}</title>
     <meta name="description" content={descrizione} />
-    {(DEMO || area) && <meta name="robots" content="noindex, nofollow" />}
+    {(DEMO || area || inProva) && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -47,6 +52,7 @@ const caratteri = DEMO ? (Object.keys(CARATTERI) as Carattere[]) : [coro.aspetto
     </main>
     {area ? <PiedeArea veste={veste} /> : <Piede veste={veste} />}
     {DEMO && <Pannello veste={veste} />}
+    {!DEMO && coro.aspetto.inProva.length > 0 && <SceltaVeste veste={veste} />}
     <script>
       import '../motore/interazioni';
     </script>

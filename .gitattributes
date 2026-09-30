@@ -1,8 +1,0 @@
-# File propri di questo coro: quando si porta dentro un aggiornamento del modello Dimora Choir
-# (git merge modello/main) si tiene sempre la versione di Harmonia Vocalis.
-# Richiede una volta: git config merge.ours.driver true
-AGENTS.md merge=ours
-vercel.json merge=ours
-.claude/launch.json merge=ours
-public/favicon.svg merge=ours
-coro/** merge=ours

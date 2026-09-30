@@ -1,64 +1,144 @@
-// Concerti: i prossimi dal calendario Google "Concerti" (iCal pubblico, letto in fase di build),
-// l'archivio da coro/concerti.ts.
+// Concerti: tutti dal calendario Google "Concerti" (iCal pubblico, letto in fase di build).
+// Gli eventi futuri sono "in programma", quelli passati entrano da soli nell'archivio.
+// coro/concerti.ts tiene l'archivio storico e i prossimi di riserva, usati se il calendario
+// non è configurato o non risponde.
 //
 // Convenzione per chi inserisce gli eventi nel calendario:
-//   Titolo       → nome dell'evento o della rassegna
-//   Luogo        → città e sala, separati da virgola: "Bologna, Chiesa di San Giacomo"
-//   Descrizione  → prima riga: programma ("W. A. Mozart · Requiem K 626");
-//                  righe successive: note (organizzatore, ingresso…)
+//   Data         → "Tutto il giorno" finché l'orario non è deciso (il sito scrive "Orario da definire")
+//   Titolo       → nome dell'evento o della rassegna: "Autunno Musicale 2026"
+//   Luogo        → "Città, sala" scritto a mano ("Rignano Flaminio (RM), Chiesa di San Vincenzo"),
+//                  oppure un indirizzo scelto da Google Maps
+//   Descrizione  → prima riga: programma ("W. A. Mozart · Requiem K 626"),
+//                  eventuali altre opere su righe seguenti, stessa forma;
+//                  poi righe "Etichetta: valore":
+//                    Organizza: Comune di Rignano Flaminio
+//                    Ingresso: libero
+//                    Organico: per soli, coro e orchestra      (dell'opera appena sopra)
+//                    Brani: Introitus, Kyrie, Dies irae        (dell'opera appena sopra)
+//                    Foto: terme.jpg                           (file in coro/immagini)
+//                    Video: 43p4ArVIS_Q                        (ID YouTube, dopo il concerto)
+//                    Evidenza: Il primo concerto del coro
+//                  ogni altra etichetta è un interprete:
+//                    Orchestra: Orchestra Sinfonica di Roma
+//                    Soprano: Maria Rossi
+//                    Solisti: (soprano, contralto, tenore, basso)   → "Da annunciare", con la nota
 import ical from 'node-ical';
-import { coro } from './coro';
-import type { Concerto } from './tipi';
+import { coro, esisteImmagine } from './coro';
+import type { Brano, Concerto } from './tipi';
 import { archivio as archivioCoro, prossimi as prossimiCoro } from '../../coro/concerti';
-
-let cache: Promise<Concerto[]> | undefined;
-
-export function prossimiConcerti(): Promise<Concerto[]> {
-  cache ??= carica().then(filtraFuturi);
-  return cache;
-}
-
-// L'archivio, dal più recente
-export const archivio = [...archivioCoro].sort((a, b) => b.data.localeCompare(a.data));
-
-async function carica(): Promise<Concerto[]> {
-  const ics = coro.calendario.ics;
-  if (!ics) return prossimiCoro;
-  try {
-    const dati = await ical.async.fromURL(ics);
-    return Object.values(dati)
-      .filter((c): c is ical.VEvent => c?.type === 'VEVENT')
-      .map((e) => {
-        const [programma = '', ...note] = testo(e.description).split('\n').map((r) => r.trim());
-        const [autore, opera] = programma.includes('·') ? programma.split('·').map((s) => s.trim()) : [undefined, programma];
-        const [luogo, ...sala] = testo(e.location).split(',').map((s) => s.trim());
-        const soloGiorno = (e.start as { dateOnly?: boolean }).dateOnly === true;
-        return {
-          data: soloGiorno ? giornoIso(e.start) : oraRoma(e.start),
-          autore,
-          titolo: opera || testo(e.summary),
-          rassegna: opera ? testo(e.summary) : undefined,
-          luogo: luogo || undefined,
-          sala: sala.join(', ') || undefined,
-          organizza: note.filter(Boolean).join(' · ') || undefined,
-        } satisfies Concerto;
-      });
-  } catch (err) {
-    console.warn(`[calendario] non raggiungibile, uso i dati locali: ${err}`);
-    return prossimiCoro;
-  }
-}
-
-function filtraFuturi(elenco: Concerto[]) {
-  const oggi = giornoIso(new Date());
-  return elenco.filter((c) => c.data.slice(0, 10) >= oggi).sort((a, b) => a.data.localeCompare(b.data));
-}
-
-const testo = (v: unknown) => (typeof v === 'string' ? v : ((v as { val?: string })?.val ?? '')).trim();
 
 const fuso = { timeZone: 'Europe/Rome' } as const;
 const giornoIso = (d: Date) => new Intl.DateTimeFormat('sv-SE', fuso).format(d);
 const oraRoma = (d: Date) => new Intl.DateTimeFormat('sv-SE', { ...fuso, dateStyle: 'short', timeStyle: 'short' }).format(d).replace(' ', 'T');
+
+const testo = (v: unknown) => (typeof v === 'string' ? v : ((v as { val?: string })?.val ?? '')).trim();
+
+// Google mette HTML nella descrizione quando si usano grassetti, elenchi o link
+function senzaHtml(s: string) {
+  if (!/<[a-z][^>]*>/i.test(s)) return s;
+  return s
+    .replace(/<br\s*\/?>|<\/(p|div|li)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+}
+
+const etichettaRiga = /^([\p{L}' ]{2,30}):\s*(.*)$/u;
+
+function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
+  const righe = senzaHtml(descrizione).split('\n').map((r) => r.trim()).filter(Boolean);
+  const programma: Brano[] = [];
+  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'video' | 'evidenza'> = {};
+  const interpreti: NonNullable<Concerto['interpreti']> = [];
+  for (const riga of righe) {
+    // Le opere vengono prima di tutte le etichette; la prima riga è sempre un'opera, anche con i due punti
+    const inProgramma = !interpreti.length && !Object.keys(dati).length && programma.every((b) => !b.parti && !b.organico);
+    const m = inProgramma && (!programma.length || riga.includes('·')) ? null : riga.match(etichettaRiga);
+    if (!m) {
+      if (!inProgramma) avviso(`riga senza etichetta ignorata: "${riga}"`);
+      else {
+        const [autore, opera] = riga.includes('·') ? riga.split('·').map((s) => s.trim()) : [undefined, riga];
+        programma.push({ autore, opera });
+      }
+      continue;
+    }
+    const [, nome, valore] = m;
+    const chiave = nome.trim().toLowerCase();
+    const ultima = programma.at(-1);
+    if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
+    else if (chiave === 'foto') {
+      if (esisteImmagine(valore)) dati.foto = valore;
+      else avviso(`foto "${valore}" non trovata in coro/immagini`);
+    } else if (chiave === 'brani' && ultima) ultima.parti = valore.split(',').map((s) => s.trim()).filter(Boolean);
+    else if (chiave === 'organico' && ultima) ultima.organico = valore;
+    else {
+      // "Solisti: (soprano, contralto, tenore, basso)" → nome da annunciare, con la nota
+      const [, nomeInterprete = '', nota] = valore.match(/^(.*?)\s*(?:\((.*)\))?$/) ?? [];
+      interpreti.push({ ruolo: nome.trim(), nome: nomeInterprete || undefined, nota: nota || undefined });
+    }
+  }
+  return { programma, dati, interpreti };
+}
+
+// Luogo scritto a mano: "Rignano Flaminio (RM), Chiesa di San Vincenzo".
+// Luogo scelto da Google Maps: "Chiesa di San Vincenzo, Via Roma 1, 00068 Rignano Flaminio RM, Italia".
+function leggiLuogo(luogo: string): Pick<Concerto, 'luogo' | 'sala' | 'indirizzo'> {
+  const pezzi = luogo.split(',').map((s) => s.trim()).filter(Boolean);
+  const conCap = pezzi.findIndex((p) => /^\d{5}\s/.test(p));
+  if (conCap < 0) return { luogo: pezzi[0], sala: pezzi.slice(1).join(', ') || undefined };
+  // "00068 Rignano Flaminio RM" → "Rignano Flaminio (RM)"; "00159 Roma RM" → "Roma"
+  const citta = pezzi[conCap].replace(/^\d{5}\s+/, '').replace(/\s+([A-Z]{2})$/, ' ($1)').replace(/^Roma \(RM\)$/, 'Roma');
+  const primo = pezzi[0];
+  const eStrada = /^(via|viale|piazza|piazzale|largo|corso|vicolo|lungotevere|circonvallazione|borgo|contrada|località|loc\.)\b/i.test(primo);
+  return { luogo: citta, sala: conCap > 0 && !eStrada ? primo : undefined, indirizzo: luogo };
+}
+
+function daEvento(e: ical.VEvent): Concerto {
+  const soloGiorno = (e.start as { dateOnly?: boolean }).dateOnly === true;
+  const data = soloGiorno ? giornoIso(e.start) : oraRoma(e.start);
+  const titoloEvento = testo(e.summary);
+  const { programma, dati, interpreti } = leggiDescrizione(testo(e.description), (m) => console.warn(`[calendario] ${data} ${titoloEvento}: ${m}`));
+  const [principale] = programma;
+  return {
+    data,
+    autore: principale?.autore,
+    titolo: principale?.opera || titoloEvento,
+    rassegna: principale ? titoloEvento || undefined : undefined,
+    ...leggiLuogo(testo(e.location)),
+    ...dati,
+    // Il programma dettagliato serve solo se c'è più di un'opera o qualche dettaglio in più
+    programma: programma.length > 1 || principale?.parti || principale?.organico ? programma : undefined,
+    interpreti: interpreti.length ? interpreti : undefined,
+  };
+}
+
+async function carica(): Promise<Concerto[] | undefined> {
+  const ics = coro.calendario.ics;
+  if (!ics) return undefined;
+  try {
+    const dati = await ical.async.fromURL(ics);
+    return Object.values(dati)
+      .filter((c): c is ical.VEvent => c?.type === 'VEVENT' && (c as ical.VEvent).status !== 'CANCELLED')
+      .map(daEvento);
+  } catch (err) {
+    console.warn(`[calendario] non raggiungibile, uso i dati locali: ${err}`);
+    return undefined;
+  }
+}
+
+const dalCalendario = await carica();
+const oggi = giornoIso(new Date());
+const giorno = (c: Concerto) => c.data.slice(0, 10);
+
+// In programma: dal più vicino
+const prossimi = (dalCalendario ?? prossimiCoro).filter((c) => giorno(c) >= oggi).sort((a, b) => a.data.localeCompare(b.data));
+
+export const prossimiConcerti = async (): Promise<Concerto[]> => prossimi;
+
+// L'archivio, dal più recente: quello storico di coro/concerti.ts più i concerti passati del
+// calendario (se un giorno è in tutti e due, vale coro/concerti.ts)
+const giorniStorici = new Set(archivioCoro.map(giorno));
+export const archivio = [...archivioCoro, ...(dalCalendario ?? []).filter((c) => giorno(c) < oggi && !giorniStorici.has(giorno(c)))]
+  .sort((a, b) => b.data.localeCompare(a.data));
 
 // ——— Formattazione ———
 

@@ -83,7 +83,8 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
               <a class="btn o" href={l(`/concerti/${slug(prossimo)}#calendario`)}><Icona nome="calendario-piu" />Aggiungi al calendario</a>
             </div>
           </div>
-          <div class="foto">{prossimo.foto && <Foto nome={prossimo.foto} sizes="(min-width: 900px) 40vw, 100vw" />}</div>
+          {/* Senza "Foto:" nell'evento, la foto di apertura del coro */}
+          <div class="foto"><Foto nome={prossimo.foto ?? coro.foto.apertura} sizes="(min-width: 900px) 40vw, 100vw" /></div>
         </article>
       ) : (
         <p class="tenue" style="font-size:19px;padding:24px 0">Nessun concerto in calendario per ora: la nuova stagione è in preparazione.</p>

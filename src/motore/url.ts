@@ -10,13 +10,26 @@ export function percorsiVesti() {
 }
 
 function vesteDaPercorsi(): Veste[] {
-  if (!DEMO) return [coro.aspetto.veste];
+  if (!DEMO) return [coro.aspetto.veste, ...coro.aspetto.inProva.map((p) => p.veste).filter((v) => v !== coro.aspetto.veste)];
   return [coro.aspetto.veste, ...vestiPronte.filter((v) => v !== coro.aspetto.veste)];
 }
 
 export const vestiInDemo = vesteDaPercorsi;
 
 const prefisso = (veste: Veste) => (veste === coro.aspetto.veste ? undefined : veste);
+
+// Palette e carattere di una veste: quelli del coro, o quelli indicati per una veste in prova
+export function aspettoDi(veste: Veste) {
+  const inProva = !DEMO && coro.aspetto.inProva.find((p) => p.veste === veste);
+  return inProva ? { palette: inProva.palette, carattere: inProva.carattere } : { palette: coro.aspetto.palette, carattere: coro.aspetto.carattere };
+}
+
+// Percorso di una pagina senza il prefisso della veste: "/stagione/concerti" → "/concerti"
+export function percorsoSenzaVeste(veste: Veste, percorso: string) {
+  const p = prefisso(veste);
+  const senza = p && (percorso === `/${p}` || percorso.startsWith(`/${p}/`)) ? percorso.slice(p.length + 1) || '/' : percorso;
+  return senza.length > 1 ? senza.replace(/\/$/, '') : senza;
+}
 
 // Veste della pagina corrente, dal parametro [...veste]
 export function vesteCorrente(param: string | undefined): Veste {

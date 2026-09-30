@@ -34,13 +34,13 @@ const titoloBreve = [cognome, c.titolo].filter(Boolean).join(', ');
 const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 const quando = minuscola(d.esteso);
 const dove = luogoCompleto(c);
-const indirizzoMappa = [c.sala, c.luogo].filter(Boolean).join(', ');
+const indirizzoMappa = c.indirizzo ?? [c.sala, c.luogo].filter(Boolean).join(', ');
 const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
 
 const indirizzoPagina = new URL(l(`/concerti/${slug(c)}`), coro.url).href;
 const testoWhatsApp = `${titoloBreve} — ${quando}${c.luogo ? `, ${c.luogo}` : ''}. ${coro.nome}\n${indirizzoPagina}`;
 
-// Programma: dal calendario arriva solo autore e titolo, dall'archivio locale anche i movimenti
+// Programma: quello dettagliato se c'è (brani, organico, più opere), altrimenti autore e titolo
 const programma: Brano[] = c.programma?.length ? c.programma : [{ autore: c.autore, opera: c.titolo }];
 
 // Registrazione dello stesso programma, se c'è nell'archivio (la più recente)
@@ -86,7 +86,7 @@ const altri = [
             </div>
           </div></div>
           <p class="nota-privacy">Locandina generata dal sito con i dati del calendario.</p>
-          {/* Dati: Google Calendar "Concerti" (titolo = rassegna, luogo, prima riga della descrizione = programma) */}
+          {/* Dati: Google Calendar "Concerti" (convenzione in src/motore/concerti.ts) */}
         </div>
 
         <div>
@@ -119,7 +119,7 @@ const altri = [
       <div class="due-col metà">
         <div>
           <div class="testa"><h2>Programma</h2></div>
-          {/* Dati: prima riga della descrizione dell'evento, o programma dettagliato in coro/concerti.ts */}
+          {/* Dati: descrizione dell'evento nel calendario (opere, Organico:, Brani:) o coro/concerti.ts */}
           {programma.map((b) => (
             <>
               <div class="riga" style="grid-template-columns:minmax(0,1fr) auto;border-bottom:3px solid var(--primario)">
