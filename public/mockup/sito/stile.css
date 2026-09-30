@@ -158,8 +158,8 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 .blocco-foto a.scheda:hover { padding-bottom: 32px; }
 .scheda .n { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 52px; line-height: .85; letter-spacing: -0.012em; }
 .scheda .n small { font-family: var(--f-titoli); font-size: 18px; letter-spacing: .04em; font-weight: var(--peso-titoli); display: block; margin-top: 8px; text-transform: uppercase; }
-.scheda p { font-weight: 700; font-size: 20px; line-height: 1.2; margin-top: 14px; }
-.scheda p span { display: block; font-weight: 500; font-size: 15px; margin-top: 4px; }
+.scheda p { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 21px; line-height: 1.2; margin-top: 14px; }
+.scheda p span { display: block; font-family: var(--f-testo); font-weight: 500; font-size: 15px; margin-top: 4px; }
 .scheda .vai { display: inline-flex; gap: 6px; align-items: center; margin-top: 16px; font-weight: 800; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 
 /* ——— Schede concerto ——— */
@@ -212,7 +212,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .riga .quando small { font-family: var(--f-titoli); display: block; font-size: 12px; font-weight: var(--peso-titoli); letter-spacing: .1em; text-transform: uppercase; color: var(--tenue); margin-top: 6px; }
 .riga .quando.anno { font-size: 22px; }
 .riga .cosa { min-width: 0; }
-.riga .cosa b { display: block; font-size: 20px; font-weight: 800; color: var(--blu); letter-spacing: 0; line-height: 1.2; }
+.riga .cosa b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 21px; color: var(--blu); letter-spacing: 0; line-height: 1.2; }
 .riga .cosa .aut { display: block; margin-bottom: 2px; }
 .riga .dove { color: var(--tenue); font-size: 15px; display: flex; gap: 6px; align-items: center; }
 .riga .azione { grid-column: 2; }
@@ -241,8 +241,8 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .video:hover img { opacity: .9; transform: scale(1.02); }
 .video .play { position: absolute; left: 20px; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 16px; }
 .video .play i { width: 64px; height: 64px; background: var(--giallo); color: var(--blu); display: grid; place-items: center; flex-shrink: 0; }
-.video .play b { font-size: 22px; font-weight: 800; line-height: 1.15; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
-.video .play b span { display: block; font-weight: 400; font-size: 14px; color: var(--blu-chiaro); margin-top: 2px; }
+.video .play b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 22px; line-height: 1.15; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
+.video .play b span { display: block; font-family: var(--f-testo); font-weight: 400; font-size: 14px; color: var(--blu-chiaro); margin-top: 2px; }
 .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video.piccolo .play { left: 12px; bottom: 12px; }
 .video.piccolo .play i { width: 44px; height: 44px; }
@@ -261,7 +261,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .vid .mini img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
 .vid:hover .mini img { transform: scale(1.03); }
 .vid .mini i { position: absolute; left: 12px; bottom: 12px; width: 40px; height: 40px; background: var(--giallo); color: var(--blu); display: grid; place-items: center; }
-.vid b { font-size: 18px; font-weight: 800; line-height: 1.2; color: var(--blu); letter-spacing: 0; }
+.vid b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 19px; line-height: 1.2; color: var(--blu); letter-spacing: 0; }
 .vid small { color: var(--tenue); font-size: 14px; }
 
 /* ——— Porte ——— */
@@ -296,7 +296,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .persone { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 24px; }
 .persona { border-top: 3px solid var(--blu); padding-top: 16px; }
 .persona .ruolo { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); }
-.persona b { display: block; font-size: 22px; font-weight: 800; color: var(--blu); margin-top: 6px; letter-spacing: 0; line-height: 1.15; }
+.persona b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 22px; color: var(--blu); margin-top: 6px; letter-spacing: 0; line-height: 1.15; }
 
 /* Due colonne generiche */
 .due-col { display: grid; gap: 48px; }
@@ -677,3 +677,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .cruscotto > .su { align-self: start; }
 .accesso { min-height: min(calc(100vh - 154px), 900px); }
 .tag.bordo { white-space: normal; }
+
+/* Titoli "impliciti" (nomi di opere, titoli dei video) ovunque compaiano */
+.cosa > b, .play > b, .titolo-lettore { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spacing: 0; }
+.play > b span { font-family: var(--f-testo); }
