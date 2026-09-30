@@ -1,6 +1,14 @@
 // Prova di colori e caratteri per il mockup (non fa parte del sito vero).
 // Imposta subito data-palette e data-font su <html>, poi aggiunge il pannello di scelta.
 (function () {
+  // Pannello nascosto: colori e caratteri confermati (porpora di Roma + Manrope).
+  // Per mostrarlo di nuovo, mettere true.
+  var PANNELLO_VISIBILE = false;
+  if (!PANNELLO_VISIBILE) {
+    document.documentElement.setAttribute('data-palette', 'porpora');
+    document.documentElement.setAttribute('data-font', 'manrope');
+    return;
+  }
   var PALETTE = {
     porpora: ['Porpora di Roma su avorio (scelta)', 'Il rosso porpora e l’oro dello stemma di Roma, su fondo avorio chiaro.'],
     notte: ['Notte e oro', 'Blu notte e giallo: istituzionale e deciso.'],
