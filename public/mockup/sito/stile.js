@@ -125,7 +125,7 @@
     f.addEventListener('submit', (e) => {
       e.preventDefault();
       const c = f.querySelector('.conferma') || document.querySelector(f.dataset.finto);
-      if (c) { c.classList.add('vista'); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      if (c) { c.classList.add('vista'); c.scrollIntoView({ block: 'center' }); }
     });
   });
 
@@ -154,7 +154,7 @@
     }, { once: true });
     lettore.replaceWith(nuovo);
     lettore = nuovo;
-    nuovo.scrollIntoView({ behavior: avvia ? 'smooth' : 'auto', block: 'center' });
+    nuovo.scrollIntoView({ block: 'center' });
     if (avvia) nuovo.click();
   }
   document.querySelectorAll('[data-carica]').forEach((el) => el.addEventListener('click', () => carica(el, true)));

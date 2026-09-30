@@ -28,7 +28,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; }
-html { scroll-behavior: smooth; }
+html, body { overscroll-behavior: none; }  /* niente rimbalzo elastico in cima e in fondo alla pagina */
 body { background: var(--bianco); color: var(--testo); font: 400 17px/1.55 var(--f-testo); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
@@ -164,8 +164,8 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 
 /* ——— Schede concerto ——— */
 .schede { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
-.sc { border: 1px solid var(--linea); display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s; background: var(--bianco); min-width: 0; }
-a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
+.sc { border: 1px solid var(--linea); display: flex; flex-direction: column; transition: box-shadow .2s; background: var(--bianco); min-width: 0; }
+a.sc:hover { box-shadow: var(--ombra); }
 .sc .top { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 20px 20px 16px; }
 .data-grande { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 38px; line-height: .85; letter-spacing: -0.012em; color: var(--blu); }
 .data-grande small { font-family: var(--f-titoli); display: block; font-size: 13px; font-weight: var(--peso-titoli); letter-spacing: .1em; text-transform: uppercase; margin-top: 8px; color: var(--testo); }
@@ -237,8 +237,8 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 
 /* ——— Video (miniatura + youtube-nocookie al clic) ——— */
 .video { position: relative; aspect-ratio: 16/9; background: #000; overflow: hidden; display: block; width: 100%; border: 0; padding: 0; text-align: left; color: #fff; }
-.video img { width: 100%; height: 100%; object-fit: cover; opacity: .78; transition: opacity .2s, transform .4s; }
-.video:hover img { opacity: .9; transform: scale(1.02); }
+.video img { width: 100%; height: 100%; object-fit: cover; opacity: .78; transition: opacity .2s; }
+.video:hover img { opacity: .9; }
 .video .play { position: absolute; left: 20px; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 16px; }
 .video .play i { width: 64px; height: 64px; background: var(--giallo); color: var(--blu); display: grid; place-items: center; flex-shrink: 0; }
 .video .play b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 22px; line-height: 1.15; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
@@ -258,8 +258,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .griglia-video { display: grid; gap: 32px 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
 .vid { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .vid .mini { position: relative; aspect-ratio: 16/9; overflow: hidden; background: var(--blu); }
-.vid .mini img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
-.vid:hover .mini img { transform: scale(1.03); }
+.vid .mini img { width: 100%; height: 100%; object-fit: cover; }
 .vid .mini i { position: absolute; left: 12px; bottom: 12px; width: 40px; height: 40px; background: var(--giallo); color: var(--blu); display: grid; place-items: center; }
 .vid b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 19px; line-height: 1.2; color: var(--blu); letter-spacing: 0; }
 .vid small { color: var(--tenue); font-size: 14px; }
@@ -268,8 +267,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .porte { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
 .porta { display: flex; flex-direction: column; background: var(--fondo); min-width: 0; }
 .porta .img { aspect-ratio: 4/3; overflow: hidden; }
-.porta .img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
-.porta:hover .img img { transform: scale(1.03); }
+.porta .img img { width: 100%; height: 100%; object-fit: cover; }
 .porta .img.gialla { background: var(--giallo); display: grid; place-items: center; }
 .porta .img.gialla b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(44px, 4.4vw, 64px); color: var(--blu); letter-spacing: -0.012em; line-height: 1; }
 .porta .c { padding: 24px; display: flex; flex-direction: column; flex: 1; align-items: flex-start; }
@@ -657,8 +655,8 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .nastro i { width: 8px; height: 8px; background: var(--giallo); display: block; }
 
 /* Toast conferma (area) */
-.avviso-toast { position: fixed; right: 16px; bottom: 16px; z-index: 60; background: var(--blu); color: #fff; padding: 14px 18px; font-weight: 600; font-size: 14px; max-width: calc(100vw - 32px); box-shadow: var(--ombra); transform: translateY(140%); transition: transform .25s; display: flex; gap: 10px; align-items: center; }
-.avviso-toast.visto { transform: none; }
+.avviso-toast { position: fixed; right: 16px; bottom: 16px; z-index: 60; background: var(--blu); color: #fff; padding: 14px 18px; font-weight: 600; font-size: 14px; max-width: calc(100vw - 32px); box-shadow: var(--ombra); display: none; gap: 10px; align-items: center; }
+.avviso-toast.visto { display: flex; }
 .avviso-toast svg { color: var(--giallo); }
 
 /* ——— Logo "Diapason orizzontale" ——— */
