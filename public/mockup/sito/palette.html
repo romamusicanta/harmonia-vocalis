@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it" data-palette="porpora">
+<html lang="it" data-palette="porpora" data-font="fraunces">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
 <meta name="description" content="Coro polifonico misto di Roma diretto dal M° Claudio Maria Micheli.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Source+Sans+3:ital,wght@0,400..800;1,400..800&family=EB+Garamond:wght@500..700&family=Lato:wght@400;700;900&family=Libre+Caslon+Display&family=Libre+Franklin:wght@400..800&family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400..800&family=Manrope:wght@400..800&display=swap" rel="stylesheet">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="stile.css">
 
@@ -39,6 +39,16 @@ html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f
 .scegli-palette .riapri { display: none; border: 0; background: none; font: 800 12px/1 'Archivo', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #16181f; padding: 2px; }
 .scegli-palette.ridotto { width: auto; padding: 10px 14px; }
 .scegli-palette.ridotto .riapri { display: block; }
+
+/* Prova caratteri: stessi ruoli, famiglie diverse */
+html[data-font="fraunces"] { --f-titoli: 'Fraunces', Georgia, serif; --f-testo: 'Source Sans 3', system-ui, sans-serif; --peso-titoli: 600; }
+html[data-font="garamond"] { --f-titoli: 'EB Garamond', Garamond, serif; --f-testo: 'Lato', system-ui, sans-serif; --peso-titoli: 600; }
+html[data-font="caslon"] { --f-titoli: 'Libre Caslon Display', Georgia, serif; --f-testo: 'Libre Franklin', system-ui, sans-serif; --peso-titoli: 400; }
+html[data-font="dmserif"] { --f-titoli: 'DM Serif Display', Georgia, serif; --f-testo: 'DM Sans', system-ui, sans-serif; --peso-titoli: 400; }
+html[data-font="manrope"] { --f-titoli: 'Manrope', system-ui, sans-serif; --f-testo: 'Manrope', system-ui, sans-serif; --peso-titoli: 700; }
+.scegli-palette select + .campioni { margin-bottom: 14px; }
+.scegli-palette .sep { height: 1px; background: #e2dfd8; margin: 14px 0; }
+.scegli-palette p.desc-font { margin-top: 8px; }
 </style>
 </head><body>
 <div class="servizio"><div class="w"><span class="info">Coro dell'Associazione Culturale Musicale Roma Musicanta · Associato ARCL e Feniarco</span><span class="dx"><a href="organizzatori.html">Per gli organizzatori</a><a href="area.html"><svg class="ic p" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>Area coristi</a></span></div></div>
@@ -197,7 +207,7 @@ html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f
 <div class="scegli-palette" id="scegli-palette">
   <button class="chiudi" type="button" aria-label="Riduci il pannello">×</button>
   <button class="riapri" type="button">Palette ▴</button>
-  <label for="palette-sel">Palette di colori</label>
+  <label for="palette-sel">Colori</label>
   <select id="palette-sel">
     <option value="notte">1 · Notte e oro (attuale)</option>
     <option value="porpora">2 · Porpora di Roma su avorio (scelta)</option>
@@ -207,6 +217,16 @@ html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f
   </select>
   <div class="campioni" aria-hidden="true"><span data-v="--blu"></span><span data-v="--blu-2"></span><span data-v="--giallo"></span><span data-v="--fondo"></span><span data-v="--testo"></span></div>
   <p id="palette-desc"></p>
+  <div class="sep"></div>
+  <label for="font-sel">Caratteri</label>
+  <select id="font-sel">
+    <option value="fraunces">A · Fraunces + Source Sans (scelta attuale)</option>
+    <option value="garamond">B · EB Garamond + Lato</option>
+    <option value="caslon">C · Libre Caslon + Libre Franklin</option>
+    <option value="dmserif">D · DM Serif + DM Sans</option>
+    <option value="manrope">E · Manrope (senza grazie)</option>
+  </select>
+  <p class="desc-font" id="font-desc"></p>
 </div>
 <script>
 (function () {
@@ -225,14 +245,38 @@ html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f
     var cs = getComputedStyle(html);
     box.querySelectorAll('.campioni span').forEach(function (s) { s.style.background = cs.getPropertyValue(s.dataset.v); });
     try { localStorage.setItem('hv-palette', v); } catch (e) {}
-    history.replaceState(null, '', '#' + v);
+    var resto = location.hash.split('&').slice(1).join('&'); history.replaceState(null, '', '#' + v + (resto ? '&' + resto : ''));
   }
-  var iniziale = location.hash.slice(1);
+  var iniziale = location.hash.slice(1).split('&')[0];
   if (!descrizioni[iniziale]) { try { iniziale = localStorage.getItem('hv-palette'); } catch (e) {} }
   applica(iniziale);
   sel.addEventListener('change', function () { applica(sel.value); });
   box.querySelector('.chiudi').addEventListener('click', function () { box.classList.add('ridotto'); });
   box.querySelector('.riapri').addEventListener('click', function () { box.classList.remove('ridotto'); });
+})();
+</script>
+
+<script>
+(function () {
+  var desc = {
+    fraunces: 'Grazie morbide e moderne, calde e molto leggibili. Classica senza essere antiquata.',
+    garamond: 'Il Garamond dei libri e dei programmi di sala: il più tradizionale ed elegante.',
+    caslon: 'Caslon da titolo, con forte contrasto tra tratti spessi e sottili: solenne, da frontespizio.',
+    dmserif: 'Grazie ad alto contrasto e forme piene: d’effetto, da locandina teatrale.',
+    manrope: 'Senza grazie, pulito e contemporaneo, per chi preferisce un sito più sobrio.'
+  };
+  var html = document.documentElement, sel = document.getElementById('font-sel'), p = document.getElementById('font-desc');
+  function leggi() { var q = new URLSearchParams(location.hash.slice(1).split('&').slice(1).join('&')); return q.get('font'); }
+  function applica(v) {
+    if (!desc[v]) v = 'fraunces';
+    html.setAttribute('data-font', v); sel.value = v; p.textContent = desc[v];
+    try { localStorage.setItem('hv-font', v); } catch (e) {}
+    var pal = html.getAttribute('data-palette'); history.replaceState(null, '', '#' + pal + '&font=' + v);
+  }
+  var iniz = leggi(); if (!desc[iniz]) { try { iniz = localStorage.getItem('hv-font'); } catch (e) {} }
+  applica(iniz);
+  sel.addEventListener('change', function () { applica(sel.value); });
+  document.getElementById('palette-sel').addEventListener('change', function () { applica(sel.value); });
 })();
 </script>
 </body>
