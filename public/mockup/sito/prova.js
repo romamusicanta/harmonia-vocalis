@@ -9,11 +9,11 @@
     oltremare: ['Oltremare e rosa antico', 'Blu luminoso e rosa: raffinato, meno istituzionale.']
   };
   var FONT = {
-    fraunces: ['Fraunces + Source Sans (scelta attuale)', 'Grazie morbide e moderne, calde e molto leggibili.'],
+    manrope: ['Manrope (scelto)', 'Senza grazie, pulito e contemporaneo: il carattere scelto per il sito.'],
+    fraunces: ['Fraunces + Source Sans', 'Grazie morbide e moderne, calde e molto leggibili.'],
     garamond: ['EB Garamond + Lato', 'Il Garamond dei libri e dei programmi di sala: tradizionale ed elegante.'],
     caslon: ['Libre Caslon + Libre Franklin', 'Forte contrasto tra tratti spessi e sottili: solenne, da frontespizio.'],
-    dmserif: ['DM Serif + DM Sans', 'Grazie ad alto contrasto e forme piene: da locandina teatrale.'],
-    manrope: ['Manrope (senza grazie)', 'Pulito e contemporaneo, per un sito più sobrio.']
+    dmserif: ['DM Serif + DM Sans', 'Grazie ad alto contrasto e forme piene: da locandina teatrale.']
   };
   var html = document.documentElement;
   function salvato(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -22,7 +22,7 @@
   var dalLink = PALETTE[h[0]] ? h[0] : null;
   var fontLink = (h.slice(1).join('&').match(/(?:^|&)font=([a-z]+)/) || [])[1];
   var pal = dalLink || salvato('hv-palette'); if (!PALETTE[pal]) pal = 'porpora';
-  var fon = FONT[fontLink] ? fontLink : salvato('hv-font'); if (!FONT[fon]) fon = 'fraunces';
+  var fon = FONT[fontLink] ? fontLink : salvato('hv-font-2'); if (!FONT[fon]) fon = 'manrope';
   html.setAttribute('data-palette', pal); html.setAttribute('data-font', fon);
 
   function opzioni(obj, scelto) {
@@ -43,7 +43,7 @@
     var sp = box.querySelector('#prova-pal'), sf = box.querySelector('#prova-font');
     function aggiorna() {
       html.setAttribute('data-palette', sp.value); html.setAttribute('data-font', sf.value);
-      salva('hv-palette', sp.value); salva('hv-font', sf.value);
+      salva('hv-palette', sp.value); salva('hv-font-2', sf.value);
       box.querySelector('.d-pal').textContent = PALETTE[sp.value][1];
       box.querySelector('.d-font').textContent = FONT[sf.value][1];
       var cs = getComputedStyle(html);

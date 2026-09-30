@@ -20,9 +20,9 @@
   --rosso: #b8621b;         /* assenze e avvisi: ambra, per distinguersi dal porpora */
   --verde: #2f6b45;
   --f: 'Archivo', system-ui, sans-serif;               /* solo per il logo */
-  --f-titoli: 'Fraunces', Georgia, serif;              /* titoli e numeri grandi */
-  --f-testo: 'Source Sans 3', system-ui, sans-serif;   /* testo corrente, etichette, pulsanti */
-  --peso-titoli: 600;
+  --f-titoli: 'Manrope', system-ui, sans-serif;        /* titoli e numeri grandi */
+  --f-testo: 'Manrope', system-ui, sans-serif;         /* testo corrente, etichette, pulsanti */
+  --peso-titoli: 700;
   --raggio: 2px;
   --ombra: 0 14px 40px rgba(90, 20, 30, .12);
 }
