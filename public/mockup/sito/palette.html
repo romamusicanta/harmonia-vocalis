@@ -1,60 +1,23 @@
 <!doctype html>
-<html lang="it" data-palette="porpora" data-font="fraunces">
+<html lang="it" data-prova-aperta>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Prova palette · Coro Harmonia Vocalis — Stagione 2026/27</title>
+<title>Prova colori e caratteri · Coro Harmonia Vocalis — Stagione 2026/27</title>
 <meta name="description" content="Coro polifonico misto di Roma diretto dal M° Claudio Maria Micheli.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Source+Sans+3:ital,wght@0,400..800;1,400..800&family=EB+Garamond:wght@500..700&family=Lato:wght@400;700;900&family=Libre+Caslon+Display&family=Libre+Franklin:wght@400..800&family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400..800&family=Manrope:wght@400..800&display=swap" rel="stylesheet">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="stile.css">
-
-<style id="palette">
-/* Prova palette: ogni palette ridefinisce gli stessi ruoli.
-   --blu = colore principale scuro (testo bianco sopra), --giallo = accento chiaro (testo principale sopra). */
-html[data-palette="notte"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f5f4f0; --fondo-2:#ecebe5; --blu:#13235b; --blu-2:#22367d; --blu-3:#9aa4cc; --blu-chiaro:#c3cae5; --giallo:#f2b41b; --giallo-chiaro:#fdf3d8; --testo:#16181f; --tenue:#5d6170; --linea:#dcdcd6; }
-html[data-palette="porpora"] { --bianco:#fcf9f2; --fondo:#f5eee2; --fondo-2:#ece2d1; --blu:#5a1019; --blu-2:#741a26; --blu-3:#d8a2a9; --blu-chiaro:#f1d6d8; --giallo:#dca542; --giallo-chiaro:#f8ecd2; --testo:#2a1d1d; --tenue:#6d5f5a; --linea:#e3d8c6; --rosso:#b8621b; }
-html[data-palette="pino"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f4f2ec; --fondo-2:#e9e5da; --blu:#1d3b33; --blu-2:#2b5247; --blu-3:#9db8ae; --blu-chiaro:#cadcd5; --giallo:#ee9155; --giallo-chiaro:#fbe6d6; --testo:#172019; --tenue:#5b6660; --linea:#d9d6ca; }
-html[data-palette="inchiostro"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f3f1ee; --fondo-2:#e8e5e0; --blu:#18181b; --blu-2:#2c2c31; --blu-3:#a1a1aa; --blu-chiaro:#d4d4d8; --giallo:#ff5a36; --giallo-chiaro:#ffe3db; --testo:#18181b; --tenue:#5f5f66; --linea:#dddad4; }
-html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34a0; --blu-2:#2d47c0; --blu-3:#a9b5ea; --blu-chiaro:#d2d9f6; --giallo:#f5b5a3; --giallo-chiaro:#fde9e3; --testo:#141a33; --tenue:#5b6078; --linea:#dedad5; }
-
-/* colori scritti direttamente in stile.css, riportati alle variabili */
-.servizio { color: var(--blu-chiaro); }
-.btn.g:hover { background: var(--giallo); filter: brightness(1.07); }
-.video .play b span { color: var(--blu-chiaro); }
-.campo input:focus, .campo select:focus, .campo textarea:focus { box-shadow: 0 0 0 3px var(--giallo); }
-
-/* Selettore */
-.scegli-palette { position: fixed; right: 16px; bottom: 16px; z-index: 80; width: min(320px, calc(100vw - 32px)); background: #fff; color: #16181f; border: 1px solid #d6d3cc; box-shadow: 0 18px 50px rgba(0,0,0,.18); padding: 16px; font: 400 14px/1.45 'Archivo', system-ui, sans-serif; }
-.scegli-palette label { display: block; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #5d6170; margin-bottom: 8px; }
-.scegli-palette select { width: 100%; padding: 10px 12px; border: 1px solid #c9c6bf; background: #fff; font: 700 15px/1.2 'Archivo', system-ui, sans-serif; color: #16181f; border-radius: 2px; }
-.scegli-palette .campioni { display: flex; gap: 6px; margin: 12px 0 10px; }
-.scegli-palette .campioni span { flex: 1; height: 28px; border: 1px solid rgba(0,0,0,.08); }
-.scegli-palette p { color: #5d6170; margin: 0; }
-.scegli-palette .chiudi { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 18px; line-height: 1; color: #5d6170; padding: 4px; }
-.scegli-palette.ridotto > :not(.riapri) { display: none; }
-.scegli-palette .riapri { display: none; border: 0; background: none; font: 800 12px/1 'Archivo', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #16181f; padding: 2px; }
-.scegli-palette.ridotto { width: auto; padding: 10px 14px; }
-.scegli-palette.ridotto .riapri { display: block; }
-
-/* Prova caratteri: stessi ruoli, famiglie diverse */
-html[data-font="fraunces"] { --f-titoli: 'Fraunces', Georgia, serif; --f-testo: 'Source Sans 3', system-ui, sans-serif; --peso-titoli: 600; }
-html[data-font="garamond"] { --f-titoli: 'EB Garamond', Garamond, serif; --f-testo: 'Lato', system-ui, sans-serif; --peso-titoli: 600; }
-html[data-font="caslon"] { --f-titoli: 'Libre Caslon Display', Georgia, serif; --f-testo: 'Libre Franklin', system-ui, sans-serif; --peso-titoli: 400; }
-html[data-font="dmserif"] { --f-titoli: 'DM Serif Display', Georgia, serif; --f-testo: 'DM Sans', system-ui, sans-serif; --peso-titoli: 400; }
-html[data-font="manrope"] { --f-titoli: 'Manrope', system-ui, sans-serif; --f-testo: 'Manrope', system-ui, sans-serif; --peso-titoli: 700; }
-.scegli-palette select + .campioni { margin-bottom: 14px; }
-.scegli-palette .sep { height: 1px; background: #e2dfd8; margin: 14px 0; }
-.scegli-palette p.desc-font { margin-top: 8px; }
-</style>
+<link rel="stylesheet" href="prova.css">
+<script src="prova.js"></script>
 </head><body>
 <div class="servizio"><div class="w"><span class="info">Coro dell'Associazione Culturale Musicale Roma Musicanta · Associato ARCL e Feniarco</span><span class="dx"><a href="organizzatori.html">Per gli organizzatori</a><a href="area.html"><svg class="ic p" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>Area coristi</a></span></div></div>
 <header class="testata">
   <div class="w">
-    <a class="marchio" href="index.html"><svg class="logo" viewBox="0 0 600 150" role="img" aria-label="Harmonia Vocalis"><g fill="none" style="stroke:var(--blu)" stroke-width="9"><path d="M40 60H420a20 20 0 0 1 0 40H40"/><path d="M440 80H540"/></g><circle cx="552" cy="80" r="11" style="fill:var(--giallo)"/><g style="font-family:Archivo,system-ui,sans-serif;font-stretch:125%;fill:var(--blu)"><text x="40" y="46" font-size="40" font-weight="900" letter-spacing="-1.4">HARMONIA</text><text x="150" y="140" font-size="40" font-weight="300" letter-spacing="-1">VOCALIS</text></g></svg></a>
+    <a class="marchio" href="index.html"><svg class="logo" viewBox="0 0 600 150" role="img" aria-label="Harmonia Vocalis"><g fill="none" stroke-width="9" style="stroke:var(--blu)"><path d="M40 60H420a20 20 0 0 1 0 40H40"/><path d="M440 80H540"/></g><circle cx="552" cy="80" r="11" style="fill:var(--giallo)"/><g style="font-family:Archivo,system-ui,sans-serif;font-stretch:125%;fill:var(--blu)"><text x="40" y="46" font-size="40" font-weight="900" letter-spacing="-1.4">HARMONIA</text><text x="150" y="140" font-size="40" font-weight="300" letter-spacing="-1">VOCALIS</text></g></svg></a>
     <nav class="nav" aria-label="Principale"><a href="concerti.html">Stagione</a><a href="ascolta.html">Ascolta</a><a href="il-coro.html">Il coro</a><a href="il-maestro.html">Il Maestro</a><a href="canta-con-noi.html">Canta con noi</a><a href="contatti.html">Contatti</a></nav>
     <div class="azioni">
       <a class="btn g" href="concerti.html#in-programma"><svg class="ic p" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="1"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Calendario</a>
@@ -202,82 +165,5 @@ html[data-font="manrope"] { --f-titoli: 'Manrope', system-ui, sans-serif; --f-te
   </div>
 </footer>
 <script src="stile.js"></script>
-
-<!-- Solo per la prova delle palette: non fa parte del sito -->
-<div class="scegli-palette" id="scegli-palette">
-  <button class="chiudi" type="button" aria-label="Riduci il pannello">×</button>
-  <button class="riapri" type="button">Palette ▴</button>
-  <label for="palette-sel">Colori</label>
-  <select id="palette-sel">
-    <option value="notte">1 · Notte e oro (attuale)</option>
-    <option value="porpora">2 · Porpora di Roma su avorio (scelta)</option>
-    <option value="pino">3 · Pino e terracotta</option>
-    <option value="inchiostro">4 · Inchiostro e vermiglione</option>
-    <option value="oltremare">5 · Oltremare e rosa antico</option>
-  </select>
-  <div class="campioni" aria-hidden="true"><span data-v="--blu"></span><span data-v="--blu-2"></span><span data-v="--giallo"></span><span data-v="--fondo"></span><span data-v="--testo"></span></div>
-  <p id="palette-desc"></p>
-  <div class="sep"></div>
-  <label for="font-sel">Caratteri</label>
-  <select id="font-sel">
-    <option value="fraunces">A · Fraunces + Source Sans (scelta attuale)</option>
-    <option value="garamond">B · EB Garamond + Lato</option>
-    <option value="caslon">C · Libre Caslon + Libre Franklin</option>
-    <option value="dmserif">D · DM Serif + DM Sans</option>
-    <option value="manrope">E · Manrope (senza grazie)</option>
-  </select>
-  <p class="desc-font" id="font-desc"></p>
-</div>
-<script>
-(function () {
-  var descrizioni = {
-    notte: 'Blu notte e giallo: istituzionale e deciso, alla Santa Cecilia. È la palette del mockup.',
-    porpora: 'Il rosso porpora e l’oro dello stemma di Roma, su fondo avorio chiaro. È ora la palette di base di tutto il mockup.',
-    pino: 'Verde pino e terracotta: i colori di Roma, dei pini e degli intonaci. Naturale e accogliente.',
-    inchiostro: 'Quasi nero e vermiglione: grafico e contemporaneo, come le locandine dei festival.',
-    oltremare: 'Blu oltremare e rosa antico: luminoso e raffinato, meno istituzionale, più giovane.'
-  };
-  var html = document.documentElement, sel = document.getElementById('palette-sel');
-  var box = document.getElementById('scegli-palette'), desc = document.getElementById('palette-desc');
-  function applica(v) {
-    if (!descrizioni[v]) v = 'porpora';
-    html.setAttribute('data-palette', v); sel.value = v; desc.textContent = descrizioni[v];
-    var cs = getComputedStyle(html);
-    box.querySelectorAll('.campioni span').forEach(function (s) { s.style.background = cs.getPropertyValue(s.dataset.v); });
-    try { localStorage.setItem('hv-palette', v); } catch (e) {}
-    var resto = location.hash.split('&').slice(1).join('&'); history.replaceState(null, '', '#' + v + (resto ? '&' + resto : ''));
-  }
-  var iniziale = location.hash.slice(1).split('&')[0];
-  if (!descrizioni[iniziale]) { try { iniziale = localStorage.getItem('hv-palette'); } catch (e) {} }
-  applica(iniziale);
-  sel.addEventListener('change', function () { applica(sel.value); });
-  box.querySelector('.chiudi').addEventListener('click', function () { box.classList.add('ridotto'); });
-  box.querySelector('.riapri').addEventListener('click', function () { box.classList.remove('ridotto'); });
-})();
-</script>
-
-<script>
-(function () {
-  var desc = {
-    fraunces: 'Grazie morbide e moderne, calde e molto leggibili. Classica senza essere antiquata.',
-    garamond: 'Il Garamond dei libri e dei programmi di sala: il più tradizionale ed elegante.',
-    caslon: 'Caslon da titolo, con forte contrasto tra tratti spessi e sottili: solenne, da frontespizio.',
-    dmserif: 'Grazie ad alto contrasto e forme piene: d’effetto, da locandina teatrale.',
-    manrope: 'Senza grazie, pulito e contemporaneo, per chi preferisce un sito più sobrio.'
-  };
-  var html = document.documentElement, sel = document.getElementById('font-sel'), p = document.getElementById('font-desc');
-  function leggi() { var q = new URLSearchParams(location.hash.slice(1).split('&').slice(1).join('&')); return q.get('font'); }
-  function applica(v) {
-    if (!desc[v]) v = 'fraunces';
-    html.setAttribute('data-font', v); sel.value = v; p.textContent = desc[v];
-    try { localStorage.setItem('hv-font', v); } catch (e) {}
-    var pal = html.getAttribute('data-palette'); history.replaceState(null, '', '#' + pal + '&font=' + v);
-  }
-  var iniz = leggi(); if (!desc[iniz]) { try { iniz = localStorage.getItem('hv-font'); } catch (e) {} }
-  applica(iniz);
-  sel.addEventListener('change', function () { applica(sel.value); });
-  document.getElementById('palette-sel').addEventListener('change', function () { applica(sel.value); });
-})();
-</script>
 </body>
 </html>

@@ -1,0 +1,29 @@
+/* Prova di colori e caratteri: pannello presente su tutte le pagine del mockup.
+   La scelta si conserva passando da una pagina all'altra (localStorage) e si può
+   condividere con l'indirizzo, es. index.html#porpora&font=garamond.
+   Non fa parte del sito vero. */
+
+html[data-palette="notte"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f5f4f0; --fondo-2:#ecebe5; --blu:#13235b; --blu-2:#22367d; --blu-3:#9aa4cc; --blu-chiaro:#c3cae5; --giallo:#f2b41b; --giallo-chiaro:#fdf3d8; --testo:#16181f; --tenue:#5d6170; --linea:#dcdcd6; }
+html[data-palette="porpora"] { --bianco:#fcf9f2; --fondo:#f5eee2; --fondo-2:#ece2d1; --blu:#5a1019; --blu-2:#741a26; --blu-3:#d8a2a9; --blu-chiaro:#f1d6d8; --giallo:#dca542; --giallo-chiaro:#f8ecd2; --testo:#2a1d1d; --tenue:#6d5f5a; --linea:#e3d8c6; --rosso:#b8621b; }
+html[data-palette="pino"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f4f2ec; --fondo-2:#e9e5da; --blu:#1d3b33; --blu-2:#2b5247; --blu-3:#9db8ae; --blu-chiaro:#cadcd5; --giallo:#ee9155; --giallo-chiaro:#fbe6d6; --testo:#172019; --tenue:#5b6660; --linea:#d9d6ca; }
+html[data-palette="inchiostro"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f3f1ee; --fondo-2:#e8e5e0; --blu:#18181b; --blu-2:#2c2c31; --blu-3:#a1a1aa; --blu-chiaro:#d4d4d8; --giallo:#ff5a36; --giallo-chiaro:#ffe3db; --testo:#18181b; --tenue:#5f5f66; --linea:#dddad4; }
+html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34a0; --blu-2:#2d47c0; --blu-3:#a9b5ea; --blu-chiaro:#d2d9f6; --giallo:#f5b5a3; --giallo-chiaro:#fde9e3; --testo:#141a33; --tenue:#5b6078; --linea:#dedad5; }
+
+html[data-font="fraunces"] { --f-titoli: 'Fraunces', Georgia, serif; --f-testo: 'Source Sans 3', system-ui, sans-serif; --peso-titoli: 600; }
+html[data-font="garamond"] { --f-titoli: 'EB Garamond', Garamond, serif; --f-testo: 'Lato', system-ui, sans-serif; --peso-titoli: 600; }
+html[data-font="caslon"] { --f-titoli: 'Libre Caslon Display', Georgia, serif; --f-testo: 'Libre Franklin', system-ui, sans-serif; --peso-titoli: 400; }
+html[data-font="dmserif"] { --f-titoli: 'DM Serif Display', Georgia, serif; --f-testo: 'DM Sans', system-ui, sans-serif; --peso-titoli: 400; }
+html[data-font="manrope"] { --f-titoli: 'Manrope', system-ui, sans-serif; --f-testo: 'Manrope', system-ui, sans-serif; --peso-titoli: 700; }
+
+.pannello-prova { position: fixed; right: 16px; bottom: 16px; z-index: 80; width: min(330px, calc(100vw - 32px)); background: #fff; color: #16181f; border: 1px solid #d6d3cc; box-shadow: 0 18px 50px rgba(0,0,0,.18); padding: 16px; font: 400 14px/1.45 'Source Sans 3', system-ui, sans-serif; }
+.pannello-prova label { display: block; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #5d6170; margin: 0 0 8px; }
+.pannello-prova select { width: 100%; padding: 10px 12px; border: 1px solid #c9c6bf; background: #fff; font: 700 15px/1.2 'Source Sans 3', system-ui, sans-serif; color: #16181f; border-radius: 2px; }
+.pannello-prova .campioni { display: flex; gap: 6px; margin: 10px 0 8px; }
+.pannello-prova .campioni span { flex: 1; height: 24px; border: 1px solid rgba(0,0,0,.08); }
+.pannello-prova p { color: #5d6170; margin: 6px 0 0; }
+.pannello-prova .sep { height: 1px; background: #e2dfd8; margin: 14px 0; }
+.pannello-prova .chiudi { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 20px; line-height: 1; color: #5d6170; padding: 4px 6px; cursor: pointer; }
+.pannello-prova .riapri { display: none; border: 0; background: none; font: 800 12px/1 'Source Sans 3', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #16181f; padding: 2px; cursor: pointer; }
+.pannello-prova.ridotto { width: auto; padding: 10px 14px; }
+.pannello-prova.ridotto > :not(.riapri) { display: none; }
+.pannello-prova.ridotto .riapri { display: block; }
