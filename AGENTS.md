@@ -53,6 +53,8 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: in produzion
 
 ## Trappole note
 
+- Pubblicazione: progetto Vercel `harmonia-vocalis` (https://harmonia-vocalis.vercel.app), dal 30/09/2026 con `vercel deploy --prod` dalla cartella locale (il repository non ha remote GitHub). Su Vercel non ci sono ancora le variabili `CALENDARIO_CONCERTI_ICS`/`_ID`: i prossimi concerti vengono da `coro/concerti.ts`.
+
 - Le miniature YouTube del canale esistono solo fino a `sddefault` (640×480): `maxresdefault` restituisce 404.
 - Il luogo delle prove è discordante tra italiacori (Via del Frantoio 2) e YouTube (Via di Casal Bruciato 15): da confermare prima della pubblicazione.
 - Le foto in `coro/immagini/` vengono dalla scheda italiacori: autori e permessi sono da verificare (`CREDITI.md`).
