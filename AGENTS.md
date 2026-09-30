@@ -83,6 +83,11 @@ Il coro è titolare dei dati, tenuti sui propri account. Mario vi accede solo oc
 - Dipendenze a versione esatta (niente `^`), perché ogni coro ha la sua copia e deve restare riproducibile.
 - La firma "Realizzato con Dimora Choir" è testo semplice finché il dominio non è registrato.
 
+## Pubblicazione della demo
+
+- Repository privato `mdanna/dimorachoir` su GitHub, collegato al progetto Vercel `dimorachoir` (account mdanna): ogni push su `main` ripubblica.
+- Indirizzo da condividere: https://dimorachoir.vercel.app (pubblico). `vercel.json` fa costruire la demo (`npm run build:demo`).
+
 ## Workflow
 
 1. Modifiche al motore o alle vesti: `npm run dev` e controllo delle pagine toccate, anche a 375px e con più palette/caratteri dal pannello.
