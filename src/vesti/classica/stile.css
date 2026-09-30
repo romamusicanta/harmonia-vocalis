@@ -438,3 +438,9 @@ main > .blocco-foto { width: calc(100% - 48px); max-width: 1100px; margin: 12px 
   .cl-servizio .dx a:first-child { display: none; }
   .cl-tipo { letter-spacing: .12em; }
 }
+
+/* Logo del coro (coro/Logo.astro), se c'è: al centro del frontespizio, grande come il nome che sostituisce */
+.cl-marchio .logo-coro { width: clamp(200px, 26vw, 300px); }
+.cl-marchio.piccolo .logo-coro { width: clamp(160px, 18vw, 210px); }
+.cl-piede .cl-marchio .logo-coro { width: clamp(200px, 22vw, 250px); }
+.cl-marchio.con-logo .cl-tipo { margin-top: 6px; }
