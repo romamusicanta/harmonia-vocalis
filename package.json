@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "DEMO=1 astro dev",
+    "dev:sito": "astro dev",
     "build": "astro build",
     "build:demo": "DEMO=1 astro build",
     "preview": "astro preview",

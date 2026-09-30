@@ -8,6 +8,7 @@ Stato (30/09/2026): **passi 1 e 2 dell'ordine di lavoro fatti**: modello Astro c
 
 - `npm install` — dipendenze, versioni bloccate (Node ≥ 22.12)
 - `npm run dev` — server di sviluppo **in modalità demo** (`DEMO=1`) su http://localhost:4321 (in `.claude/launch.json` come `demo`, con porta automatica)
+- `npm run dev:sito` — server di sviluppo del sito del coro, senza demo
 - `npm run build:demo` — build della demo in `dist/` (pannello, area coristi di esempio, vesti alternative)
 - `npm run build` — build del sito di un coro, senza demo
 
