@@ -1,0 +1,49 @@
+---
+// Area coristi: registrazioni delle prove, raggruppate per giorno.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
+import { percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { registrazioni, giorno, dataEstesa } from '../../../demo/area';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+---
+
+<Base veste={veste} titolo="Registrazioni · Area coristi" area={{ sezione: 'registrazioni' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Registrazioni delle prove</span>
+        <h1>Registrazioni</h1>
+        <p>Le prove registrate con il telefono, per riascoltare a casa le indicazioni del Maestro. Chi registra carica il file nella cartella del Drive e compare qui.</p>
+      </div>
+      <div style="display:grid;gap:10px;justify-items:start">
+        <span class="tag bordo" style="display:inline-flex;gap:6px;align-items:center"><Icona nome="lucchetto" />Le registrazioni sono riservate ai coristi</span>
+        <a class="btn o piccolo" href="#" data-finto-avviso="Nel sito vero apre la cartella «Registrazioni prove» nel Drive"><Icona nome="drive" />Carica una registrazione</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {registrazioni.map((r) => {
+        const d = giorno(r.data);
+        return (
+          <div class="giorno-reg">
+            <div class="gg"><b>{d.giorno}</b><span>{d.giornoSettimana} · {d.meseBreve.toLowerCase()}</span><small>{r.tracce.length === 1 ? '1 traccia' : `${r.tracce.length} tracce`}</small></div>
+            <div>
+              <div class="tracce">
+                {r.tracce.map((t) => (
+                  <div class="audio" style="background:var(--bianco);border:1px solid var(--linea)"><button class="pl" type="button" aria-label="Ascolta"><Icona nome="play" classe="avvia" /><Icona nome="pausa" classe="pausa" /></button><div class="traccia"><div class="titolo">{t.titolo}</div><div class="onda"><i></i></div></div><span class="durata">{t.durata}</span><a href="#" data-finto-avviso="Nel sito vero scarica il file dal Drive" aria-label="Scarica" style="color:var(--tenue)"><Icona nome="scarica" /></a></div>
+                ))}
+              </div>
+              <p class="caricato"><Icona nome="persona" />Caricate da {r.caricatoDa} · {r.sezione} · prova del {dataEstesa(r.data)}</p>
+            </div>
+          </div>
+        );
+      })}
+      <p class="tenue" style="margin-top:32px;font-size:15px;border-top:1px solid var(--linea);padding-top:24px">Le registrazioni più vecchie di tre mesi restano nel Drive, nella cartella «Archivio».</p>
+    </div>
+  </div>
+</Base>

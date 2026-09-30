@@ -1,0 +1,165 @@
+---
+// Pagina "Ascolta": lettore con il video in evidenza e tutti i video del canale, per autore.
+// Un video dell'elenco (o l'indirizzo /ascolta#<id>) si apre nel lettore in evidenza.
+import Base from '../../layouts/Base.astro';
+import Icona from '../../componenti/Icona.astro';
+import Video from '../../componenti/Video.astro';
+import { coro } from '../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../motore/url';
+import { chiaveAutore } from '../../motore/concerti';
+import { eFinto, elencoVideo, miniatura, titoloCompleto, videoInEvidenza } from '../../motore/video';
+import type { Video as TipoVideo } from '../../motore/tipi';
+
+export const getStaticPaths = () => (coro.funzioni.ascolta ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+const l = (p: string) => link(veste, p);
+
+const tutti = await elencoVideo();
+const evidenza = await videoInEvidenza();
+
+// Gruppi per autore, dal più recente; i video del coro (e quelli senza autore) in fondo
+const CORO = 'Il coro';
+const gruppi = new Map<string, { autore: string; chiave: string; etichetta: string; video: TipoVideo[] }>();
+for (const v of tutti) {
+  const autore = v.autore ?? 'Altri';
+  const chiave = autore === CORO ? 'coro' : chiaveAutore(v.autore);
+  const etichetta = autore === CORO || !v.autore ? autore : v.autore.split(/\s+/).at(-1)!;
+  if (!gruppi.has(chiave)) gruppi.set(chiave, { autore, chiave, etichetta, video: [] });
+  gruppi.get(chiave)!.video.push(v);
+}
+const inFondo = (g: { chiave: string }) => (g.chiave === 'coro' ? 2 : g.chiave === 'altri' ? 1 : 0);
+const elencoGruppi = [...gruppi.values()].sort((a, b) => inFondo(a) - inFondo(b));
+
+const dataBreve = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const pubblicato = (v: TipoVideo) => `pubblicato il ${dataBreve.format(new Date(v.pubblicato))}`;
+const canale = coro.link.youtubeCanale;
+---
+
+<Base veste={veste} titolo="Ascolta" pagina="ascolta" descrizione={`Registrazioni dal vivo del ${coro.nome}: concerti integrali ed estratti.`}>
+  <header class="intesta blu">
+    <div class="w due">
+      <div>
+        <span class="eti" style="margin-bottom:20px">Registrazioni</span>
+        <h1>Ascolta<span>.</span></h1>
+      </div>
+      <div>
+        <p class="lead">Concerti integrali ed estratti, registrati dal vivo. {coro.link.youtube ? 'Tutti i video sono sul nostro canale YouTube.' : ''}</p>
+        {coro.link.youtube && <div class="bottoni" style="margin-top:24px"><a class="btn g" href={coro.link.youtube}><Icona nome="youtube" />Iscriviti al canale</a></div>}
+      </div>
+    </div>
+  </header>
+
+  {evidenza && (
+    <section style="padding-top:56px;background:var(--primario);color:#fff;padding-bottom:80px">
+      {/* Dati: canale YouTube, video in evidenza scelto in coro/video.ts (inEvidenza) */}
+      <div class="w">
+        <div class="due-col" style="align-items:end">
+          <div>
+            <Video video={evidenza} id="lettore" />
+          </div>
+          <div>
+            <span class="eti gialla" style="margin-bottom:14px">In evidenza</span>
+            <h2 style="color:#fff;font-size:clamp(30px,3vw,40px)">{evidenza.titolo}</h2>
+            <p style="color:var(--primario-chiaro);margin:14px 0 20px">{evidenza.sottotitolo && `${evidenza.sottotitolo}. `}Scegli un altro video dall'elenco qui sotto: si apre in questo lettore.</p>
+            <p class="nota-privacy" style="color:var(--primario-3)">I video si caricano da YouTube (senza cookie) solo quando premi play.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section>
+    <div class="w">
+      <div class="testa"><h2>Tutti i video</h2><p>Raggruppati per autore. {tutti.length} video sul canale.</p></div>
+      {elencoGruppi.length > 1 && (
+        <div class="filtri" data-filtri="#elenco-video">
+          {/* Filtri generati dagli autori dei video */}
+          <div class="gruppo"><span>Autore</span>
+            <button class="chip on" type="button" data-filtro="autore" data-valore="tutti">Tutti</button>{elencoGruppi.map((g) => <button class="chip" type="button" data-filtro="autore" data-valore={g.chiave}>{g.etichetta}</button>)}
+          </div>
+        </div>
+      )}
+      {/* Dati: canale YouTube (feed RSS, ultimi 15 video) + autori da coro/video.ts */}
+      <div id="elenco-video">
+        {elencoGruppi.map((g) => (
+          <div class="stag" data-gruppo>
+            <div class="stag-testa"><b style="font-size:clamp(30px,3.6vw,44px)">{g.autore}</b><small>{g.video.length} video</small></div>
+            <div class="griglia-video" style="margin-top:28px">
+              {g.video.map((v) => (
+                <button type="button" class="vid" id={v.id} data-voce data-autore={g.chiave} data-carica={v.id} data-titolo={titoloCompleto(v)} data-sotto={v.sottotitolo ?? ''} data-mini={miniatura(v)} data-finto={eFinto(v) ? '' : undefined} style="background:none;border:0;padding:0;text-align:left">
+                  <span class="mini"><img src={miniatura(v)} alt="" loading="lazy" /><i><Icona nome="play" /></i></span>
+                  <b>{v.titolo}</b><small>{[v.sottotitolo, pubblicato(v)].filter(Boolean).join(' · ')}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="segui">
+    <div class="w">
+      <h2>Nuovi video a ogni stagione</h2>
+      <div class="bottoni">
+        {coro.link.youtube && <a class="btn" href={coro.link.youtube}><Icona nome="youtube" />{canale ? `Vai al canale ${canale}` : 'Vai al canale YouTube'}</a>}
+        <a class={coro.link.youtube ? 'btn o' : 'btn'} href={l('/concerti')}>Prossimi concerti</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  // Un video dell'elenco si apre nel lettore in evidenza (e parte, o mostra l'avviso se è finto).
+  // Con /ascolta#<id> il video si carica nel lettore senza partire.
+  import { attivaVideo } from '../../motore/interazioni';
+
+  let lettore = document.getElementById('lettore');
+
+  function carica(el: HTMLElement, avvia: boolean) {
+    if (!lettore) return;
+    const d = el.dataset;
+    const nuovo = lettore.cloneNode(false) as HTMLElement;
+    nuovo.dataset.id = d.carica;
+    if (d.finto !== undefined) nuovo.dataset.finto = '';
+    else delete nuovo.dataset.finto;
+    nuovo.setAttribute('aria-label', `Riproduci: ${d.titolo}`);
+
+    // Stesso markup del componente Video: miniatura + pulsante play + titolo
+    const img = document.createElement('img');
+    img.src = d.mini!;
+    img.alt = '';
+    const play = document.createElement('span');
+    play.className = 'play';
+    const icona = el.querySelector('.mini i svg')?.cloneNode(true) as SVGElement | undefined;
+    icona?.classList.remove('p');
+    const i = document.createElement('i');
+    if (icona) i.append(icona);
+    const b = document.createElement('b');
+    b.textContent = d.titolo ?? '';
+    if (d.sotto) {
+      const s = document.createElement('span');
+      s.textContent = d.sotto;
+      b.append(s);
+    }
+    play.append(i, b);
+    nuovo.append(img, play);
+
+    attivaVideo(nuovo);
+    lettore.replaceWith(nuovo);
+    lettore = nuovo;
+    nuovo.scrollIntoView({ block: 'center' });
+    if (avvia) nuovo.click();
+  }
+
+  const voci = Array.from(document.querySelectorAll<HTMLElement>('[data-carica]'));
+  voci.forEach((el) => el.addEventListener('click', () => carica(el, true)));
+
+  function dalLink() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && voci.find((v) => v.dataset.carica === id);
+    if (el) carica(el, false);
+  }
+  dalLink();
+  window.addEventListener('hashchange', dalLink);
+</script>

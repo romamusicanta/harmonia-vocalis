@@ -1,0 +1,22 @@
+---
+// Foto del coro da coro/immagini, per nome di file. Le foto vere vengono ridimensionate
+// e convertite da Astro; le illustrazioni SVG della demo passano così come sono.
+import { Image } from 'astro:assets';
+import { immagine } from '../motore/coro';
+
+interface Props {
+  nome: string;
+  alt?: string;
+  sizes?: string;
+  class?: string;
+  style?: string;
+  caricamento?: 'lazy' | 'eager';
+}
+const { nome, alt = '', sizes = '100vw', class: classe, style, caricamento = 'lazy' } = Astro.props;
+const img = immagine(nome);
+const vettoriale = img.format === 'svg';
+---
+
+{vettoriale
+  ? <img src={img.src} alt={alt} class={classe} style={style} loading={caricamento} width={img.width} height={img.height} />
+  : <Image src={img} alt={alt} class={classe} style={style} loading={caricamento} widths={[480, 800, 1200, 1600]} sizes={sizes} />}

@@ -1,0 +1,48 @@
+/* Palette dei colori, comuni a tutte le vesti grafiche.
+   Si sceglie con data-palette su <html> (la imposta il layout dalla configurazione del coro;
+   nella demo la cambia il pannello di scelta).
+   --primario: colore principale scuro, con testo bianco sopra; --accento: colore chiaro di richiamo. */
+
+:root {
+  --verde: #2f6b45;
+  --raggio: 2px;
+  --ombra: 0 14px 40px rgba(20, 20, 30, .12);
+}
+
+/* Porpora e oro, su fondo avorio */
+:root[data-palette="porpora"] {
+  --bianco: #fcf9f2; --fondo: #f5eee2; --fondo-2: #ece2d1;
+  --primario: #5a1019; --primario-2: #741a26; --primario-3: #d8a2a9; --primario-chiaro: #f1d6d8;
+  --accento: #dca542; --accento-chiaro: #f8ecd2;
+  --testo: #2a1d1d; --tenue: #6d5f5a; --linea: #e3d8c6;
+  --rosso: #b8621b;  /* assenze e avvisi: ambra, per distinguersi dal porpora */
+  --ombra: 0 14px 40px rgba(90, 20, 30, .12);
+}
+/* Blu notte e oro */
+:root[data-palette="notte"] {
+  --bianco: #ffffff; --fondo: #f5f4f0; --fondo-2: #ecebe5;
+  --primario: #13235b; --primario-2: #22367d; --primario-3: #9aa4cc; --primario-chiaro: #c3cae5;
+  --accento: #f2b41b; --accento-chiaro: #fdf3d8;
+  --testo: #16181f; --tenue: #5d6170; --linea: #dcdcd6; --rosso: #b3261e;
+}
+/* Verde pino e terracotta */
+:root[data-palette="pino"] {
+  --bianco: #ffffff; --fondo: #f4f2ec; --fondo-2: #e9e5da;
+  --primario: #1d3b33; --primario-2: #2b5247; --primario-3: #9db8ae; --primario-chiaro: #cadcd5;
+  --accento: #ee9155; --accento-chiaro: #fbe6d6;
+  --testo: #172019; --tenue: #5b6660; --linea: #d9d6ca; --rosso: #b3261e;
+}
+/* Inchiostro e vermiglione */
+:root[data-palette="inchiostro"] {
+  --bianco: #ffffff; --fondo: #f3f1ee; --fondo-2: #e8e5e0;
+  --primario: #18181b; --primario-2: #2c2c31; --primario-3: #a1a1aa; --primario-chiaro: #d4d4d8;
+  --accento: #ff5a36; --accento-chiaro: #ffe3db;
+  --testo: #18181b; --tenue: #5f5f66; --linea: #dddad4; --rosso: #b3261e;
+}
+/* Oltremare e rosa antico */
+:root[data-palette="oltremare"] {
+  --bianco: #ffffff; --fondo: #f6f4f2; --fondo-2: #ece8e4;
+  --primario: #1d34a0; --primario-2: #2d47c0; --primario-3: #a9b5ea; --primario-chiaro: #d2d9f6;
+  --accento: #f5b5a3; --accento-chiaro: #fde9e3;
+  --testo: #141a33; --tenue: #5b6078; --linea: #dedad5; --rosso: #b3261e;
+}

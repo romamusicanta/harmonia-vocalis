@@ -1,0 +1,99 @@
+// Schema della configurazione di un coro (coro/coro.config.ts).
+// La configurazione si valida all'avvio della build: un campo mancante o sbagliato
+// ferma la build con un messaggio che dice quale campo correggere.
+import { z } from 'astro/zod';
+import { CARATTERI, PALETTE, VESTI } from './aspetto';
+
+const chiavi = <T extends Record<string, unknown>>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]];
+
+const persona = z.object({
+  nome: z.string(),
+  ruolo: z.string(),
+});
+
+const luogo = z.object({
+  nome: z.string(),
+  indirizzo: z.string(),
+  cap: z.string(),
+  citta: z.string(),
+});
+
+export const schemaCoro = z.object({
+  nome: z.string(),
+  // Tipo di coro, sotto il nome nel marchio: "Coro polifonico misto"
+  tipo: z.string(),
+  // Sigla di 1–3 lettere per il quadratino del marchio, se non c'è un logo
+  sigla: z.string().max(3),
+  citta: z.string(),
+  associazione: z.string().optional(),
+  // Riga nella barra di servizio: "Associato ARCL e Feniarco"
+  affiliazioni: z.string().optional(),
+  descrizione: z.string(),
+  url: z.url(),
+  email: z.email(),
+  fondazione: z.number().int(),
+
+  sede: luogo.optional(),
+  prove: luogo.extend({
+    orari: z.string(),
+    // Tre riquadri brevi nella pagina "Canta con noi": ["Mer", "Ogni settimana"]
+    riquadri: z.array(z.tuple([z.string(), z.string()])).max(4),
+  }),
+
+  maestro: z.object({
+    nome: z.string(),
+    // Frase di presentazione breve, sotto il nome
+    presentazione: z.string(),
+    anniPodio: z.number().int().optional(),
+    foto: z.string(),
+  }),
+
+  direttivo: z.array(persona),
+  organico: z.array(z.object({ sezione: z.string(), voci: z.number().int() })),
+  // Altre formazioni o numeri da mettere in evidenza nella pagina del coro
+  numeri: z.array(z.object({ valore: z.string(), testo: z.string() })).max(4),
+  associatoA: z.array(z.object({ nome: z.string(), descrizione: z.string(), url: z.url().optional() })),
+
+  stagione: z.object({
+    // Etichetta grande in home: "26/27"
+    sigla: z.string(),
+    presentazione: z.string(),
+  }),
+
+  foto: z.object({
+    apertura: z.string(),
+    coro: z.string(),
+    accesso: z.string(),
+  }),
+
+  link: z.object({
+    youtube: z.url().optional(),
+    youtubeCanale: z.string().optional(),
+    instagram: z.url().optional(),
+    facebook: z.url().optional(),
+    // Scheda del coro in PDF per gli organizzatori, dentro public/
+    schedaPdf: z.string().optional(),
+  }),
+
+  calendario: z.object({
+    // Indirizzo pubblico iCal del calendario Google "Concerti" (facoltativo)
+    ics: z.string().optional(),
+    // ID del calendario, per il pulsante "Iscriviti al calendario"
+    id: z.string().optional(),
+  }),
+
+  aspetto: z.object({
+    veste: z.enum(chiavi(VESTI)),
+    palette: z.enum(chiavi(PALETTE)),
+    carattere: z.enum(chiavi(CARATTERI)),
+  }),
+
+  funzioni: z.object({
+    ascolta: z.boolean(),
+    cantaConNoi: z.boolean(),
+    organizzatori: z.boolean(),
+    areaCoristi: z.boolean(),
+  }),
+});
+
+export type ConfigCoro = z.infer<typeof schemaCoro>;

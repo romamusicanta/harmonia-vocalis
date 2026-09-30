@@ -1,0 +1,53 @@
+---
+// Veste Stagione: testata dell'area coristi, con utente collegato e barra delle sezioni.
+import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
+import Marchio from './Marchio.astro';
+import { coro, DEMO } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { corista } from '../../demo/area';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste; sezione?: string; conBarra?: boolean }
+const { veste, sezione, conBarra = true } = Astro.props;
+
+const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] = [
+  { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
+  { id: 'prove', testo: 'Prove', icona: 'nota', href: link(veste, '/area/prove') },
+  { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio') },
+  { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
+  { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
+  { id: 'presenze', testo: 'Presenze', icona: 'presenze', href: link(veste, '/area/presenze') },
+];
+---
+
+<div class="servizio area-s">
+  <div class="w">
+    <span class="info">Area coristi · accesso riservato ai coristi del {coro.nome}</span>
+    <span class="dx"><a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></span>
+  </div>
+</div>
+<header class="testata">
+  <div class="w">
+    <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={link(veste, conBarra ? '/area' : '/')} /><span class="etichetta-area">Area coristi</span></span>
+    {conBarra ? (
+      <div class="azioni">
+        <span class="utente"><span class="av" aria-hidden="true">{corista.nome.charAt(0)}</span><span class="nome"><b>{corista.nome}</b><small>{corista.sezione} · {corista.email}</small></span></span>
+        <a class="esci-btn" href={link(veste, '/area/accesso')} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
+      </div>
+    ) : (
+      <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
+    )}
+  </div>
+</header>
+{DEMO && (
+  <div class="avviso-anteprima" role="note">
+    <div class="w"><Icona nome="info" classe="" /><span><b>Demo:</b> qui l'area coristi è aperta a tutti. Nel sito vero si entra con l'account Google, solo se l'indirizzo è nell'elenco dei coristi. Nomi e dati sono di esempio.</span></div>
+  </div>
+)}
+{conBarra && (
+  <nav class="barra-area" aria-label="Area coristi">
+    <div class="w">
+      {sezioni.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona} />{s.testo}</a>)}
+    </div>
+  </nav>
+)}

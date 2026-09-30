@@ -1,0 +1,18 @@
+---
+// Demo: applica palette e carattere scelti prima che la pagina si disegni (niente sfarfallio).
+// La scelta arriva dall'indirizzo (?palette=…&carattere=…, per condividerla) o da localStorage.
+import { CARATTERI, PALETTE } from '../motore/aspetto';
+const valide = { palette: Object.keys(PALETTE), carattere: Object.keys(CARATTERI) };
+---
+
+<script is:inline define:vars={{ valide }}>
+  (function () {
+    var html = document.documentElement;
+    var q = new URLSearchParams(location.search);
+    ['palette', 'carattere'].forEach(function (k) {
+      var v = q.get(k);
+      try { if (!v) v = localStorage.getItem('dimora-' + k); } catch (e) {}
+      if (v && valide[k].indexOf(v) >= 0) html.setAttribute('data-' + k, v);
+    });
+  })();
+</script>

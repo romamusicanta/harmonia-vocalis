@@ -1,0 +1,54 @@
+---
+// Icone a tratto (24×24), le stesse per tutte le vesti.
+// Uso: <Icona nome="calendario" /> — classe "p" piccola (predefinita), "g" grande, "" normale.
+const ICONE = {
+  freccia: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  indietro: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  esterno: '<path d="M7 17L17 7M9 7h8v8"/>',
+  play: '<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
+  pausa: '<path d="M8.5 5.5v13M15.5 5.5v13" stroke-width="3"/>',
+  luogo: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15.5" rx="1"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  'calendario-piu': '<rect x="3.5" y="5" width="17" height="15.5" rx="1"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/>',
+  lucchetto: '<rect x="5" y="10.5" width="14" height="10" rx="1"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+  chiudi: '<path d="M6 6l12 12M18 6L6 18"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  scarica: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
+  drive: '<path d="M8.8 3.5h6.4l6.3 11-3.2 5.5H5.7l-3.2-5.5z"/><path d="M8.8 3.5l6.4 11h6.3M15.2 3.5L8.8 14.5 5.7 20"/>',
+  spunta: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
+  domanda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.5a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.6M12 16.6v.2"/>',
+  orologio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  microfono: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
+  presenze: '<path d="M4 6.5l1.5 1.5 3-3M4 13l1.5 1.5 3-3M11.5 7h8.5M11.5 13.5h8.5M11.5 19h8.5M4.5 19h2"/>',
+  libro: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
+  casa: '<path d="M4 11l8-6.5 8 6.5v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/>',
+  biglietto: '<path d="M3.5 9.5v-3a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v3a2.5 2.5 0 0 0 0 5v3a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-3a2.5 2.5 0 0 0 0-5z"/><path d="M14.5 6v2M14.5 11v2M14.5 16v2"/>',
+  esci: '<path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M10 8l-4 4 4 4M6 12h10"/>',
+  youtube: '<rect x="2.5" y="5.5" width="19" height="13" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/>',
+  documento: '<path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h5"/>',
+  persona: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6"/>',
+  persone: '<circle cx="9" cy="8.5" r="3.3"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M15.5 5.3a3.3 3.3 0 0 1 0 6.4M17.5 14.8c2 .6 3.4 2.4 4 5.2"/>',
+  email: '<rect x="3" y="5.5" width="18" height="13" rx="1"/><path d="M3.5 6.5l8.5 7 8.5-7"/>',
+  cuffie: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4.5" height="6.5" rx="1"/><rect x="16" y="14" width="4.5" height="6.5" rx="1"/>',
+  mappa: '<path d="M3.5 6.5l5.5-2.5 6 2.5 5.5-2.5v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+  nota: '<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
+  whatsapp: '<path d="M4.5 20l1.3-3.9A8.2 8.2 0 1 1 8.6 19z"/><path d="M9 8.6c.1 3 2.9 5.8 6 6.1l1.1-1.4-2-1-.9.8a4.6 4.6 0 0 1-2.5-2.5l.8-.9-1-2z"/>',
+  aggiorna: '<path d="M4.5 12a7.5 7.5 0 0 1 13-5.1M19.5 12a7.5 7.5 0 0 1-13 5.1"/><path d="M17.5 3.5v3.5H14M6.5 20.5V17H10"/>',
+  campanella: '<path d="M10 5.8a2 2 0 1 1 2 2v1.4"/><path d="M12 9.2l8.3 6.2a1 1 0 0 1-.6 1.8H4.3a1 1 0 0 1-.6-1.8z"/>',
+  condividi: '<circle cx="6" cy="12" r="2.5"/><circle cx="17.5" cy="6" r="2.5"/><circle cx="17.5" cy="18" r="2.5"/><path d="M8.2 10.8l7.1-3.6M8.2 13.2l7.1 3.6"/>',
+  instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.8"/><path d="M16.8 7.2v.1"/>',
+  cerca: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/>',
+} as const;
+
+export type NomeIcona = keyof typeof ICONE;
+
+interface Props {
+  nome: NomeIcona;
+  classe?: string;
+  spessore?: number;
+}
+const { nome, classe = 'p', spessore = 1.8 } = Astro.props;
+---
+
+<svg class:list={['ic', classe]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={spessore} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONE[nome]} />

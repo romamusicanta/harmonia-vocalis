@@ -1,0 +1,9 @@
+/* Set di caratteri, comuni a tutte le vesti. Si scelgono con data-carattere su <html>.
+   --f-titoli: titoli e numeri grandi (peso --peso-titoli); --f-testo: testo, etichette, pulsanti.
+   I file dei caratteri si caricano da Google Fonts (vedi src/motore/aspetto.ts). */
+
+:root[data-carattere="manrope"] { --f-titoli: 'Manrope', system-ui, sans-serif; --f-testo: 'Manrope', system-ui, sans-serif; --peso-titoli: 700; }
+:root[data-carattere="fraunces"] { --f-titoli: 'Fraunces', Georgia, serif; --f-testo: 'Source Sans 3', system-ui, sans-serif; --peso-titoli: 600; }
+:root[data-carattere="garamond"] { --f-titoli: 'EB Garamond', Garamond, serif; --f-testo: 'Lato', system-ui, sans-serif; --peso-titoli: 600; }
+:root[data-carattere="caslon"] { --f-titoli: 'Libre Caslon Display', Georgia, serif; --f-testo: 'Libre Franklin', system-ui, sans-serif; --peso-titoli: 400; }
+:root[data-carattere="dmserif"] { --f-titoli: 'DM Serif Display', Georgia, serif; --f-testo: 'DM Sans', system-ui, sans-serif; --peso-titoli: 400; }

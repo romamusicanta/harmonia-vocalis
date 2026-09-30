@@ -1,0 +1,12 @@
+---
+// Marchio del coro: quadrato con la sigla, nome e tipo di coro.
+import { coro } from '../../motore/coro';
+
+interface Props { href: string; chiaro?: boolean }
+const { href } = Astro.props;
+---
+
+<a class="marchio" href={href}>
+  <span class="q" aria-hidden="true"><b>{coro.sigla}</b></span>
+  <span><b>{coro.nome}</b><small>{coro.tipo} · {coro.citta}</small></span>
+</a>

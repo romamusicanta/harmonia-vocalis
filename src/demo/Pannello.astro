@@ -1,0 +1,179 @@
+---
+// Demo di vendita: pannello di scelta con veste grafica, palette e carattere.
+// Palette e carattere cambiano subito (attributi su <html>, ricordati in localStorage);
+// la veste porta alla stessa pagina sotto /<veste>/.
+import { coro } from '../motore/coro';
+import { CARATTERI, PALETTE, VESTI, type Veste } from '../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const info = VESTI[veste];
+const nomi = {
+  palette: Object.fromEntries(Object.entries(PALETTE).map(([k, v]) => [k, v])),
+  carattere: Object.fromEntries(Object.entries(CARATTERI).map(([k, v]) => [k, { nome: v.nome, descrizione: v.descrizione }])),
+};
+---
+
+<aside class="pannello ridotto" aria-label="Pannello della demo" data-veste={veste} data-predefinita={coro.aspetto.veste}>
+  <button class="riapri" type="button" aria-expanded="false">
+    <span class="punto" aria-hidden="true"></span>Prova le grafiche
+  </button>
+  <div class="corpo">
+    <div class="intest">
+      <b>Dimora Choir · demo</b>
+      <button class="chiudi" type="button" aria-label="Riduci il pannello">×</button>
+    </div>
+    <p class="nota">Coro, persone e date sono inventati. La scelta vale per tutte le pagine.</p>
+
+    <label for="demo-veste">Veste grafica</label>
+    <select id="demo-veste">
+      {Object.entries(VESTI).map(([k, v]) => <option value={k} selected={k === veste} disabled={!v.pronta}>{v.nome}{!v.pronta && ' (in arrivo)'}</option>)}
+    </select>
+    <p class="descr">{info.descrizione}</p>
+
+    {info.abbinamenti.length > 0 && (
+      <>
+        <span class="eti">Abbinamenti consigliati</span>
+        <div class="abbinamenti">
+          {info.abbinamenti.map(([p, c]) => (
+            <button type="button" data-palette={p} data-carattere={c} title={`${PALETTE[p as keyof typeof PALETTE].nome} + ${CARATTERI[c as keyof typeof CARATTERI].nome}`}>
+              <span class="campione" data-p={p}><i></i><i></i><i></i></span>
+              <span class="nome-c" style={`font-family:var(--anteprima-${c})`}>Aa</span>
+            </button>
+          ))}
+        </div>
+      </>
+    )}
+
+    <div class="sep"></div>
+    <label for="demo-palette">Palette</label>
+    <select id="demo-palette">
+      {Object.entries(PALETTE).map(([k, v]) => <option value={k} selected={k === coro.aspetto.palette}>{v.nome}</option>)}
+    </select>
+    <div class="campioni" aria-hidden="true"><span data-v="--primario"></span><span data-v="--primario-2"></span><span data-v="--accento"></span><span data-v="--fondo"></span><span data-v="--testo"></span></div>
+    <p class="descr" data-descr="palette"></p>
+
+    <label for="demo-carattere">Carattere</label>
+    <select id="demo-carattere">
+      {Object.entries(CARATTERI).map(([k, v]) => <option value={k} selected={k === coro.aspetto.carattere}>{v.nome}</option>)}
+    </select>
+    <p class="descr" data-descr="carattere"></p>
+
+    <button class="condividi" type="button">Copia il link con questa scelta</button>
+  </div>
+</aside>
+
+<script is:inline define:vars={{ nomi }}>
+  window.__dimoraNomi = nomi;
+</script>
+
+<script>
+  const box = document.querySelector<HTMLElement>('.pannello')!;
+  const html = document.documentElement;
+  const sel = (id: string) => box.querySelector<HTMLSelectElement>(id)!;
+  const sv = sel('#demo-veste'), sp = sel('#demo-palette'), sc = sel('#demo-carattere');
+  const nomi = (window as any).__dimoraNomi as Record<'palette' | 'carattere', Record<string, { nome: string; descrizione: string }>>;
+  const salva = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch {} };
+  const leggi = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+
+  // I select partono dai valori già applicati a <html> (indirizzo o scelta precedente)
+  sp.value = html.dataset.palette!;
+  sc.value = html.dataset.carattere!;
+
+  function aggiorna() {
+    html.dataset.palette = sp.value;
+    html.dataset.carattere = sc.value;
+    salva('dimora-palette', sp.value);
+    salva('dimora-carattere', sc.value);
+    box.querySelector('[data-descr="palette"]')!.textContent = nomi.palette[sp.value].descrizione;
+    box.querySelector('[data-descr="carattere"]')!.textContent = nomi.carattere[sc.value].descrizione;
+    const cs = getComputedStyle(html);
+    box.querySelectorAll<HTMLElement>('.campioni span').forEach((s) => { s.style.background = cs.getPropertyValue(s.dataset.v!); });
+    box.querySelectorAll<HTMLElement>('.abbinamenti button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.palette === sp.value && b.dataset.carattere === sc.value);
+    });
+    // Se l'indirizzo porta una scelta, la si tiene allineata
+    const q = new URLSearchParams(location.search);
+    if (q.has('palette') || q.has('carattere')) {
+      q.set('palette', sp.value); q.set('carattere', sc.value);
+      history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
+    }
+  }
+  sp.addEventListener('change', aggiorna);
+  sc.addEventListener('change', aggiorna);
+
+  box.querySelectorAll<HTMLElement>('.abbinamenti button').forEach((b) => b.addEventListener('click', () => {
+    sp.value = b.dataset.palette!; sc.value = b.dataset.carattere!; aggiorna();
+  }));
+
+  // Stessa pagina, altra veste: /concerti → /palco/concerti
+  sv.addEventListener('change', () => {
+    const predefinita = box.dataset.predefinita!, attuale = box.dataset.veste!;
+    let percorso = location.pathname;
+    if (attuale !== predefinita) percorso = percorso.replace(new RegExp(`^/${attuale}(?=/|$)`), '') || '/';
+    if (sv.value !== predefinita) percorso = `/${sv.value}${percorso === '/' ? '/' : percorso}`;
+    location.href = percorso + location.search + location.hash;
+  });
+
+  box.querySelector('.condividi')!.addEventListener('click', async () => {
+    const u = new URL(location.href);
+    u.searchParams.set('palette', sp.value); u.searchParams.set('carattere', sc.value);
+    try { await navigator.clipboard.writeText(u.toString()); (window as any).avvisa?.('Link copiato: apre la demo con questa scelta'); }
+    catch { prompt('Copia il link:', u.toString()); }
+  });
+
+  const riapri = box.querySelector<HTMLElement>('.riapri')!;
+  function apri(si: boolean) {
+    box.classList.toggle('ridotto', !si);
+    riapri.setAttribute('aria-expanded', String(si));
+    salva('dimora-pannello', si ? 'aperto' : 'ridotto');
+  }
+  riapri.addEventListener('click', () => apri(true));
+  box.querySelector('.chiudi')!.addEventListener('click', () => apri(false));
+  // Sul telefono il pannello aperto copre la pagina: parte sempre ridotto
+  if (leggi('dimora-pannello') === 'aperto' && matchMedia('(min-width: 760px)').matches) box.classList.remove('ridotto');
+
+  aggiorna();
+</script>
+
+<style>
+  /* Stile neutro, indipendente da veste e palette */
+  .pannello {
+    --anteprima-manrope: 'Manrope', sans-serif; --anteprima-fraunces: 'Fraunces', serif; --anteprima-garamond: 'EB Garamond', serif;
+    --anteprima-caslon: 'Libre Caslon Display', serif; --anteprima-dmserif: 'DM Serif Display', serif;
+    position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(340px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px); overflow-y: auto;
+    background: #fff; color: #16181f; border: 1px solid #d6d3cc; border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .2); padding: 16px;
+    font: 400 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  .intest { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .intest b { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .nota { color: #5d6170; font-size: 13px; margin: 0 0 14px; }
+  label, .eti { display: block; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #5d6170; margin: 0 0 6px; }
+  select { width: 100%; padding: 9px 10px; border: 1px solid #c9c6bf; border-radius: 6px; background: #fff; font: 600 15px/1.2 system-ui, sans-serif; color: #16181f; }
+  .descr { color: #5d6170; margin: 6px 0 14px; font-size: 13px; }
+  .campioni { display: flex; gap: 4px; margin: 8px 0 0; }
+  .campioni span { flex: 1; height: 20px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, .08); }
+  .sep { height: 1px; background: #e2dfd8; margin: 4px 0 14px; }
+  .abbinamenti { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .abbinamenti button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 1px solid #d6d3cc; border-radius: 6px; background: #fff; cursor: pointer; }
+  .abbinamenti button:hover { border-color: #16181f; }
+  .abbinamenti button.on { border-color: #16181f; box-shadow: inset 0 0 0 1px #16181f; }
+  .campione { display: flex; width: 100%; height: 14px; border-radius: 3px; overflow: hidden; }
+  .campione i { flex: 1; }
+  .campione[data-p='porpora'] i:nth-child(1) { background: #5a1019; } .campione[data-p='porpora'] i:nth-child(2) { background: #dca542; } .campione[data-p='porpora'] i:nth-child(3) { background: #f5eee2; }
+  .campione[data-p='notte'] i:nth-child(1) { background: #13235b; } .campione[data-p='notte'] i:nth-child(2) { background: #f2b41b; } .campione[data-p='notte'] i:nth-child(3) { background: #f5f4f0; }
+  .campione[data-p='pino'] i:nth-child(1) { background: #1d3b33; } .campione[data-p='pino'] i:nth-child(2) { background: #ee9155; } .campione[data-p='pino'] i:nth-child(3) { background: #f4f2ec; }
+  .campione[data-p='inchiostro'] i:nth-child(1) { background: #18181b; } .campione[data-p='inchiostro'] i:nth-child(2) { background: #ff5a36; } .campione[data-p='inchiostro'] i:nth-child(3) { background: #f3f1ee; }
+  .campione[data-p='oltremare'] i:nth-child(1) { background: #1d34a0; } .campione[data-p='oltremare'] i:nth-child(2) { background: #f5b5a3; } .campione[data-p='oltremare'] i:nth-child(3) { background: #f6f4f2; }
+  .nome-c { font-size: 17px; line-height: 1; color: #16181f; }
+  .condividi { width: 100%; margin-top: 4px; padding: 9px; border: 1px solid #c9c6bf; border-radius: 6px; background: #f6f5f2; font: 600 13px/1.2 system-ui, sans-serif; color: #16181f; cursor: pointer; }
+  .condividi:hover { background: #ecebe6; }
+  .chiudi { border: 0; background: none; font-size: 22px; line-height: 1; color: #5d6170; padding: 2px 6px; cursor: pointer; }
+  .riapri { display: none; align-items: center; gap: 8px; border: 0; background: none; font: 700 13px/1 system-ui, sans-serif; color: #16181f; padding: 2px; cursor: pointer; }
+  .punto { width: 10px; height: 10px; border-radius: 50%; background: conic-gradient(#5a1019 0 25%, #dca542 0 50%, #1d3b33 0 75%, #1d34a0 0); }
+  .pannello.ridotto { width: auto; padding: 10px 14px; border-radius: 999px; }
+  .pannello.ridotto .corpo { display: none; }
+  .pannello.ridotto .riapri { display: inline-flex; }
+</style>

@@ -1,0 +1,31 @@
+---
+// Veste Stagione: scheda concerto verticale (data grande, foto, autore e titolo).
+import Foto from '../../componenti/Foto.astro';
+import { parti } from '../../motore/concerti';
+import type { Concerto } from '../../motore/tipi';
+
+interface Props {
+  concerto: Concerto;
+  href: string;
+  etichetta: string;
+  grigia?: boolean;
+  azione: string;
+  conFoto?: boolean;
+}
+const { concerto: c, href, etichetta, grigia, azione, conFoto = true } = Astro.props;
+const d = parti(c);
+---
+
+<a class="sc" href={href}>
+  <div class="top">
+    <span class="data-grande">{d.incerta ? d.anno : d.giorno}<small>{d.incerta ? 'data da precisare' : `${d.meseBreve} ${d.anno}`}</small></span>
+    <span class:list={['tag', { grigio: grigia }]}>{etichetta}</span>
+  </div>
+  {conFoto && c.foto && <div class="img"><Foto nome={c.foto} sizes="(min-width: 1000px) 25vw, 100vw" /></div>}
+  <div class="corpo">
+    {c.autore && <span class="aut">{c.autore}</span>}
+    <h3>{c.titolo}</h3>
+    <span class="luogo">{[c.luogo, c.rassegna].filter(Boolean).join(' · ')}</span>
+    <span class="link">{azione} →</span>
+  </div>
+</a>

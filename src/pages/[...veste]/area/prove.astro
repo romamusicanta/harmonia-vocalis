@@ -1,0 +1,69 @@
+---
+// Area coristi: calendario delle prove, raggruppate per mese, con segnalazione di assenza.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { prove, prossimaProva, luogoProva, giorno, type Prova } from '../../../demo/area';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+
+const mesi = new Map<string, Prova[]>();
+for (const p of prove) {
+  const d = giorno(p.data);
+  const chiave = `${d.mese} ${d.anno}`;
+  if (!mesi.has(chiave)) mesi.set(chiave, []);
+  mesi.get(chiave)!.push(p);
+}
+---
+
+<Base veste={veste} titolo="Prove · Area coristi" area={{ sezione: 'prove' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Calendario prove</span>
+        <h1>Prove</h1>
+        <p>{coro.prove.orari}. Se non puoi venire, segnalalo qui: il Maestro vede subito chi manca in ogni sezione.</p>
+      </div>
+      <div class="bottoni">
+        <a class="btn g" href="#" data-finto-avviso="Nel sito vero apre l'iscrizione al calendario Google «Prove»"><Icona nome="calendario" />Aggiungi il calendario prove al tuo telefono</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      <div class="prove">
+        {[...mesi].map(([mese, elenco]) => (
+          <>
+            <h2 class="mese-sep">{mese}</h2>
+            {elenco.map((p) => {
+              const d = giorno(p.data);
+              return (
+                <article class:list={['prova', { speciale: p.straordinaria }]}>
+                  <div class="quando"><b>{d.giorno}</b><span>{d.giornoSettimana}</span><small>{p.inizio}–{p.fine}</small></div>
+                  <div class="cosa">
+                    <h3>{p.titolo} {p === prossimaProva && <span class="tag">Prossima</span>}{p.straordinaria && <span class="tag blu">Straordinaria</span>}</h3>
+                    <div class="elenco-brani">{p.brani.map((b, i) => <>{i > 0 && <br />}<b>{b.opera}</b>{b.passo && ` · ${b.passo}`}</>)}</div>
+                    <div class="meta"><span><Icona nome="luogo" />{luogoProva(p)}</span>{p.basi && <span><Icona nome="cuffie" /><a href={link(veste, '/area/repertorio')} style="text-decoration:underline">Basi pronte</a></span>}</div>
+                  </div>
+                  <div class="az">
+                    <div class="assenza">
+                      <div class="da-fare"><button class="btn btn-assenza piccolo segnala" type="button" style="width:100%"><Icona nome="chiudi" />Non ci sarò</button></div>
+                      <div class="fatto">
+                        <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata · <button class="annulla" type="button">Annulla</button></div>
+                        <div class="nota-assenza"><label for={`np-${p.data}`}>Nota (facoltativa)</label><input id={`np-${p.data}`} placeholder="Es. arrivo alle 21:30" /></div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </>
+        ))}
+      </div>
+      <p class="tenue" style="margin-top:28px;font-size:15px;display:flex;gap:10px"><Icona nome="aggiorna" /><span>Il calendario si aggiorna da solo: se una prova viene spostata o annullata, lo vedi qui e sul telefono.</span></p>
+    </div>
+  </div>
+</Base>

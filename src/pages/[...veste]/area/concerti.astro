@@ -1,0 +1,102 @@
+---
+// Area coristi: convocazioni ai prossimi concerti. I concerti vengono dal calendario pubblico;
+// orari, abito e risposte dalla convocazione. Senza convocazione il concerto è "in preparazione"
+// e si chiede solo una disponibilità di massima.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { linkMappa, luogoCompleto, parti, prossimiConcerti, slug } from '../../../motore/concerti';
+import { convocazione, titoloBreve, traGiorni, sezioni, voci, percento, dataGiorno } from '../../../demo/area';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+const concerti = await prossimiConcerti();
+---
+
+<Base veste={veste} titolo="Concerti · Area coristi" area={{ sezione: 'concerti' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Convocazioni</span>
+        <h1>Concerti</h1>
+        <p>Per ogni concerto: orari, ritrovo, abito e la tua conferma. Rispondi appena puoi: il direttivo organizza file e posti in base alle disponibilità di ogni sezione.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {concerti.map((c) => {
+        const d = parti(c);
+        const conv = convocazione(c);
+        const pubblica = link(veste, `/concerti/${slug(c)}`);
+        const dove = [c.luogo, c.organizza && `organizza ${c.organizza}`].filter(Boolean).join(' · ');
+        return conv ? (
+          <article class="convocazione">
+            <div class="intest">
+              <div class="data"><b>{d.giorno}</b><span>{d.giornoSettimana}<br />{d.mese} {d.anno}</span></div>
+              <div class="titolo">
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="tag">{traGiorni(c.data)}</span>{c.rassegna && <span class="tag grigio">{c.rassegna}</span>}</div>
+                <h2>{titoloBreve(c)}</h2>
+                <span class="tenue">{dove}{dove && ' · '}<a class="link-freccia" href={pubblica}>Pagina pubblica <Icona nome="freccia" /></a></span>
+              </div>
+            </div>
+            <div class="corpo-c">
+              <div class="blocco">
+                <h3>Programma della giornata</h3>
+                <ul class="orari">
+                  {conv.orari.map((o) => <li><b>{o.ora}</b><span>{o.cosa}</span></li>)}
+                </ul>
+              </div>
+              <div class="blocco">
+                <h3>Cosa portare</h3>
+                <ul class="elenco-puntato" style="font-size:15px">
+                  {conv.portare.map((p) => <li set:html={p} />)}
+                </ul>
+                <h3 style="margin-top:24px">Come arrivare</h3>
+                <p style="font-size:15px">{conv.arrivare}</p>
+                <a class="link-freccia" style="margin-top:8px" href={linkMappa(luogoCompleto(c).replace(' · ', ', '))} target="_blank" rel="noopener"><Icona nome="mappa" />Mappa</a>
+              </div>
+              <div class="blocco">
+                <h3>Disponibilità per sezione</h3>
+                <div class="mini-sezioni">
+                  {sezioni.map((s) => {
+                    const r = conv.risposte[s] ?? { si: 0, no: 0 };
+                    return <div class="ms">{s}<span class="barra" style="background:var(--fondo-2)"><i style={`width:${percento(r.si, voci[s])};background:var(--primario)`}></i><i style={`width:${percento(r.no, voci[s])};background:var(--rosso)`}></i></span><em>{r.si}/{voci[s]}</em></div>;
+                  })}
+                </div>
+                <div class="legenda" style="margin-top:14px"><span><i style="background:var(--primario)"></i>Sì</span><span><i style="background:var(--rosso)"></i>No</span><span><i style="background:var(--fondo-2)"></i>In attesa</span></div>
+                <div class="riga-conferma">
+                  <div><b>Ci sarai?</b><div class="esito tenue" style="font-size:14px">Non hai ancora risposto. Conferma entro {dataGiorno(conv.entro)}.</div></div>
+                  <div class="scelta" role="group" aria-label="Conferma disponibilità"><button type="button" class="si" aria-pressed="false"><Icona nome="spunta" />Sì</button><button type="button" class="no" aria-pressed="false"><Icona nome="chiudi" />No</button></div>
+                </div>
+              </div>
+            </div>
+          </article>
+        ) : (
+          <article class="convocazione">
+            <div class="intest">
+              <div class="data" style="background:var(--fondo);color:var(--primario)">
+                {d.incerta ? <><b style="color:var(--primario);font-size:40px;line-height:.9">{d.meseBreve}</b><span>{d.anno} · data da confermare</span></> : <><b style="color:var(--primario)">{d.giorno}</b><span>{d.giornoSettimana}<br />{d.mese} {d.anno}</span></>}
+              </div>
+              <div class="titolo">
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="tag grigio">In preparazione</span>{c.rassegna && <span class="tag grigio">{c.rassegna}</span>}</div>
+                <h2>{titoloBreve(c)}</h2>
+                <span class="tenue">{luogoCompleto(c)}{luogoCompleto(c) && '. '}Orari e convocazione in arrivo: intanto il direttivo chiede a tutti una disponibilità di massima. <a class="link-freccia" href={pubblica}>Pagina pubblica <Icona nome="freccia" /></a></span>
+              </div>
+            </div>
+            <div class="corpo-c" style="grid-template-columns:minmax(0,1fr)">
+              <div class="blocco">
+                <div class="riga-conferma" style="border:0;margin:0;padding:0">
+                  <div><b>Pensi di esserci?</b><div class="esito tenue" style="font-size:14px">Risposta non vincolante: servirà a organizzare le sezioni.</div></div>
+                  <div class="scelta" role="group" aria-label="Disponibilità di massima"><button type="button" class="si" aria-pressed="false"><Icona nome="spunta" />Sì</button><button type="button" class="no" aria-pressed="false"><Icona nome="chiudi" />No</button></div>
+                </div>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </div>
+</Base>

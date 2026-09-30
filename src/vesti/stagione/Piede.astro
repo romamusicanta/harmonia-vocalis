@@ -1,0 +1,55 @@
+---
+// Veste Stagione: piè di pagina a colonne, con la firma del modello.
+import Marchio from './Marchio.astro';
+import FirmaDimora from '../../componenti/FirmaDimora.astro';
+import { AREA_CORISTI, coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const f = coro.funzioni;
+const l = coro.link;
+---
+
+<footer class="piede-sito">
+  <div class="w">
+    <div class="colonne">
+      <div>
+        <Marchio href={link(veste, '/')} />
+        <p>{coro.descrizione}</p>
+      </div>
+      <div>
+        <h4>Il coro</h4>
+        <ul>
+          <li><a href={link(veste, '/il-coro')}>Storia e direttivo</a></li>
+          <li><a href={link(veste, '/il-maestro')}>Il Maestro</a></li>
+          {f.cantaConNoi && <li><a href={link(veste, '/canta-con-noi')}>Canta con noi</a></li>}
+          {f.organizzatori && <li><a href={link(veste, '/organizzatori')}>Per gli organizzatori</a></li>}
+        </ul>
+      </div>
+      <div>
+        <h4>Concerti e musica</h4>
+        <ul>
+          <li><a href={link(veste, '/concerti')}>Stagione e archivio</a></li>
+          {f.ascolta && <li><a href={link(veste, '/ascolta')}>Registrazioni</a></li>}
+          {l.youtube && <li><a href={l.youtube}>Canale YouTube</a></li>}
+          {l.instagram && <li><a href={l.instagram}>Instagram</a></li>}
+          {l.facebook && <li><a href={l.facebook}>Facebook</a></li>}
+        </ul>
+      </div>
+      <div>
+        <h4>Contatti</h4>
+        <ul>
+          <li><a href={`mailto:${coro.email}`}>{coro.email}</a></li>
+          {coro.sede && <li>{coro.sede.indirizzo}<br />{coro.sede.cap} {coro.sede.citta}</li>}
+          <li><a href={link(veste, '/contatti')}>Scrivici</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="fondo-piede">
+      <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{AREA_CORISTI && <> · <a href={link(veste, '/area')}>Area coristi</a></>} · <FirmaDimora /></span>
+    </div>
+  </div>
+</footer>

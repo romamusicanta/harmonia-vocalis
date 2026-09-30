@@ -1,0 +1,13 @@
+---
+import Base from '../../layouts/Base.astro';
+import { percorsiVesti, vesteCorrente } from '../../motore/url';
+import { vesti } from '../../vesti';
+
+export const getStaticPaths = percorsiVesti;
+const veste = vesteCorrente(Astro.params.veste);
+const { Home } = vesti[veste];
+---
+
+<Base veste={veste} pagina="home">
+  <Home veste={veste} />
+</Base>

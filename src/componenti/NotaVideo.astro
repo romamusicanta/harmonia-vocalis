@@ -1,0 +1,6 @@
+---
+interface Props { breve?: boolean; stile?: string }
+const { breve, stile } = Astro.props;
+---
+
+<p class="nota-privacy" style={stile}>{breve ? 'Il video si carica da YouTube (senza cookie) solo al clic.' : 'Il video si carica da YouTube (senza cookie) solo quando premi play.'}</p>

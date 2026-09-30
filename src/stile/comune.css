@@ -1,0 +1,5 @@
+/* Regole comuni a tutte le vesti, che non dipendono dalla grafica. */
+
+.firma-dimora { opacity: .75; }
+.firma-dimora:hover { opacity: 1; text-decoration: underline; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

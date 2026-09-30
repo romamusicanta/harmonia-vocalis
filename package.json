@@ -1,0 +1,24 @@
+{
+  "name": "dimora-choir",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "DEMO=1 astro dev",
+    "build": "astro build",
+    "build:demo": "DEMO=1 astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "7.3.5",
+    "fast-xml-parser": "5.11.2",
+    "node-ical": "0.27.2"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}
