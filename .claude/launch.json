@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sito",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:sito"],
+      "port": 4321,
+      "autoPort": true
+    }
+  ]
+}

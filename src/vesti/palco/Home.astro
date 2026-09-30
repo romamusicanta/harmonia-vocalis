@@ -1,0 +1,185 @@
+---
+// Veste Palco al buio: pagina iniziale. Foto di scena a tutta altezza con il prossimo
+// concerto come titolo di cartellone; "In scena" con le locandine dei prossimi concerti
+// e le repliche passate in elenco; video in mosaico; il Maestro in primo piano; numeri;
+// invito a cantare sotto la luce d'accento.
+import Icona from '../../componenti/Icona.astro';
+import Foto from '../../componenti/Foto.astro';
+import Video from '../../componenti/Video.astro';
+import NotaVideo from '../../componenti/NotaVideo.astro';
+import SchedaConcerto from './SchedaConcerto.astro';
+import { coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { archivio, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
+import { elencoVideo, videoInEvidenza } from '../../motore/video';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const l = (p: string) => link(veste, p);
+
+const prossimi = await prossimiConcerti();
+const prossimo = prossimi[0];
+const d = prossimo && parti(prossimo);
+const inScena = prossimi.slice(prossimo ? 1 : 0, 4);
+const repliche = archivio.slice(0, 4);
+const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) : `https://www.youtube.com/watch?v=${id}`);
+
+const evidenza = coro.funzioni.ascolta ? await videoInEvidenza() : undefined;
+const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 2);
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+const [sigla1, sigla2] = coro.stagione.sigla.split('/');
+---
+
+<!-- Dati: calendario "Concerti" (prossimo concerto), foto di apertura in coro/coro.config.ts -->
+<section class="pb-apertura">
+  <div class="pb-scena">
+    <Foto nome={prossimo?.foto ?? coro.foto.apertura} alt={`Il ${coro.nome} in concerto`} caricamento="eager" sizes="100vw" />
+  </div>
+  <div class="pb-grana" aria-hidden="true"></div>
+  <div class="w">
+    {prossimo && d ? (
+      <>
+        <p class="pb-sopratitolo">Prossimo concerto{prossimo.rassegna && ` · ${prossimo.rassegna}`}</p>
+        <h1>{prossimo.autore && <span>{prossimo.autore}</span>}{prossimo.titolo}</h1>
+        <div class="pb-evento">
+          <div class="pb-giorno"><b>{d.giorno}</b><small>{d.giornoSettimana} · {d.mese}</small></div>
+          <div class="pb-info">
+            {prossimo.luogo && <span class="pb-dove">{prossimo.luogo}</span>}
+            <span class="pb-tenue">{[prossimo.sala, d.ora && `ore ${d.ora}`, `Dir. M° ${coro.maestro.nome}`].filter(Boolean).join(' · ')}</span>
+            <div class="bottoni">
+              <a class="btn" href={l(`/concerti/${slug(prossimo)}`)}>Dettagli del concerto <Icona nome="freccia" /></a>
+              <a class="btn o" href={l(`/concerti/${slug(prossimo)}#calendario`)}><Icona nome="calendario-piu" />Aggiungi al calendario</a>
+            </div>
+          </div>
+        </div>
+      </>
+    ) : (
+      <>
+        <p class="pb-sopratitolo">Stagione {sigla1}{sigla2 && `/${sigla2}`}</p>
+        <h1><span>{coro.tipo} · {coro.citta}</span>{coro.nome}</h1>
+        <div class="pb-evento">
+          <div class="pb-info">
+            <span class="pb-dove">{coro.stagione.presentazione}</span>
+            <div class="bottoni"><a class="btn" href={l('/concerti')}>La stagione <Icona nome="freccia" /></a></div>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+</section>
+
+<section class="pb-sezione">
+  <div class="w">
+    <div class="pb-testa">
+      <div>
+        <span class="pb-sopratitolo">Stagione {sigla1}{sigla2 && `/${sigla2}`}</span>
+        <h2>In scena</h2>
+      </div>
+      <div class="pb-testa-dx">
+        <p>{coro.stagione.presentazione}</p>
+        <a class="btn o" href={l('/concerti')}>Tutta la stagione</a>
+      </div>
+    </div>
+    {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+    {inScena.length > 0 && (
+      <div class="pb-locandine">
+        {inScena.map((c) => <SchedaConcerto concerto={c} href={l(`/concerti/${slug(c)}`)} etichetta="In programma" azione="Dettagli e calendario" />)}
+      </div>
+    )}
+    {repliche.length > 0 && (
+      <div class="pb-repliche">
+        <span class="pb-titoletto">Le ultime repliche</span>
+        {repliche.map((c) => {
+          const p = parti(c);
+          return (
+            <a class="pb-replica" href={c.video ? linkVideo(c.video) : l(`/concerti#${stagione(c).id}`)}>
+              <span class="pb-quando">{p.incerta ? p.anno : p.giorno}<small>{p.incerta ? 'data da precisare' : `${p.meseBreve} ${p.anno}`}</small></span>
+              <span class="pb-titolo">{c.titolo}{c.autore && <small>{c.autore}</small>}</span>
+              <span class="pb-luogo">{c.luogo}</span>
+              <span class="pb-azione">{c.video ? <><Icona nome="play" />Guarda il video</> : "Nell'archivio"}</span>
+            </a>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</section>
+
+{evidenza && (
+  <section class="pb-sezione pb-ascolta">
+    {/* Dati: canale YouTube (feed RSS letto in fase di build) */}
+    <div class="w">
+      <div class="pb-testa">
+        <div>
+          <span class="pb-sopratitolo">Dal vivo</span>
+          <h2>Ascolta</h2>
+        </div>
+        <div class="pb-testa-dx">
+          <p>Registrazioni integrali dei nostri concerti, con orchestra e solisti.</p>
+          <a class="btn o" href={l('/ascolta')}>Tutte le registrazioni</a>
+        </div>
+      </div>
+      <div class="pb-mosaico">
+        <div class="pb-grande"><Video video={evidenza} /></div>
+        {altriVideo.map((v) => <div><Video video={v} piccolo /></div>)}
+      </div>
+      <NotaVideo />
+    </div>
+  </section>
+)}
+
+<section class="pb-sezione">
+  {/* Dati: coro/coro.config.ts (maestro) */}
+  <div class="w pb-maestro">
+    <div class="pb-ritratto"><Foto nome={coro.maestro.foto} alt={`Il M° ${coro.maestro.nome}`} sizes="(min-width: 900px) 40vw, 100vw" /></div>
+    <div>
+      <span class="pb-sopratitolo">Sul podio</span>
+      <p class="pb-citazione">{coro.maestro.presentazione}</p>
+      <p class="pb-firma"><b>M° {coro.maestro.nome}</b>{coro.maestro.anniPodio && <span> — {coro.maestro.anniPodio} anni di direzione</span>}</p>
+      <div class="bottoni"><a class="btn o" href={l('/il-maestro')}>Il Maestro</a><a class="btn o" href={l('/il-coro')}>Il coro</a></div>
+    </div>
+  </div>
+</section>
+
+{coro.numeri.length > 0 && (
+  <section class="pb-sezione" style="padding-top:0">
+    {/* Dati: coro/coro.config.ts (numeri) */}
+    <div class="w">
+      <div class="pb-numeri">
+        {coro.numeri.map((n) => <div><b>{n.valore}</b><span>{n.testo}</span></div>)}
+      </div>
+    </div>
+  </section>
+)}
+
+<section class="pb-sezione pb-dietro">
+  {/* Dati: coro/coro.config.ts */}
+  <div class="w pb-dietro-griglia">
+    <a class="pb-quinta" href={l('/il-coro')}>
+      <Foto nome={coro.foto.coro} alt="" sizes="(min-width: 900px) 50vw, 100vw" />
+      <span class="pb-quinta-testo"><span class="pb-sopratitolo">Dietro le quinte</span><b>La nostra storia</b><span>Dal {coro.fondazione}, {voci} voci{coro.associazione && ` con l'${coro.associazione}`}.</span></span>
+    </a>
+    {coro.funzioni.organizzatori && (
+      <a class="pb-quinta pb-senza" href={l('/organizzatori')}>
+        <span class="pb-quinta-testo"><span class="pb-sopratitolo">Per gli organizzatori</span><b>Una rassegna, una festa, un concerto di Natale?</b><span>Messe, oratori e polifonia, anche con orchestra: un repertorio già pronto.</span><span class="pb-vai">Repertorio e contatti <Icona nome="freccia" /></span></span>
+      </a>
+    )}
+  </div>
+</section>
+
+{coro.funzioni.cantaConNoi && (
+  <section class="pb-invito">
+    {/* Dati: coro/coro.config.ts (prove) */}
+    <div class="w">
+      <h2>Cerchiamo nuove voci</h2>
+      <div>
+        <p>{coro.prove.orari}, a {coro.prove.citta}.</p>
+        <div class="bottoni">
+          <a class="btn" href={l('/canta-con-noi')}>Canta con noi <Icona nome="freccia" /></a>
+          {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />Il canale</a>}
+        </div>
+      </div>
+    </div>
+  </section>
+)}

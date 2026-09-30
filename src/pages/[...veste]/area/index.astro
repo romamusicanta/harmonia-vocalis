@@ -1,0 +1,152 @@
+---
+// Area coristi: bacheca. Prossima prova (con segnalazione di assenza), prossimo concerto
+// (con conferma), avvisi del direttivo, scorciatoie della sezione, ultima registrazione, presenze.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { parti, prossimiConcerti } from '../../../motore/concerti';
+import {
+  corista, prossimaProva, luogoProva, convocazione, titoloBreve, repertorio, registrazioni,
+  assenzeProssima, totaleVoci, avvisi, giorno, traGiorni, dataBreve, dataEstesa, dataGiorno,
+} from '../../../demo/area';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+const l = (p: string) => link(veste, p);
+
+const prova = prossimaProva;
+const gp = giorno(prova.data);
+const concerto = (await prossimiConcerti())[0];
+const dc = concerto && parti(concerto);
+const conv = concerto && convocazione(concerto);
+const opera = repertorio.find((o) => o.materiali);
+const basiMie = opera?.materiali?.basi.find((b) => b.sezione === corista.sezione);
+const reg = registrazioni[0];
+const attesi = totaleVoci - assenzeProssima.length;
+const nuovi = avvisi.filter((a) => a.nuovo).length;
+const sezioneMin = corista.sezione.toLowerCase();
+
+const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const intro = [
+  `${maiuscola(dataGiorno(prova.data))} la prossima prova`,
+  concerto && `${dataGiorno(concerto.data)} il concerto${concerto.luogo ? ` a ${concerto.luogo}` : ''}`,
+].filter(Boolean).join(', ');
+---
+
+<Base veste={veste} titolo="Bacheca · Area coristi" area={{ sezione: 'bacheca' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Bacheca · {corista.sezione}</span>
+        <h1>Ciao {corista.nome}<span style="color:var(--accento)">.</span></h1>
+        <p>{intro}. Qui trovi tutto quello che ti serve per la settimana.</p>
+      </div>
+      <a class="btn o" href="#" data-finto-avviso="Nel sito vero apre il calendario Google «Prove» da aggiungere al telefono"><Icona nome="calendario-piu" />Prove sul telefono</a>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      <div class="cruscotto">
+
+        <article class="carta blu c-7">
+          <div class="ct"><h2>Prossima prova{prova.straordinaria ? ' · straordinaria' : ''}</h2><span class="tag">{traGiorni(prova.data)}</span></div>
+          <div class="cc">
+            <div class="prova-evidenza">
+              <div class="gg">{gp.giorno}<small>{gp.giornoSettimana} · {gp.mese}</small></div>
+              <div>
+                <ul class="fatti" style="color:var(--primario-chiaro);margin-top:0">
+                  <li><Icona nome="orologio" />{prova.inizio} – {prova.fine}</li>
+                  <li><Icona nome="luogo" />{prova.luogo ?? `${coro.prove.nome}, ${coro.prove.indirizzo}`}</li>
+                </ul>
+                <span class="eti gialla" style="margin-top:18px">Brani da preparare</span>
+                <ul class="brani">
+                  {prova.brani.map((b) => <li>{[b.autore, b.opera].filter(Boolean).join(', ')}{b.passo && ` · ${b.passo}`} {b.chi && <span>{b.chi}</span>}</li>)}
+                </ul>
+              </div>
+            </div>
+            <div class="assenza">
+              <div class="da-fare" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                <button class="btn btn-assenza segnala" type="button"><Icona nome="chiudi" />Non ci sarò</button>
+                {prova.basi && <a class="btn g" href={l('/area/repertorio')}><Icona nome="cuffie" />Basi dei {sezioneMin}</a>}
+              </div>
+              <div class="fatto">
+                <div class="stato-assenza"><Icona nome="spunta" />Hai segnalato l'assenza · <button class="annulla" type="button">Annulla</button></div>
+                <div class="nota-assenza"><label for={`nota-${prova.data}`}>Nota per il Maestro e il direttivo (facoltativa)</label><textarea id={`nota-${prova.data}`} rows="2" placeholder="Es. rientro tardi dal lavoro, arrivo alle 21:30"></textarea></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        {concerto && dc && (
+          <article class="carta c-5">
+            <div class="ct"><h2>Prossimo concerto</h2><a class="link-freccia" href={l('/area/concerti')}>Convocazione <Icona nome="freccia" /></a></div>
+            <div class="cc">
+              <div style="display:flex;gap:20px;align-items:flex-start">
+                <span class="data-grande">{dc.giorno}<small>{dc.meseBreve} · {dc.giornoSettimana}</small></span>
+                <div style="min-width:0">{concerto.rassegna && <span class="aut">{concerto.rassegna}</span>}<h3 style="font-size:22px;margin-top:4px">{titoloBreve(concerto)}</h3><span class="tenue" style="font-size:15px">{[concerto.luogo, concerto.sala].filter(Boolean).join(' · ')}</span></div>
+              </div>
+              {conv && (
+                <ul class="orari" style="margin-top:20px">
+                  {conv.orari.slice(0, 2).map((o) => <li><b>{o.ora}</b><span>{o.cosa}</span></li>)}
+                  <li><b><Icona nome="campanella" /></b><span>{conv.abito}</span></li>
+                </ul>
+              )}
+              <div class="riga-conferma">
+                <div><b>Ci sarai?</b><div class="esito tenue" style="font-size:14px">{conv ? `Conferma entro ${dataGiorno(conv.entro)}.` : 'Risposta non vincolante: servirà a organizzare le sezioni.'}</div></div>
+                <div class="scelta" role="group" aria-label="Conferma disponibilità"><button type="button" class="si" aria-pressed="false"><Icona nome="spunta" />Sì</button><button type="button" class="no" aria-pressed="false"><Icona nome="chiudi" />No</button></div>
+              </div>
+            </div>
+          </article>
+        )}
+
+        <article class="carta c-7 su">
+          <div class="ct"><h2>Avvisi del direttivo</h2>{nuovi > 0 && <span class="tag grigio">{nuovi === 1 ? '1 nuovo' : `${nuovi} nuovi`}</span>}</div>
+          <ul class="avvisi">
+            {avvisi.map((a) => (
+              <li class:list={['avviso', { nuovo: a.nuovo }]}>
+                <span class="chi">{a.nuovo && <span class="tag">Nuovo</span>}<b>{a.autore}</b> · {dataEstesa(a.data)}</span>
+                <h3>{a.titolo}</h3>
+                <p>{a.testo}</p>
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <div class="c-5" style="display:grid;gap:24px;align-content:start">
+          <article class="carta">
+            <div class="ct"><h2>La tua sezione</h2><span class="drive"><Icona nome="drive" />Drive</span></div>
+            <div class="scorciatoie">
+              {opera?.materiali && basiMie && (
+                <a href={l('/area/repertorio')}><span class="icona-q g"><Icona nome="cuffie" classe="" /></span><span><b>Basi {opera.titolo.split(' ')[0]} · {corista.sezione}</b><small>{basiMie.tracce} tracce · aggiornate il {dataBreve(basiMie.aggiornate)}</small></span><Icona nome="freccia" /></a>
+              )}
+              {opera?.materiali && (
+                <a href={l('/area/repertorio')}><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>Spartito {opera.titolo}</b><small>PDF · {opera.materiali.spartito.descrizione.split(' · ')[0].toLowerCase()}</small></span><Icona nome="freccia" /></a>
+              )}
+              <a href="#" data-finto-avviso={`Nel sito vero apre la cartella «${corista.sezione}» nel Drive del coro`}><span class="icona-q"><Icona nome="drive" classe="" /></span><span><b>Cartella {corista.sezione}</b><small>Tutti i file della sezione</small></span><Icona nome="esterno" /></a>
+            </div>
+          </article>
+
+          {reg && (
+            <article class="carta">
+              <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href={l('/area/registrazioni')}>Tutte <Icona nome="freccia" /></a></div>
+              <div class="cc" style="display:grid;gap:10px">
+                <span class="tenue" style="font-size:14px">Prova di {dataGiorno(reg.data)} · caricata da {reg.caricatoDa}</span>
+                <div class="audio"><button class="pl" type="button" aria-label="Ascolta"><Icona nome="play" classe="avvia" /><Icona nome="pausa" classe="pausa" /></button><div class="traccia"><div class="titolo">{reg.tracce[0].titolo}</div><div class="onda"><i></i></div></div><span class="durata">{reg.tracce[0].durata}</span></div>
+              </div>
+            </article>
+          )}
+
+          <a class="carta" href={l('/area/presenze')} style="display:block">
+            <div class="cc" style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+              <div><span class="eti" style="margin-bottom:6px">Presenze {gp.giornoSettimana.toLowerCase()} {Number(gp.giorno)}</span><b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:40px;color:var(--primario);letter-spacing:-0.012em;line-height:1">{attesi}<span class="tenue" style="font-size:18px;letter-spacing:0;font-stretch:100%;font-weight:600"> su {totaleVoci} attesi</span></b></div>
+              <Icona nome="freccia" classe="" />
+            </div>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,35 @@
+---
+// Veste Palco al buio: scheda concerto come una locandina di teatro. La foto di scena
+// riempie la scheda, scurita; data in luce d'accento in alto, autore e titolo in basso.
+// Senza foto la scheda resta al buio, con un fascio di luce dall'alto.
+import Foto from '../../componenti/Foto.astro';
+import Icona from '../../componenti/Icona.astro';
+import { parti } from '../../motore/concerti';
+import type { Concerto } from '../../motore/tipi';
+
+interface Props {
+  concerto: Concerto;
+  href: string;
+  etichetta: string;
+  grigia?: boolean;
+  azione: string;
+  conFoto?: boolean;
+}
+const { concerto: c, href, etichetta, grigia, azione, conFoto = true } = Astro.props;
+const d = parti(c);
+const foto = conFoto && c.foto;
+---
+
+<a class:list={['pb-scheda', { 'pb-senza-foto': !foto, 'pb-passata': grigia }]} href={href}>
+  {foto && <div class="pb-fondo"><Foto nome={foto} sizes="(min-width: 1000px) 33vw, 100vw" /></div>}
+  <div class="pb-alto">
+    <span class="pb-data">{d.incerta ? d.anno : d.giorno}<small>{d.incerta ? 'data da precisare' : `${d.meseBreve} ${d.anno}`}</small></span>
+    <span class="pb-eti">{etichetta}</span>
+  </div>
+  <div class="pb-basso">
+    {c.autore && <span class="pb-autore">{c.autore}</span>}
+    <h3>{c.titolo}</h3>
+    {(c.luogo || c.rassegna) && <span class="pb-luogo">{[c.luogo, c.rassegna].filter(Boolean).join(' · ')}</span>}
+    <span class="pb-vai">{azione}<Icona nome="freccia" /></span>
+  </div>
+</a>

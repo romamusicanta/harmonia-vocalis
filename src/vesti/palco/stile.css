@@ -1,0 +1,391 @@
+/* Veste "A · Palco al buio" — si carica DOPO il foglio di Stagione e ridefinisce ciò che cambia.
+   Idea: la sala è al buio, le foto sono di scena (in bianco e nero, scurite) e l'unico colore
+   è la luce d'accento, come un riflettore. Titoli grandi e stretti, bottoni a pillola,
+   molto spazio tra le sezioni.
+
+   Il fondo scuro si costruisce dalla palette scelta, così funziona anche con le palette chiare:
+   - su <html> si fissano i colori originali della palette (--pb-p, --pb-a);
+   - su <body> si ridefiniscono le variabili di Stagione (--bianco, --fondo, --testo, --tenue,
+     --linea…) con i toni della sala. Le pagine comuni, che usano quelle variabili, diventano
+     scure da sole; qui sotto si correggono i punti in cui Stagione usa --primario come
+     colore del testo (sul buio servirebbe chiaro).
+   --primario resta il colore scuro della palette: continua a funzionare come fondo con testo
+   bianco e come testo sopra l'accento. */
+
+:root[data-veste="palco"] {
+  --pb-p: var(--primario);
+  --pb-a: var(--accento);
+  /* Sala: nero appena tinto dal colore principale */
+  --pb-buio: color-mix(in oklab, var(--primario) 16%, #070608);
+  /* Luce: bianco caldo appena tinto dall'accento */
+  --pb-luce: color-mix(in oklab, var(--accento) 7%, #f5f1ea);
+  /* Testo scuro sopra l'accento e sopra la luce */
+  --pb-notte: color-mix(in oklab, var(--primario) 35%, #09080a);
+  /* Velluto: pannelli pieni del colore principale, un poco schiariti per staccarsi dal buio */
+  --pb-velluto: color-mix(in oklab, color-mix(in oklab, var(--primario) 72%, #000), #f5f1ea 7%);
+  color-scheme: dark;
+  background: var(--pb-buio);
+}
+
+:root[data-veste="palco"] body {
+  --bianco: color-mix(in oklab, var(--pb-buio), var(--pb-luce) 4%);
+  --fondo: color-mix(in oklab, var(--pb-buio), var(--pb-luce) 8%);
+  --fondo-2: color-mix(in oklab, var(--pb-buio), var(--pb-luce) 15%);
+  --testo: var(--pb-luce);
+  --tenue: color-mix(in oklab, var(--pb-luce) 66%, var(--pb-buio));
+  --linea: color-mix(in oklab, var(--pb-luce) 15%, var(--pb-buio));
+  --accento-chiaro: color-mix(in oklab, var(--pb-a) 16%, var(--pb-buio));
+  --primario-chiaro: color-mix(in oklab, var(--pb-luce) 80%, var(--pb-p));
+  --primario-3: color-mix(in oklab, var(--pb-luce) 62%, var(--pb-p));
+  --primario-2: color-mix(in oklab, var(--pb-p) 70%, var(--pb-luce));
+  --rosso: #ef7b62;
+  --verde: #6fcf97;
+  --raggio: 4px;
+  --ombra: 0 24px 60px rgba(0, 0, 0, .55);
+  background: var(--pb-buio);
+  color: var(--pb-luce);
+  font-size: 17px;
+}
+:root[data-veste="palco"] body.area { background: var(--pb-buio); }
+::selection { background: var(--pb-a); color: var(--pb-notte); }
+:focus-visible { outline: 2px solid var(--pb-a); outline-offset: 3px; }
+
+/* ——— Titoli: grandi, stretti, chiari ——— */
+h2, h3,
+.intesta h1, .area-intesta h1, .accesso h1,
+.testo-lungo p.apertura-testo,
+.data-grande, .stag-testa b, .riga .quando, .riga .cosa b, .vid b,
+.numero b, .organico .n, .persona b, .mese-sep, .segnaposto b, .giorno-reg .gg b, .orari b,
+.prova .quando b, .prova .elenco-brani b, .sp .nome, .sp .cifre b, .tabella td:first-child,
+.assenti b, .base b, .archivio-spartiti b, .scorciatoie a b, .audio .titolo, .utente b,
+.riga-conferma b, .campo > label, .campo > .lab, .conferma b { color: var(--pb-luce); }
+h2 { font-size: clamp(40px, 6vw, 88px); line-height: .92; letter-spacing: -0.035em; }
+.testo-lungo h2, .testo-lungo h3 { font-size: 30px; letter-spacing: -0.02em; }
+.carta > .ct h2, .carta > .ct h3 { font-size: 20px; letter-spacing: -0.01em; }
+.eti { color: var(--pb-a); letter-spacing: .18em; font-size: 12px; }
+.aut { color: var(--pb-a); }
+.tenue, .testa p { color: var(--tenue); }
+
+/* Testo di collegamento e icone che in Stagione erano del colore principale */
+.link-freccia, .riga .azione a, .consenso a, .aiuto-accesso a, .briciole a:hover, .fatti svg,
+.voci span, .chip, .icona-q, .assenti .av, .base .az-base a, .hamb, .esci-btn { color: var(--pb-luce); }
+.link-freccia, .riga .azione a { color: var(--pb-a); }
+.riga .azione .senza { color: var(--tenue); }
+
+/* Stili in linea delle pagine comuni che usano --primario come colore del testo o del filo */
+[style*="color:var(--primario)"] { color: var(--pb-luce) !important; }
+[style*="solid var(--primario)"] { border-color: var(--linea) !important; }
+[style*="background:var(--primario)"] { background: var(--pb-velluto) !important; }
+[style*="background:var(--primario-2)"] { background: color-mix(in oklab, var(--pb-velluto), #000 25%) !important; }
+.legenda i[style*="background:var(--primario)"], .ms .barra i[style*="background:var(--primario)"] { background: var(--pb-luce) !important; }
+
+/* ——— Bottoni a pillola ——— */
+.btn { border-radius: 999px; padding: 14px 24px; font-weight: 600; letter-spacing: .01em; background: var(--pb-luce); color: var(--pb-notte); }
+.btn:hover { background: var(--pb-a); color: var(--pb-notte); }
+.btn.g { background: var(--pb-a); color: var(--pb-notte); }
+.btn.g:hover { background: var(--pb-luce); filter: none; }
+.btn.o, .btn.oc { background: transparent; color: var(--pb-luce); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pb-luce) 45%, transparent); }
+.btn.o:hover, .btn.oc:hover { background: color-mix(in oklab, var(--pb-luce) 10%, transparent); color: var(--pb-luce); box-shadow: inset 0 0 0 1px var(--pb-luce); }
+.btn.b { background: var(--pb-luce); color: var(--pb-notte); }
+.btn.piccolo { padding: 9px 16px; }
+.chip { border-radius: 999px; background: transparent; box-shadow: inset 0 0 0 1px var(--linea); font-weight: 600; }
+.chip:hover { background: var(--fondo); }
+.chip.on { background: var(--pb-a); color: var(--pb-notte); box-shadow: none; }
+.tag { color: var(--pb-notte); border-radius: 999px; padding: 5px 10px; }
+.tag.grigio { background: var(--fondo-2); color: var(--pb-luce); }
+.tag.blu { background: var(--pb-notte); color: var(--pb-luce); }
+.tag.bordo { color: var(--pb-luce); }
+
+/* Superfici illuminate dall'accento: testo scuro */
+.segui, .riquadro.giallo, .in-programma .data, .blocco-foto .scheda, .porta .img.gialla, .prova.speciale .quando,
+.locandina .piede, .avviso-anteprima, .pb-invito { color: var(--pb-notte); }
+.segui h2, .riquadro.giallo h3, .riquadro.giallo .eti, .porta .img.gialla b, .prova.speciale .quando b, .prova.speciale .quando small,
+.avviso-anteprima b, .avviso-anteprima svg, .pb-invito h2 { color: var(--pb-notte); }
+.segui .btn, .pb-invito .btn { background: var(--pb-notte); color: var(--pb-luce); }
+.segui .btn:hover, .pb-invito .btn:hover { background: color-mix(in oklab, var(--pb-notte), var(--pb-luce) 18%); }
+.segui .btn.o, .pb-invito .btn.o { background: transparent; color: var(--pb-notte); box-shadow: inset 0 0 0 1.5px var(--pb-notte); }
+.segui .btn.o:hover, .pb-invito .btn.o:hover { background: color-mix(in oklab, var(--pb-notte) 10%, transparent); }
+.segui :focus-visible, .pb-invito :focus-visible, .riquadro.giallo :focus-visible { outline-color: var(--pb-notte); }
+
+/* ——— Testata ——— */
+.pb-testata { position: sticky; top: 0; z-index: 30; background: color-mix(in oklab, var(--pb-buio) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--linea); }
+.pb-testata > .w { height: 76px; }
+.pb-testata.pb-sopra { position: absolute; left: 0; right: 0; top: 0; background: linear-gradient(180deg, rgba(0,0,0,.55), transparent); backdrop-filter: none; border-bottom: 0; }
+.pb-testata.pb-sopra > .w { height: 96px; }
+.menu-aperto .pb-testata.pb-sopra { position: fixed; background: var(--pb-buio); }
+.pb-marchio { display: flex; align-items: center; gap: 12px; min-width: 0; line-height: 1; color: var(--pb-luce); }
+.pb-sigla { width: 42px; height: 42px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--pb-a); color: var(--pb-a); display: grid; place-items: center; font-weight: 700; font-size: 14px; letter-spacing: .04em; flex-shrink: 0; }
+.pb-nome { min-width: 0; }
+.pb-nome b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 19px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-nome small { display: block; margin-top: 5px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-nav { display: none; gap: 30px; font-size: 15px; font-weight: 500; }
+.pb-nav a { color: color-mix(in oklab, var(--pb-luce) 78%, transparent); padding: 6px 0; border-bottom: 1px solid transparent; white-space: nowrap; transition: color .15s; }
+.pb-nav a:hover { color: var(--pb-luce); }
+.pb-nav a.on { color: var(--pb-luce); border-color: var(--pb-a); }
+.pb-pillola { display: none; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 10px 16px; border-radius: 999px; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pb-luce) 40%, transparent); white-space: nowrap; }
+.pb-pillola:hover { box-shadow: inset 0 0 0 1px var(--pb-a); color: var(--pb-a); }
+.hamb:hover { background: color-mix(in oklab, var(--pb-luce) 10%, transparent); }
+@media (min-width: 620px) { .pb-pillola { display: inline-flex; } }
+@media (min-width: 1080px) { .pb-nav { display: flex; } .pb-testata .hamb { display: none; } }
+@media (min-width: 1000px) and (max-width: 1079px) { .pb-testata .hamb { display: grid; } .pb-testata .menu-mobile { display: none; } .menu-aperto .pb-testata .menu-mobile { display: block; } }
+
+/* Menu mobile: sipario a tutto schermo con le voci numerate */
+.pb-testata .menu-mobile { position: fixed; left: 0; right: 0; top: 76px; bottom: 0; max-height: none; background: var(--pb-buio); border-top: 1px solid var(--linea); }
+.pb-testata.pb-sopra .menu-mobile { top: 96px; }
+.pb-testata .menu-mobile .w { padding-top: 16px; padding-bottom: 40px; }
+.pb-testata .menu-mobile a.voce { justify-content: flex-start; align-items: baseline; gap: 16px; font-size: clamp(30px, 8vw, 44px); letter-spacing: -0.03em; color: var(--pb-luce); padding: 14px 0; }
+.pb-testata .menu-mobile a.voce small { font-family: var(--f-testo); font-size: 12px; letter-spacing: .12em; color: var(--pb-a); font-weight: 600; }
+.pb-testata .menu-mobile a.voce.on { box-shadow: none; padding-left: 0; color: var(--pb-a); }
+
+/* Testata dell'area coristi (componente di Stagione, qui al buio) */
+.testata:not(.pb-testata) { background: color-mix(in oklab, var(--pb-buio) 90%, transparent); }
+.servizio, .servizio.area-s { background: #000; color: var(--tenue); }
+.servizio a:hover { color: var(--pb-luce); }
+.marchio .q { background: transparent; box-shadow: inset 0 0 0 1.5px var(--pb-a); color: var(--pb-a); border-radius: 50%; }
+.marchio b { color: var(--pb-luce); }
+.etichetta-area { background: var(--pb-a); color: var(--pb-notte); border-radius: 999px; }
+.utente .av { color: var(--pb-notte); }
+.barra-area { background: var(--bianco); border-bottom: 1px solid var(--linea); top: 80px; }
+.barra-area a { color: var(--tenue); }
+.barra-area a:hover { color: var(--pb-luce); }
+.barra-area a.on { color: var(--pb-luce); border-color: var(--pb-a); }
+.avviso-anteprima { background: var(--pb-a); }
+
+/* ——— Sezioni: più aria, fili sottili ——— */
+section, .sezione { padding: 120px 0; }
+@media (max-width: 759px) { section, .sezione { padding: 72px 0; } }
+.testa { border-bottom: 1px solid var(--linea); padding-bottom: 24px; margin-bottom: 48px; }
+.intesta { position: relative; padding: 96px 0 72px; border-bottom: 1px solid var(--linea); overflow: hidden;
+  background: radial-gradient(ellipse 60% 90% at 12% 0%, color-mix(in oklab, var(--pb-a) 16%, transparent), transparent 70%), var(--pb-buio); }
+.intesta > .w { position: relative; }
+.intesta h1 { font-size: clamp(44px, 7vw, 104px); line-height: .92; letter-spacing: -0.04em; }
+.intesta .lead { color: color-mix(in oklab, var(--pb-luce) 78%, var(--pb-buio)); }
+.intesta.blu { background: radial-gradient(ellipse 60% 90% at 12% 0%, color-mix(in oklab, var(--pb-a) 22%, transparent), transparent 70%), var(--pb-velluto); }
+.stagione h1 { color: var(--pb-luce); }
+
+/* Riquadri e superfici */
+.riquadro { background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); }
+.riquadro.bordo { background: transparent; }
+.riquadro.blu, .carta.blu, .file-pdf, .convocazione .intest .data { background: var(--pb-velluto); border-color: var(--pb-velluto); }
+.carta.blu > .ct { border-color: color-mix(in oklab, var(--pb-luce) 20%, transparent); }
+.carta, .prova, .opera-studio, .convocazione, .in-programma, .sc { border-radius: var(--raggio); overflow: hidden; }
+.fascia { background: radial-gradient(ellipse 50% 80% at 90% 10%, color-mix(in oklab, var(--pb-a) 14%, transparent), transparent 70%), var(--bianco); border-block: 1px solid var(--linea); }
+.fascia p, .fascia .testa p { color: var(--tenue); }
+.lista-mini { background: var(--linea); }
+.lista-mini a { background: var(--bianco); }
+.lista-mini a:hover { background: var(--fondo); }
+.lista-mini em { color: var(--tenue); }
+.brani { background: color-mix(in oklab, var(--pb-luce) 18%, transparent); }
+.brani li { background: var(--pb-velluto); }
+.brani li span { color: var(--primario-chiaro); }
+.numeri { background: var(--linea); border-color: var(--linea); }
+.numero { background: var(--pb-buio); }
+.numero b { font-size: clamp(48px, 5.4vw, 80px); letter-spacing: -0.04em; }
+.persona { border-top: 1px solid var(--pb-a); }
+.passo { border-top: 1px solid var(--pb-a); }
+.barra { background: var(--fondo-2); }
+.barra i { background: var(--pb-luce); }
+.porta { background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); overflow: hidden; }
+.porta .img img, .sc .img img, .in-programma .foto img, .accesso .lato-foto img { filter: grayscale(1) contrast(1.12) brightness(.72); mix-blend-mode: normal; opacity: 1; }
+.porta .img.gialla { background: var(--pb-a); }
+.in-programma .foto { background: #000; }
+.in-programma .data { border-radius: 0; }
+.stag-testa { border-bottom: 1px solid var(--pb-a); }
+.stag-testa b span, .intesta h1 span, .stagione h1 span { color: var(--pb-a); }
+.riga { transition: background .2s; }
+.riga:hover { background: color-mix(in oklab, var(--pb-luce) 4%, transparent); }
+.tabella th { border-bottom: 1px solid var(--pb-a); }
+.scelta { border-color: var(--pb-luce); border-radius: 999px; }
+.scelta button { background: transparent; color: var(--pb-luce); }
+.scelta button + button { border-color: var(--pb-luce); }
+.scelta button.on.si { background: var(--pb-luce); color: var(--pb-notte); }
+.scelta button.on.no { background: var(--rosso); color: var(--pb-notte); }
+.voci input:checked + span { background: var(--pb-a); border-color: var(--pb-a); color: var(--pb-notte); }
+.voci span { border-width: 1px; border-radius: 999px; }
+.consenso input { accent-color: var(--pb-a); }
+.campo input, .campo select, .campo textarea, .cerca input { border-width: 1px; background: var(--bianco); color: var(--pb-luce); }
+.campo input:focus, .campo select:focus, .campo textarea:focus, .cerca input:focus { border-color: var(--pb-a); }
+.conferma { background: var(--accento-chiaro); border-left-color: var(--pb-a); }
+.nota-maestro { background: var(--bianco); border-left-color: var(--pb-a); }
+.stato-assenza, .carta:not(.blu) .stato-assenza, .prova .stato-assenza { background: var(--accento-chiaro); color: var(--pb-luce); border-left-color: var(--pb-a); }
+.carta:not(.blu) .btn-assenza, .prova .btn-assenza { color: var(--pb-luce); box-shadow: inset 0 0 0 1px var(--pb-luce); border-radius: 999px; }
+.btn-assenza { border-radius: 999px; }
+.audio .pl { background: var(--pb-luce); color: var(--pb-notte); border-radius: 50%; }
+.audio.suona .pl { color: var(--pb-notte); }
+.audio .onda i { background: var(--pb-luce); }
+.base .az-base a { border-radius: 50%; }
+.base.tua .az-base a { color: var(--pb-notte); }
+.icona-q { border-radius: 50%; }
+.icona-q.g { color: var(--pb-notte); }
+.drive { background: var(--fondo-2); }
+.avviso-toast { background: var(--pb-luce); color: var(--pb-notte); border-radius: 999px; }
+.avviso-toast svg { color: var(--pb-notte); }
+.segnaposto { border-width: 1px; }
+.google { border-radius: 999px; }
+.accesso .lato-foto { background: #000; }
+.accesso .lato-modulo { background: var(--pb-buio); }
+
+/* Foto e video al buio */
+.blocco-foto { background: #000; }
+.blocco-foto img { filter: grayscale(1) contrast(1.12) brightness(.7); mix-blend-mode: normal; opacity: 1; }
+.video { border-radius: var(--raggio); }
+.video img { filter: grayscale(1) contrast(1.1) brightness(.72); opacity: 1; transition: filter .4s, transform .6s; }
+.video:hover img { filter: grayscale(.2) brightness(.78); transform: scale(1.03); }
+.video .play { z-index: 1; }
+.video .play i, .vid .mini i { border-radius: 50%; color: var(--pb-notte); }
+.video .play b span { color: color-mix(in oklab, var(--pb-luce) 80%, transparent); }
+.vid .mini { border-radius: var(--raggio); background: #000; }
+.vid .mini img { filter: grayscale(1) contrast(1.1) brightness(.72); }
+.nota-privacy, .fascia .nota-privacy { color: var(--tenue); }
+
+/* Locandina generata (scheda concerto): nera, con la luce d'accento */
+.locandina { background: radial-gradient(ellipse 80% 60% at 70% 0%, color-mix(in oklab, var(--pb-a) 26%, transparent), transparent 70%), #050405; box-shadow: 0 0 0 1px var(--linea); border-radius: var(--raggio); }
+.locandina .diap { color: color-mix(in oklab, var(--pb-a) 22%, transparent); }
+.locandina .opera { color: var(--primario-chiaro); }
+.locandina .piede { color: var(--pb-notte); }
+
+/* ——— Scheda concerto a locandina ——— */
+.pb-scheda { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 32px; min-height: 440px; padding: 24px; border-radius: var(--raggio); overflow: hidden; isolation: isolate; color: var(--pb-luce); min-width: 0;
+  background: radial-gradient(ellipse 70% 55% at 50% 0%, color-mix(in oklab, var(--pb-a) 20%, transparent), transparent 72%), var(--bianco); box-shadow: inset 0 0 0 1px var(--linea); }
+.pb-scheda .pb-fondo { position: absolute; inset: 0; z-index: -1; background: #000; }
+.pb-scheda .pb-fondo img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(.74); transition: transform .7s, filter .5s; }
+.pb-scheda .pb-fondo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,.05) 35%, rgba(0,0,0,.8) 72%, rgba(0,0,0,.94) 100%); }
+.pb-scheda:hover .pb-fondo img { transform: scale(1.04); filter: grayscale(.3) contrast(1.1) brightness(.66); }
+.pb-scheda.pb-senza-foto { min-height: 320px; }
+.pb-scheda.pb-senza-foto:hover { box-shadow: inset 0 0 0 1px var(--pb-a); }
+.pb-alto { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pb-data { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 64px; line-height: .8; letter-spacing: -0.04em; color: var(--pb-a); }
+.pb-data small { display: block; margin-top: 10px; font-family: var(--f-testo); font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--pb-luce); }
+.pb-eti { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pb-luce) 45%, transparent); white-space: nowrap; }
+.pb-basso { display: flex; flex-direction: column; gap: 6px; }
+.pb-autore { font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in oklab, var(--pb-luce) 80%, transparent); }
+.pb-scheda h3 { color: var(--pb-luce); font-size: clamp(28px, 2.6vw, 36px); line-height: 1; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.pb-luogo { font-size: 15px; color: color-mix(in oklab, var(--pb-luce) 72%, transparent); }
+.pb-vai { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--pb-a); }
+.pb-scheda:hover .pb-vai .ic { transform: translateX(4px); }
+.pb-vai .ic { transition: transform .2s; }
+.pb-passata .pb-data { color: var(--pb-luce); }
+.pb-passata .pb-fondo img { filter: grayscale(1) contrast(1.1) brightness(.45); }
+
+/* Griglia delle schede (pagine comuni): locandine affiancate */
+.schede { gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+
+/* ——— Home ——— */
+.pb-sopratitolo { display: block; font-size: 13px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--pb-a); }
+.pb-titoletto { display: block; font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); margin-bottom: 10px; }
+.pb-apertura { position: relative; min-height: min(100svh, 960px); display: flex; align-items: flex-end; overflow: hidden; padding: 0; background: #000; }
+.pb-scena { position: absolute; inset: 0; }
+.pb-scena img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(.78); }
+.pb-scena::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,.15) 28%, color-mix(in oklab, var(--pb-buio) 88%, transparent) 70%, var(--pb-buio) 100%),
+              linear-gradient(90deg, rgba(0,0,0,.55), color-mix(in oklab, var(--pb-a) 20%, transparent) 45%, transparent 78%); }
+.pb-grana { position: absolute; inset: 0; opacity: .1; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.pb-apertura .w { position: relative; width: 100%; padding-top: 140px; padding-bottom: 72px; }
+.pb-apertura h1 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(56px, 12vw, 200px); line-height: .86; letter-spacing: -0.05em; margin: 20px 0 36px; color: var(--pb-luce); overflow-wrap: anywhere; }
+.pb-apertura h1 span { display: block; font-size: .3em; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: .25em; color: color-mix(in oklab, var(--pb-luce) 68%, transparent); }
+.pb-evento { display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: stretch; }
+.pb-giorno { background: var(--pb-a); color: var(--pb-notte); padding: 20px 24px; min-width: 160px; border-radius: var(--raggio); line-height: 1; }
+.pb-giorno b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 76px; letter-spacing: -0.04em; line-height: .85; }
+.pb-giorno small { display: block; margin-top: 10px; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.pb-info { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; flex: 1 1 320px; }
+.pb-dove { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(24px, 2.4vw, 32px); line-height: 1.1; letter-spacing: -0.02em; max-width: 36ch; }
+.pb-tenue { color: color-mix(in oklab, var(--pb-luce) 72%, transparent); }
+.pb-info .bottoni { margin-top: 18px; }
+
+.pb-testa { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px 48px; flex-wrap: wrap; margin-bottom: 56px; }
+.pb-testa h2 { margin-top: 14px; }
+.pb-testa-dx { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; max-width: 42ch; }
+.pb-testa-dx p { color: var(--tenue); font-size: 18px; }
+
+.pb-locandine { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); margin-bottom: 72px; }
+.pb-repliche { border-top: 1px solid var(--linea); padding-top: 20px; }
+.pb-replica { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 20px; padding: 26px 0; border-bottom: 1px solid var(--linea); align-items: baseline; transition: background .2s, padding .2s; }
+.pb-replica:hover { background: color-mix(in oklab, var(--pb-luce) 4%, transparent); }
+.pb-quando { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 40px; line-height: .9; letter-spacing: -0.04em; color: color-mix(in oklab, var(--pb-luce) 60%, transparent); grid-row: span 3; }
+.pb-quando small { display: block; margin-top: 6px; font-family: var(--f-testo); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--pb-a); }
+.pb-titolo { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(22px, 2.2vw, 30px); line-height: 1.1; letter-spacing: -0.02em; }
+.pb-titolo small { display: block; margin-top: 6px; font-family: var(--f-testo); font-weight: 400; font-size: 15px; letter-spacing: 0; color: var(--tenue); }
+.pb-replica .pb-luogo { color: var(--tenue); }
+.pb-azione { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--pb-a); }
+@media (min-width: 900px) {
+  .pb-replica { grid-template-columns: 150px minmax(0, 1.4fr) minmax(0, 1fr) 180px; align-items: center; }
+  .pb-quando { grid-row: auto; }
+  .pb-azione { justify-content: flex-end; }
+}
+
+.pb-ascolta { background: color-mix(in oklab, var(--pb-buio), var(--pb-luce) 3%); border-block: 1px solid var(--linea); }
+.pb-mosaico { display: grid; gap: 20px; }
+.pb-mosaico > div { min-width: 0; }
+.pb-mosaico .video { height: 100%; }
+@media (min-width: 900px) {
+  .pb-mosaico { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+  .pb-mosaico .pb-grande { grid-row: span 2; }
+  .pb-mosaico .pb-grande .video .play b { font-size: clamp(28px, 3vw, 44px); letter-spacing: -0.03em; }
+}
+
+.pb-maestro { display: grid; gap: 48px; align-items: center; }
+@media (min-width: 900px) { .pb-maestro { grid-template-columns: 5fr 7fr; gap: 88px; } }
+.pb-ritratto { position: relative; aspect-ratio: 4/5; overflow: hidden; border-radius: var(--raggio); background: #000; }
+.pb-ritratto img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; filter: grayscale(1) contrast(1.2) brightness(.85); }
+.pb-ritratto::after { content: ''; position: absolute; inset: 0; background: var(--pb-a); mix-blend-mode: multiply; opacity: .35; }
+.pb-citazione { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(28px, 3.4vw, 50px); line-height: 1.1; letter-spacing: -0.03em; margin: 20px 0 28px; }
+.pb-firma { font-size: 17px; margin-bottom: 32px; }
+.pb-firma span { color: var(--tenue); }
+
+.pb-numeri { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1px; background: var(--linea); border: 1px solid var(--linea); }
+.pb-numeri div { background: var(--pb-buio); padding: 36px 28px; }
+.pb-numeri b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(56px, 7vw, 100px); line-height: .95; letter-spacing: -0.05em; }
+.pb-numeri span { display: block; margin-top: 10px; color: var(--tenue); font-size: 15px; max-width: 26ch; }
+
+.pb-dietro { padding-top: 0; }
+.pb-dietro-griglia { display: grid; gap: 20px; }
+@media (min-width: 900px) { .pb-dietro-griglia { grid-template-columns: 1.4fr 1fr; } }
+.pb-quinta { position: relative; min-height: 380px; display: flex; align-items: flex-end; border-radius: var(--raggio); overflow: hidden; isolation: isolate; box-shadow: inset 0 0 0 1px var(--linea);
+  background: radial-gradient(ellipse 80% 70% at 100% 0%, color-mix(in oklab, var(--pb-a) 18%, transparent), transparent 70%), var(--bianco); }
+.pb-quinta img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; filter: grayscale(1) contrast(1.1) brightness(.55); transition: transform .7s; }
+.pb-quinta:has(img)::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,.85)); }
+.pb-quinta:hover img { transform: scale(1.04); }
+.pb-quinta:hover { box-shadow: inset 0 0 0 1px var(--pb-a); }
+.pb-quinta-testo { display: flex; flex-direction: column; gap: 10px; padding: clamp(24px, 3vw, 40px); }
+.pb-quinta-testo b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(28px, 3vw, 44px); line-height: 1.02; letter-spacing: -0.03em; max-width: 18ch; }
+.pb-quinta-testo > span:not(.pb-sopratitolo):not(.pb-vai) { color: color-mix(in oklab, var(--pb-luce) 76%, transparent); max-width: 44ch; }
+
+.pb-invito { background: var(--pb-a); padding: clamp(72px, 9vw, 120px) 0; }
+.pb-invito .w { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px 64px; flex-wrap: wrap; }
+.pb-invito h2 { max-width: 11ch; }
+.pb-invito p { font-size: 20px; max-width: 34ch; margin-bottom: 24px; }
+
+/* ——— Piè di pagina ——— */
+.pb-piede { background: #000; color: var(--tenue); padding: 96px 0 40px; font-size: 15px; border-top: 1px solid var(--linea); }
+.pb-chiusura { display: grid; gap: 20px; padding-bottom: 48px; border-bottom: 1px solid var(--linea); }
+.pb-grande { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(48px, 10vw, 156px); line-height: .88; letter-spacing: -0.05em; color: var(--pb-luce); overflow-wrap: anywhere; }
+.pb-grande a:hover { color: var(--pb-a); }
+.pb-descr { max-width: 52ch; font-size: 17px; }
+.pb-coda { display: flex; flex-wrap: wrap; gap: 10px 28px; padding: 28px 0; border-bottom: 1px solid var(--linea); font-size: 16px; font-weight: 500; color: var(--pb-luce); }
+.pb-coda a:hover, .pb-piede a:hover { color: var(--pb-a); }
+.pb-recapiti { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); padding: 36px 0 12px; color: color-mix(in oklab, var(--pb-luce) 80%, transparent); }
+.pb-email { font-size: 18px; color: var(--pb-luce); overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--pb-a); text-underline-offset: 4px; }
+.pb-social { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.pb-social a { display: inline-flex; align-items: center; gap: 8px; }
+.pb-fondo-piede { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 48px; font-size: 13px; }
+
+/* Piè di pagina dell'area coristi (componente di Stagione) */
+.piede-sito { background: #000; color: var(--tenue); border-top: 1px solid var(--linea); }
+.piede-sito a:hover { color: var(--pb-a); }
+.piede-sito .fondo-piede { border-color: var(--linea); }
+
+/* Stile in linea su fondo d'accento (marchio della locandina): testo scuro */
+[style*="background:var(--accento)"][style*="color:var(--primario)"] { color: var(--pb-notte) !important; }
+
+/* Velo scuro sotto i titoli dei video, per leggerli su qualsiasi foto */
+.video::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,.82)); }
+.video iframe { z-index: 2; }
+.video .play { z-index: 2; }
+
+/* Organico sul riquadro d'accento: barre scure */
+.riquadro.giallo .barra i { background: var(--pb-notte); }
+.riquadro.giallo .organico .n { color: var(--pb-notte); }
+
+/* Foto virata sull'accento (canta con noi): al buio, in bianco e nero */
+[style*="background:var(--accento)"][style*="min-height"] { background: #000 !important; }
+img[style*="mix-blend-mode:multiply"] { mix-blend-mode: normal !important; opacity: 1 !important; filter: grayscale(1) contrast(1.1) brightness(.6); }

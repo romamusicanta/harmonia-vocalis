@@ -1,0 +1,50 @@
+---
+// Veste Classica: testata da frontespizio. Riga di servizio sottile, marchio al centro,
+// menu in maiuscoletto tra due filetti doppi. Su telefono: marchio centrato e menu a comparsa.
+import Icona from '../../componenti/Icona.astro';
+import Marchio from './Marchio.astro';
+import { coro } from '../../motore/coro';
+import { link, linkArea } from '../../motore/url';
+import { vociMenu, type Pagina } from '../../motore/navigazione';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste; pagina?: Pagina }
+const { veste, pagina } = Astro.props;
+const voci = vociMenu(veste);
+const f = coro.funzioni;
+const info = [coro.associazione, coro.affiliazioni].filter(Boolean).join(' · ');
+---
+
+<header class="testata cl-testata">
+  <div class="cl-servizio">
+    <div class="w">
+      <span class="info">{info}</span>
+      <span class="dx">
+        <a href={link(veste, '/concerti#in-programma')}>Calendario</a>
+        {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+        {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
+      </span>
+    </div>
+  </div>
+  <div class="w cl-frontespizio">
+    <Marchio href={link(veste, '/')} />
+    <button class="hamb" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={1.6} /><Icona nome="chiudi" classe="chiudi" spessore={1.6} /></button>
+  </div>
+  <nav class="cl-nav" aria-label="Principale">
+    <div class="w">
+      <a href={link(veste, '/')} class:list={{ on: pagina === 'home' }} aria-current={pagina === 'home' ? 'page' : undefined}>Home</a>
+      {voci.map((v) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}</a>)}
+    </div>
+  </nav>
+  <div class="menu-mobile" id="menu-mobile">
+    <div class="w">
+      <a class:list={['voce', { on: pagina === 'home' }]} href={link(veste, '/')}>Home</a>
+      {voci.map((v) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href}>{v.testo}</a>)}
+      <div class="extra">
+        <a href={link(veste, '/concerti#in-programma')}>Calendario dei concerti</a>
+        {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+        {linkArea(veste) && <a href={linkArea(veste)}>Area coristi</a>}
+      </div>
+    </div>
+  </div>
+</header>

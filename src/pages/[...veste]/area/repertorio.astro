@@ -1,0 +1,109 @@
+---
+// Area coristi: repertorio in studio (basi per sezione, tracce della propria sezione, spartito,
+// note del Maestro) e archivio degli spartiti nel Drive.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
+import { percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { prossimiConcerti } from '../../../motore/concerti';
+import { corista, repertorio, archivioSpartiti, dataEstesa } from '../../../demo/area';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+
+const concerti = await prossimiConcerti();
+const perConcerto = (data: string) => {
+  const c = concerti.find((x) => x.data.startsWith(data));
+  return c ? `per il concerto del ${dataEstesa(data).replace(/ \d{4}$/, '')}${c.luogo ? `, ${c.luogo}` : ''}` : undefined;
+};
+const giornoMese = (iso: string) => dataEstesa(iso).replace(/ \d{4}$/, '');
+const inStudio = repertorio.filter((o) => o.materiali);
+const inArrivo = repertorio.filter((o) => !o.materiali);
+---
+
+<Base veste={veste} titolo="Repertorio · Area coristi" area={{ sezione: 'repertorio' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Repertorio in studio</span>
+        <h1>Repertorio</h1>
+        <p>Spartiti, basi di studio per sezione e note del Maestro per i prossimi concerti. I file stanno nel Drive del coro: qui li trovi già in ordine.</p>
+      </div>
+      <span class="drive" style="font-size:14px;padding:8px 12px"><Icona nome="drive" />Drive del coro · cartella Spartiti</span>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {inStudio.map((o, n) => {
+        const m = o.materiali!;
+        return (
+          <article class="opera-studio">
+            <div class="intest">
+              <div>
+                <span class="aut">{[o.autore, perConcerto(o.concerto)].filter(Boolean).join(' · ')}</span>
+                <h2 style="margin-top:8px">{o.titolo}</h2>
+              </div>
+              {n === 0 && <span class="tag">Prossimo concerto</span>}
+            </div>
+            <div class="corpo-o">
+              <div class="colonna">
+                <h3>Basi di studio per sezione</h3>
+                <div class="basi">
+                  {[...m.basi.map((b) => ({ ...b, tua: b.sezione === corista.sezione, dettaglio: `${b.tracce} tracce · ${b.minuti} min` })),
+                    { sezione: 'Tutte le voci', tua: false, dettaglio: `Esecuzione di riferimento · ${m.riferimento.minuti} min` }].map((b) => (
+                    <div class:list={['base', { tua: b.tua }]}><div><b>{b.sezione}{b.tua && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b><small>{b.dettaglio}</small></div><div class="az-base"><a href="#" data-finto-avviso="Nel sito vero apre la playlist nel Drive" aria-label="Ascolta"><Icona nome="play" /></a><a href="#" data-finto-avviso="Nel sito vero scarica la cartella dal Drive" aria-label="Scarica"><Icona nome="scarica" /></a></div></div>
+                  ))}
+                </div>
+                <h3 style="margin-top:32px">{corista.sezione} · movimento per movimento</h3>
+                <div class="tracce">
+                  {m.tracce.map((t, i) => (
+                    <div class="audio"><button class="pl" type="button" aria-label={`Ascolta ${t.titolo}`}><Icona nome="play" classe="avvia" /><Icona nome="pausa" classe="pausa" /></button><div class="traccia"><div class="titolo">{String(i + 1).padStart(2, '0')} · {t.titolo}</div><div class="onda"><i></i></div></div><span class="durata">{t.durata}</span></div>
+                  ))}
+                </div>
+              </div>
+              <div class="colonna">
+                <h3>Spartito</h3>
+                <div class="file-pdf"><span class="icona-q g"><Icona nome="documento" classe="" /></span><div><b>{m.spartito.titolo}</b><small>{m.spartito.descrizione}</small></div></div>
+                <div class="bottoni" style="margin-top:12px"><a class="btn piccolo" href="#" data-finto-avviso="Nel sito vero apre il PDF dal Drive"><Icona nome="documento" />Apri</a><a class="btn o piccolo" href="#" data-finto-avviso="Nel sito vero scarica il PDF dal Drive"><Icona nome="scarica" />Scarica</a></div>
+
+                {m.note.map((nota) => (
+                  <div class="nota-maestro">
+                    <span class="eti">Note del Maestro · {giornoMese(nota.data)}</span>
+                    <p set:html={nota.testo} />
+                  </div>
+                ))}
+
+                <h3 style="margin-top:28px">Altri materiali</h3>
+                <div class="scorciatoie" style="border:1px solid var(--linea)">
+                  {m.altri.map((a) => (
+                    <a href="#" data-finto-avviso="Nel sito vero apre il documento nel Drive"><span class="icona-q"><Icona nome={a.icona} classe="" /></span><span><b>{a.titolo}</b><small>{a.descrizione}</small></span><Icona nome="esterno" /></a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+
+      {inArrivo.map((o) => (
+        <div class="segnaposto">
+          <span class="eti">{perConcerto(o.concerto) ? `Concerto successivo · ${giornoMese(o.concerto)}` : 'In arrivo'}</span>
+          <b>{o.autore}, {o.titolo} — materiali in arrivo</b>
+          <p style="max-width:56ch">{o.inArrivo}</p>
+        </div>
+      ))}
+
+      <section style="padding:72px 0 0">
+        <div class="testa" style="align-items:center"><h2 class="h-media">Archivio spartiti</h2>
+          <label class="cerca"><span class="nascosto">Cerca</span><Icona nome="cerca" /><input type="search" placeholder="Cerca un'opera o un autore" data-cerca="#archivio-spartiti" /></label>
+        </div>
+        <ul class="archivio-spartiti" id="archivio-spartiti">
+          {archivioSpartiti.map((s) => (
+            <li><div><b>{s.titolo}</b><small>{s.autore} · {s.contenuto}</small></div><div class="file"><span class="drive"><Icona nome="drive" />Drive</span></div></li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </div>
+</Base>

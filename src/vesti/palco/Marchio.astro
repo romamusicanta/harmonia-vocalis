@@ -1,0 +1,18 @@
+---
+// Veste Palco al buio: marchio del coro. Sigla in un cerchio a filo, come un riflettore,
+// e nome su due righe nel carattere dei titoli; oppure il logo del coro, se c'è.
+import { coro } from '../../motore/coro';
+import { Logo } from '../../motore/logo';
+
+interface Props { href: string }
+const { href } = Astro.props;
+---
+
+{Logo ? (
+  <a class="pb-marchio con-logo" href={href}><span class="logo-coro"><Logo /></span></a>
+) : (
+  <a class="pb-marchio" href={href}>
+    <span class="pb-sigla" aria-hidden="true">{coro.sigla}</span>
+    <span class="pb-nome"><b>{coro.nome}</b><small>{coro.tipo} · {coro.citta}</small></span>
+  </a>
+)}

@@ -1,0 +1,19 @@
+---
+// Veste Il segno: piè di pagina ridotto dell'area coristi, una sola riga sotto un filetto.
+import FirmaDimora from '../../componenti/FirmaDimora.astro';
+import { coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+---
+
+<footer class="piede-sito sg-piede sg-piede-area">
+  <div class="w">
+    <div class="fondo-piede">
+      <span>Area coristi · {coro.nome} · I file stanno nel Drive del coro</span>
+      <span><a href={`mailto:${coro.email}`}>Problemi di accesso?</a> · <a href={link(veste, '/')}>Sito pubblico</a> · <FirmaDimora /></span>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,177 @@
+---
+// Veste Calda: pagina iniziale. Foto del coro a tutta larghezza con il benvenuto sulla velatura
+// e il prossimo concerto appoggiato sopra; cartoline dei concerti; invito a cantare con le
+// informazioni sulle prove; il coro e il Maestro in due grandi foto; video; chiusura.
+import Icona from '../../componenti/Icona.astro';
+import Foto from '../../componenti/Foto.astro';
+import Video from '../../componenti/Video.astro';
+import NotaVideo from '../../componenti/NotaVideo.astro';
+import SchedaConcerto from './SchedaConcerto.astro';
+import { coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { archivio, luogoCompleto, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
+import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const l = (p: string) => link(veste, p);
+const f = coro.funzioni;
+
+const prossimi = await prossimiConcerti();
+const prossimo = prossimi[0];
+const d = prossimo && parti(prossimo);
+const schede = [
+  ...prossimi.slice(1, 4).map((c) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: 'In programma', grigia: false, azione: 'Dettagli' })),
+  ...archivio.slice(0, 3).map((c) => ({ c, href: l(`/concerti#${stagione(c).id}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: "Nell'archivio" })),
+].slice(0, 3);
+
+const evidenza = f.ascolta ? await videoInEvidenza() : undefined;
+const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3);
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+---
+
+<!-- Dati: coro.config.ts (nome, stagione, foto.apertura) + calendario "Concerti" (prossimo concerto) -->
+<section class="benvenuto">
+  <div class="w">
+    <div class="foto-apertura">
+      <Foto nome={coro.foto.apertura} alt={`Il ${coro.nome} in concerto`} caricamento="eager" sizes="100vw" />
+      <div class="sopra">
+        <span class="eti">{coro.tipo} · {coro.citta}</span>
+        <h1>{coro.nome}</h1>
+        <p>{coro.stagione.presentazione}</p>
+        <div class="bottoni">
+          <a class="btn g" href={l('/concerti')}><Icona nome="calendario" />Vieni ad ascoltarci</a>
+          {f.cantaConNoi
+            ? <a class="btn oc" href={l('/canta-con-noi')}>Canta con noi</a>
+            : <a class="btn oc" href={l('/il-coro')}>Chi siamo</a>}
+        </div>
+      </div>
+    </div>
+    {prossimo && d && (
+      <a class="prossimo" href={l(`/concerti/${slug(prossimo)}`)}>
+        <span class="bollino grande" aria-hidden="true"><b>{d.giorno}</b><small>{d.meseBreve}</small></span>
+        <span class="testo">
+          <span class="eti">Il prossimo concerto</span>
+          <b>{[prossimo.autore?.split(' ').at(-1), prossimo.titolo].filter(Boolean).join(', ')}</b>
+          <span class="dove">{d.giornoSettimana} {d.giorno} {minuscola(d.mese)}{d.ora && ` · ore ${d.ora}`}{luogoCompleto(prossimo) && ` · ${luogoCompleto(prossimo)}`}</span>
+        </span>
+        <span class="vai" aria-hidden="true"><Icona nome="freccia" classe="" /></span>
+      </a>
+    )}
+  </div>
+</section>
+
+{schede.length > 0 && (
+  <section class="concerti-casa">
+    <div class="w">
+      <div class="testa">
+        <div><span class="eti">Stagione {coro.stagione.sigla}</span><h2>Ci vediamo ai concerti</h2></div>
+        <a class="btn o" href={l('/concerti')}>Tutti i concerti<Icona nome="freccia" /></a>
+      </div>
+      {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+      <div class="schede">
+        {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}
+      </div>
+    </div>
+  </section>
+)}
+
+<section class="insieme">
+  <div class="w">
+    {/* Dati: coro.config.ts → foto, maestro, organico, fondazione */}
+    <div class="due-foto">
+      <a class="foto-porta" href={l('/il-coro')}>
+        <Foto nome={coro.foto.coro} alt="" sizes="(min-width: 900px) 50vw, 100vw" />
+        <span class="sopra">
+          <span class="eti">Dal {coro.fondazione}</span>
+          <b>Il nostro coro</b>
+          <span>{voci} voci{coro.associazione && ` dell'${coro.associazione}`}: la storia, le persone, il direttivo.</span>
+          <span class="pillola">La nostra storia<Icona nome="freccia" /></span>
+        </span>
+      </a>
+      <a class="foto-porta" href={l('/il-maestro')}>
+        <Foto nome={coro.maestro.foto} alt="" sizes="(min-width: 900px) 50vw, 100vw" style="object-position:center 20%" />
+        <span class="sopra">
+          <span class="eti">Dirige il coro</span>
+          <b>M° {coro.maestro.nome}</b>
+          <span>{coro.maestro.presentazione}</span>
+          <span class="pillola">Conosci il Maestro<Icona nome="freccia" /></span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{f.cantaConNoi && (
+  <section class="invito-cantare">
+    {/* Dati: coro.config.ts → prove, organico */}
+    <div class="w">
+      <div class="riquadro-caldo">
+        <div class="testo">
+          <span class="eti">Canta con noi</span>
+          <h2>C'è posto anche per la tua voce</h2>
+          <p>Ci troviamo a {coro.prove.citta}, {coro.prove.nome}. {coro.prove.orari}.</p>
+          <div class="bottoni">
+            <a class="btn" href={l('/canta-con-noi')}>Come entrare nel coro<Icona nome="freccia" /></a>
+            <a class="btn o" href={l('/contatti')}>Scrivici</a>
+          </div>
+        </div>
+        <div class="orari-tondi">
+          {coro.prove.riquadri.map(([a, b]) => <div class="tondo"><b>{a}</b><span>{b}</span></div>)}
+        </div>
+        <ul class="sezioni-voci" aria-label="Le sezioni del coro">
+          {coro.organico.map((s) => <li><b>{s.voci}</b> {s.sezione.toLowerCase()}</li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+)}
+
+{evidenza && (
+  <section class="ascolta-casa">
+    {/* Dati: canale YouTube (feed RSS letto in fase di build) */}
+    <div class="w">
+      <div class="testa centrata">
+        <div><span class="eti">Ascolta</span><h2>Mettiti comodo e ascoltaci</h2></div>
+      </div>
+      <div class="video-caldo">
+        <div class="principale">
+          <Video video={evidenza} />
+          <NotaVideo />
+        </div>
+        <div class="altri">
+          {altriVideo.map((v) => <a href={l(`/ascolta#${v.id}`)}><Icona nome="play" /><span>{titoloCompleto(v)}</span><em>{v.pubblicato.slice(0, 4)}</em></a>)}
+          <a class="btn oc" href={l('/ascolta')}>Tutte le registrazioni</a>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{f.organizzatori && (
+  <section class="per-organizzatori">
+    <div class="w">
+      <div class="riquadro-organizzatori">
+        <span class="icona-tonda" aria-hidden="true"><Icona nome="biglietto" classe="g" /></span>
+        <div>
+          <span class="eti">Per gli organizzatori</span>
+          <h3 class="h-media">Una rassegna, una festa patronale, un concerto di Natale?</h3>
+          <p>Veniamo volentieri a cantare da voi: {voci} voci e un repertorio già pronto, anche con orchestra.</p>
+        </div>
+        <a class="btn" href={l('/organizzatori')}>Repertorio e contatti<Icona nome="freccia" /></a>
+      </div>
+    </div>
+  </section>
+)}
+
+<section class="segui">
+  <div class="w">
+    <h2>Non perdere il prossimo concerto</h2>
+    <div class="bottoni">
+      <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />Aggiungi il calendario</a>
+      {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />Iscriviti al canale</a>}
+    </div>
+  </div>
+</section>

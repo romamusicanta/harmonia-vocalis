@@ -1,0 +1,44 @@
+---
+// Veste Classica: il concerto come voce di un programma di sala. Giorno in cifre, mese in
+// maiuscoletto e anno in numeri romani; autore in maiuscoletto, titolo in corsivo, luogo.
+// Niente foto: le voci si leggono una sotto l'altra, separate da filetti.
+import { parti } from '../../motore/concerti';
+import { romano } from './romani';
+import type { Concerto } from '../../motore/tipi';
+
+interface Props {
+  concerto: Concerto;
+  href: string;
+  etichetta: string;
+  grigia?: boolean;
+  azione: string;
+  conFoto?: boolean;
+}
+const { concerto: c, href, etichetta, grigia, azione } = Astro.props;
+const d = parti(c);
+const anno = Number(d.anno);
+---
+
+<a class:list={['sc', 'cl-voce', { grigia }]} href={href}>
+  <span class="cl-data">
+    {d.incerta ? (
+      <>
+        <span class="g" aria-hidden="true">{romano(anno)}</span><span class="visually-hidden">{d.anno}</span>
+        <span class="m">data da precisare</span>
+      </>
+    ) : (
+      <>
+        <span class="g">{Number(d.giorno)}</span>
+        <span class="m">{d.mese}</span>
+        <span class="a" aria-hidden="true">{romano(anno)}</span><span class="visually-hidden">{d.anno}</span>
+      </>
+    )}
+  </span>
+  <span class="cl-corpo">
+    <span class="cl-eti">{etichetta}</span>
+    {c.autore && <span class="aut">{c.autore}</span>}
+    <span class="cl-titolo">{c.titolo}</span>
+    {(c.luogo || c.rassegna) && <span class="luogo">{[c.luogo, c.rassegna].filter(Boolean).join(' · ')}</span>}
+  </span>
+  <span class="cl-azione">{azione}<span aria-hidden="true"> →</span></span>
+</a>

@@ -1,0 +1,20 @@
+---
+// Veste Il segno: marchio tipografico. Un tratto spesso nel colore forte (il "segno") e il nome
+// del coro in chiaro, senza riquadri; tipo e città in piccolo, dietro un filetto verticale.
+// Se il coro ha un logo, il logo prende il posto di tratto e nome.
+import { coro } from '../../motore/coro';
+import { Logo } from '../../motore/logo';
+
+interface Props { href: string; conSottotitolo?: boolean }
+const { href, conSottotitolo = true } = Astro.props;
+---
+
+{Logo ? (
+  <a class="sg-marchio con-logo" href={href}><span class="logo-coro"><Logo /></span></a>
+) : (
+  <a class="sg-marchio" href={href}>
+    <span class="sg-tratto" aria-hidden="true"></span>
+    <b>{coro.nome}</b>
+    {conSottotitolo && <small>{coro.tipo}<br />{coro.citta}</small>}
+  </a>
+)}

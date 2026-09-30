@@ -1,0 +1,184 @@
+---
+// Scheda di un prossimo concerto: locandina generata, dati, calendario e condivisione,
+// programma, interpreti, registrazione dello stesso programma dall'archivio, altri concerti.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import Video from '../../../componenti/Video.astro';
+import NotaVideo from '../../../componenti/NotaVideo.astro';
+import { coro } from '../../../motore/coro';
+import { Logo } from '../../../motore/logo';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { archivio, linkGoogleCalendar, linkMappa, luogoCompleto, parti, prossimiConcerti, slug, stagione } from '../../../motore/concerti';
+import { trovaVideo } from '../../../motore/video';
+import type { Brano, Concerto } from '../../../motore/tipi';
+import { vesti } from '../../../vesti';
+
+export async function getStaticPaths() {
+  const concerti = await prossimiConcerti();
+  return percorsiVesti().flatMap(({ params }) =>
+    concerti.map((concerto) => ({ params: { veste: params.veste, slug: slug(concerto) }, props: { concerto } })),
+  );
+}
+
+interface Props { concerto: Concerto }
+const { concerto: c } = Astro.props;
+const veste = vesteCorrente(Astro.params.veste);
+const { SchedaConcerto } = vesti[veste];
+const l = (p: string) => link(veste, p);
+
+const prossimi = await prossimiConcerti();
+const primo = prossimi[0] === c || (prossimi[0] && slug(prossimi[0]) === slug(c));
+const d = parti(c);
+const cognome = c.autore?.split(/\s+/).at(-1);
+const titoloBreve = [cognome, c.titolo].filter(Boolean).join(', ');
+const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const quando = minuscola(d.esteso);
+const dove = luogoCompleto(c);
+const indirizzoMappa = [c.sala, c.luogo].filter(Boolean).join(', ');
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+
+const indirizzoPagina = new URL(l(`/concerti/${slug(c)}`), coro.url).href;
+const testoWhatsApp = `${titoloBreve} — ${quando}${c.luogo ? `, ${c.luogo}` : ''}. ${coro.nome}\n${indirizzoPagina}`;
+
+// Programma: dal calendario arriva solo autore e titolo, dall'archivio locale anche i movimenti
+const programma: Brano[] = c.programma?.length ? c.programma : [{ autore: c.autore, opera: c.titolo }];
+
+// Registrazione dello stesso programma, se c'è nell'archivio (la più recente)
+const giaEseguito = archivio.find((a) => a.video && a.titolo === c.titolo);
+const video = await trovaVideo(giaEseguito?.video);
+const pg = giaEseguito && parti(giaEseguito);
+
+// Altri concerti: gli altri in programma, poi i più recenti dell'archivio
+const altri = [
+  ...prossimi.filter((x) => slug(x) !== slug(c)).map((x) => ({ c: x, href: l(`/concerti/${slug(x)}`), etichetta: 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
+  ...archivio.map((x) =>
+    x.video && coro.funzioni.ascolta
+      ? { c: x, href: l(`/ascolta#${x.video}`), etichetta: 'Con video', grigia: true, azione: 'Guarda il video' }
+      : { c: x, href: l(`/concerti#${stagione(x).id}`), etichetta: `Stagione ${stagione(x).sigla}`, grigia: true, azione: "Nell'archivio" },
+  ),
+].slice(0, 3);
+---
+
+<Base veste={veste} titolo={titoloBreve} pagina="concerti" descrizione={`${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`}>
+  <header class="intesta" style="padding-bottom:0;border:0">
+    <div class="w">
+      <nav class="briciole" aria-label="Percorso"><a href={l('/')}>Home</a><span>/</span><a href={l('/concerti')}>Stagione {stagione(c).sigla}</a><span>/</span><span>{c.titolo}</span></nav>
+    </div>
+  </header>
+
+  <section style="padding-top:40px">
+    <div class="w">
+      <div class="due-col larga-dx" style="align-items:start">
+        <div>
+          <div class="locandina-cont"><div class="locandina" role="img" aria-label={`Locandina: ${titoloBreve}, ${quando}${c.luogo ? `, ${c.luogo}` : ''}`}>
+            <svg class="diap" viewBox="0 0 22 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 2v9a8 8 0 0 0 16 0V2" /><path d="M11 19v7" /></svg>
+            <div class="fascia-g"></div>
+            {/* Logo del coro, se c'è; altrimenti marchio testuale (sigla e nome) */}
+            <div class="testa-l">
+              {Logo ? <span class="logo-coro locandina-logo"><Logo /></span> : <span style="display:flex;align-items:center;gap:2cqw;color:#fff;letter-spacing:.08em"><b style="display:grid;place-items:center;width:6.4cqw;height:6.4cqw;background:var(--accento);color:var(--primario);border-radius:var(--raggio);letter-spacing:0">{coro.sigla}</b>{coro.nome}</span>}
+              {c.rassegna && <span style="text-align:right">{c.rassegna}</span>}
+            </div>
+            <div class="autore">{cognome ?? c.titolo}</div>
+            {cognome && <div class="opera">{c.titolo}</div>}
+            <div class="piede">
+              <div class="gg">{d.giorno}.{c.data.slice(5, 7)}<small>{d.giornoSettimana} · {d.anno}</small></div>
+              <div class="dove">{c.luogo && <b>{c.luogo}</b>}Dir. M° {coro.maestro.nome}</div>
+            </div>
+          </div></div>
+          <p class="nota-privacy">Locandina generata dal sito con i dati del calendario.</p>
+          {/* Dati: Google Calendar "Concerti" (titolo = rassegna, luogo, prima riga della descrizione = programma) */}
+        </div>
+
+        <div>
+          <span class="tag" style="margin-bottom:20px">{primo ? 'Prossimo concerto' : 'In programma'}</span>
+          {c.rassegna && <span class="eti" style="margin:18px 0 12px">{c.rassegna}</span>}
+          <h1 style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:clamp(34px,4.2vw,54px);line-height:1;letter-spacing:-0.012em;color:var(--primario)">{c.titolo}<span style="color:var(--accento)">.</span></h1>
+          {c.autore && <p style="font-family:var(--f-titoli);font-size:22px;color:var(--primario);font-weight:600;margin-top:14px">{c.autore}</p>}
+
+          <dl class="dati" style="margin:36px 0;padding:24px 0;border-top:3px solid var(--primario);border-bottom:1px solid var(--linea);font-size:17px;gap:16px 28px">
+            <dt>Quando</dt><dd>{d.esteso}<br /><span class="tenue" style="font-weight:500">{d.ora ? `Ore ${d.ora}` : 'Orario da definire'}</span></dd>
+            {dove && <><dt>Dove</dt><dd>{dove}<br /><a class="link-freccia" style="margin-top:6px" href={linkMappa(indirizzoMappa)} target="_blank" rel="noopener"><Icona nome="mappa" />Apri la mappa</a></dd></>}
+            {c.rassegna && <><dt>Rassegna</dt><dd>{c.rassegna}</dd></>}
+            {c.organizza && <><dt>Organizza</dt><dd>{c.organizza}</dd></>}
+            <dt>Ingresso</dt>{c.ingresso ? <dd>{c.ingresso}</dd> : <dd class="tenue" style="font-weight:500">Informazioni in arrivo</dd>}
+          </dl>
+
+          <div class="bottoni" id="calendario">
+            <a class="btn g" href={linkGoogleCalendar(c)} target="_blank" rel="noopener"><Icona nome="calendario-piu" />Aggiungi al calendario</a>
+            <a class="btn" href={`https://wa.me/?text=${encodeURIComponent(testoWhatsApp)}`} target="_blank" rel="noopener"><Icona nome="whatsapp" />Condividi su WhatsApp</a>
+            <a class="btn o" href="#" data-copia-link><Icona nome="condividi" />Copia link</a>
+          </div>
+          <p class="tenue" style="font-size:14px;margin-top:14px">Google Calendar, Apple Calendario e Outlook: il link apre l'evento già compilato.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--fondo)">
+    <div class="w">
+      <div class="due-col metà">
+        <div>
+          <div class="testa"><h2>Programma</h2></div>
+          {/* Dati: prima riga della descrizione dell'evento, o programma dettagliato in coro/concerti.ts */}
+          {programma.map((b) => (
+            <>
+              <div class="riga" style="grid-template-columns:minmax(0,1fr) auto;border-bottom:3px solid var(--primario)">
+                <div class="cosa">{b.autore && <span class="aut">{b.autore}</span>}<b style="font-size:26px">{b.opera}</b>{b.organico && <span class="tenue" style="font-size:15px">{b.organico}</span>}</div>
+              </div>
+              {b.parti && b.parti.length > 0 && (
+                <ol class="elenco-puntato" style="margin-top:24px;columns:2;column-gap:32px;display:block">
+                  {b.parti.map((p) => <li style="margin-bottom:10px">{p}</li>)}
+                </ol>
+              )}
+            </>
+          ))}
+        </div>
+        <div>
+          <div class="testa"><h2>Interpreti</h2></div>
+          {/* Dati: coro/coro.config.ts (maestro, organico) e interpreti del concerto */}
+          <div class="persone" style="grid-template-columns:1fr">
+            <div class="persona"><span class="ruolo">Direttore</span><b>M° {coro.maestro.nome}</b><a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>Biografia <Icona nome="freccia" /></a></div>
+            <div class="persona"><span class="ruolo">Coro</span><b>{coro.nome}</b><span class="tenue" style="font-size:15px">Circa {voci} voci · <a href={l('/il-coro')} style="text-decoration:underline">il coro</a></span></div>
+            {c.interpreti?.map((i) => (
+              <div class="persona">
+                <span class="ruolo">{i.ruolo}</span>
+                {i.nome ? <b>{i.nome}</b> : <b class="tenue" style="color:var(--tenue)">Da annunciare</b>}
+                {i.nota && <span class="tenue" style="font-size:15px">{i.nota}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {giaEseguito && video && pg && (
+    <section class="fascia">
+      {/* Dati: archivio in coro/concerti.ts (stesso titolo, con video) e canale YouTube */}
+      <div class="w due">
+        <div>
+          <span class="eti gialla" style="margin-bottom:16px">Dal nostro archivio</span>
+          <h2>Ascolta la nostra esecuzione del {pg.anno}</h2>
+          <p>{[giaEseguito.luogo, pg.incerta ? pg.anno : `${Number(pg.giorno)} ${pg.mese.toLowerCase()} ${pg.anno}`].filter(Boolean).join(', ')}. La registrazione del concerto sul nostro canale.</p>
+          {coro.funzioni.ascolta && <a class="btn oc" href={l('/ascolta')}>Tutte le registrazioni</a>}
+        </div>
+        <div>
+          <Video video={video} />
+          <NotaVideo />
+        </div>
+      </div>
+    </section>
+  )}
+
+  {altri.length > 0 && (
+    <section>
+      <div class="w">
+        <div class="testa"><h2>Altri concerti</h2><a class="btn o" href={l('/concerti')}>Stagione e archivio</a></div>
+        {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+        <div class="schede">
+          {altri.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} conFoto={false} />)}
+        </div>
+      </div>
+    </section>
+  )}
+</Base>

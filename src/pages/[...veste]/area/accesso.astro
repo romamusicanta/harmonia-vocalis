@@ -1,0 +1,36 @@
+---
+// Area coristi: pagina di accesso. Nella demo il bottone Google porta direttamente alla bacheca;
+// nel sito vero si entra con qualunque account Google il cui indirizzo è nell'elenco dei coristi.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import Foto from '../../../componenti/Foto.astro';
+import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+const richiesta = `mailto:${coro.email}?subject=${encodeURIComponent('Accesso area coristi')}`;
+---
+
+<Base veste={veste} titolo="Accedi all'area coristi" area={{ conBarra: false }}>
+  <div class="accesso">
+    <div class="lato-foto">
+      <Foto nome={coro.foto.accesso} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" />
+      <div class="sopra"><span class="eti gialla" style="margin-bottom:14px">Area coristi</span><b>Prove,<br />spartiti<span>,</span><br />basi.</b></div>
+    </div>
+    <div class="lato-modulo">
+      <div class="box">
+        <span class="eti">Accesso riservato</span>
+        <h1>Bentornato nel coro</h1>
+        <p>Riservata ai coristi: entra con il tuo <b>account Google</b>. Si apre solo agli indirizzi presenti nell'elenco dei coristi tenuto dal direttivo.</p>
+        <!-- Nel sito vero: "Accedi con Google" con qualunque account, poi controllo dell'indirizzo sull'elenco dei coristi -->
+        <a class="google" href={link(veste, '/area')}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Accedi con Google</span></a>
+        <div class="aiuto-accesso">
+          <a href={richiesta}><Icona nome="domanda" />Il tuo indirizzo non è nell'elenco? Chiedi al direttivo di aggiungerlo</a>
+          <a href="https://support.google.com/accounts/answer/41078" target="_blank" rel="noopener"><Icona nome="lucchetto" />Hai dimenticato la password di Google?</a>
+          <span class="tenue">Se l'area non si apre, forse sei entrato con un altro account Google: esci e rientra con l'indirizzo che hai comunicato al coro.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>

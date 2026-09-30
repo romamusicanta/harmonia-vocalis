@@ -1,0 +1,54 @@
+---
+// Layout unico di tutte le pagine. Testata e piè di pagina vengono dalla veste grafica;
+// colori e caratteri dagli attributi data-palette e data-carattere su <html>.
+import '../stile/palette.css';
+import '../stile/caratteri.css';
+import '../stile/comune.css';
+import Pannello from '../demo/Pannello.astro';
+import PannelloIniziale from '../demo/PannelloIniziale.astro';
+import { coro, DEMO } from '../motore/coro';
+import { CARATTERI, urlCaratteri, type Carattere, type Veste } from '../motore/aspetto';
+import { vesti } from '../vesti';
+import type { Pagina } from '../motore/navigazione';
+
+interface Props {
+  veste: Veste;
+  titolo?: string;
+  descrizione?: string;
+  pagina?: Pagina;
+  // Area coristi: testata e piè di pagina ridotti; sezione attiva nella barra
+  area?: { sezione?: string; conBarra?: boolean };
+}
+const { veste, titolo, descrizione = coro.descrizione, pagina, area } = Astro.props;
+const { Testata, Piede, TestataArea, PiedeArea, stili } = vesti[veste];
+const titoloCompleto = titolo ? `${titolo} — ${coro.nome}` : `${coro.nome} — ${coro.tipo} a ${coro.citta}`;
+const caratteri = DEMO ? (Object.keys(CARATTERI) as Carattere[]) : [coro.aspetto.carattere];
+---
+
+<!doctype html>
+<html lang="it" data-veste={veste} data-palette={coro.aspetto.palette} data-carattere={coro.aspetto.carattere}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titoloCompleto}</title>
+    <meta name="description" content={descrizione} />
+    {(DEMO || area) && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={urlCaratteri(caratteri, coro.aspetto.caratteriLogo)} />
+    {stili.map((s) => <link rel="stylesheet" href={s} />)}
+    {DEMO && <PannelloIniziale />}
+  </head>
+  <body class:list={{ area: Boolean(area) }}>
+    {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} /> : <Testata veste={veste} pagina={pagina} />}
+    <main id="contenuto">
+      <slot />
+    </main>
+    {area ? <PiedeArea veste={veste} /> : <Piede veste={veste} />}
+    {DEMO && <Pannello veste={veste} />}
+    <script>
+      import '../motore/interazioni';
+    </script>
+  </body>
+</html>
