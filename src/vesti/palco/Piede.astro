@@ -2,7 +2,6 @@
 // Veste Palco al buio: piè di pagina come la chiusura del sipario. Nome del coro a tutta
 // larghezza, le pagine in fila come i titoli di coda, contatti e firma del modello.
 import Icona from '../../componenti/Icona.astro';
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import { vociMenu } from '../../motore/navigazione';
@@ -49,7 +48,7 @@ const social = [
     </div>
     <div class="pb-fondo-piede">
       <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
-      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>} · <FirmaDimora /></span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>}</span>
     </div>
   </div>
 </footer>

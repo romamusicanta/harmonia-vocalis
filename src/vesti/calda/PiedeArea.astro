@@ -1,6 +1,5 @@
 ---
 // Veste Calda: piè di pagina ridotto dell'area coristi.
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro } from '../../motore/coro';
 import { link } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -13,7 +12,7 @@ const { veste } = Astro.props;
   <div class="w">
     <div class="fondo-piede">
       <span>Area coristi · {coro.nome} · I file stanno nel Drive del coro</span>
-      <span><a href={`mailto:${coro.email}`}>Problemi di accesso?</a> · <a href={link(veste, '/')}>Sito pubblico</a> · <FirmaDimora /></span>
+      <span><a href={`mailto:${coro.email}`}>Problemi di accesso?</a> · <a href={link(veste, '/')}>Sito pubblico</a></span>
     </div>
   </div>
 </footer>

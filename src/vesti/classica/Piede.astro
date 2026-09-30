@@ -3,7 +3,6 @@
 // fregio, marchio, descrizione in corsivo, indice delle pagine, recapiti e colophon.
 import Marchio from './Marchio.astro';
 import Fregio from './Fregio.astro';
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -55,7 +54,7 @@ const social = [
 
     <div class="cl-colophon">
       <p>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</p>
-      <p><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>} · <FirmaDimora /></p>
+      <p><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>}</p>
     </div>
   </div>
 </footer>

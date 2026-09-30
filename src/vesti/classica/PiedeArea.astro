@@ -1,7 +1,6 @@
 ---
 // Veste Classica: piè di pagina ridotto dell'area coristi, centrato tra due filetti.
 import Fregio from './Fregio.astro';
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro } from '../../motore/coro';
 import { link } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -15,7 +14,7 @@ const { veste } = Astro.props;
     <Fregio />
     <div class="cl-colophon">
       <p>Area coristi · {coro.nome} · I file stanno nel Drive del coro</p>
-      <p><a href={`mailto:${coro.email}`}>Problemi di accesso?</a> · <a href={link(veste, '/')}>Sito pubblico</a> · <FirmaDimora /></p>
+      <p><a href={`mailto:${coro.email}`}>Problemi di accesso?</a> · <a href={link(veste, '/')}>Sito pubblico</a></p>
     </div>
   </div>
 </footer>

@@ -1,7 +1,6 @@
 ---
 // Veste Stagione: piè di pagina a colonne, con la firma del modello.
 import Marchio from './Marchio.astro';
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -49,7 +48,7 @@ const l = coro.link;
     </div>
     <div class="fondo-piede">
       <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
-      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>} · <FirmaDimora /></span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>}</span>
     </div>
   </div>
 </footer>

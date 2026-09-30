@@ -3,7 +3,6 @@
 // l'invito alle prove (dove e quando ci troviamo), sotto le colonne di link e la firma.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro, indirizzo } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -64,7 +63,7 @@ const l = coro.link;
     </div>
     <div class="fondo-piede">
       <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
-      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>} · <FirmaDimora /></span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>}</span>
     </div>
   </div>
 </footer>

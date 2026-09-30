@@ -1,7 +1,6 @@
 ---
 // Veste Il segno: piè di pagina chiaro. Colonne separate da filetti, poi il nome del coro
 // in grande, tagliato dal bordo della pagina come l'ultima riga di un manifesto.
-import FirmaDimora from '../../componenti/FirmaDimora.astro';
 import { coro } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -50,7 +49,7 @@ const lunghezza = Math.max(coro.nome.length, 6);
     <a class="sg-piede-nome" href={link(veste, '/')} style={`--lung:${lunghezza}`}>{coro.nome}<i aria-hidden="true">.</i></a>
     <div class="fondo-piede">
       <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
-      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>} · <FirmaDimora /></span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>}</span>
     </div>
   </div>
 </footer>
