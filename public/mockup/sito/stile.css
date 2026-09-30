@@ -2,23 +2,26 @@
    Foglio di stile condiviso da tutte le pagine del mockup. */
 
 :root {
-  --bianco: #ffffff;
-  --fondo: #f5f4f0;
-  --fondo-2: #ecebe5;
-  --blu: #13235b;
-  --blu-2: #22367d;
-  --blu-3: #9aa4cc;
-  --blu-chiaro: #c3cae5;
-  --giallo: #f2b41b;
-  --giallo-chiaro: #fdf3d8;
-  --testo: #16181f;
-  --tenue: #5d6170;
-  --linea: #dcdcd6;
-  --rosso: #b3261e;
-  --verde: #1f6b45;
+  /* Palette "Porpora di Roma": il rosso porpora e l'oro dello stemma di Roma, su fondo avorio.
+     I nomi delle variabili sono rimasti quelli della prima palette (blu/giallo):
+     --blu = colore principale scuro (testo bianco sopra), --giallo = accento chiaro. */
+  --bianco: #fcf9f2;        /* avorio chiaro: fondo delle pagine e delle schede */
+  --fondo: #f5eee2;
+  --fondo-2: #ece2d1;
+  --blu: #8a1c2c;           /* rosso porpora dello stemma */
+  --blu-2: #a3283a;
+  --blu-3: #d8a2a9;
+  --blu-chiaro: #f1d6d8;
+  --giallo: #dca542;        /* oro dello stemma */
+  --giallo-chiaro: #f8ecd2;
+  --testo: #2a1d1d;
+  --tenue: #6d5f5a;
+  --linea: #e3d8c6;
+  --rosso: #b8621b;         /* assenze e avvisi: ambra, per distinguersi dal porpora */
+  --verde: #2f6b45;
   --f: 'Archivo', system-ui, sans-serif;
   --raggio: 2px;
-  --ombra: 0 14px 40px rgba(19, 35, 91, .12);
+  --ombra: 0 14px 40px rgba(90, 20, 30, .12);
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -42,7 +45,7 @@ svg { flex-shrink: 0; }
 .ic.g { width: 28px; height: 28px; }
 
 /* ——— Barra di servizio ——— */
-.servizio { background: var(--blu); color: #cdd3ea; font-size: 13px; }
+.servizio { background: var(--blu); color: var(--blu-chiaro); font-size: 13px; }
 .servizio .w { display: flex; justify-content: space-between; min-height: 38px; align-items: center; gap: 16px; }
 .servizio a:hover { color: #fff; }
 .servizio .info { display: none; }
@@ -51,7 +54,7 @@ svg { flex-shrink: 0; }
 @media (min-width: 760px) { .servizio .info { display: inline; } }
 
 /* ——— Header ——— */
-.testata { border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: rgba(255,255,255,.96); backdrop-filter: blur(8px); z-index: 30; }
+.testata { border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: color-mix(in srgb, var(--bianco) 96%, transparent); backdrop-filter: blur(8px); z-index: 30; }
 .testata > .w { display: flex; align-items: center; justify-content: space-between; height: 80px; gap: 24px; }
 .marchio { display: flex; align-items: center; gap: 12px; line-height: 1; min-width: 0; }
 .marchio .q { width: 44px; height: 44px; background: var(--blu); color: var(--giallo); display: grid; place-items: center; border-radius: var(--raggio); flex-shrink: 0; }
@@ -85,7 +88,7 @@ svg { flex-shrink: 0; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 20px; font-weight: 700; font-size: 14px; letter-spacing: .02em; border-radius: var(--raggio); background: var(--blu); color: #fff; border: 0; line-height: 1.2; transition: background .15s, box-shadow .15s, color .15s; }
 .btn:hover { background: var(--blu-2); }
 .btn.g { background: var(--giallo); color: var(--blu); }
-.btn.g:hover { background: #ffc633; }
+.btn.g:hover { background: var(--giallo); filter: brightness(1.07); }
 .btn.o { background: transparent; color: var(--blu); box-shadow: inset 0 0 0 2px var(--blu); }
 .btn.o:hover { background: var(--blu); color: #fff; }
 .btn.oc { background: transparent; color: #fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,.55); }
@@ -147,7 +150,7 @@ h3 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; color: var(--b
 .stagione h1 span { color: var(--giallo); }
 .stagione p { font-size: 21px; max-width: 30ch; color: var(--tenue); }
 .blocco-foto { position: relative; min-height: 460px; background: var(--blu); overflow: hidden; }
-.blocco-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .8; }
+.blocco-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .8; filter: brightness(.72) contrast(1.1); }
 .blocco-foto .scheda { position: absolute; left: 0; bottom: 0; background: var(--giallo); color: var(--blu); padding: 24px 28px; max-width: 380px; transition: padding .2s; }
 .blocco-foto a.scheda:hover { padding-bottom: 32px; }
 .scheda .n { font-weight: 900; font-stretch: 125%; font-size: 72px; line-height: .85; letter-spacing: -0.05em; }
@@ -181,7 +184,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .in-programma .info { padding: 32px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .in-programma .info h3 { font-size: clamp(30px, 3vw, 40px); font-stretch: 110%; }
 .in-programma .foto { min-height: 260px; background: var(--blu); position: relative; overflow: hidden; }
-.in-programma .foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .8; }
+.in-programma .foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .8; filter: brightness(.72) contrast(1.1); }
 .fatti { display: grid; gap: 8px; margin: 10px 0 18px; color: var(--tenue); font-size: 15px; }
 .fatti li { display: flex; gap: 10px; align-items: flex-start; list-style: none; }
 .fatti { padding: 0; }
@@ -236,7 +239,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .video .play { position: absolute; left: 20px; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 16px; }
 .video .play i { width: 64px; height: 64px; background: var(--giallo); color: var(--blu); display: grid; place-items: center; flex-shrink: 0; }
 .video .play b { font-size: 22px; font-weight: 800; line-height: 1.15; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
-.video .play b span { display: block; font-weight: 400; font-size: 14px; color: #e4e7f3; margin-top: 2px; }
+.video .play b span { display: block; font-weight: 400; font-size: 14px; color: var(--blu-chiaro); margin-top: 2px; }
 .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video.piccolo .play { left: 12px; bottom: 12px; }
 .video.piccolo .play i { width: 44px; height: 44px; }
@@ -335,7 +338,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .campo > label, .campo > .lab { font-weight: 700; font-size: 14px; color: var(--blu); }
 .campo .aiuto { font-size: 13px; color: var(--tenue); }
 .campo input, .campo select, .campo textarea { width: 100%; padding: 13px 14px; border: 2px solid var(--linea); background: var(--bianco); border-radius: var(--raggio); font-size: 16px; }
-.campo input:focus, .campo select:focus, .campo textarea:focus { outline: none; border-color: var(--blu); box-shadow: 0 0 0 3px rgba(242,180,27,.5); }
+.campo input:focus, .campo select:focus, .campo textarea:focus { outline: none; border-color: var(--blu); box-shadow: 0 0 0 3px color-mix(in srgb, var(--giallo) 50%, transparent); }
 .campo textarea { min-height: 120px; resize: vertical; }
 .voci { display: flex; flex-wrap: wrap; gap: 8px; }
 .voci label { position: relative; }
@@ -440,7 +443,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .assenza .fatto { display: none; }
 .assenza.segnalata .da-fare { display: none; }
 .assenza.segnalata .fatto { display: block; }
-.stato-assenza { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 16px; background: rgba(242,180,27,.16); border-left: 4px solid var(--giallo); font-weight: 700; }
+.stato-assenza { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 16px; background: color-mix(in srgb, var(--giallo) 16%, transparent); border-left: 4px solid var(--giallo); font-weight: 700; }
 .carta:not(.blu) .stato-assenza, .prova .stato-assenza { background: var(--giallo-chiaro); color: var(--blu); }
 .stato-assenza button { background: none; border: 0; text-decoration: underline; font-weight: 700; padding: 0; color: inherit; text-underline-offset: 3px; }
 .nota-assenza { margin-top: 12px; display: grid; gap: 8px; }
@@ -631,7 +634,7 @@ a.sc:hover { box-shadow: var(--ombra); transform: translateY(-3px); }
 .accesso { min-height: calc(100vh - 118px); display: grid; }
 @media (min-width: 980px) { .accesso { grid-template-columns: 1fr 1fr; } }
 .accesso .lato-foto { position: relative; background: var(--blu); min-height: 280px; overflow: hidden; }
-.accesso .lato-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .7; }
+.accesso .lato-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .7; filter: brightness(.72) contrast(1.1); }
 .accesso .lato-foto .sopra { position: absolute; left: 0; bottom: 0; padding: clamp(24px, 4vw, 48px); color: #fff; }
 .accesso .lato-foto .sopra b { display: block; font-weight: 900; font-stretch: 125%; font-size: clamp(44px, 6vw, 88px); line-height: .85; letter-spacing: -0.055em; }
 .accesso .lato-foto .sopra b span { color: var(--giallo); }

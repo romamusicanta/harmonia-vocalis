@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it" data-palette="notte">
+<html lang="it" data-palette="porpora">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,11 +15,11 @@
 <style id="palette">
 /* Prova palette: ogni palette ridefinisce gli stessi ruoli.
    --blu = colore principale scuro (testo bianco sopra), --giallo = accento chiaro (testo principale sopra). */
-html[data-palette="notte"] { --fondo:#f5f4f0; --fondo-2:#ecebe5; --blu:#13235b; --blu-2:#22367d; --blu-3:#9aa4cc; --blu-chiaro:#c3cae5; --giallo:#f2b41b; --giallo-chiaro:#fdf3d8; --testo:#16181f; --tenue:#5d6170; --linea:#dcdcd6; }
-html[data-palette="porpora"] { --fondo:#f7f2eb; --fondo-2:#efe6da; --blu:#4a1531; --blu-2:#652244; --blu-3:#c09aab; --blu-chiaro:#e3c9d4; --giallo:#d9a441; --giallo-chiaro:#f8ecd3; --testo:#221a1d; --tenue:#6a5c60; --linea:#e0d5c8; }
-html[data-palette="pino"] { --fondo:#f4f2ec; --fondo-2:#e9e5da; --blu:#1d3b33; --blu-2:#2b5247; --blu-3:#9db8ae; --blu-chiaro:#cadcd5; --giallo:#ee9155; --giallo-chiaro:#fbe6d6; --testo:#172019; --tenue:#5b6660; --linea:#d9d6ca; }
-html[data-palette="inchiostro"] { --fondo:#f3f1ee; --fondo-2:#e8e5e0; --blu:#18181b; --blu-2:#2c2c31; --blu-3:#a1a1aa; --blu-chiaro:#d4d4d8; --giallo:#ff5a36; --giallo-chiaro:#ffe3db; --testo:#18181b; --tenue:#5f5f66; --linea:#dddad4; }
-html[data-palette="oltremare"] { --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34a0; --blu-2:#2d47c0; --blu-3:#a9b5ea; --blu-chiaro:#d2d9f6; --giallo:#f5b5a3; --giallo-chiaro:#fde9e3; --testo:#141a33; --tenue:#5b6078; --linea:#dedad5; }
+html[data-palette="notte"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f5f4f0; --fondo-2:#ecebe5; --blu:#13235b; --blu-2:#22367d; --blu-3:#9aa4cc; --blu-chiaro:#c3cae5; --giallo:#f2b41b; --giallo-chiaro:#fdf3d8; --testo:#16181f; --tenue:#5d6170; --linea:#dcdcd6; }
+html[data-palette="porpora"] { --bianco:#fcf9f2; --fondo:#f5eee2; --fondo-2:#ece2d1; --blu:#8a1c2c; --blu-2:#a3283a; --blu-3:#d8a2a9; --blu-chiaro:#f1d6d8; --giallo:#dca542; --giallo-chiaro:#f8ecd2; --testo:#2a1d1d; --tenue:#6d5f5a; --linea:#e3d8c6; --rosso:#b8621b; }
+html[data-palette="pino"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f4f2ec; --fondo-2:#e9e5da; --blu:#1d3b33; --blu-2:#2b5247; --blu-3:#9db8ae; --blu-chiaro:#cadcd5; --giallo:#ee9155; --giallo-chiaro:#fbe6d6; --testo:#172019; --tenue:#5b6660; --linea:#d9d6ca; }
+html[data-palette="inchiostro"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f3f1ee; --fondo-2:#e8e5e0; --blu:#18181b; --blu-2:#2c2c31; --blu-3:#a1a1aa; --blu-chiaro:#d4d4d8; --giallo:#ff5a36; --giallo-chiaro:#ffe3db; --testo:#18181b; --tenue:#5f5f66; --linea:#dddad4; }
+html[data-palette="oltremare"] { --bianco:#ffffff; --rosso:#b3261e; --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34a0; --blu-2:#2d47c0; --blu-3:#a9b5ea; --blu-chiaro:#d2d9f6; --giallo:#f5b5a3; --giallo-chiaro:#fde9e3; --testo:#141a33; --tenue:#5b6078; --linea:#dedad5; }
 
 /* colori scritti direttamente in stile.css, riportati alle variabili */
 .servizio { color: var(--blu-chiaro); }
@@ -200,7 +200,7 @@ html[data-palette="oltremare"] { --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34
   <label for="palette-sel">Palette di colori</label>
   <select id="palette-sel">
     <option value="notte">1 · Notte e oro (attuale)</option>
-    <option value="porpora">2 · Porpora e oro antico</option>
+    <option value="porpora">2 · Porpora di Roma su avorio (scelta)</option>
     <option value="pino">3 · Pino e terracotta</option>
     <option value="inchiostro">4 · Inchiostro e vermiglione</option>
     <option value="oltremare">5 · Oltremare e rosa antico</option>
@@ -212,7 +212,7 @@ html[data-palette="oltremare"] { --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34
 (function () {
   var descrizioni = {
     notte: 'Blu notte e giallo: istituzionale e deciso, alla Santa Cecilia. È la palette del mockup.',
-    porpora: 'Porpora e oro antico: i colori della musica sacra e dei paramenti liturgici. Caldo e solenne.',
+    porpora: 'Il rosso porpora e l’oro dello stemma di Roma, su fondo avorio chiaro. È ora la palette di base di tutto il mockup.',
     pino: 'Verde pino e terracotta: i colori di Roma, dei pini e degli intonaci. Naturale e accogliente.',
     inchiostro: 'Quasi nero e vermiglione: grafico e contemporaneo, come le locandine dei festival.',
     oltremare: 'Blu oltremare e rosa antico: luminoso e raffinato, meno istituzionale, più giovane.'
@@ -220,7 +220,7 @@ html[data-palette="oltremare"] { --fondo:#f6f4f2; --fondo-2:#ece8e4; --blu:#1d34
   var html = document.documentElement, sel = document.getElementById('palette-sel');
   var box = document.getElementById('scegli-palette'), desc = document.getElementById('palette-desc');
   function applica(v) {
-    if (!descrizioni[v]) v = 'notte';
+    if (!descrizioni[v]) v = 'porpora';
     html.setAttribute('data-palette', v); sel.value = v; desc.textContent = descrizioni[v];
     var cs = getComputedStyle(html);
     box.querySelectorAll('.campioni span').forEach(function (s) { s.style.background = cs.getPropertyValue(s.dataset.v); });
