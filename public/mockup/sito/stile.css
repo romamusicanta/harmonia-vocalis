@@ -149,7 +149,7 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 .apertura .w { display: grid; gap: 0; padding-top: 48px; }
 @media (min-width: 980px) { .apertura .w { grid-template-columns: 1.05fr 1fr; align-items: stretch; } }
 .stagione { padding: 24px 0 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 40px; min-width: 0; }
-.stagione h1 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(60px, 7vw, 108px); line-height: .9; letter-spacing: -0.012em; color: var(--blu); }
+.stagione h1 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(32px, 4.2vw, 54px); line-height: 1.05; letter-spacing: -0.012em; color: var(--blu); }
 .stagione h1 span { color: var(--giallo); }
 .stagione p { font-size: 21px; max-width: 30ch; color: var(--tenue); }
 .blocco-foto { position: relative; min-height: 460px; background: var(--blu); overflow: hidden; }
