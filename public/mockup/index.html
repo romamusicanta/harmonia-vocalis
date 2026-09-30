@@ -24,9 +24,58 @@
   .testo b { font-size: 20px; }
   .testo p { color: var(--tenue); font-size: 15px; }
   .nota { margin-top: 48px; color: var(--tenue); font-size: 15px; max-width: 70ch; border-top: 1px solid var(--linea); padding-top: 20px; }
+  .completo { background: #13235b; color: #fff; border-radius: 10px; padding: clamp(24px, 4vw, 44px); margin-bottom: 64px; }
+  .completo h2 { font-size: clamp(26px, 3.4vw, 38px); letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 10px; }
+  .completo h2 span { color: #f2b41b; }
+  .completo > p { color: #c3cae5; max-width: 62ch; margin-bottom: 28px; }
+  .completo .colonne { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+  .completo h3 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #f2b41b; margin-bottom: 10px; }
+  .completo ul { list-style: none; padding: 0; display: grid; gap: 1px; background: #22367d; }
+  .completo li a { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; background: #13235b; color: #fff; text-decoration: none; font-size: 15px; }
+  .completo li a:hover { background: #22367d; }
+  .completo li a em { font-style: normal; color: #9aa4cc; font-size: 13px; }
+  .completo .apri { display: inline-block; margin-top: 24px; background: #f2b41b; color: #13235b; font-weight: 700; padding: 12px 18px; border-radius: 2px; text-decoration: none; margin-right: 10px; }
+  .completo .apri.o { background: transparent; color: #fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,.5); }
+  .storico { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); margin-bottom: 16px; }
 </style>
 </head>
 <body>
+<div class="w">
+  <section class="completo">
+    <h2>Mockup completo <span>·</span> direzione C</h2>
+    <p>Il sito pubblico e l'area riservata ai coristi, pagina per pagina, nello stile scelto. Contenuti veri nel sito pubblico; nell'area coristi nomi e dati sono di esempio.</p>
+    <div class="colonne">
+      <div>
+        <h3>Sito pubblico</h3>
+        <ul>
+          <li><a href="sito/index.html">Home <em>stagione 26/27</em></a></li>
+          <li><a href="sito/concerti.html">Concerti <em>in programma e archivio</em></a></li>
+          <li><a href="sito/concerto.html">Scheda concerto <em>Requiem, Rignano</em></a></li>
+          <li><a href="sito/ascolta.html">Ascolta <em>registrazioni</em></a></li>
+          <li><a href="sito/il-coro.html">Il coro <em>storia e direttivo</em></a></li>
+          <li><a href="sito/il-maestro.html">Il Maestro</a></li>
+          <li><a href="sito/canta-con-noi.html">Canta con noi <em>audizioni</em></a></li>
+          <li><a href="sito/organizzatori.html">Per gli organizzatori</a></li>
+          <li><a href="sito/contatti.html">Contatti</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Area coristi</h3>
+        <ul>
+          <li><a href="sito/area-accesso.html">Accesso <em>con Google</em></a></li>
+          <li><a href="sito/area.html">Bacheca</a></li>
+          <li><a href="sito/area-prove.html">Prove <em>calendario e assenze</em></a></li>
+          <li><a href="sito/area-repertorio.html">Repertorio <em>spartiti e basi</em></a></li>
+          <li><a href="sito/area-registrazioni.html">Registrazioni delle prove</a></li>
+          <li><a href="sito/area-concerti.html">Concerti <em>convocazioni</em></a></li>
+          <li><a href="sito/area-presenze.html">Presenze</a></li>
+        </ul>
+      </div>
+    </div>
+    <a class="apri" href="sito/index.html">Apri il sito</a><a class="apri o" href="logo/index.html">Proposte di logo</a>
+  </section>
+  <p class="storico">Le tre direzioni iniziali</p>
+</div>
 <div class="w">
   <h1>Coro Harmonia Vocalis<br>tre direzioni visive</h1>
   <p class="intro">Tre mockup della sola home page, ispirati ai siti delle grandi orchestre e dei cori europei. I contenuti sono veri, i link non portano ancora da nessuna parte. Scegliete una direzione, o gli elementi da prendere da ciascuna.</p>
