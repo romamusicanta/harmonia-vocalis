@@ -1,7 +1,7 @@
 ---
 // Veste Classica: pagina iniziale come un programma di sala. Frontespizio della stagione
 // centrato con gli anni in numeri romani, foto incorniciata con didascalia, annuncio del
-// prossimo concerto, programma della stagione, ascolto, il coro in tre medaglioni ad arco.
+// prossimo concerto, programma della stagione, ascolto, il coro in tre medaglioni con cornice rettangolare.
 import Icona from '../../componenti/Icona.astro';
 import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
@@ -111,14 +111,14 @@ const sezioni = coro.organico.map((s) => s.sezione.charAt(0)).join(' · ');
     <div class="testa"><h2>Il coro</h2></div>
     <div class="cl-medaglioni">
       <a class="cl-medaglione" href={l('/il-coro')}>
-        <span class="arco"><Foto nome={coro.foto.coro} sizes="(min-width: 1000px) 30vw, 80vw" /></span>
+        <span class="cornice"><Foto nome={coro.foto.coro} sizes="(min-width: 1000px) 30vw, 80vw" /></span>
         <span class="eti">Dal {coro.fondazione}</span>
         <h3>La nostra storia</h3>
         <p>{coro.associazione ? `Nato dall'${coro.associazione}` : `Nato nel ${coro.fondazione}`}: {voci} voci per la musica corale, sacra e profana.</p>
         <span class="link-freccia">Scopri <Icona nome="freccia" /></span>
       </a>
       <a class="cl-medaglione" href={l('/il-maestro')}>
-        <span class="arco"><Foto nome={coro.maestro.foto} alt={`Il M° ${coro.maestro.nome}`} sizes="(min-width: 1000px) 30vw, 80vw" style="object-position:center 20%" /></span>
+        <span class="cornice"><Foto nome={coro.maestro.foto} alt={`Il M° ${coro.maestro.nome}`} sizes="(min-width: 1000px) 30vw, 80vw" style="object-position:center 20%" /></span>
         <span class="eti">Il Maestro</span>
         <h3>{coro.maestro.nome}</h3>
         <p>{coro.maestro.presentazione}</p>
@@ -126,7 +126,7 @@ const sezioni = coro.organico.map((s) => s.sezione.charAt(0)).join(' · ');
       </a>
       {coro.funzioni.cantaConNoi && (
         <a class="cl-medaglione" href={l('/canta-con-noi')}>
-          <span class="arco vuoto"><b>{sezioni}</b></span>
+          <span class="cornice vuoto"><b>{sezioni}</b></span>
           <span class="eti">Audizioni</span>
           <h3>Canta con noi</h3>
           <p>Cerchiamo nuove voci. {coro.prove.orari}, a {coro.prove.citta}.</p>
