@@ -208,13 +208,13 @@ a.sc.cl-voce:hover .cl-titolo { text-decoration: underline; text-decoration-thic
 .vid { text-align: center; }
 .vid b { font-style: italic; font-size: 21px; }
 
-/* ——— Il coro: medaglioni ad arco ——— */
+/* ——— Il coro: medaglioni in cornice rettangolare ——— */
 .cl-medaglioni { display: grid; gap: 48px 36px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 .cl-medaglione { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; min-width: 0; }
-.cl-medaglione .arco { display: block; width: min(100%, 280px); aspect-ratio: 4 / 5; border-radius: 999px 999px 0 0; overflow: hidden; padding: 6px; border: 1px solid var(--filetto); background: var(--bianco); margin-bottom: 18px; }
-.cl-medaglione .arco img { width: 100%; height: 100%; object-fit: cover; border-radius: 999px 999px 0 0; }
-.cl-medaglione .arco.vuoto { display: grid; place-items: center; background: var(--bianco); box-shadow: inset 0 0 0 6px var(--bianco), inset 0 0 0 7px var(--filetto); }
-.cl-medaglione .arco.vuoto b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(34px, 3.4vw, 46px); color: var(--primario); letter-spacing: .04em; }
+.cl-medaglione .cornice { display: block; width: min(100%, 280px); aspect-ratio: 4 / 5; overflow: hidden; padding: 6px; border: 1px solid var(--filetto); background: var(--bianco); margin-bottom: 18px; }
+.cl-medaglione .cornice img { width: 100%; height: 100%; object-fit: cover; }
+.cl-medaglione .cornice.vuoto { display: grid; place-items: center; background: var(--bianco); box-shadow: inset 0 0 0 6px var(--bianco), inset 0 0 0 7px var(--filetto); }
+.cl-medaglione .cornice.vuoto b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(34px, 3.4vw, 46px); color: var(--primario); letter-spacing: .04em; }
 .cl-medaglione h3 { font-style: italic; font-size: 30px; }
 .cl-medaglione p { color: var(--tenue); max-width: 34ch; }
 .cl-medaglione .link-freccia { margin-top: 6px; }
