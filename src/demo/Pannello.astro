@@ -3,7 +3,7 @@
 // Palette e carattere cambiano subito (attributi su <html>, ricordati in localStorage);
 // la veste porta alla stessa pagina sotto /<veste>/.
 import { coro } from '../motore/coro';
-import { CARATTERI, PALETTE, VESTI, type Veste } from '../motore/aspetto';
+import { CARATTERI, PALETTE, VESTI, vestiPronte, type Veste } from '../motore/aspetto';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
@@ -27,7 +27,7 @@ const nomi = {
 
     <label for="demo-veste">Veste grafica</label>
     <select id="demo-veste">
-      {Object.entries(VESTI).map(([k, v]) => <option value={k} selected={k === veste} disabled={!v.pronta}>{v.nome}{!v.pronta && ' (in arrivo)'}</option>)}
+      {Object.entries(VESTI).map(([k, v]) => <option value={k} selected={k === veste} disabled={!vestiPronte.includes(k as Veste)}>{v.nome}{!vestiPronte.includes(k as Veste) && ' (in arrivo)'}</option>)}
     </select>
     <p class="descr">{info.descrizione}</p>
 

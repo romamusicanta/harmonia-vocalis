@@ -1,0 +1,55 @@
+---
+// Veste Palco al buio: piè di pagina come la chiusura del sipario. Nome del coro a tutta
+// larghezza, le pagine in fila come i titoli di coda, contatti e firma del modello.
+import Icona from '../../componenti/Icona.astro';
+import FirmaDimora from '../../componenti/FirmaDimora.astro';
+import { AREA_CORISTI, coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { vociMenu } from '../../motore/navigazione';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const f = coro.funzioni;
+const social = [
+  coro.link.youtube && { href: coro.link.youtube, testo: 'YouTube', icona: 'youtube' as const },
+  coro.link.instagram && { href: coro.link.instagram, testo: 'Instagram', icona: 'instagram' as const },
+  coro.link.facebook && { href: coro.link.facebook, testo: 'Facebook', icona: 'condividi' as const },
+].filter((s): s is { href: string; testo: string; icona: 'youtube' | 'instagram' | 'condividi' } => Boolean(s));
+---
+
+<footer class="pb-piede">
+  <div class="w">
+    {/* Dati: coro/coro.config.ts */}
+    <div class="pb-chiusura">
+      <p class="pb-grande"><a href={link(veste, '/')}>{coro.nome}</a></p>
+      <p class="pb-descr">{coro.descrizione}</p>
+    </div>
+    <nav class="pb-coda" aria-label="Pagine del sito">
+      {vociMenu(veste).map((v) => <a href={v.href}>{v.testo}</a>)}
+      {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+    </nav>
+    <div class="pb-recapiti">
+      <div>
+        <span class="pb-titoletto">Scrivici</span>
+        <a class="pb-email" href={`mailto:${coro.email}`}>{coro.email}</a>
+      </div>
+      {coro.sede && (
+        <div>
+          <span class="pb-titoletto">Sede</span>
+          <span>{coro.sede.indirizzo}<br />{coro.sede.cap} {coro.sede.citta}</span>
+        </div>
+      )}
+      {social.length > 0 && (
+        <div>
+          <span class="pb-titoletto">Seguici</span>
+          <span class="pb-social">{social.map((s) => <a href={s.href}><Icona nome={s.icona} classe="" />{s.testo}</a>)}</span>
+        </div>
+      )}
+    </div>
+    <div class="pb-fondo-piede">
+      <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{AREA_CORISTI && <> · <a href={link(veste, '/area')}>Area coristi</a></>} · <FirmaDimora /></span>
+    </div>
+  </div>
+</footer>

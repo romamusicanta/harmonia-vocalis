@@ -1,0 +1,47 @@
+---
+// Veste Il segno: riga di testa bianca come la gerenza di un giornale (associazione a sinistra,
+// servizi a destra), poi la testata con il marchio e il menu numerato; menu mobile a tutta pagina.
+import Icona from '../../componenti/Icona.astro';
+import Marchio from './Marchio.astro';
+import { AREA_CORISTI, coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { vociMenu, type Pagina } from '../../motore/navigazione';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste; pagina?: Pagina }
+const { veste, pagina } = Astro.props;
+const voci = vociMenu(veste);
+const f = coro.funzioni;
+const due = (n: number) => String(n + 1).padStart(2, '0');
+---
+
+<div class="sg-gerenza">
+  <div class="w">
+    <span class="info">{[coro.associazione, coro.affiliazioni].filter(Boolean).join(' · ')}</span>
+    <span class="dx">
+      <span class="sg-stagione">Stagione {coro.stagione.sigla}</span>
+      {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+      {AREA_CORISTI && <a href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+    </span>
+  </div>
+</div>
+<header class="testata sg-testata">
+  <div class="w">
+    <Marchio href={link(veste, '/')} />
+    <nav class="nav sg-nav" aria-label="Principale">
+      {voci.map((v, i) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}><small aria-hidden="true">{due(i)}</small>{v.testo}</a>)}
+    </nav>
+    <div class="azioni">
+      <button class="hamb" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-mobile"><span class="sg-hamb-testo">Menu</span><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
+    </div>
+  </div>
+  <div class="menu-mobile" id="menu-mobile">
+    <div class="w">
+      {voci.map((v, i) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href}><small aria-hidden="true">{due(i)}</small>{v.testo}</a>)}
+      <div class="extra">
+        {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+        {AREA_CORISTI && <a class="btn o" href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+      </div>
+    </div>
+  </div>
+</header>

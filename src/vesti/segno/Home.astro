@@ -1,0 +1,190 @@
+---
+// Veste Il segno: pagina iniziale impaginata come un manifesto. Nome del coro a tutta
+// larghezza, prossimo concerto in una colonna della griglia, foto in bianco e nero con
+// didascalia, poi sezioni numerate: stagione (locandine), ascolto, il coro, canta con noi.
+import Icona from '../../componenti/Icona.astro';
+import Foto from '../../componenti/Foto.astro';
+import Video from '../../componenti/Video.astro';
+import NotaVideo from '../../componenti/NotaVideo.astro';
+import SchedaConcerto from './SchedaConcerto.astro';
+import { coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { archivio, luogoCompleto, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
+import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const l = (p: string) => link(veste, p);
+const f = coro.funzioni;
+
+const prossimi = await prossimiConcerti();
+const prossimo = prossimi[0];
+const d = prossimo && parti(prossimo);
+const schede = [
+  ...prossimi.slice(0, 3).map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 ? 'Prossimo' : 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
+  ...archivio.slice(0, 4).map((c) => ({ c, href: l(`/concerti#${stagione(c).id}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: "Nell'archivio" })),
+].slice(0, 4);
+
+const evidenza = f.ascolta ? await videoInEvidenza() : undefined;
+const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 4);
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+
+// Il nome del coro va a tutta larghezza: la dimensione dipende dalla parola più lunga
+const parole = coro.nome.split(/\s+/);
+const lunghezza = Math.max(...parole.map((p) => p.length), 4);
+const numero = (i: number) => String(i).padStart(2, '0');
+let n = 0;
+---
+
+<!-- Dati: coro.config.ts (nome, stagione) + calendario "Concerti" (prossimo concerto) -->
+<section class="sg-manifesto">
+  <div class="w">
+    <div class="sg-righello">
+      <span>Stagione {coro.stagione.sigla}</span>
+      <span>{coro.tipo}</span>
+      <span>{coro.citta}</span>
+      <span>Dal {coro.fondazione}</span>
+    </div>
+    <h1 class="sg-titolone" style={`--lung:${lunghezza}`}>
+      {parole.map((p, i) => <span>{p}{i === parole.length - 1 && <i aria-hidden="true">.</i>}</span>)}
+    </h1>
+    <div class="sg-griglia sg-apertura">
+      <div class="sg-col-lead">
+        <p class="sg-lead">{coro.stagione.presentazione}</p>
+        <div class="bottoni">
+          <a class="btn" href={l('/concerti')}>Tutti i concerti</a>
+          <a class="btn o" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />Segui il calendario</a>
+        </div>
+      </div>
+      {prossimo && d && (
+        <a class="sg-prossimo" href={l(`/concerti/${slug(prossimo)}`)}>
+          <span class="sg-eti">Prossimo concerto</span>
+          <span class="sg-prossimo-data"><b>{d.giorno}.{prossimo.data.slice(5, 7)}</b><span>{d.giornoSettimana}<br />{d.anno}{d.ora && ` · ore ${d.ora}`}</span></span>
+          <span class="sg-prossimo-cosa">{prossimo.autore && <small>{prossimo.autore}</small>}<b>{prossimo.titolo}</b></span>
+          {luogoCompleto(prossimo) && <span class="sg-prossimo-dove">{luogoCompleto(prossimo)}{prossimo.rassegna && <><br />{prossimo.rassegna}</>}</span>}
+          <span class="sg-vai">Dettagli del concerto <Icona nome="freccia" /></span>
+        </a>
+      )}
+    </div>
+  </div>
+</section>
+
+<figure class="sg-figura">
+  <div class="w">
+    <div class="sg-figura-img"><Foto nome={coro.foto.apertura} alt={`Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 1320px) 1240px, 100vw" /></div>
+    <figcaption><span>{coro.nome}</span><span>Stagione {coro.stagione.sigla} · {coro.citta}</span></figcaption>
+  </div>
+</figure>
+
+<section class="sg-sezione">
+  <div class="w">
+    <header class="sg-capo">
+      <span class="sg-num">{numero(++n)}</span>
+      <h2>Stagione {coro.stagione.sigla}</h2>
+      <a class="link-freccia" href={l('/concerti#archivio')}>Archivio completo <Icona nome="freccia" /></a>
+    </header>
+    <!-- Dati: calendario "Concerti" + archivio in coro/concerti.ts -->
+    <div class="schede sg-locandine">
+      {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} conFoto={false} />)}
+    </div>
+  </div>
+</section>
+
+{evidenza && (
+  <section class="sg-sezione">
+    {/* Dati: canale YouTube (feed RSS letto in fase di build) */}
+    <div class="w">
+      <header class="sg-capo">
+        <span class="sg-num">{numero(++n)}</span>
+        <h2>Ascolta</h2>
+        <a class="link-freccia" href={l('/ascolta')}>Tutte le registrazioni <Icona nome="freccia" /></a>
+      </header>
+      <div class="sg-griglia sg-ascolta">
+        <div class="sg-col-video">
+          <Video video={evidenza} />
+          <NotaVideo />
+        </div>
+        <ol class="sg-brani">
+          {altriVideo.map((v) => (
+            <li><a href={l(`/ascolta#${v.id}`)}>
+              <span class="sg-play" aria-hidden="true"><Icona nome="play" classe="" /></span>
+              <span class="sg-brano-t"><b>{titoloCompleto(v)}</b>{v.sottotitolo && <small>{v.sottotitolo}</small>}</span>
+              <em>{v.pubblicato.slice(0, 4)}</em>
+            </a></li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  </section>
+)}
+
+<section class="sg-sezione">
+  {/* Dati: coro.config.ts (descrizione, numeri, foto, maestro) */}
+  <div class="w">
+    <header class="sg-capo">
+      <span class="sg-num">{numero(++n)}</span>
+      <h2>Il coro</h2>
+    </header>
+    <div class="sg-griglia sg-racconto">
+      <div class="sg-col-testo">
+        <p class="sg-dichiarazione">{coro.descrizione}</p>
+        {coro.numeri.length > 0 && (
+          <dl class="sg-cifre">
+            {coro.numeri.map((x) => <div><dt>{x.testo}</dt><dd>{x.valore}</dd></div>)}
+          </dl>
+        )}
+      </div>
+      <a class="sg-ritratto grande" href={l('/il-coro')}>
+        <span class="img"><Foto nome={coro.foto.coro} alt="" sizes="(min-width: 980px) 30vw, 100vw" /></span>
+        <span class="sg-didascalia"><b>La nostra storia</b><span>Dal {coro.fondazione}, {voci} voci</span><Icona nome="freccia" /></span>
+      </a>
+      <a class="sg-ritratto" href={l('/il-maestro')}>
+        <span class="img"><Foto nome={coro.maestro.foto} alt={`Il M° ${coro.maestro.nome}`} sizes="(min-width: 980px) 20vw, 100vw" style="object-position:center 20%" /></span>
+        <span class="sg-didascalia"><b>Il Maestro</b><span>{coro.maestro.nome}</span><Icona nome="freccia" /></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{f.cantaConNoi && (
+  <section class="sg-sezione sg-invito">
+    {/* Dati: coro.config.ts (organico, prove) */}
+    <div class="w">
+      <header class="sg-capo">
+        <span class="sg-num">{numero(++n)}</span>
+        <h2>Canta con noi</h2>
+      </header>
+      <div class="sg-griglia">
+        <p class="sg-voci" aria-label={coro.organico.map((s) => s.sezione).join(', ')}>
+          {coro.organico.map((s) => <span aria-hidden="true">{s.sezione.charAt(0)}<small>{s.sezione}</small></span>)}
+        </p>
+        <div class="sg-col-invito">
+          <p class="sg-lead">Cerchiamo nuove voci per tutte le sezioni.</p>
+          <p class="tenue">{coro.prove.orari}, a {coro.prove.citta}.</p>
+          <div class="bottoni"><a class="btn g" href={l('/canta-con-noi')}>Audizioni <Icona nome="freccia" /></a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{f.organizzatori && (
+  <section class="sg-fascetta">
+    <div class="w">
+      <span class="sg-eti">Per gli organizzatori</span>
+      <p>Una rassegna, una festa patronale, un concerto di Natale? {voci} voci con un repertorio già pronto.</p>
+      <a class="link-freccia" href={l('/organizzatori')}>Repertorio e contatti <Icona nome="freccia" /></a>
+    </div>
+  </section>
+)}
+
+<section class="sg-segui">
+  <div class="w">
+    <h2>Non perdere il prossimo concerto<i aria-hidden="true">.</i></h2>
+    <div class="bottoni">
+      <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />Aggiungi il calendario</a>
+      {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />Iscriviti al canale</a>}
+    </div>
+  </div>
+</section>

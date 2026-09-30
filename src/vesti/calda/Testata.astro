@@ -1,0 +1,46 @@
+---
+// Veste Calda: testata chiara su una sola riga (marchio, menu a pillole, invito a cantare),
+// menu mobile a tutta larghezza con voci grandi e comode da toccare.
+import Icona from '../../componenti/Icona.astro';
+import Marchio from './Marchio.astro';
+import { AREA_CORISTI, coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { vociMenu, type Pagina } from '../../motore/navigazione';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste; pagina?: Pagina }
+const { veste, pagina } = Astro.props;
+const voci = vociMenu(veste);
+const f = coro.funzioni;
+// Il bottone in evidenza: le audizioni se il coro cerca voci, altrimenti il calendario
+const invito = f.cantaConNoi
+  ? { href: link(veste, '/canta-con-noi'), testo: 'Canta con noi', icona: 'nota' as const }
+  : { href: link(veste, '/concerti#in-programma'), testo: 'Calendario', icona: 'calendario' as const };
+const vociNav = voci.filter((v) => !(f.cantaConNoi && v.id === 'canta-con-noi'));
+---
+
+<header class="testata">
+  <div class="w">
+    <Marchio href={link(veste, '/')} />
+    <nav class="nav" aria-label="Principale">
+      {vociNav.map((v) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}</a>)}
+    </nav>
+    <div class="azioni">
+      {AREA_CORISTI && <a class="accesso-area" href={link(veste, '/area')} aria-label="Area coristi" title="Area coristi"><Icona nome="lucchetto" /><span>Area coristi</span></a>}
+      <a class="btn g invito" href={invito.href} aria-current={f.cantaConNoi && pagina === 'canta-con-noi' ? 'page' : undefined}><Icona nome={invito.icona} />{invito.testo}</a>
+      <button class="hamb" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
+    </div>
+  </div>
+  <div class="menu-mobile" id="menu-mobile">
+    <div class="w">
+      <div class="voci-mobili">
+        {voci.map((v) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}<Icona nome="freccia" /></a>)}
+      </div>
+      <div class="extra">
+        <a class="btn g" href={link(veste, '/concerti#in-programma')}><Icona nome="calendario" />Calendario concerti</a>
+        {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+        {AREA_CORISTI && <a class="btn o" href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+      </div>
+    </div>
+  </div>
+</header>

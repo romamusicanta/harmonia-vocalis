@@ -1,0 +1,13 @@
+---
+// Veste Classica: marchio centrato. Monogramma nel doppio cerchio, nome del coro, tipo e città in maiuscoletto.
+import { coro } from '../../motore/coro';
+
+interface Props { href: string; piccolo?: boolean; sottotitolo?: string }
+const { href, piccolo = false, sottotitolo = `${coro.tipo} · ${coro.citta}` } = Astro.props;
+---
+
+<a class:list={['cl-marchio', { piccolo }]} href={href}>
+  <span class="cl-sigla" aria-hidden="true">{coro.sigla}</span>
+  <span class="cl-nome">{coro.nome}</span>
+  <span class="cl-tipo">{sottotitolo}</span>
+</a>

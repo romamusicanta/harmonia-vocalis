@@ -1,0 +1,39 @@
+---
+// Veste Palco al buio: testata sottile e scura. In home si appoggia trasparente sulla foto
+// di apertura; il menu mobile si apre come un sipario a tutto schermo, con le voci numerate.
+import Icona from '../../componenti/Icona.astro';
+import Marchio from './Marchio.astro';
+import { AREA_CORISTI, coro } from '../../motore/coro';
+import { link } from '../../motore/url';
+import { vociMenu, type Pagina } from '../../motore/navigazione';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste; pagina?: Pagina }
+const { veste, pagina } = Astro.props;
+const voci = vociMenu(veste);
+const f = coro.funzioni;
+const numero = (i: number) => String(i + 1).padStart(2, '0');
+---
+
+<header class:list={['testata', 'pb-testata', { 'pb-sopra': pagina === 'home' }]}>
+  <div class="w">
+    <Marchio href={link(veste, '/')} />
+    <nav class="pb-nav" aria-label="Principale">
+      {voci.map((v) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}</a>)}
+    </nav>
+    <div class="azioni">
+      {AREA_CORISTI && <a class="pb-pillola" href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+      <button class="hamb" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
+    </div>
+  </div>
+  <div class="menu-mobile" id="menu-mobile">
+    <div class="w">
+      {voci.map((v, i) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href}><small>{numero(i)}</small>{v.testo}</a>)}
+      <div class="extra">
+        <a class="btn g" href={link(veste, '/concerti#in-programma')}><Icona nome="calendario" />Calendario concerti</a>
+        {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
+        {AREA_CORISTI && <a class="btn o" href={link(veste, '/area')}><Icona nome="lucchetto" />Area coristi</a>}
+      </div>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,34 @@
+---
+// Veste Il segno: scheda concerto come una locandina tipografica. Stesso impianto per ogni
+// concerto: etichetta e città in testa, l'autore in grande, l'opera, poi un filetto e la data.
+// La foto, se c'è, è una striscia in bianco e nero; i concerti d'archivio restano in grigio.
+import Foto from '../../componenti/Foto.astro';
+import { parti } from '../../motore/concerti';
+import type { Concerto } from '../../motore/tipi';
+
+interface Props {
+  concerto: Concerto;
+  href: string;
+  etichetta: string;
+  grigia?: boolean;
+  azione: string;
+  conFoto?: boolean;
+}
+const { concerto: c, href, etichetta, grigia, azione, conFoto = true } = Astro.props;
+const d = parti(c);
+const cognome = c.autore?.split(/\s+/).at(-1);
+const mese = c.data.slice(5, 7);
+---
+
+<a class:list={['sg-loc', { archivio: grigia }]} href={href}>
+  <span class="sg-loc-testa"><span>{etichetta}</span>{c.luogo && <span>{c.luogo}</span>}</span>
+  <span class="sg-loc-titolo">
+    {cognome ? <><b>{cognome}</b><span>{c.titolo}</span></> : <b class="lungo">{c.titolo}</b>}
+  </span>
+  {conFoto && c.foto && <span class="sg-loc-foto"><Foto nome={c.foto} sizes="(min-width: 1000px) 25vw, 100vw" /></span>}
+  <span class="sg-loc-piede">
+    <b>{d.incerta || !mese ? d.anno : `${d.giorno}.${mese}`}</b>
+    <span>{d.incerta ? 'Data da precisare' : `${d.giornoSettimana} · ${d.anno}`}{(c.sala || c.rassegna) && <><br />{c.sala ?? c.rassegna}</>}</span>
+  </span>
+  <span class="sg-loc-azione">{azione}<span aria-hidden="true">→</span></span>
+</a>

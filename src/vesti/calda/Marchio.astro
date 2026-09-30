@@ -1,0 +1,12 @@
+---
+// Veste Calda: marchio del coro con la sigla in un bollino tondo.
+import { coro } from '../../motore/coro';
+
+interface Props { href: string }
+const { href } = Astro.props;
+---
+
+<a class="marchio" href={href}>
+  <span class="q" aria-hidden="true"><b>{coro.sigla}</b></span>
+  <span><b>{coro.nome}</b><small>{coro.tipo} · {coro.citta}</small></span>
+</a>

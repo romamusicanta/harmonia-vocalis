@@ -1,0 +1,70 @@
+---
+// Veste Calda: piè di pagina a pannello con gli angoli superiori morbidi. In alto
+// l'invito alle prove (dove e quando ci troviamo), sotto le colonne di link e la firma.
+import Icona from '../../componenti/Icona.astro';
+import Marchio from './Marchio.astro';
+import FirmaDimora from '../../componenti/FirmaDimora.astro';
+import { AREA_CORISTI, coro, indirizzo } from '../../motore/coro';
+import { link } from '../../motore/url';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const f = coro.funzioni;
+const l = coro.link;
+---
+
+<footer class="piede-sito">
+  <div class="w">
+    <div class="ci-trovi">
+      <span class="icona-tonda" aria-hidden="true"><Icona nome="luogo" classe="" /></span>
+      <div>
+        <b>Dove proviamo</b>
+        <span>{coro.prove.nome} · {indirizzo(coro.prove)}</span>
+        <span class="tenue-piede">{coro.prove.orari}</span>
+      </div>
+      {f.cantaConNoi
+        ? <a class="btn g" href={link(veste, '/canta-con-noi')}>Vieni a una prova</a>
+        : <a class="btn g" href={link(veste, '/contatti')}>Scrivici</a>}
+    </div>
+    <div class="colonne">
+      <div>
+        <Marchio href={link(veste, '/')} />
+        <p>{coro.descrizione}</p>
+      </div>
+      <div>
+        <h4>Il coro</h4>
+        <ul>
+          <li><a href={link(veste, '/il-coro')}>Storia e direttivo</a></li>
+          <li><a href={link(veste, '/il-maestro')}>Il Maestro</a></li>
+          {f.cantaConNoi && <li><a href={link(veste, '/canta-con-noi')}>Canta con noi</a></li>}
+          {f.organizzatori && <li><a href={link(veste, '/organizzatori')}>Per gli organizzatori</a></li>}
+        </ul>
+      </div>
+      <div>
+        <h4>Concerti e musica</h4>
+        <ul>
+          <li><a href={link(veste, '/concerti')}>Stagione e archivio</a></li>
+          {f.ascolta && <li><a href={link(veste, '/ascolta')}>Registrazioni</a></li>}
+        </ul>
+        <div class="social">
+          {l.youtube && <a href={l.youtube} aria-label="YouTube" title="YouTube"><Icona nome="youtube" classe="" /></a>}
+          {l.instagram && <a href={l.instagram} aria-label="Instagram" title="Instagram"><Icona nome="instagram" classe="" /></a>}
+          {l.facebook && <a href={l.facebook}>Facebook</a>}
+        </div>
+      </div>
+      <div>
+        <h4>Contatti</h4>
+        <ul>
+          <li><a href={`mailto:${coro.email}`}>{coro.email}</a></li>
+          {coro.sede && <li>{coro.sede.indirizzo}<br />{coro.sede.cap} {coro.sede.citta}</li>}
+          <li><a href={link(veste, '/contatti')}>Scrivici</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="fondo-piede">
+      <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
+      <span><a href={link(veste, '/privacy')}>Privacy</a>{AREA_CORISTI && <> · <a href={link(veste, '/area')}>Area coristi</a></>} · <FirmaDimora /></span>
+    </div>
+  </div>
+</footer>

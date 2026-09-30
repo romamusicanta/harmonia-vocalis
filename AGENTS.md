@@ -2,7 +2,7 @@
 
 Prodotto di Mario D'Anna: un **modello di sito per cori** da cui generare e vendere siti a cori diversi. Fa parte della famiglia "Dimora" (DimoraSuite, Dimora Tools). Nasce dalla generalizzazione del sito del Coro Harmonia Vocalis (`~/projects/harmonia-vocalis`), che ne è il riferimento per funzioni e grafica e diventerà il primo sito generato dal modello.
 
-Stato (30/09/2026): **passo 1 dell'ordine di lavoro fatto**: modello Astro con il coro di fantasia, veste C · Stagione portata dal mockup di harmonia-vocalis, pannello di scelta della demo. Le decisioni sotto vengono dalla sessione di progettazione nel repository harmonia-vocalis.
+Stato (30/09/2026): **passi 1 e 2 dell'ordine di lavoro fatti**: modello Astro con il coro di fantasia, pannello di scelta della demo e cinque vesti pronte (A · Palco al buio, B · Il segno, C · Stagione, D · Classica, E · Calda). Le decisioni sotto vengono dalla sessione di progettazione nel repository harmonia-vocalis.
 
 ## Comandi verificati
 
@@ -29,7 +29,7 @@ Astro 7, output statico, nessun framework client. I dati che cambiano si leggono
 - `coro/concerti.ts` (prossimi di riserva + archivio curato a mano), `coro/video.ts` (ID del canale, video in evidenza, elenco di riserva con autore per il raggruppamento), `coro/testi/*.md` (testi lunghi: frontmatter YAML + corpo Markdown, letti con `testo(nome)`), `coro/immagini/` (foto, indicate per nome di file; `Foto.astro` ridimensiona le foto vere e lascia passare gli SVG).
 - `src/motore/` — accesso ai dati (`coro.ts`, `concerti.ts`, `video.ts`, `testi.ts`), indirizzi (`url.ts`), menu (`navigazione.ts`), catalogo di vesti/palette/caratteri (`aspetto.ts`), JS lato browser comune (`interazioni.ts`).
 - `src/stile/` — palette (`data-palette` su `<html>`) e set di caratteri (`data-carattere`), comuni a tutte le vesti. Variabili: `--primario` (scuro, testo bianco sopra), `--primario-2/-3/-chiaro`, `--accento` (chiaro), `--accento-chiaro`, `--fondo`, `--testo`, `--tenue`, `--linea`, `--f-titoli`, `--f-testo`, `--peso-titoli`.
-- `src/vesti/<veste>/` — i componenti dei punti chiave (Testata, Piede, TestataArea, PiedeArea, Home, SchedaConcerto) e il foglio di stile della veste, caricato con `?url` così ogni pagina carica solo la sua veste. Registro in `src/vesti/index.ts`; le vesti non ancora pronte ripiegano su Stagione. Le **pagine** in `src/pages/[...veste]/` sono comuni a tutte le vesti e usano le classi di Stagione: una nuova veste deve stilare quelle stesse classi e ridefinire solo i componenti chiave.
+- `src/vesti/<veste>/` — una cartella per veste. **Stagione è la base**: il suo `stile.css` e le sue classi sono il vocabolario comune, e le **pagine** in `src/pages/[...veste]/` usano quelle classi. Ogni altra veste carica `stagione/stile.css` e sopra il proprio `stile.css` (con `?url`, così una pagina carica solo le sue vesti), e può ridefinire i componenti dei punti chiave (Testata, Piede, TestataArea, PiedeArea, Home, SchedaConcerto) con un file omonimo; quelli che mancano vengono da Stagione. Il registro `src/vesti/index.ts` si costruisce da solo con `import.meta.glob`: una veste è pronta quando la sua cartella ha `stile.css`.
 - Ogni pagina esporta `getStaticPaths = percorsiVesti` e costruisce i link con `link(veste, '/percorso')`. Il sito di un coro ha una sola veste, servita dalla radice; nella demo ogni altra veste pronta ha una copia delle pagine sotto `/<veste>/`, così il pannello cambia veste restando sulla stessa pagina.
 - **Modalità demo** (`DEMO=1`): pannello di scelta (`src/demo/Pannello.astro`; palette e carattere scelti restano in localStorage e si possono condividere con `?palette=…&carattere=…`), tutti i caratteri caricati, area coristi aperta con i dati di esempio di `src/demo/area.ts`, moduli e download finti (`form[data-finto]`, `data-finto-avviso`), video finti (ID `demo-…`, miniatura locale, al clic un avviso). Senza demo l'area coristi per ora **non viene generata** (l'accesso Google è da fare) e i moduli sono nascosti (manca il servizio di invio).
 - Il coro di fantasia della demo vive nel `coro/` del modello stesso. Le sue foto sono di Unsplash (licenza libera, crediti in `coro/immagini/CREDITI.md`) e ritraggono altri cori, non quello inventato: niente volti riconoscibili per le persone inventate (la foto del Maestro è di spalle).
@@ -92,9 +92,12 @@ Il coro è titolare dei dati, tenuti sui propri account. Mario vi accede solo oc
 
 1. Modifiche al motore o alle vesti: `npm run dev` e controllo delle pagine toccate, anche a 375px e con più palette/caratteri dal pannello.
 2. `npm run build:demo` e `npm run build`: devono passare entrambe (la seconda verifica che senza demo non restino pagine o bottoni finti).
-3. Una nuova veste: cartella `src/vesti/<veste>/` con i componenti chiave e lo stile, registrarla in `src/vesti/index.ts`, `pronta: true` e abbinamenti in `src/motore/aspetto.ts`.
+3. Una nuova veste: aggiungerla con nome, descrizione e abbinamenti a `VESTI` in `src/motore/aspetto.ts`, poi creare `src/vesti/<veste>/stile.css` e i componenti che cambiano. Controllarla con tutte le palette e tutti i caratteri, e anche nelle pagine comuni e nell'area coristi, che prendono l'aspetto solo dal CSS.
 
 ## Trappole note
+
+- Le pagine comuni hanno ancora parecchi stili in linea (colori `var(--primario)`, `background:var(--fondo)`, dimensioni dei titoli…): le vesti A, B, D, E li correggono con selettori `[style*="…"]` e `!important`. **Da fare**: spostare quegli stili in classi nelle pagine e aggiornare i CSS delle vesti; finché non è fatto, cambiare uno stile in linea può rompere una veste. Lo stesso vale per il diapason (`.diap`) fisso nella locandina di `concerti/[slug].astro`.
+- Il registro delle vesti carica i componenti di tutte le cartelle: un errore in una veste ferma la build di tutte.
 
 - Nei componenti Astro un commento HTML `<!-- … -->` dentro un'espressione `{cond && (…)}` rompe la compilazione: dentro le espressioni usare `{/* … */}`.
 - **Le date della demo invecchiano**: i concerti di `coro/concerti.ts` e i dati di `src/demo/area.ts` (ancorati a `OGGI = '2026-09-30'`) sono fissi, mentre `prossimiConcerti()` filtra sulla data vera. Ricostruita dopo il 18/10/2026 la demo perde il Requiem e la convocazione; dopo marzo 2027 non ha più concerti in programma. Prima di usarla per vendere, spostare le date (o renderle relative alla data di build).

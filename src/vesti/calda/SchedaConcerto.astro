@@ -1,0 +1,44 @@
+---
+// Veste Calda: scheda concerto come una cartolina. Foto in alto con gli angoli morbidi,
+// data in un bollino tondo a cavallo della foto, titolo e luogo sotto.
+import Foto from '../../componenti/Foto.astro';
+import Icona from '../../componenti/Icona.astro';
+import { parti } from '../../motore/concerti';
+import type { Concerto } from '../../motore/tipi';
+
+interface Props {
+  concerto: Concerto;
+  href: string;
+  etichetta: string;
+  grigia?: boolean;
+  azione: string;
+  conFoto?: boolean;
+}
+const { concerto: c, href, etichetta, grigia, azione, conFoto = true } = Astro.props;
+const d = parti(c);
+const foto = conFoto && c.foto;
+---
+
+<a class:list={['sc', 'cartolina', { passata: grigia, 'senza-foto': !foto }]} href={href}>
+  {foto ? (
+    <div class="img">
+      <Foto nome={c.foto!} sizes="(min-width: 1000px) 33vw, (min-width: 640px) 50vw, 100vw" />
+      <span class:list={['tag', { grigio: grigia }]}>{etichetta}</span>
+    </div>
+  ) : null}
+  <span class="visually-hidden">{d.incerta ? `${d.anno}, data da precisare` : `${d.giornoSettimana} ${d.giorno} ${d.mese} ${d.anno}`}</span>
+  <div class="riga-bollino">
+    <span class="bollino" aria-hidden="true">
+      {d.incerta
+        ? <><b>{d.anno}</b><small>da fissare</small></>
+        : <><b>{d.giorno}</b><small>{d.meseBreve}</small></>}
+    </span>
+    {!foto && <span class:list={['tag', { grigio: grigia }]}>{etichetta}</span>}
+  </div>
+  <div class="corpo">
+    {c.autore && <span class="aut">{c.autore}</span>}
+    <h3>{c.titolo}</h3>
+    <span class="luogo">{(c.luogo || c.rassegna) && <Icona nome="luogo" />}{[c.luogo, c.rassegna].filter(Boolean).join(' · ') || (d.incerta ? '' : `${d.giornoSettimana} ${d.anno}`)}</span>
+    <span class="link">{azione}<Icona nome="freccia" /></span>
+  </div>
+</a>
