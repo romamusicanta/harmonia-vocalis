@@ -15,7 +15,9 @@
 //                    Ingresso: libero
 //                    Organico: per soli, coro e orchestra      (dell'opera appena sopra)
 //                    Brani: Introitus, Kyrie, Dies irae        (dell'opera appena sopra)
-//                    Foto: terme.jpg                           (file in coro/immagini)
+//                    Foto: terme.jpg                           (file in coro/immagini, per le schede)
+//                    Locandina: locandina-rignano.jpg          (file in coro/immagini, al posto di
+//                                                               quella generata dal sito)
 //                    Video: 43p4ArVIS_Q                        (ID YouTube, dopo il concerto)
 //                    Evidenza: Il primo concerto del coro
 //                  ogni altra etichetta è un interprete:
@@ -47,7 +49,7 @@ const etichettaRiga = /^([\p{L}' ]{2,30}):\s*(.*)$/u;
 function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
   const righe = senzaHtml(descrizione).split('\n').map((r) => r.trim()).filter(Boolean);
   const programma: Brano[] = [];
-  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'video' | 'evidenza'> = {};
+  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza'> = {};
   const interpreti: NonNullable<Concerto['interpreti']> = [];
   for (const riga of righe) {
     // Le opere vengono prima di tutte le etichette; la prima riga è sempre un'opera, anche con i due punti
@@ -65,9 +67,9 @@ function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
     const chiave = nome.trim().toLowerCase();
     const ultima = programma.at(-1);
     if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
-    else if (chiave === 'foto') {
-      if (esisteImmagine(valore)) dati.foto = valore;
-      else avviso(`foto "${valore}" non trovata in coro/immagini`);
+    else if (chiave === 'foto' || chiave === 'locandina') {
+      if (esisteImmagine(valore)) dati[chiave] = valore;
+      else avviso(`${chiave} "${valore}" non trovata in coro/immagini`);
     } else if (chiave === 'brani' && ultima) ultima.parti = valore.split(',').map((s) => s.trim()).filter(Boolean);
     else if (chiave === 'organico' && ultima) ultima.organico = valore;
     else {

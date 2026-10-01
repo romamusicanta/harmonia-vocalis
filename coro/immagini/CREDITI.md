@@ -14,3 +14,4 @@ più alta fornite dall'associazione.
 | chiesa.jpg | Il coro in concerto in una chiesa | DA VERIFICARE | scheda Italiacori |
 | terme.jpg | Il coro in concerto all'aperto, tra le rovine, al tramonto | DA VERIFICARE | scheda Italiacori |
 | anagni.jpg | Concerto (nome del file: Anagni; luogo e data DA VERIFICARE) | DA VERIFICARE | scheda Italiacori |
+| locandina-rignano.jpg | Locandina ufficiale di Autunno Musicale 2026, Rignano Flaminio, 4 ottobre 2026 | Comune di Rignano Flaminio (organizzatore) | fornita da Mario D'Anna |

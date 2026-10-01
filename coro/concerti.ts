@@ -16,19 +16,28 @@ const requiem = {
 
 export const prossimi: Concerto[] = [
   {
-    // Orario e ingresso non ancora noti
-    data: '2026-10-04',
+    // Dati dalla locandina ufficiale (coro/immagini/locandina-rignano.jpg)
+    data: '2026-10-04T20:30',
     autore: 'W. A. Mozart',
-    titolo: 'Requiem K 626',
+    titolo: 'Requiem in re minore K 626',
     rassegna: 'Autunno Musicale 2026',
     luogo: 'Rignano Flaminio (RM)',
+    sala: 'Chiesa di S. Giuseppe',
+    indirizzo: 'Chiesa di S. Giuseppe, Via Carlo Alberto dalla Chiesa, 1, 00068 Rignano Flaminio RM, Italia',
     organizza: 'Comune di Rignano Flaminio',
+    ingresso: 'libero',
+    evidenza: "Per gli 800 anni dalla morte di San Francesco d'Assisi",
     programma: [requiem],
     interpreti: [
-      { ruolo: 'Orchestra' },
-      { ruolo: 'Solisti', nota: 'Soprano, contralto, tenore, basso' },
+      { ruolo: 'Orchestra', nome: 'Orchestra delle Cento Città' },
+      { ruolo: 'Canta insieme a noi', nome: 'Coro Ruggero Giovannelli' },
+      { ruolo: 'Soprano', nome: 'Anastasia Demchenko' },
+      { ruolo: 'Contralto', nome: 'Stefania Scolastici' },
+      { ruolo: 'Tenore', nome: 'Antonio Sapio' },
+      { ruolo: 'Basso', nome: 'Massimo Simeoli' },
     ],
     foto: 'terme.jpg',
+    locandina: 'locandina-rignano.jpg',
   },
 ];
 

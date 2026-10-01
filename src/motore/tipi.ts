@@ -25,6 +25,7 @@ export type Concerto = {
   interpreti?: { ruolo: string; nome?: string; nota?: string }[];
   video?: string;        // ID del video YouTube, se c'è la registrazione
   foto?: string;         // nome del file in coro/immagini
+  locandina?: string;    // locandina ufficiale (file in coro/immagini), al posto di quella generata
   evidenza?: string;     // etichetta speciale: "Il primo concerto del coro"
 };
 

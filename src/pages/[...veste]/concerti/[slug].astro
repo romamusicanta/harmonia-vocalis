@@ -3,9 +3,10 @@
 // programma, interpreti, registrazione dello stesso programma dall'archivio, altri concerti.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
+import Foto from '../../../componenti/Foto.astro';
 import Video from '../../../componenti/Video.astro';
 import NotaVideo from '../../../componenti/NotaVideo.astro';
-import { coro } from '../../../motore/coro';
+import { coro, immagine } from '../../../motore/coro';
 import { Logo } from '../../../motore/logo';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { archivio, linkGoogleCalendar, linkMappa, luogoCompleto, parti, prossimiConcerti, slug, stagione } from '../../../motore/concerti';
@@ -70,6 +71,13 @@ const altri = [
     <div class="w">
       <div class="due-col larga-dx" style="align-items:start">
         <div>
+          {c.locandina ? (
+            <>
+              {/* Locandina ufficiale: riga "Locandina:" dell'evento, file in coro/immagini */}
+              <a class="locandina-cont" href={immagine(c.locandina).src} target="_blank" rel="noopener" style="display:block"><Foto nome={c.locandina} alt={`Locandina: ${titoloBreve}, ${quando}${c.luogo ? `, ${c.luogo}` : ''}`} sizes="(min-width: 980px) 540px, 100vw" caricamento="eager" style="width:100%;height:auto;display:block" /></a>
+              <p class="nota-privacy">Locandina del concerto: tocca per ingrandirla.</p>
+            </>
+          ) : (<>
           <div class="locandina-cont"><div class="locandina" role="img" aria-label={`Locandina: ${titoloBreve}, ${quando}${c.luogo ? `, ${c.luogo}` : ''}`}>
             <svg class="diap" viewBox="0 0 22 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 2v9a8 8 0 0 0 16 0V2" /><path d="M11 19v7" /></svg>
             <div class="fascia-g"></div>
@@ -86,6 +94,7 @@ const altri = [
             </div>
           </div></div>
           <p class="nota-privacy">Locandina generata dal sito con i dati del calendario.</p>
+          </>)}
           {/* Dati: Google Calendar "Concerti" (convenzione in src/motore/concerti.ts) */}
         </div>
 
