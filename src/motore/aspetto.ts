@@ -39,6 +39,17 @@ export const PALETTE = {
   oltremare: { nome: 'Oltremare e rosa antico', descrizione: 'Blu luminoso e rosa: raffinato, meno istituzionale.' },
 } as const;
 
+// Colori di base di una palette personalizzata (coro.aspetto.colori o pannello di prova);
+// le sfumature (--primario-2, --linea, --tenue…) si ricavano da questi in src/stile/palette.css.
+export const COLORI = {
+  primario: 'Principale',
+  accento: 'Accento',
+  fondo: 'Fondo',
+  bianco: 'Schede',
+  testo: 'Testo',
+} as const;
+export type Colore = keyof typeof COLORI;
+
 // famiglie: parametro "family" di Google Fonts per ogni carattere del set
 export const CARATTERI = {
   manrope: {

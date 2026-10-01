@@ -8,7 +8,8 @@ import Pannello from '../demo/Pannello.astro';
 import PannelloIniziale from '../demo/PannelloIniziale.astro';
 import { coro, DEMO } from '../motore/coro';
 import { CARATTERI, urlCaratteri, type Carattere, type Veste } from '../motore/aspetto';
-import SceltaVeste from '../componenti/SceltaVeste.astro';
+import PannelloProva from '../componenti/PannelloProva.astro';
+import PannelloProvaIniziale from '../componenti/PannelloProvaIniziale.astro';
 import { aspettoDi } from '../motore/url';
 import { vesti } from '../vesti';
 import type { Pagina } from '../motore/navigazione';
@@ -25,13 +26,17 @@ const { veste, titolo, descrizione = coro.descrizione, pagina, area } = Astro.pr
 const { Testata, Piede, TestataArea, PiedeArea, stili } = vesti[veste];
 const titoloCompleto = titolo ? `${titolo} — ${coro.nome}` : `${coro.nome} — ${coro.tipo} a ${coro.citta}`;
 const aspetto = aspettoDi(veste);
-const caratteri = DEMO ? (Object.keys(CARATTERI) as Carattere[]) : [aspetto.carattere];
+// Pannello di prova (sito vero): veste, palette, colori e caratteri a scelta di chi guarda
+const prova = !DEMO && (coro.aspetto.pannelloProva || coro.aspetto.inProva.length > 0);
+const caratteri = DEMO || prova ? (Object.keys(CARATTERI) as Carattere[]) : [aspetto.carattere];
+const colori = !DEMO && coro.aspetto.colori;
+const stileColori = colori ? Object.entries(colori).map(([k, v]) => `--${k}:${v}`).join(';') : undefined;
 // Le copie delle pagine nelle vesti in prova non vanno indicizzate
 const inProva = !DEMO && veste !== coro.aspetto.veste;
 ---
 
 <!doctype html>
-<html lang="it" data-veste={veste} data-palette={aspetto.palette} data-carattere={aspetto.carattere}>
+<html lang="it" data-veste={veste} data-palette={colori ? 'personalizzata' : aspetto.palette} data-carattere={aspetto.carattere} style={stileColori}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -44,6 +49,7 @@ const inProva = !DEMO && veste !== coro.aspetto.veste;
     <link rel="stylesheet" href={urlCaratteri(caratteri, coro.aspetto.caratteriLogo)} />
     {stili.map((s) => <link rel="stylesheet" href={s} />)}
     {DEMO && <PannelloIniziale />}
+    {prova && <PannelloProvaIniziale />}
   </head>
   <body class:list={{ area: Boolean(area) }}>
     {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} /> : <Testata veste={veste} pagina={pagina} />}
@@ -52,7 +58,7 @@ const inProva = !DEMO && veste !== coro.aspetto.veste;
     </main>
     {area ? <PiedeArea veste={veste} /> : <Piede veste={veste} />}
     {DEMO && <Pannello veste={veste} />}
-    {!DEMO && coro.aspetto.inProva.length > 0 && <SceltaVeste veste={veste} />}
+    {prova && <PannelloProva veste={veste} />}
     <script>
       import '../motore/interazioni';
     </script>

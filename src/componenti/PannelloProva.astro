@@ -1,0 +1,185 @@
+---
+// Pannello "Prova la grafica" del sito vero, finché la grafica non è scelta
+// (coro.aspetto.pannelloProva e coro.aspetto.inProva): veste, palette predefinite o colori
+// propri, caratteri. La scelta resta nel browser di chi guarda e si condivide con un link.
+import { coro } from '../motore/coro';
+import { CARATTERI, COLORI, PALETTE, VESTI, type Veste } from '../motore/aspetto';
+import { link, percorsoSenzaVeste } from '../motore/url';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const percorso = percorsoSenzaVeste(veste, Astro.url.pathname);
+const vesti = [coro.aspetto.veste, ...coro.aspetto.inProva.map((p) => p.veste).filter((v) => v !== coro.aspetto.veste)];
+const descrizioni = {
+  palette: { ...Object.fromEntries(Object.entries(PALETTE).map(([k, v]) => [k, v.descrizione])), personalizzata: 'I tuoi cinque colori: le sfumature si ricavano da questi.' },
+  carattere: Object.fromEntries(Object.entries(CARATTERI).map(([k, v]) => [k, v.descrizione])),
+};
+---
+
+<aside class="pp ridotto" aria-label="Prova la grafica">
+  <button class="pp-riapri" type="button" aria-expanded="false"><span class="pp-punto" aria-hidden="true"></span>Prova la grafica</button>
+  <div class="pp-corpo">
+    <div class="pp-intest">
+      <b>Prova la grafica</b>
+      <button class="pp-chiudi" type="button" aria-label="Riduci il pannello">×</button>
+    </div>
+    <p class="pp-nota">La scelta vale per tutte le pagine e resta in questo browser. Per proporla, copia il link.</p>
+
+    {vesti.length > 1 && (
+      <>
+        <span class="pp-eti">Veste</span>
+        <div class="pp-vesti">
+          {vesti.map((v) => <a href={link(v, percorso)} aria-current={v === veste ? 'page' : undefined}>{VESTI[v].nome.replace(/^\w · /, '')}</a>)}
+        </div>
+      </>
+    )}
+
+    <label class="pp-eti" for="pp-palette">Colori</label>
+    <select id="pp-palette">
+      {Object.entries(PALETTE).map(([k, v]) => <option value={k}>{v.nome}</option>)}
+      <option value="personalizzata">Personalizzati</option>
+    </select>
+    <div class="pp-colori">
+      {Object.entries(COLORI).map(([k, nome]) => (
+        <label><input type="color" data-colore={k} /><span>{nome}</span></label>
+      ))}
+    </div>
+    <p class="pp-descr" data-descr="palette"></p>
+
+    <label class="pp-eti" for="pp-carattere">Caratteri</label>
+    <select id="pp-carattere">
+      {Object.entries(CARATTERI).map(([k, v]) => <option value={k}>{v.nome}</option>)}
+    </select>
+    <p class="pp-descr" data-descr="carattere"></p>
+
+    <div class="pp-azioni">
+      <button class="pp-copia" type="button">Copia il link</button>
+      <button class="pp-ripristina" type="button">Ripristina</button>
+    </div>
+  </div>
+</aside>
+
+<script is:inline define:vars={{ descrizioni }}>
+  (function () {
+    var p = window.hvProva;
+    var html = document.documentElement;
+    var box = document.querySelector('.pp');
+    var sp = box.querySelector('#pp-palette');
+    var sc = box.querySelector('#pp-carattere');
+    var input = box.querySelectorAll('[data-colore]');
+
+    // Colore calcolato di una variabile, in esadecimale (per i campi colore)
+    function esadecimale(nome) {
+      var v = getComputedStyle(html).getPropertyValue('--' + nome).trim();
+      if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + v.slice(1).split('').map(function (c) { return c + c; }).join('');
+      return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : '#000000';
+    }
+    function coloriAttuali() {
+      var c = {};
+      input.forEach(function (i) { c[i.dataset.colore] = i.value; });
+      return c;
+    }
+    function mostra() {
+      sp.value = html.dataset.palette;
+      sc.value = html.dataset.carattere;
+      input.forEach(function (i) { i.value = esadecimale(i.dataset.colore); });
+      box.querySelector('[data-descr="palette"]').textContent = descrizioni.palette[sp.value] || '';
+      box.querySelector('[data-descr="carattere"]').textContent = descrizioni.carattere[sc.value] || '';
+      // Se l'indirizzo porta una scelta, la si tiene allineata
+      var q = new URLSearchParams(location.search);
+      if (q.has('palette') || q.has('carattere')) history.replaceState(null, '', p.inIndirizzo(p.leggi(), new URL(location.href)));
+    }
+    function scegli(s) {
+      p.salva(s);
+      p.applica(s);
+      mostra();
+    }
+
+    sp.addEventListener('change', function () {
+      var s = { palette: sp.value, carattere: sc.value };
+      if (sp.value === 'personalizzata') s.colori = coloriAttuali();
+      scegli(s);
+    });
+    sc.addEventListener('change', function () {
+      var s = p.leggi();
+      s.carattere = sc.value;
+      if (!s.palette) s.palette = html.dataset.palette;
+      if (s.palette === 'personalizzata' && !s.colori) s.colori = coloriAttuali();
+      scegli(s);
+    });
+    // Toccare un colore passa ai colori personalizzati, partendo da quelli in uso
+    input.forEach(function (i) {
+      i.addEventListener('input', function () {
+        scegli({ palette: 'personalizzata', carattere: sc.value, colori: coloriAttuali() });
+      });
+    });
+
+    box.querySelector('.pp-ripristina').addEventListener('click', function () {
+      p.ripristina();
+      var u = new URL(location.href);
+      ['palette', 'carattere', 'colori'].forEach(function (k) { u.searchParams.delete(k); });
+      history.replaceState(null, '', u);
+      mostra();
+    });
+    box.querySelector('.pp-copia').addEventListener('click', function () {
+      var s = p.leggi();
+      if (!s.palette) s = { palette: html.dataset.palette, carattere: html.dataset.carattere };
+      var u = p.inIndirizzo(s, new URL(location.href)).toString();
+      var bottone = this;
+      function fatto() { bottone.textContent = 'Link copiato'; setTimeout(function () { bottone.textContent = 'Copia il link'; }, 2000); }
+      if (navigator.clipboard) navigator.clipboard.writeText(u).then(fatto, function () { prompt('Copia il link:', u); });
+      else prompt('Copia il link:', u);
+    });
+
+    var riapri = box.querySelector('.pp-riapri');
+    function apri(si) {
+      box.classList.toggle('ridotto', !si);
+      riapri.setAttribute('aria-expanded', String(si));
+      try { localStorage.setItem('hv-prova-pannello', si ? 'aperto' : 'ridotto'); } catch (e) {}
+    }
+    riapri.addEventListener('click', function () { apri(true); });
+    box.querySelector('.pp-chiudi').addEventListener('click', function () { apri(false); });
+    // Sul telefono il pannello aperto copre la pagina: parte sempre ridotto
+    var aperto = false;
+    try { aperto = localStorage.getItem('hv-prova-pannello') === 'aperto'; } catch (e) {}
+    if (aperto && matchMedia('(min-width: 760px)').matches) apri(true);
+
+    mostra();
+  })();
+</script>
+
+<style>
+  /* Stile neutro, indipendente da veste, colori e caratteri */
+  .pp {
+    position: fixed; right: 16px; bottom: 16px; z-index: 1000; width: min(320px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px); overflow-y: auto;
+    background: #fff; color: #16181f; border: 1px solid #d6d3cc; border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .2); padding: 16px;
+    font: 400 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  .pp-intest { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .pp-intest b { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .pp-nota { color: #5d6170; font-size: 13px; margin: 0 0 14px; }
+  .pp-eti { display: block; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #5d6170; margin: 0 0 6px; }
+  .pp select { width: 100%; padding: 9px 10px; border: 1px solid #c9c6bf; border-radius: 6px; background: #fff; font: 600 15px/1.2 system-ui, sans-serif; color: #16181f; }
+  .pp-descr { color: #5d6170; margin: 6px 0 14px; font-size: 13px; }
+  .pp-vesti { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 3px; margin-bottom: 14px; background: #f1f0ec; border-radius: 8px; }
+  .pp-vesti a { padding: 7px 8px; border-radius: 6px; text-align: center; color: #16181f; text-decoration: none; font-weight: 600; }
+  .pp-vesti a:hover { background: #e6e4de; }
+  .pp-vesti a[aria-current] { background: #16181f; color: #fff; }
+  .pp-colori { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
+  .pp-colori label { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: #5d6170; cursor: pointer; }
+  .pp-colori input { width: 100%; height: 30px; padding: 0; border: 1px solid rgba(0, 0, 0, .15); border-radius: 4px; background: none; cursor: pointer; }
+  .pp-colori input::-webkit-color-swatch-wrapper { padding: 0; }
+  .pp-colori input::-webkit-color-swatch { border: 0; border-radius: 3px; }
+  .pp-colori input::-moz-color-swatch { border: 0; border-radius: 3px; }
+  .pp-azioni { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .pp-azioni button { padding: 9px 12px; border: 1px solid #c9c6bf; border-radius: 6px; background: #f6f5f2; font: 600 13px/1.2 system-ui, sans-serif; color: #16181f; cursor: pointer; }
+  .pp-azioni button:hover { background: #ecebe6; }
+  .pp-chiudi { border: 0; background: none; font-size: 22px; line-height: 1; color: #5d6170; padding: 2px 6px; cursor: pointer; }
+  .pp-riapri { display: none; align-items: center; gap: 8px; border: 0; background: none; font: 700 13px/1 system-ui, sans-serif; color: #16181f; padding: 2px; cursor: pointer; }
+  .pp-punto { width: 10px; height: 10px; border-radius: 50%; background: conic-gradient(#5a1019 0 25%, #dca542 0 50%, #1d3b33 0 75%, #1d34a0 0); }
+  .pp.ridotto { width: auto; padding: 10px 14px; border-radius: 999px; }
+  .pp.ridotto .pp-corpo { display: none; }
+  .pp.ridotto .pp-riapri { display: inline-flex; }
+</style>

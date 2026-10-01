@@ -1,0 +1,71 @@
+---
+// Pannello di prova: applica la scelta di chi guarda prima che la pagina si disegni (niente
+// sfarfallio). La scelta arriva dall'indirizzo (?palette=…&carattere=…&colori=…, per
+// condividerla) o da localStorage, e vale per tutte le pagine e le vesti.
+// Espone window.hvProva, usato dal pannello (PannelloProva.astro).
+import { CARATTERI, COLORI, PALETTE } from '../motore/aspetto';
+const valide = { palette: [...Object.keys(PALETTE), 'personalizzata'], carattere: Object.keys(CARATTERI), colori: Object.keys(COLORI) };
+---
+
+<script is:inline define:vars={{ valide }}>
+  (function () {
+    var html = document.documentElement;
+    var CHIAVE = 'hv-prova';
+    // Grafica del sito, per poterla ripristinare
+    var sito = { palette: html.dataset.palette, carattere: html.dataset.carattere, stile: html.getAttribute('style') || '' };
+
+    function leggi() {
+      try { return JSON.parse(localStorage.getItem(CHIAVE) || '{}') || {}; } catch (e) { return {}; }
+    }
+    function salva(s) {
+      try { localStorage.setItem(CHIAVE, JSON.stringify(s)); } catch (e) {}
+    }
+    function dimentica() {
+      try { localStorage.removeItem(CHIAVE); } catch (e) {}
+    }
+    function coloriCompleti(c) {
+      return !!c && valide.colori.every(function (k) { return /^#[0-9a-f]{6}$/i.test(c[k] || ''); });
+    }
+    function applica(s) {
+      html.setAttribute('style', sito.stile);
+      if (s.palette === 'personalizzata' && coloriCompleti(s.colori)) {
+        html.dataset.palette = 'personalizzata';
+        valide.colori.forEach(function (k) { html.style.setProperty('--' + k, s.colori[k]); });
+      } else if (s.palette && s.palette !== 'personalizzata' && valide.palette.indexOf(s.palette) >= 0) {
+        html.dataset.palette = s.palette;
+        valide.colori.forEach(function (k) { html.style.removeProperty('--' + k); });
+      } else {
+        html.dataset.palette = sito.palette;
+      }
+      html.dataset.carattere = s.carattere && valide.carattere.indexOf(s.carattere) >= 0 ? s.carattere : sito.carattere;
+    }
+    function ripristina() {
+      dimentica();
+      applica({});
+    }
+    // Indirizzo condivisibile: colori come "5a1019-dca542-…" nell'ordine di valide.colori
+    function daIndirizzo(q) {
+      if (!q.has('palette') && !q.has('carattere')) return null;
+      var s = { palette: q.get('palette') || undefined, carattere: q.get('carattere') || undefined };
+      var c = (q.get('colori') || '').split('-');
+      if (s.palette === 'personalizzata') {
+        s.colori = {};
+        valide.colori.forEach(function (k, i) { s.colori[k] = '#' + (c[i] || ''); });
+      }
+      return s;
+    }
+    function inIndirizzo(s, u) {
+      u.searchParams.set('palette', s.palette || sito.palette);
+      u.searchParams.set('carattere', s.carattere || sito.carattere);
+      if (s.palette === 'personalizzata' && s.colori) u.searchParams.set('colori', valide.colori.map(function (k) { return s.colori[k].slice(1); }).join('-'));
+      else u.searchParams.delete('colori');
+      return u;
+    }
+
+    var dalLink = daIndirizzo(new URLSearchParams(location.search));
+    if (dalLink) salva(dalLink);
+    applica(dalLink || leggi());
+
+    window.hvProva = { sito: sito, valide: valide, leggi: leggi, salva: salva, applica: applica, ripristina: ripristina, inIndirizzo: inIndirizzo };
+  })();
+</script>

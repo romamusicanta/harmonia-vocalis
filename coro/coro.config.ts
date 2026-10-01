@@ -105,6 +105,8 @@ export default {
     // In prova fino alla scelta definitiva: la grafica di prima, sotto /stagione/.
     // Per nascondere selettore e copie delle pagine basta svuotare l'elenco.
     inProva: [{ veste: 'stagione', palette: 'porpora', carattere: 'manrope' }],
+    // Pannello "Prova la grafica" (palette, colori propri, caratteri): da togliere a scelta fatta.
+    pannelloProva: true,
   },
 
   funzioni: {

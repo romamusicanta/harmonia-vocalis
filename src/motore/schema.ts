@@ -2,7 +2,7 @@
 // La configurazione si valida all'avvio della build: un campo mancante o sbagliato
 // ferma la build con un messaggio che dice quale campo correggere.
 import { z } from 'astro/zod';
-import { CARATTERI, PALETTE, VESTI } from './aspetto';
+import { CARATTERI, COLORI, PALETTE, VESTI } from './aspetto';
 
 const chiavi = <T extends Record<string, unknown>>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]];
 
@@ -92,6 +92,14 @@ export const schemaCoro = z.object({
     // Caratteri Google Fonts usati solo dal logo (coro/Logo.astro), come parametro "family":
     // 'Archivo:wdth,wght@125,300;125,900'
     caratteriLogo: z.array(z.string()).optional(),
+    // Colori propri al posto della palette: { primario: '#5a1019', accento: '#dca542', … }.
+    // Tutti e cinque, in esadecimale; le sfumature si ricavano da questi.
+    colori: z
+      .object(Object.fromEntries(Object.keys(COLORI).map((k) => [k, z.string().regex(/^#[0-9a-fA-F]{6}$/)])) as Record<keyof typeof COLORI, z.ZodString>)
+      .optional(),
+    // Pannello "Prova la grafica" nel sito vero: veste, palette, colori e caratteri, per chi
+    // guarda il sito (la scelta resta nel suo browser e si condivide con un link).
+    pannelloProva: z.boolean().default(false),
     // Vesti in prova: generate anche nel sito vero sotto /<veste>/, con un selettore per passare
     // dall'una all'altra. Si svuota quando la scelta è fatta.
     inProva: z

@@ -18,6 +18,19 @@
   --rosso: #b8621b;  /* assenze e avvisi: ambra, per distinguersi dal porpora */
   --ombra: 0 14px 40px rgba(90, 20, 30, .12);
 }
+/* Personalizzata: i cinque colori di base arrivano dallo stile di <html> (coro.aspetto.colori o
+   pannello di prova), le sfumature si ricavano da quelli. */
+:root[data-palette="personalizzata"] {
+  --primario-2: color-mix(in srgb, var(--primario) 84%, white);
+  --primario-3: color-mix(in srgb, var(--primario) 38%, white);
+  --primario-chiaro: color-mix(in srgb, var(--primario) 18%, white);
+  --accento-chiaro: color-mix(in srgb, var(--accento) 22%, white);
+  --fondo-2: color-mix(in srgb, var(--fondo) 92%, var(--testo));
+  --tenue: color-mix(in srgb, var(--testo) 68%, var(--fondo));
+  --linea: color-mix(in srgb, var(--fondo) 84%, var(--testo));
+  --rosso: #b3261e;
+  --ombra: 0 14px 40px color-mix(in srgb, var(--primario) 14%, transparent);
+}
 /* Blu notte e oro */
 :root[data-palette="notte"] {
   --bianco: #ffffff; --fondo: #f5f4f0; --fondo-2: #ecebe5;
