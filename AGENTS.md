@@ -47,7 +47,7 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: in produzion
 
 ## Trappole note
 
-- Pubblicazione: progetto Vercel `harmonia-vocalis` (https://harmonia-vocalis.vercel.app), dal 30/09/2026 con `vercel deploy --prod` dalla cartella locale (il repository non ha remote GitHub). Su Vercel non ci sono ancora le variabili `CALENDARIO_CONCERTI_ICS`/`_ID`: i prossimi concerti vengono da `coro/concerti.ts`.
+- Pubblicazione: progetto Vercel `harmonia-vocalis` (https://harmonia-vocalis.vercel.app), dal 30/09/2026 con `vercel deploy --prod` dalla cartella locale (il repository non ha remote GitHub). Dal 1/10/2026 su Vercel ci sono le variabili `CALENDARIO_CONCERTI_ICS`/`_ID` (produzione e anteprima) del calendario pubblico "Concerti" creato da mario.danna@romamusicanta.org (da condividere in modifica con il gruppo `admin@`, creato il 1/10/2026 insieme a `info@`): da allora i prossimi concerti vengono da lì e quelli di `coro/concerti.ts` restano di riserva. Nella descrizione degli eventi non serve la riga `Direttore:` per il Maestro: la pagina del concerto lo mostra già. Manca ancora la ricostruzione periodica: senza remote git non c'è deploy hook, quindi un evento nuovo compare solo al prossimo `vercel deploy --prod`.
 
 - Le miniature YouTube del canale esistono solo fino a `sddefault` (640×480): `maxresdefault` restituisce 404.
 - Il luogo delle prove è discordante tra italiacori (Via del Frantoio 2) e YouTube (Via di Casal Bruciato 15): da confermare prima della pubblicazione.
