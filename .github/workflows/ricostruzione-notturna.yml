@@ -1,0 +1,18 @@
+# Ricostruisce il sito ogni notte, perché compaiano i nuovi concerti del calendario Google
+# e i nuovi video di YouTube (il sito è statico e li legge solo in fase di build).
+# Chiama il deploy hook di Vercel, salvato nel secret VERCEL_DEPLOY_HOOK del repository.
+name: Ricostruzione notturna
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # 2:30 UTC, cioè 3:30 o 4:30 a Roma
+  workflow_dispatch: # anche a mano, da Actions → Ricostruzione notturna → Run workflow
+
+jobs:
+  ricostruisci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Avvia la ricostruzione su Vercel
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: curl --fail --silent --show-error -X POST "$VERCEL_DEPLOY_HOOK"
