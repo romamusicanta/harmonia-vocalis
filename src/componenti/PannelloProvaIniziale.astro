@@ -33,15 +33,15 @@ const grafica = JSON.stringify({ veste, palette, carattere, colori, inProva });
       try { localStorage.removeItem(CHIAVE); } catch (e) {}
     }
     var esadecimale = function (v) { return /^#[0-9a-f]{6}$/i.test(v || ''); };
-    // Tutti i colori sono obbligatori tranne il piè di pagina
+    // Tutti i colori sono obbligatori tranne piè di pagina e barra in alto
     function coloriCompleti(c) {
-      return !!c && valide.colori.every(function (k) { return k === 'piede' || esadecimale(c[k]); });
+      return !!c && valide.colori.every(function (k) { return k === 'piede' || k === 'barra' || esadecimale(c[k]); });
     }
     function applica(s) {
       html.setAttribute('style', sito.stile);
       if (s.palette === 'personalizzata' && coloriCompleti(s.colori)) {
         html.dataset.palette = 'personalizzata';
-        // Un colore non indicato (il piè di pagina, nei link vecchi) resta quello del sito
+        // Un colore non indicato (piè di pagina o barra, nei link vecchi) resta quello del sito
         valide.colori.forEach(function (k) { if (esadecimale(s.colori[k])) html.style.setProperty('--' + k, s.colori[k]); });
       } else if (s.palette && s.palette !== 'personalizzata' && valide.palette.indexOf(s.palette) >= 0) {
         html.dataset.palette = s.palette;

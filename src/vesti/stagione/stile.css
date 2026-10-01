@@ -24,7 +24,7 @@ svg { flex-shrink: 0; }
 .ic.g { width: 28px; height: 28px; }
 
 /* ——— Barra di servizio ——— */
-.servizio { background: var(--primario); color: var(--primario-chiaro); font-size: 13px; }
+.servizio { background: var(--barra); color: var(--primario-chiaro); font-size: 13px; }
 .servizio .w { display: flex; justify-content: space-between; min-height: 38px; align-items: center; gap: 16px; }
 .servizio a:hover { color: #fff; }
 .servizio .info { display: none; }

@@ -19,9 +19,9 @@ const luogo = z.object({
 });
 
 // Colori propri al posto di una palette: { primario: '#5a1019', accento: '#dca542', … }, in
-// esadecimale; le sfumature si ricavano da questi. Tutti obbligatori tranne "piede".
+// esadecimale; le sfumature si ricavano da questi. Tutti obbligatori tranne "piede" e "barra".
 const esadecimale = z.string().regex(/^#[0-9a-fA-F]{6}$/);
-const colori = z.object({ ...(Object.fromEntries(Object.keys(COLORI).map((k) => [k, esadecimale])) as Record<keyof typeof COLORI, typeof esadecimale>), piede: esadecimale.optional() });
+const colori = z.object({ ...(Object.fromEntries(Object.keys(COLORI).map((k) => [k, esadecimale])) as Record<keyof typeof COLORI, typeof esadecimale>), piede: esadecimale.optional(), barra: esadecimale.optional() });
 
 export const schemaCoro = z.object({
   nome: z.string(),
