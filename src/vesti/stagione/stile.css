@@ -654,14 +654,8 @@ a.sc:hover { box-shadow: var(--ombra); }
 .cosa > b, .play > b, .titolo-lettore { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spacing: 0; }
 .play > b span { font-family: var(--f-testo); }
 
-/* ——— Foto in bianco e nero, nei colori originali al passaggio del mouse ———
+/* ——— Foto nei colori originali, senza fusione con il colore della veste ———
    Solo per questa veste: le altre caricano questo foglio come base e hanno le proprie foto. */
 :root[data-veste="stagione"] :is(.blocco-foto, .in-programma .foto, .sc .img, .porta .img, .accesso .lato-foto) img {
-  mix-blend-mode: normal !important; opacity: 1 !important;
-  filter: grayscale(1) contrast(1.05) !important;
-  transition: filter .5s ease;
-}
-:root[data-veste="stagione"] :is(.blocco-foto, .in-programma .foto, .sc .img, .porta .img, .accesso .lato-foto):hover img,
-:root[data-veste="stagione"] :is(a, .sc, .porta):hover > :is(.img, .foto) img {
-  filter: none !important;
+  mix-blend-mode: normal !important; opacity: 1 !important; filter: none !important;
 }
