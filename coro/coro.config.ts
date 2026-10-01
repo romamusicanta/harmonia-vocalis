@@ -99,10 +99,10 @@ export default {
   aspetto: {
     veste: 'stagione',
     carattere: 'manrope',
-    // Colori del sito, scelti da Mario con il pannello (1/10/2026): quasi nero e giallo su fondo chiaro,
+    // Colori del sito, scelti da Mario con il pannello (1/10/2026): blu notte e giallo su fondo chiaro,
     // barra in alto e piè di pagina blu ardesia.
     // Sono l'unica palette del sito; chi guarda può provarne altri con il pannello.
-    colori: { primario: '#16181f', accento: '#f2b41b', fondo: '#f5f4f0', bianco: '#ffffff', testo: '#16181f', piede: '#24445c', barra: '#24445c' },
+    colori: { primario: '#0f1b23', accento: '#f2b41b', fondo: '#f5f4f0', bianco: '#ffffff', testo: '#16181f', piede: '#24445c', barra: '#24445c' },
     // Archivo largo, solo per il logo (coro/Logo.astro)
     caratteriLogo: ['Archivo:wdth,wght@125,300;125,900'],
     // Pannello "Prova la grafica" (palette, colori propri, caratteri) per chi guarda il sito
