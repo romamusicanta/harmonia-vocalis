@@ -2,7 +2,7 @@
 // Veste Stagione: testata dell'area coristi, con utente collegato e barra delle sezioni.
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import { coro, DEMO } from '../../motore/coro';
+import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
 import type { Veste } from '../../motore/aspetto';
@@ -42,6 +42,11 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
 {DEMO && (
   <div class="avviso-anteprima" role="note">
     <div class="w"><Icona nome="info" classe="" /><span><b>Demo:</b> qui l'area coristi è aperta a tutti. Nel sito vero si entra con l'account Google, solo se l'indirizzo è nell'elenco dei coristi. Nomi e dati sono di esempio.</span></div>
+  </div>
+)}
+{ANTEPRIMA_AREA && (
+  <div class="avviso-anteprima" role="note">
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. Per ora è aperta a tutti e mostra dati di esempio; quando sarà pronta si entrerà con l'account Google dell'associazione.</span></div>
   </div>
 )}
 {conBarra && (

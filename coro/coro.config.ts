@@ -85,7 +85,7 @@ export default {
   link: {
     youtube: 'https://www.youtube.com/@romamusicanta',
     youtubeCanale: '@romamusicanta',
-    // Area coristi: nessun collegamento finché quella vera (accesso con Google) non è pronta.
+    // Area coristi esterna: non serve, il sito ha la sua (per ora in anteprima, vedi funzioni)
     areaCoristi: undefined,
     schedaPdf: undefined,
   },
@@ -113,5 +113,7 @@ export default {
     cantaConNoi: true,
     organizzatori: true,
     areaCoristi: true,
+    // Anteprima con dati di esempio sotto /area, finché l'accesso con Google non è pronto
+    anteprimaArea: true,
   },
 } satisfies ConfigCoro;

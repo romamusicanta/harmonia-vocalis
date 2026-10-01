@@ -114,6 +114,9 @@ export const schemaCoro = z.object({
     cantaConNoi: z.boolean(),
     organizzatori: z.boolean(),
     areaCoristi: z.boolean(),
+    // Anteprima dell'area coristi nel sito vero, aperta a tutti con dati di esempio e un avviso,
+    // finché l'accesso con Google non è pronto
+    anteprimaArea: z.boolean().default(false),
   }),
 });
 

@@ -27,5 +27,7 @@ export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in imma
 
 export const indirizzo = (l: { indirizzo: string; cap: string; citta: string }) => `${l.indirizzo}, ${l.cap} ${l.citta}`;
 
-// L'area coristi vera (accesso con Google) è ancora da fare: per ora esiste solo nella demo.
-export const AREA_CORISTI = DEMO && coro.funzioni.areaCoristi;
+// L'area coristi vera (accesso con Google) è ancora da fare: per ora esiste nella demo e, se
+// richiesta, come anteprima nel sito vero (dati di esempio, aperta a tutti, con un avviso).
+export const ANTEPRIMA_AREA = !DEMO && coro.funzioni.areaCoristi && coro.funzioni.anteprimaArea;
+export const AREA_CORISTI = coro.funzioni.areaCoristi && (DEMO || ANTEPRIMA_AREA);

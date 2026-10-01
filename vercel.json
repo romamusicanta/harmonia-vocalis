@@ -14,6 +14,16 @@
       "permanent": true
     },
     {
+      "source": "/mockup/sito/area.html",
+      "destination": "/area",
+      "permanent": true
+    },
+    {
+      "source": "/mockup/sito/area-:pagina.html",
+      "destination": "/area/:pagina",
+      "permanent": true
+    },
+    {
       "source": "/mockup",
       "destination": "/",
       "permanent": true

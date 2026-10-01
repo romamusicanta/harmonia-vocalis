@@ -71,7 +71,7 @@ const videoInvito = coro.funzioni.ascolta ? (await elencoVideo()).find((v) => v.
       <div>
         <span class="eti gialla" style="margin-bottom:16px">Le prove</span>
         <h2>Quando proviamo</h2>
-        <p>{coro.prove.orari}, a {coro.prove.citta}.{AREA_CORISTI && ' Le basi per lo studio a casa sono nell’area riservata ai coristi.'}</p>
+        <p>{coro.prove.orari}, a {coro.prove.citta}.{AREA_CORISTI && DEMO && ' Le basi per lo studio a casa sono nell’area riservata ai coristi.'}</p>
       </div>
       <div>
         <div class="numeri" style="background:var(--primario-2);border-color:var(--primario-2)">
