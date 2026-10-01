@@ -43,6 +43,7 @@ const inProva = !DEMO && veste !== coro.aspetto.veste;
     <title>{titoloCompleto}</title>
     <meta name="description" content={descrizione} />
     {(DEMO || area || inProva) && <meta name="robots" content="noindex, nofollow" />}
+    {!(DEMO || area || inProva) && Astro.site && <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

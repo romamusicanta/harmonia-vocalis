@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://romamusicanta.org/sitemap-index.xml

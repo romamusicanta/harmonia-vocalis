@@ -1,6 +1,6 @@
 # Coro Harmonia Vocalis — sito pubblico
 
-Sito statico del Coro Harmonia Vocalis (Associazione Culturale Musicale Roma Musicanta), destinato a `romamusicanta.org`.
+Sito statico del Coro Harmonia Vocalis (Associazione Culturale Musicale Roma Musicanta), pubblicato su https://romamusicanta.org (dal 1/10/2026).
 L'associazione usa Google Workspace for Nonprofits (edizione gratuita) sul dominio `romamusicanta.org`.
 
 Il sito è nato il 30/09/2026 come copia del modello Dimora Choir (`~/projects/dimorachoir`, prodotto di Mario per vendere siti ai cori), ma **da allora è indipendente**: il modello resta solo una vetrina e non si portano più aggiornamenti da lì. Il motore (`src/`) si modifica direttamente qui; i dati del coro stanno in `coro/`.
@@ -47,7 +47,8 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: in produzion
 
 ## Trappole note
 
-- Pubblicazione: progetto Vercel `harmonia-vocalis` (https://harmonia-vocalis.vercel.app), dal 30/09/2026 con `vercel deploy --prod` dalla cartella locale (il repository non ha remote GitHub). Dal 1/10/2026 su Vercel ci sono le variabili `CALENDARIO_CONCERTI_ICS`/`_ID` (produzione e anteprima) del calendario pubblico "Concerti" creato da mario.danna@romamusicanta.org (da condividere in modifica con il gruppo `admin@`, creato il 1/10/2026 insieme a `info@`): da allora i prossimi concerti vengono da lì e quelli di `coro/concerti.ts` restano di riserva. Nella descrizione degli eventi non serve la riga `Direttore:` per il Maestro: la pagina del concerto lo mostra già. Manca ancora la ricostruzione periodica: senza remote git non c'è deploy hook, quindi un evento nuovo compare solo al prossimo `vercel deploy --prod`.
+- Dominio: `romamusicanta.org` (registrato su Squarespace Domains, ex Google Domains, gestibile dalla console di Workspace; scade il 21/09/2027) punta a Vercel con due record A su `@` e un CNAME su `www`; `www` e `harmonia-vocalis.vercel.app` reindirizzano a `https://romamusicanta.org` (il secondo con una regola `has: host` in `vercel.json`). Nei DNS ci sono anche MX, SPF, DKIM di Workspace e un DMARC `p=none`: non toccarli. `site` in `astro.config.mjs` dà il canonical delle pagine e la sitemap (`@astrojs/sitemap`, senza `/area` e le vesti in prova); `public/robots.txt` la indica. `harmoniavocalis.it` era libero il 1/10/2026: se registrato, va fatto reindirizzare a romamusicanta.org.
+- Pubblicazione: progetto Vercel `harmonia-vocalis`, dal 30/09/2026 con `vercel deploy --prod` dalla cartella locale (il repository non ha remote GitHub). Dal 1/10/2026 su Vercel ci sono le variabili `CALENDARIO_CONCERTI_ICS`/`_ID` (produzione e anteprima) del calendario pubblico "Concerti" creato da mario.danna@romamusicanta.org (da condividere in modifica con il gruppo `admin@`, creato il 1/10/2026 insieme a `info@`): da allora i prossimi concerti vengono da lì e quelli di `coro/concerti.ts` restano di riserva. Nella descrizione degli eventi non serve la riga `Direttore:` per il Maestro: la pagina del concerto lo mostra già. Manca ancora la ricostruzione periodica: senza remote git non c'è deploy hook, quindi un evento nuovo compare solo al prossimo `vercel deploy --prod`.
 
 - Le miniature YouTube del canale esistono solo fino a `sddefault` (640×480): `maxresdefault` restituisce 404.
 - Il luogo delle prove è discordante tra italiacori (Via del Frantoio 2) e YouTube (Via di Casal Bruciato 15): da confermare prima della pubblicazione.
