@@ -270,6 +270,8 @@ a.sc:hover { box-shadow: var(--ombra); }
 
 .persone { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 24px; }
 .persona { border-top: 3px solid var(--primario); padding-top: 16px; }
+/* In colonna sotto un titolo (interpreti del concerto): la riga sta sotto, così la prima non doppia quella del titolo e c'è anche in fondo. */
+.persone.in-colonna .persona { border-top: 0; border-bottom: 3px solid var(--primario); padding: 0 0 24px; }
 .persona .ruolo { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); }
 .persona b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 22px; color: var(--primario); margin-top: 6px; letter-spacing: 0; line-height: 1.15; }
 

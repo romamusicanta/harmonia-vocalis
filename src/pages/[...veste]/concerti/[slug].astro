@@ -145,7 +145,7 @@ const altri = [
         <div>
           <div class="testa"><h2>Interpreti</h2></div>
           {/* Dati: coro/coro.config.ts (maestro, organico) e interpreti del concerto */}
-          <div class="persone" style="grid-template-columns:1fr">
+          <div class="persone in-colonna" style="grid-template-columns:1fr">
             <div class="persona"><span class="ruolo">Direttore</span><b>M° {coro.maestro.nome}</b><a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>Biografia <Icona nome="freccia" /></a></div>
             <div class="persona"><span class="ruolo">Coro</span><b>{coro.nome}</b><span class="tenue" style="font-size:15px">Circa {voci} voci · <a href={l('/il-coro')} style="text-decoration:underline">il coro</a></span></div>
             {c.interpreti?.map((i) => (
