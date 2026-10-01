@@ -15,8 +15,8 @@ export default {
   descrizione:
     'Coro polifonico misto di Roma diretto dal M° Claudio Maria Micheli. Repertorio sacro e sinfonico, dal Barocco a Morricone.',
   url: 'https://romamusicanta.org',
-  // DA VERIFICARE: quando esisterà, sostituire con info@romamusicanta.org
-  email: 'romamusicanta@gmail.com',
+  // Gruppo Google (1/10/2026): lo legge Francesco Cardillo
+  email: 'info@romamusicanta.org',
   fondazione: 2019,
 
   sede: {

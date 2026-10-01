@@ -8,7 +8,7 @@ titolo: Privacy.
 
 ## Chi tratta i dati
 
-Il titolare del trattamento è l'Associazione Culturale Musicale Roma Musicanta, Via del Forte Tiburtino 98, 00159 Roma, romamusicanta@gmail.com.
+Il titolare del trattamento è l'Associazione Culturale Musicale Roma Musicanta, Via del Forte Tiburtino 98, 00159 Roma, info@romamusicanta.org.
 
 ## Quali dati e perché
 
@@ -26,4 +26,4 @@ L'area riservata è accessibile solo ai coristi, con il proprio account Google. 
 
 ## I tuoi diritti
 
-Puoi chiedere in qualunque momento di vedere, correggere o cancellare i tuoi dati scrivendo a romamusicanta@gmail.com.
+Puoi chiedere in qualunque momento di vedere, correggere o cancellare i tuoi dati scrivendo a info@romamusicanta.org.
