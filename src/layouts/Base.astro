@@ -29,8 +29,8 @@ const aspetto = aspettoDi(veste);
 // Pannello di prova (sito vero): veste, palette, colori e caratteri a scelta di chi guarda
 const prova = !DEMO && (coro.aspetto.pannelloProva || coro.aspetto.inProva.length > 0);
 const caratteri = DEMO || prova ? (Object.keys(CARATTERI) as Carattere[]) : [aspetto.carattere];
-const colori = !DEMO && coro.aspetto.colori;
-const stileColori = colori ? Object.entries(colori).map(([k, v]) => `--${k}:${v}`).join(';') : undefined;
+const colori = !DEMO && aspetto.colori;
+const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k, v]) => `--${k}:${v}`).join(';') : undefined;
 // Le copie delle pagine nelle vesti in prova non vanno indicizzate
 const inProva = !DEMO && veste !== coro.aspetto.veste;
 ---

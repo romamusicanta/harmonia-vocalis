@@ -23,14 +23,17 @@ const valide = { palette: [...Object.keys(PALETTE), 'personalizzata'], carattere
     function dimentica() {
       try { localStorage.removeItem(CHIAVE); } catch (e) {}
     }
+    var esadecimale = function (v) { return /^#[0-9a-f]{6}$/i.test(v || ''); };
+    // Tutti i colori sono obbligatori tranne il piè di pagina
     function coloriCompleti(c) {
-      return !!c && valide.colori.every(function (k) { return /^#[0-9a-f]{6}$/i.test(c[k] || ''); });
+      return !!c && valide.colori.every(function (k) { return k === 'piede' || esadecimale(c[k]); });
     }
     function applica(s) {
       html.setAttribute('style', sito.stile);
       if (s.palette === 'personalizzata' && coloriCompleti(s.colori)) {
         html.dataset.palette = 'personalizzata';
-        valide.colori.forEach(function (k) { html.style.setProperty('--' + k, s.colori[k]); });
+        // Un colore non indicato (il piè di pagina, nei link vecchi) resta quello del sito
+        valide.colori.forEach(function (k) { if (esadecimale(s.colori[k])) html.style.setProperty('--' + k, s.colori[k]); });
       } else if (s.palette && s.palette !== 'personalizzata' && valide.palette.indexOf(s.palette) >= 0) {
         html.dataset.palette = s.palette;
         valide.colori.forEach(function (k) { html.style.removeProperty('--' + k); });
@@ -50,14 +53,14 @@ const valide = { palette: [...Object.keys(PALETTE), 'personalizzata'], carattere
       var c = (q.get('colori') || '').split('-');
       if (s.palette === 'personalizzata') {
         s.colori = {};
-        valide.colori.forEach(function (k, i) { s.colori[k] = '#' + (c[i] || ''); });
+        valide.colori.forEach(function (k, i) { if (c[i]) s.colori[k] = '#' + c[i]; });
       }
       return s;
     }
     function inIndirizzo(s, u) {
       u.searchParams.set('palette', s.palette || sito.palette);
       u.searchParams.set('carattere', s.carattere || sito.carattere);
-      if (s.palette === 'personalizzata' && s.colori) u.searchParams.set('colori', valide.colori.map(function (k) { return s.colori[k].slice(1); }).join('-'));
+      if (s.palette === 'personalizzata' && s.colori) u.searchParams.set('colori', valide.colori.map(function (k) { return (s.colori[k] || '').slice(1); }).join('-').replace(/-+$/, ''));
       else u.searchParams.delete('colori');
       return u;
     }

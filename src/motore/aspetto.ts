@@ -41,12 +41,14 @@ export const PALETTE = {
 
 // Colori di base di una palette personalizzata (coro.aspetto.colori o pannello di prova);
 // le sfumature (--primario-2, --linea, --tenue…) si ricavano da questi in src/stile/palette.css.
+// "piede" è facoltativo: senza, il piè di pagina usa il colore del testo.
 export const COLORI = {
   primario: 'Principale',
   accento: 'Accento',
   fondo: 'Fondo',
   bianco: 'Schede',
   testo: 'Testo',
+  piede: 'Piè di pagina',
 } as const;
 export type Colore = keyof typeof COLORI;
 

@@ -18,10 +18,12 @@ export const vestiInDemo = vesteDaPercorsi;
 
 const prefisso = (veste: Veste) => (veste === coro.aspetto.veste ? undefined : veste);
 
-// Palette e carattere di una veste: quelli del coro, o quelli indicati per una veste in prova
+// Palette, carattere e colori propri di una veste: quelli del coro, o quelli indicati per una veste in prova
 export function aspettoDi(veste: Veste) {
   const inProva = !DEMO && coro.aspetto.inProva.find((p) => p.veste === veste);
-  return inProva ? { palette: inProva.palette, carattere: inProva.carattere } : { palette: coro.aspetto.palette, carattere: coro.aspetto.carattere };
+  return inProva
+    ? { palette: inProva.palette, carattere: inProva.carattere, colori: inProva.colori }
+    : { palette: coro.aspetto.palette, carattere: coro.aspetto.carattere, colori: coro.aspetto.colori };
 }
 
 // Percorso di una pagina senza il prefisso della veste: "/stagione/concerti" → "/concerti"

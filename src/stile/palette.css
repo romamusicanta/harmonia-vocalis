@@ -5,6 +5,7 @@
 
 :root {
   --verde: #2f6b45;
+  --piede: var(--testo);  /* piè di pagina: come il testo, salvo colori propri */
   --raggio: 2px;
   --ombra: 0 14px 40px rgba(20, 20, 30, .12);
 }

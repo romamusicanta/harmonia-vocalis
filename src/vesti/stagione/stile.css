@@ -347,7 +347,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 .locandina .piede .dove b { display: block; font-weight: 800; font-size: 3.6cqw; }
 
 /* ——— Footer ——— */
-.piede-sito { background: var(--testo); color: #a4a8b5; padding: 72px 0 40px; font-size: 14px; }
+.piede-sito { background: var(--piede); color: #a4a8b5; padding: 72px 0 40px; font-size: 14px; }
 .piede-sito .colonne { display: grid; gap: 40px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
 .piede-sito .marchio b { color: #fff; }
 .piede-sito .marchio small { color: #8a8e9b; }
@@ -362,7 +362,7 @@ a.sc:hover { box-shadow: var(--ombra); }
    Area coristi
    ===================================================== */
 .area body, body.area { background: var(--fondo); }
-.servizio.area-s { background: var(--testo); }
+.servizio.area-s { background: var(--piede); }
 .utente { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.2; }
 .utente .av { width: 38px; height: 38px; border-radius: 50%; background: var(--accento); color: var(--primario); display: grid; place-items: center; font-weight: 800; font-size: 16px; flex-shrink: 0; }
 .utente b { display: block; color: var(--primario); }
