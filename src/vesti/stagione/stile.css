@@ -660,7 +660,7 @@ a.sc:hover { box-shadow: var(--ombra); }
   mix-blend-mode: normal !important; opacity: 1 !important; filter: none !important;
 }
 
-/* ——— Scritte nere sui pulsanti chiari (oro, bianchi, con bordo) ———
+/* ——— Scritte nel colore del testo sui pulsanti chiari (accento, bianchi, con bordo) ———
    I pulsanti pieni nel colore principale restano con la scritta bianca, per leggibilità. */
-:root[data-veste="stagione"] :is(.btn.g, .btn.o, .btn.b) { color: #000; }
+:root[data-veste="stagione"] :is(.btn.g, .btn.o, .btn.b) { color: var(--testo); }
 :root[data-veste="stagione"] .btn.o:hover { color: #fff; }

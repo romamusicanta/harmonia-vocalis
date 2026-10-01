@@ -1,9 +1,9 @@
 ---
-// Pannello "Prova la grafica" del sito vero, finché la grafica non è scelta
-// (coro.aspetto.pannelloProva e coro.aspetto.inProva): veste, palette predefinite o colori
-// propri, caratteri. La scelta resta nel browser di chi guarda e si condivide con un link.
+// Pannello "Prova la grafica" del sito vero (coro.aspetto.pannelloProva e coro.aspetto.inProva):
+// colori propri a partire da quelli del sito, caratteri e, con vesti in prova, la veste.
+// La scelta resta nel browser di chi guarda e si condivide con un link.
 import { coro } from '../motore/coro';
-import { CARATTERI, COLORI, PALETTE, VESTI, type Veste } from '../motore/aspetto';
+import { CARATTERI, COLORI, VESTI, type Veste } from '../motore/aspetto';
 import { link, percorsoSenzaVeste } from '../motore/url';
 
 interface Props { veste: Veste }
@@ -11,7 +11,6 @@ const { veste } = Astro.props;
 const percorso = percorsoSenzaVeste(veste, Astro.url.pathname);
 const vesti = [coro.aspetto.veste, ...coro.aspetto.inProva.map((p) => p.veste).filter((v) => v !== coro.aspetto.veste)];
 const descrizioni = {
-  palette: { ...Object.fromEntries(Object.entries(PALETTE).map(([k, v]) => [k, v.descrizione])), personalizzata: 'I tuoi colori: le sfumature si ricavano da questi.' },
   carattere: Object.fromEntries(Object.entries(CARATTERI).map(([k, v]) => [k, v.descrizione])),
 };
 ---
@@ -34,17 +33,13 @@ const descrizioni = {
       </>
     )}
 
-    <label class="pp-eti" for="pp-palette">Colori</label>
-    <select id="pp-palette">
-      {Object.entries(PALETTE).map(([k, v]) => <option value={k}>{v.nome}</option>)}
-      <option value="personalizzata">Personalizzati</option>
-    </select>
+    <span class="pp-eti">Colori</span>
     <div class="pp-colori">
       {Object.entries(COLORI).map(([k, nome]) => (
         <label><input type="color" data-colore={k} /><span>{nome}</span></label>
       ))}
     </div>
-    <p class="pp-descr" data-descr="palette"></p>
+    <p class="pp-descr">Tocca un colore per cambiarlo: le sfumature si ricavano da questi.</p>
 
     <label class="pp-eti" for="pp-carattere">Caratteri</label>
     <select id="pp-carattere">
@@ -64,7 +59,6 @@ const descrizioni = {
     var p = window.hvProva;
     var html = document.documentElement;
     var box = document.querySelector('.pp');
-    var sp = box.querySelector('#pp-palette');
     var sc = box.querySelector('#pp-carattere');
     var input = box.querySelectorAll('[data-colore]');
 
@@ -80,10 +74,8 @@ const descrizioni = {
       return c;
     }
     function mostra() {
-      sp.value = html.dataset.palette;
       sc.value = html.dataset.carattere;
       input.forEach(function (i) { i.value = esadecimale(i.dataset.colore); });
-      box.querySelector('[data-descr="palette"]').textContent = descrizioni.palette[sp.value] || '';
       box.querySelector('[data-descr="carattere"]').textContent = descrizioni.carattere[sc.value] || '';
       // Se l'indirizzo porta una scelta, la si tiene allineata
       var q = new URLSearchParams(location.search);
@@ -95,19 +87,13 @@ const descrizioni = {
       mostra();
     }
 
-    sp.addEventListener('change', function () {
-      var s = { palette: sp.value, carattere: sc.value };
-      if (sp.value === 'personalizzata') s.colori = coloriAttuali();
-      scegli(s);
-    });
+    // Il carattere cambia da solo; i colori restano quelli in uso (del sito o già scelti)
     sc.addEventListener('change', function () {
       var s = p.leggi();
       s.carattere = sc.value;
-      if (!s.palette) s.palette = html.dataset.palette;
-      if (s.palette === 'personalizzata' && !s.colori) s.colori = coloriAttuali();
       scegli(s);
     });
-    // Toccare un colore passa ai colori personalizzati, partendo da quelli in uso
+    // Toccare un colore salva tutti i colori in uso, con quello cambiato
     input.forEach(function (i) {
       i.addEventListener('input', function () {
         scegli({ palette: 'personalizzata', carattere: sc.value, colori: coloriAttuali() });
@@ -122,8 +108,8 @@ const descrizioni = {
       mostra();
     });
     box.querySelector('.pp-copia').addEventListener('click', function () {
-      var s = p.leggi();
-      if (!s.palette) s = { palette: html.dataset.palette, carattere: html.dataset.carattere };
+      // Il link porta sempre i colori e il carattere che si vedono ora
+      var s = { palette: 'personalizzata', carattere: sc.value, colori: coloriAttuali() };
       var u = p.inIndirizzo(s, new URL(location.href)).toString();
       var bottone = this;
       function fatto() { bottone.textContent = 'Link copiato'; setTimeout(function () { bottone.textContent = 'Copia il link'; }, 2000); }

@@ -98,11 +98,10 @@ export default {
 
   aspetto: {
     veste: 'stagione',
-    // Palette predefinita, usata solo se si tolgono i colori propri qui sotto
-    palette: 'notte',
     carattere: 'manrope',
-    // Colori scelti da Mario con il pannello (1/10/2026): blu ardesia e ocra, testo nero, piè di pagina blu notte
-    colori: { primario: '#24445c', accento: '#cc7722', fondo: '#f5f4f0', bianco: '#ffffff', testo: '#000000', piede: '#0d1820' },
+    // Colori del sito, scelti da Mario con il pannello (1/10/2026): quasi nero e giallo su fondo chiaro.
+    // Sono l'unica palette del sito; chi guarda può provarne altri con il pannello.
+    colori: { primario: '#16181f', accento: '#f2b41b', fondo: '#f5f4f0', bianco: '#ffffff', testo: '#16181f', piede: '#16181f' },
     // Archivo largo, solo per il logo (coro/Logo.astro)
     caratteriLogo: ['Archivo:wdth,wght@125,300;125,900'],
     // Pannello "Prova la grafica" (palette, colori propri, caratteri) per chi guarda il sito

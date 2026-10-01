@@ -4,8 +4,9 @@
 // condividerla) o da localStorage, e vale per tutte le pagine e le vesti.
 // Espone window.hvProva, usato dal pannello (PannelloProva.astro).
 import { coro } from '../motore/coro';
-import { CARATTERI, COLORI, PALETTE } from '../motore/aspetto';
-const valide = { palette: [...Object.keys(PALETTE), 'personalizzata'], carattere: Object.keys(CARATTERI), colori: Object.keys(COLORI) };
+import { CARATTERI, COLORI } from '../motore/aspetto';
+// Le palette predefinite del catalogo non si offrono nel sito: solo colori propri
+const valide = { palette: ['personalizzata'], carattere: Object.keys(CARATTERI), colori: Object.keys(COLORI) };
 // Impronta della grafica del sito: se cambia (nuova palette, nuovi colori…), le scelte salvate
 // prima nei browser non valgono più, così nessuno resta su una prova vecchia senza saperlo.
 const { veste, palette, carattere, colori, inProva } = coro.aspetto;

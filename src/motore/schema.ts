@@ -92,7 +92,8 @@ export const schemaCoro = z.object({
 
   aspetto: z.object({
     veste: z.enum(chiavi(VESTI)),
-    palette: z.enum(chiavi(PALETTE)),
+    // Palette del catalogo, usata solo senza colori propri (aspetto.colori)
+    palette: z.enum(chiavi(PALETTE)).default('porpora'),
     carattere: z.enum(chiavi(CARATTERI)),
     // Caratteri Google Fonts usati solo dal logo (coro/Logo.astro), come parametro "family":
     // 'Archivo:wdth,wght@125,300;125,900'
