@@ -12,6 +12,16 @@
       "source": "/stagione/:percorso*",
       "destination": "/:percorso*",
       "permanent": true
+    },
+    {
+      "source": "/mockup",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/mockup/:percorso*",
+      "destination": "/",
+      "permanent": true
     }
   ]
 }

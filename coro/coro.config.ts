@@ -85,9 +85,8 @@ export default {
   link: {
     youtube: 'https://www.youtube.com/@romamusicanta',
     youtubeCanale: '@romamusicanta',
-    // Finché l'area coristi vera (accesso con Google) non è pronta, il collegamento porta
-    // all'anteprima del mockup, con dati di esempio e un avviso.
-    areaCoristi: '/mockup/sito/area.html',
+    // Area coristi: nessun collegamento finché quella vera (accesso con Google) non è pronta.
+    areaCoristi: undefined,
     schedaPdf: undefined,
   },
 

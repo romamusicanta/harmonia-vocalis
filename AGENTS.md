@@ -25,14 +25,9 @@ Il sito è nato il 30/09/2026 come copia del modello Dimora Choir (`~/projects/d
   - **Video**: feed RSS del canale `@romamusicanta`.
   - **Concerti**: indirizzo iCal pubblico del calendario Google "Concerti", nella variabile `CALENDARIO_CONCERTI_ICS` (e `CALENDARIO_CONCERTI_ID` per il pulsante "Iscriviti"). Gli eventi futuri sono "in programma"; quelli passati entrano da soli nell'archivio, accanto a quello storico di `coro/concerti.ts` (a parità di giorno vale il file). Convenzione per gli eventi, descritta per esteso in testa a `src/motore/concerti.ts`: titolo = rassegna/evento; luogo = "città, sala" oppure un indirizzo scelto da Google Maps; "Tutto il giorno" = orario da definire; descrizione = prima riga "Autore · Opera" (altre opere sulle righe seguenti), poi righe `Organizza:`, `Ingresso:`, `Organico:`, `Brani:`, `Foto:` (file in `coro/immagini`), `Video:` (ID YouTube), `Evidenza:`; ogni altra etichetta è un interprete (`Soprano: Maria Rossi`, `Solisti: (soprano, contralto…)` = da annunciare). Righe senza etichetta, foto inesistenti ed eventi annullati sono scartati con un avviso `[calendario]`.
   - Se una fonte non risponde, il sito usa i dati di `coro/` e lo scrive a console con `[youtube]` / `[calendario]`.
-- **Area coristi**: il sito non la genera ancora, perché l'accesso con Google è da fare. Il collegamento "Area coristi" porta all'anteprima del mockup (`link.areaCoristi: '/mockup/sito/area.html'`).
+- **Area coristi**: il sito non la genera ancora, perché l'accesso con Google è da fare, e finché non c'è non mostra nessun collegamento "Area coristi" (`link.areaCoristi` vuoto).
 - `CLAUDE.md` è un collegamento simbolico ad `AGENTS.md`.
-- **Mockup** (`public/mockup/`, HTML statico servito così com'è):
-  - le tre direzioni visive iniziali;
-  - le proposte di logo (`logo/`);
-  - il mockup completo in direzione "C · Stagione" (`sito/`), da cui sono stati presi i dati. Resta online per l'anteprima dell'area coristi.
-
-  `sito/prova.js` ha il pannello "Colori e caratteri" nascosto (`PANNELLO_VISIBILE = false`).
+- **Mockup**: le direzioni visive iniziali, le proposte di logo e il mockup completo "C · Stagione" (con l'anteprima dell'area coristi) stavano in `public/mockup/`. Eliminati il 1/10/2026 perché superati: si recuperano dalla storia di git (`git show 7bb332d:public/mockup/…`); gli indirizzi `/mockup/…` reindirizzano alla home (`vercel.json`).
 
 Essendo statico, il sito si aggiorna solo quando viene ricostruito: in produzione serve una ricostruzione periodica (es. giornaliera, tramite deploy hook dell'hosting) perché compaiano nuovi concerti e video.
 
