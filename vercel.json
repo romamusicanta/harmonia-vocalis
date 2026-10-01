@@ -1,5 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/stagione",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/stagione/:percorso*",
+      "destination": "/:percorso*",
+      "permanent": true
+    }
+  ]
 }

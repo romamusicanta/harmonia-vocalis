@@ -97,23 +97,15 @@ export default {
   },
 
   aspetto: {
-    veste: 'classica',
-    palette: 'porpora',
-    carattere: 'garamond',
+    veste: 'stagione',
+    // Palette predefinita, usata solo se si tolgono i colori propri qui sotto
+    palette: 'notte',
+    carattere: 'manrope',
+    // Colori scelti da Mario con il pannello (1/10/2026): blu ardesia e ocra, testo nero, piè di pagina blu notte
+    colori: { primario: '#24445c', accento: '#cc7722', fondo: '#f5f4f0', bianco: '#ffffff', testo: '#000000', piede: '#0d1820' },
     // Archivo largo, solo per il logo (coro/Logo.astro)
     caratteriLogo: ['Archivo:wdth,wght@125,300;125,900'],
-    // In prova fino alla scelta definitiva: la grafica di prima, sotto /stagione/.
-    // Per nascondere selettore e copie delle pagine basta svuotare l'elenco.
-    inProva: [
-      {
-        veste: 'stagione',
-        palette: 'porpora',
-        carattere: 'manrope',
-        // Colori scelti da Mario con il pannello (1/10/2026): blu ardesia e ocra, piè di pagina blu notte
-        colori: { primario: '#24445c', accento: '#cc7722', fondo: '#f5f4f0', bianco: '#ffffff', testo: '#000000', piede: '#0d1820' },
-      },
-    ],
-    // Pannello "Prova la grafica" (palette, colori propri, caratteri): da togliere a scelta fatta.
+    // Pannello "Prova la grafica" (palette, colori propri, caratteri) per chi guarda il sito
     pannelloProva: true,
   },
 

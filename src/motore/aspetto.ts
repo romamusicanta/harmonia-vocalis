@@ -19,11 +19,6 @@ export const VESTI = {
     descrizione: 'Grafica da cartellone: numeri grandi, blocchi di colore pieni, schede nette. Per cori con una stagione concertistica.',
     abbinamenti: [['porpora', 'manrope'], ['notte', 'manrope'], ['pino', 'fraunces'], ['inchiostro', 'dmserif']],
   },
-  classica: {
-    nome: 'D · Classica',
-    descrizione: 'Grazie, impaginazione centrata e ornamenti sobri, come un programma di sala. Per musica sacra e antica.',
-    abbinamenti: [['porpora', 'garamond'], ['notte', 'caslon'], ['pino', 'garamond'], ['oltremare', 'fraunces']],
-  },
   calda: {
     nome: 'E · Calda',
     descrizione: 'Foto grandi, angoli morbidi, toni accoglienti. Per cori amatoriali, parrocchiali e giovanili.',
