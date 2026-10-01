@@ -659,3 +659,8 @@ a.sc:hover { box-shadow: var(--ombra); }
 :root[data-veste="stagione"] :is(.blocco-foto, .in-programma .foto, .sc .img, .porta .img, .accesso .lato-foto) img {
   mix-blend-mode: normal !important; opacity: 1 !important; filter: none !important;
 }
+
+/* ——— Scritte nere sui pulsanti chiari (oro, bianchi, con bordo) ———
+   I pulsanti pieni nel colore principale restano con la scritta bianca, per leggibilità. */
+:root[data-veste="stagione"] :is(.btn.g, .btn.o, .btn.b) { color: #000; }
+:root[data-veste="stagione"] .btn.o:hover { color: #fff; }
