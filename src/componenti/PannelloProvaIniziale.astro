@@ -3,11 +3,16 @@
 // sfarfallio). La scelta arriva dall'indirizzo (?palette=…&carattere=…&colori=…, per
 // condividerla) o da localStorage, e vale per tutte le pagine e le vesti.
 // Espone window.hvProva, usato dal pannello (PannelloProva.astro).
+import { coro } from '../motore/coro';
 import { CARATTERI, COLORI, PALETTE } from '../motore/aspetto';
 const valide = { palette: [...Object.keys(PALETTE), 'personalizzata'], carattere: Object.keys(CARATTERI), colori: Object.keys(COLORI) };
+// Impronta della grafica del sito: se cambia (nuova palette, nuovi colori…), le scelte salvate
+// prima nei browser non valgono più, così nessuno resta su una prova vecchia senza saperlo.
+const { veste, palette, carattere, colori, inProva } = coro.aspetto;
+const grafica = JSON.stringify({ veste, palette, carattere, colori, inProva });
 ---
 
-<script is:inline define:vars={{ valide }}>
+<script is:inline define:vars={{ valide, grafica }}>
   (function () {
     var html = document.documentElement;
     var CHIAVE = 'hv-prova';
@@ -15,9 +20,12 @@ const valide = { palette: [...Object.keys(PALETTE), 'personalizzata'], carattere
     var sito = { palette: html.dataset.palette, carattere: html.dataset.carattere, stile: html.getAttribute('style') || '' };
 
     function leggi() {
-      try { return JSON.parse(localStorage.getItem(CHIAVE) || '{}') || {}; } catch (e) { return {}; }
+      var s = {};
+      try { s = JSON.parse(localStorage.getItem(CHIAVE) || '{}') || {}; } catch (e) {}
+      return s.grafica === grafica ? s : {};
     }
     function salva(s) {
+      s.grafica = grafica;
       try { localStorage.setItem(CHIAVE, JSON.stringify(s)); } catch (e) {}
     }
     function dimentica() {
