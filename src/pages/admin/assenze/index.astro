@@ -5,6 +5,7 @@
 // In testa i report: chi è atteso al prossimo appuntamento, per sezione e con gli assenti, e
 // i presenti per sezione alle ultime prove della stagione.
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import Icona from '../../../componenti/Icona.astro';
 import { assenze, configurati, coristi, eventi, inizioStagione, oggi, piuGiorni, riepilogo, sezioniDi, type Evento, type Riepilogo } from '../../../area/dati';
 import { parti } from '../../../motore/concerti';
 
@@ -51,7 +52,7 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
     <div class="cruscotto" style="margin:28px 0 8px">
       {prossimo && (
         <article class="carta c-7 su">
-          <div class="ct"><h2>{quando(prossimo.evento.data)}{prossimo.evento.inizio && ` · ${prossimo.evento.inizio}`} · {prossimo.evento.titolo}</h2><span class="tag">{prossimo.evento.tipo === 'concerto' ? 'Prossimo concerto' : 'Prossima prova'}</span></div>
+          <div class="ct"><h2>{quando(prossimo.evento.data)}{prossimo.evento.inizio && ` · ${prossimo.evento.inizio}`} · {prossimo.evento.titolo}</h2><span class="tag">{prossimo.evento.tipo === 'concerto' ? 'Prossimo concerto' : 'Prossima prova'}</span>{elenco.some((e) => e.id === prossimo!.evento.id) && <a class="link-freccia" href={`?evento=${encodeURIComponent(prossimo.evento.id)}#correggi`}>Segna gli assenti <Icona nome="freccia" /></a>}</div>
           <div class="cc" style="display:flex;gap:28px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--linea)">
             <div><b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:56px;line-height:.8;letter-spacing:-0.012em;color:var(--primario)">{prossimo.attesi.length - prossimo.assenti.length}</b><span class="tenue" style="font-size:18px;font-weight:600;margin-left:10px">attesi su {prossimo.attesi.length}</span></div>
             <div class="legenda"><span><i style="background:var(--primario)"></i>Attesi</span><span><i style="background:var(--rosso)"></i>Assenti</span></div>
