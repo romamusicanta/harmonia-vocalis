@@ -18,6 +18,8 @@ const calendario = l('/concerti#in-programma');
 const altra = !DEMO ? alternativa(Astro.url) : undefined;
 // Area Amministrazione (/admin, accesso con Google per il gruppo admin@): solo nel sito vero
 const amministrazione = !DEMO && coro.amministrazione ? '/admin' : undefined;
+// Area del Maestro (/maestro, accesso con Google per il gruppo della direzione): solo nel sito vero
+const areaMaestro = !DEMO && coro.coristi?.direzione ? '/maestro' : undefined;
 ---
 
 <div class="servizio">
@@ -26,6 +28,7 @@ const amministrazione = !DEMO && coro.amministrazione ? '/admin' : undefined;
     <span class="dx">
       {f.organizzatori && <a href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
       {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />{en ? 'Members' : 'Area coristi'}</a>}
+      {areaMaestro && <a href={areaMaestro}><Icona nome="lucchetto" />{en ? 'Conductor' : 'Maestro'}</a>}
       {amministrazione && <a href={amministrazione}><Icona nome="persona" />{en ? 'Admin' : 'Amministrazione'}</a>}
       {altra && <span class="lingue" aria-label={en ? 'Language' : 'Lingua'}>{en ? <a href={altra.href} hreflang="it" lang="it">IT</a> : <b aria-current="true">IT</b>}<span aria-hidden="true">|</span>{en ? <b aria-current="true">EN</b> : <a href={altra.href} hreflang="en" lang="en">EN</a>}</span>}
     </span>
@@ -49,6 +52,7 @@ const amministrazione = !DEMO && coro.amministrazione ? '/admin' : undefined;
         <a class="btn g" href={calendario}><Icona nome="calendario" />{en ? 'Concert calendar' : 'Calendario concerti'}</a>
         {f.organizzatori && <a class="btn o" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
         {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />{en ? 'Members' : 'Area coristi'}</a>}
+        {areaMaestro && <a class="btn o" href={areaMaestro}><Icona nome="lucchetto" />{en ? 'Conductor' : 'Area del Maestro'}</a>}
         {amministrazione && <a class="btn o" href={amministrazione}><Icona nome="persona" />{en ? 'Admin' : 'Amministrazione'}</a>}
         {altra && <a class="btn o" href={altra.href} hreflang={altra.lingua} lang={altra.lingua}>{en ? 'Italiano' : 'English'}</a>}
       </div>

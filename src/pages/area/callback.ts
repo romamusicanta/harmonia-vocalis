@@ -10,7 +10,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const p = url.searchParams;
   const atteso = decifra<{ stato: string; dopo: string }>(cookies.get('hv-stato-area')?.value);
   cookies.delete('hv-stato-area', { path: '/area' });
-  const errore = (m: string) => redirect(`/area/accesso?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/area' })}`);
+  const maestro = atteso?.dopo.startsWith('/maestro');
+  const errore = (m: string) => redirect(`${maestro ? '/maestro/accesso' : '/area/accesso'}?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/area' })}`);
 
   if (p.get('error')) return errore('Accesso annullato su Google.');
   if (!atteso || atteso.stato !== p.get('state') || !p.get('code')) return errore('Accesso scaduto o non valido: riprova.');
@@ -22,5 +23,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   }
   if (!esito.corista) return errore(esito.errore ?? 'Accesso non riuscito.');
   salvaCorista(cookies, esito.corista, url.protocol === 'https:');
+  // Chi è solo nella direzione va nell'area del Maestro, chi è solo corista nell'area coristi
+  if (maestro && !esito.corista.direzione) return redirect('/area');
+  if (!maestro && !esito.corista.coro) return redirect('/maestro');
   return redirect(atteso.dopo);
 };

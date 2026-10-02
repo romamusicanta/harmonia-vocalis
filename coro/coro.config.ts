@@ -84,7 +84,7 @@ export default {
 
   // Area coristi (romamusicanta.org/area): entrano i membri del gruppo coro@ (i coristi attuali, con
   // l'account dell'associazione). I membri di maestro@ (il Maestro, anche con il suo Gmail, e admin@)
-  // vedono solo la pagina dei report, /area/direzione
+  // hanno la loro area separata, /maestro
   coristi: {
     gruppo: 'coro@romamusicanta.org',
     direzione: 'maestro@romamusicanta.org',

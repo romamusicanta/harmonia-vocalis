@@ -21,8 +21,8 @@ interface Props {
   titolo?: string;
   descrizione?: string;
   pagina?: Pagina;
-  // Area coristi: testata e piè di pagina ridotti; sezione attiva nella barra
-  area?: { sezione?: string; conBarra?: boolean };
+  // Area coristi (o del Maestro, maestro: true): testata e piè di pagina ridotti; sezione attiva nella barra
+  area?: { sezione?: string; conBarra?: boolean; maestro?: boolean };
   // Immagine dell'anteprima nei link condivisi (WhatsApp, social), da coro/immagini; senza, la foto di apertura
   anteprima?: string;
 }
@@ -90,11 +90,11 @@ const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorg
     {prova && <PannelloProvaIniziale />}
   </head>
   <body class:list={{ area: Boolean(area) }}>
-    {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} /> : <Testata veste={veste} pagina={pagina} />}
+    {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} maestro={area.maestro} /> : <Testata veste={veste} pagina={pagina} />}
     <main id="contenuto">
       <slot />
     </main>
-    {area ? <PiedeArea veste={veste} /> : <Piede veste={veste} />}
+    {area ? <PiedeArea veste={veste} maestro={area.maestro} /> : <Piede veste={veste} />}
     {DEMO && <Pannello veste={veste} />}
     {prova && <PannelloProva veste={veste} />}
     <script>

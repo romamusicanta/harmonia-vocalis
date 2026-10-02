@@ -69,6 +69,28 @@
       "permanent": false
     },
     {
+      "source": "/maestro/:percorso*",
+      "has": [
+        {
+          "type": "host",
+          "value": "harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://romamusicanta.org/maestro/:percorso*",
+      "permanent": false
+    },
+    {
+      "source": "/maestro",
+      "has": [
+        {
+          "type": "host",
+          "value": "harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://romamusicanta.org/maestro",
+      "permanent": false
+    },
+    {
       "source": "/stagione",
       "destination": "/",
       "permanent": true

@@ -1,6 +1,6 @@
 ---
-// Area coristi, pagina della direzione (gruppo coro.coristi.direzione: il Maestro e gli
-// amministratori; il middleware la apre solo a loro): chi manca alla prossima prova e al prossimo
+// Area del Maestro (/maestro), separata dall'area coristi: la vede solo il gruppo
+// coro.coristi.direzione (il Maestro e gli amministratori; vedi src/middleware.ts): chi manca alla prossima prova e al prossimo
 // concerto, con le note; assiduità della stagione per corista; storico delle prove.
 // Fonte: foglio "Coristi e assenze" e calendari Prove e Concerti (src/area/dati.ts).
 import Base from '../../layouts/Base.astro';
@@ -49,13 +49,13 @@ const breve = (data: string) => { const d = parti({ data }); return `${d.giornoS
 const sezioniAssiduita = sezioniDi(assiduita);
 ---
 
-<Base veste={veste} titolo="Direzione · Area coristi" area={{ sezione: 'direzione' }}>
+<Base veste={veste} titolo="Area del Maestro" area={{ maestro: true }}>
   <div class="area-intesta">
     <div class="w">
       <div>
-        <span class="eti" style="margin-bottom:12px">Direzione</span>
+        <span class="eti" style="margin-bottom:12px">Area del Maestro</span>
         <h1>Chi c'è e chi manca</h1>
-        <p>Le assenze le segnalano i coristi e le correggono i redattori; chi non segnala niente è contato presente. Riservato al Maestro e agli amministratori del sito.</p>
+        <p>Le assenze le segnalano i coristi e le correggono i redattori; chi non segnala niente è contato presente. Riservata al Maestro e agli amministratori del sito.</p>
       </div>
     </div>
   </div>

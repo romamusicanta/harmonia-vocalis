@@ -1,20 +1,22 @@
 ---
-// Veste Stagione: testata dell'area coristi, con utente collegato e barra delle sezioni.
+// Veste Stagione: testata dell'area coristi, con utente collegato e barra delle sezioni; con
+// maestro, testata dell'area del Maestro (/maestro), senza barra.
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
-import { eCorista } from '../../area/accesso';
 import { corista } from '../../demo/area';
 import type { Veste } from '../../motore/aspetto';
 
-interface Props { veste: Veste; sezione?: string; conBarra?: boolean }
-const { veste, sezione, conBarra = true } = Astro.props;
+interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean }
+const { veste, sezione, conBarra = true, maestro = false } = Astro.props;
 // Chi è entrato (src/middleware.ts); nella demo il corista di esempio
 const utente = Astro.locals.corista
   ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email }
   : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}` };
-const esci = DEMO ? link(veste, '/area/accesso') : '/area/esci';
+const esci = DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : '/area/esci';
+const nomeArea = maestro ? 'Area del Maestro' : 'Area coristi';
+const casa = !conBarra ? link(veste, '/') : maestro ? '/maestro' : link(veste, '/area');
 
 const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] = [
   { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
@@ -24,22 +26,17 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
   { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
   { id: 'presenze', testo: 'Presenze', icona: 'presenze', href: link(veste, '/area/presenze') },
 ];
-// La direzione (il Maestro e gli amministratori) ha la sua pagina; chi non è corista vede solo quella
-const io = Astro.locals.corista;
-const direzione = { id: 'direzione', testo: 'Direzione', icona: 'persone' as NomeIcona, href: '/area/direzione' };
-if (io && !eCorista(io)) sezioni.splice(0, sezioni.length, direzione);
-else if (io?.direzione) sezioni.push(direzione);
 ---
 
 <div class="servizio area-s">
   <div class="w">
-    <span class="info">Area coristi · accesso riservato ai coristi del {coro.nome}</span>
+    <span class="info">{maestro ? `Area del Maestro · accesso riservato alla direzione del ${coro.nome}` : `Area coristi · accesso riservato ai coristi del ${coro.nome}`}</span>
     <span class="dx"><a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></span>
   </div>
 </div>
 <header class="testata">
   <div class="w">
-    <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={link(veste, !conBarra ? '/' : io && !eCorista(io) ? '/area/direzione' : '/area')} /><span class="etichetta-area">Area coristi</span></span>
+    <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
     {conBarra ? (
       <div class="azioni">
         <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0)}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
@@ -50,17 +47,17 @@ else if (io?.direzione) sezioni.push(direzione);
     )}
   </div>
 </header>
-{DEMO && (
+{DEMO && !maestro && (
   <div class="avviso-anteprima" role="note">
     <div class="w"><Icona nome="info" classe="" /><span><b>Demo:</b> qui l'area coristi è aperta a tutti. Nel sito vero si entra con l'account Google, solo se l'indirizzo è nell'elenco dei coristi. Nomi e dati sono di esempio.</span></div>
   </div>
 )}
-{ANTEPRIMA_AREA && sezione !== 'direzione' && (
+{ANTEPRIMA_AREA && !maestro && (
   <div class="avviso-anteprima" role="note">
     <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Prove e concerti</b> e <b>Presenze</b> sono vere; bacheca, repertorio, registrazioni e concerti sono ancora dati di esempio.</span></div>
   </div>
 )}
-{conBarra && (
+{conBarra && !maestro && (
   <nav class="barra-area" aria-label="Area coristi">
     <div class="w">
       {sezioni.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona} />{s.testo}</a>)}

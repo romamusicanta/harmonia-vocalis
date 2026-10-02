@@ -1,11 +1,11 @@
 // Accesso all'area coristi: si entra con un account Google qualunque (anche personale), purché
 // l'indirizzo faccia parte del gruppo dei coristi (coro.coristi.gruppo) o di quello della direzione
-// (coro.coristi.direzione: il Maestro e gli amministratori, che vedono solo /area/direzione). A Google si chiedono solo
+// (coro.coristi.direzione: il Maestro e gli amministratori, che hanno la loro area, /maestro). A Google si chiedono solo
 // nome ed email, con il client OAuth "Sito - area coristi" del progetto Google Cloud
 // harmonia-vocalis-coristi (consenso Esterno: quello dell'area Amministrazione è Interno e
 // lascerebbe entrare solo gli account @romamusicanta.org).
-// La sessione è un cookie cifrato come quello dell'area Amministrazione, sul percorso /area; ogni
-// giorno si ricontrolla che l'indirizzo sia ancora nel gruppo.
+// La sessione è un cookie cifrato come quello dell'area Amministrazione, valido per /area e per
+// l'area del Maestro (/maestro); ogni giorno si ricontrolla che l'indirizzo sia ancora nei gruppi.
 import type { AstroCookies } from 'astro';
 import { CORISTI_CLIENT_ID, CORISTI_CLIENT_SECRET } from 'astro:env/server';
 import { coro } from '../motore/coro';
@@ -29,7 +29,9 @@ async function gruppiDi(email: string) {
   return { coro: inCoro, direzione: inDirezione };
 }
 
-const NOME = 'hv-corista';
+const NOME = 'hv-coro';
+// Il cookie di prima del 3/10/2026, solo sul percorso /area: si legge ancora e si sostituisce
+const VECCHIO = 'hv-corista';
 const DURATA = 60 * 60 * 24 * 30; // si resta dentro un mese
 const RICONTROLLO = 24 * 60 * 60 * 1000;
 
@@ -65,15 +67,19 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   return { corista: { email: io.email, nome: io.given_name ?? io.name ?? io.email, verificato: Date.now(), ...gruppi } };
 }
 
-const opzioni = (secure: boolean) => ({ httpOnly: true, secure, sameSite: 'lax' as const, path: '/area' });
+const opzioni = (secure: boolean) => ({ httpOnly: true, secure, sameSite: 'lax' as const, path: '/' });
 
-export const leggiCorista = (cookies: AstroCookies) => decifra<Corista>(cookies.get(NOME)?.value);
+export const leggiCorista = (cookies: AstroCookies) => decifra<Corista>(cookies.get(NOME)?.value ?? cookies.get(VECCHIO)?.value);
 
 export function salvaCorista(cookies: AstroCookies, c: Corista, secure: boolean) {
   cookies.set(NOME, cifra(c), { ...opzioni(secure), maxAge: DURATA });
+  if (cookies.has(VECCHIO)) cookies.delete(VECCHIO, { path: '/area' });
 }
 
-export const chiudiCorista = (cookies: AstroCookies) => cookies.delete(NOME, { path: '/area' });
+export function chiudiCorista(cookies: AstroCookies) {
+  cookies.delete(NOME, { path: '/' });
+  cookies.delete(VECCHIO, { path: '/area' });
+}
 
 // Il corista della sessione, ricontrollato nel gruppo se è passato un giorno; undefined se non
 // è più nel gruppo. Se Google non risponde, per non chiudere fuori nessuno vale l'ultimo controllo.

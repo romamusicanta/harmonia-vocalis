@@ -5,9 +5,9 @@ import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 
 // Pagine fuori dalla sitemap (sono anche noindex): l'anteprima dell'area coristi, l'area
-// Amministrazione e le vesti in prova, che stanno sotto /<veste>/
+// Amministrazione, l'area del Maestro e le vesti in prova, che stanno sotto /<veste>/
 const vesti = readdirSync('src/vesti', { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
-const escluse = new RegExp(`^/(area|admin|${vesti.join('|')})(/|$)`);
+const escluse = new RegExp(`^/(area|admin|maestro|${vesti.join('|')})(/|$)`);
 
 // Area coristi riservata: fuori dalla demo le sue pagine non si prerenderizzano ma girano come
 // funzione, così src/middleware.ts può lasciarle vedere solo ai coristi entrati con Google
