@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "DEMO=1 astro dev",
-    "dev:sito": "astro dev",
-    "build": "astro build",
+    "dev:sito": "npm run allegati; astro dev",
+    "build": "npm run allegati && astro build",
+    "allegati": "node --env-file-if-exists=.env.local scripts/scarica-allegati.mjs",
     "build:demo": "DEMO=1 astro build",
     "preview": "astro preview",
     "astro": "astro"

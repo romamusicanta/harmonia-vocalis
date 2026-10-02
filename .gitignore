@@ -5,3 +5,6 @@ dist/
 .env
 .vercel
 .DS_Store
+.env.local
+coro/immagini/drive/
+.env*

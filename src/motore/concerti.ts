@@ -24,6 +24,10 @@
 //                    Orchestra: Orchestra Sinfonica di Roma
 //                    Soprano: Maria Rossi
 //                    Solisti: (soprano, contralto, tenore, basso)   → "Da annunciare", con la nota
+//   Allegati     → (graffetta, file della cartella Concerti del Drive condiviso) un'immagine con
+//                  "locandina" nel nome è la locandina, le altre immagini la foto delle schede;
+//                  le righe Locandina:/Foto: della descrizione, se ci sono, hanno la precedenza.
+//                  Le scarica scripts/scarica-allegati.mjs prima della build.
 import ical from 'node-ical';
 import { coro, esisteImmagine } from './coro';
 import type { Brano, Concerto } from './tipi';
@@ -94,11 +98,34 @@ function leggiLuogo(luogo: string): Pick<Concerto, 'luogo' | 'sala' | 'indirizzo
   return { luogo: citta, sala: conCap > 0 && !eStrada ? primo : undefined, indirizzo: luogo };
 }
 
+// Immagini allegate all'evento, già scaricate da Drive in coro/immagini/drive/ (vedi
+// scripts/scarica-allegati.mjs, che usa la stessa regola per il nome del file)
+type Allegato = string | { params?: { FILENAME?: string; FMTTYPE?: string }; val?: string };
+const estensioni: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
+
+function leggiAllegati(e: ical.VEvent, dati: { foto?: string; locandina?: string }, avviso: (m: string) => void) {
+  for (const a of [(e as { attach?: Allegato | Allegato[] }).attach ?? []].flat()) {
+    if (typeof a === 'string') continue;
+    const id = a.val?.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/)?.[1];
+    const estensione = estensioni[a.params?.FMTTYPE ?? ''];
+    if (!id || !estensione) continue;
+    const nome = `drive/${id}.${estensione}`;
+    if (!esisteImmagine(nome)) {
+      avviso(`allegato "${a.params?.FILENAME}" non scaricato da Drive`);
+      continue;
+    }
+    if (/locandina/i.test(a.params?.FILENAME ?? '')) dati.locandina ??= nome;
+    else dati.foto ??= nome;
+  }
+}
+
 function daEvento(e: ical.VEvent): Concerto {
   const soloGiorno = (e.start as { dateOnly?: boolean }).dateOnly === true;
   const data = soloGiorno ? giornoIso(e.start) : oraRoma(e.start);
   const titoloEvento = testo(e.summary);
-  const { programma, dati, interpreti } = leggiDescrizione(testo(e.description), (m) => console.warn(`[calendario] ${data} ${titoloEvento}: ${m}`));
+  const avviso = (m: string) => console.warn(`[calendario] ${data} ${titoloEvento}: ${m}`);
+  const { programma, dati, interpreti } = leggiDescrizione(testo(e.description), avviso);
+  leggiAllegati(e, dati, avviso);
   const [principale] = programma;
   return {
     data,

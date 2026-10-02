@@ -14,8 +14,10 @@ export const coro = esito.data;
 // Si attiva con DEMO=1 (npm run dev, npm run build:demo).
 export const DEMO = process.env.DEMO === '1';
 
-// Le immagini del coro stanno in coro/immagini e si indicano per nome di file.
-const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/*.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
+// Le immagini del coro stanno in coro/immagini e si indicano per nome di file; quelle allegate
+// agli eventi del calendario arrivano da Drive prima della build in coro/immagini/drive/
+// (scripts/scarica-allegati.mjs) e si indicano come "drive/<id>.<ext>".
+const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
 
 export function immagine(nome: string) {
   const trovata = immagini[`/coro/immagini/${nome}`];
