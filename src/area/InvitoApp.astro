@@ -2,7 +2,8 @@
 // Aree riservate (coristi, Maestro, Amministrazione): invito a installare l'app (la PWA, vedi src/componenti/TestaApp.astro), sotto la
 // barra delle sezioni. Nascosto finché lo script non sa che serve: su Android e nei browser che lo
 // permettono un pulsante apre la richiesta di installazione; altrimenti spiega come aggiungerla
-// alla schermata Home: su iPhone e iPad da Condividi di Safari, su Android dal menu ⋮ di Chrome. Non compare se l'app è già aperta come app, né per
+// alla schermata Home: su iPhone e iPad da Condividi di Safari, su Android dal menu ⋮ di Chrome.
+// Solo su telefoni e tablet, mai sul computer. Non compare se l'app è già aperta come app, né per
 // chi l'ha chiuso (localStorage hv-invito-app, una data per area, per 60 giorni).
 import Icona from '../componenti/Icona.astro';
 
@@ -53,12 +54,11 @@ const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", admin: 
   let richiesta: (Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }) | undefined;
   const nascondi = () => { if (invito) invito.hidden = true; };
 
-  if (invito && !giaApp && !chiuso) {
-    if (ios || android) {
-      invito.classList.add(ios ? 'su-ios' : 'su-android');
-      invito.hidden = false;
-    }
-    // Chrome, Edge, Samsung Internet: la richiesta di installazione arriva quando il sito è installabile
+  // Solo su telefoni e tablet (Android, iPhone, iPad): mai sul computer, anche se il browser permette di installare
+  if (invito && !giaApp && !chiuso && (ios || android)) {
+    invito.classList.add(ios ? 'su-ios' : 'su-android');
+    invito.hidden = false;
+    // Chrome, Samsung Internet: la richiesta di installazione arriva quando il sito è installabile
     addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       richiesta = e as typeof richiesta;
