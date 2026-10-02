@@ -1,8 +1,8 @@
 ---
 // Aree riservate (coristi, Maestro, Amministrazione): invito a installare l'app (la PWA, vedi src/componenti/TestaApp.astro), sotto la
 // barra delle sezioni. Nascosto finché lo script non sa che serve: su Android e nei browser che lo
-// permettono un pulsante apre la richiesta di installazione; su iPhone e iPad, dove non si può,
-// spiega come aggiungerla dalla schermata Home. Non compare se l'app è già aperta come app, né per
+// permettono un pulsante apre la richiesta di installazione; altrimenti spiega come aggiungerla
+// alla schermata Home: su iPhone e iPad da Condividi di Safari, su Android dal menu ⋮ di Chrome. Non compare se l'app è già aperta come app, né per
 // chi l'ha chiuso (localStorage hv-invito-app, una data per area, per 60 giorni).
 import Icona from '../componenti/Icona.astro';
 
@@ -16,7 +16,8 @@ const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", admin: 
     <img src="/icone/icona-192.png" alt="" width="44" height="44" />
     <div class="testo">
       <b>Metti {nome} sul telefono</b>
-      <span class="android">Si apre dalla schermata Home, come un'app.</span>
+      <span class="breve">Si apre dalla schermata Home, come un'app.</span>
+      <span class="android">In Chrome tocca <Icona nome="menu-punti" /> in alto a destra, poi <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>): {nome} si aprirà con un tocco, come un'app.</span>
       <span class="ios">In Safari tocca <Icona nome="condividi-ios" /> <b>Condividi</b>, poi <b>Aggiungi alla schermata Home</b>: {nome} si aprirà con un tocco, come un'app.</span>
     </div>
     <button type="button" class="btn g piccolo installa">Installa</button>
@@ -32,9 +33,9 @@ const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", admin: 
   .invito-app .testo > b { display: block; color: var(--primario); font-size: 15px; }
   .invito-app .testo b { color: var(--primario); }
   .invito-app .testo :global(svg) { width: 16px; height: 16px; vertical-align: -3px; color: var(--primario); }
-  .invito-app .ios, .invito-app .installa { display: none; }
-  .invito-app.su-ios .ios { display: inline; }
-  .invito-app.su-ios .android { display: none; }
+  .invito-app .breve, .invito-app .ios, .invito-app .android, .invito-app .installa { display: none; }
+  .invito-app.su-ios .ios, .invito-app.su-android .android, .invito-app.installabile .breve { display: inline; }
+  .invito-app.installabile .android, .invito-app.installabile .ios { display: none; }
   .invito-app.installabile .installa { display: inline-flex; flex-shrink: 0; }
   .chiudi-invito { width: 40px; height: 40px; display: grid; place-items: center; background: none; border: 0; color: var(--tenue); border-radius: var(--raggio); flex-shrink: 0; cursor: pointer; }
   .chiudi-invito:hover { background: var(--fondo); color: var(--primario); }
@@ -46,13 +47,15 @@ const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", admin: 
   const giaApp = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
   let chiuso = false;
   try { chiuso = Date.now() - Number(localStorage.getItem(CHIAVE) ?? 0) < 60 * 86400 * 1000; } catch {}
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Gli iPad recenti si presentano come Mac con lo schermo tattile
+  const android = /android/i.test(navigator.userAgent);
+  const ios = !android && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
   let richiesta: (Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }) | undefined;
   const nascondi = () => { if (invito) invito.hidden = true; };
 
   if (invito && !giaApp && !chiuso) {
-    if (ios) {
-      invito.classList.add('su-ios');
+    if (ios || android) {
+      invito.classList.add(ios ? 'su-ios' : 'su-android');
       invito.hidden = false;
     }
     // Chrome, Edge, Samsung Internet: la richiesta di installazione arriva quando il sito è installabile
