@@ -2,7 +2,7 @@
 // Veste Stagione: barra di servizio, testata con marchio e menu, menu mobile.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import { coro } from '../../motore/coro';
+import { coro, DEMO } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import { vociMenu, type Pagina } from '../../motore/navigazione';
 import type { Veste } from '../../motore/aspetto';
@@ -12,6 +12,8 @@ const { veste, pagina } = Astro.props;
 const voci = vociMenu(veste);
 const f = coro.funzioni;
 const calendario = link(veste, '/concerti#in-programma');
+// Area Amministrazione (/admin, accesso con Google per il gruppo admin@): solo nel sito vero
+const amministrazione = !DEMO && coro.amministrazione ? '/admin' : undefined;
 ---
 
 <div class="servizio">
@@ -20,6 +22,7 @@ const calendario = link(veste, '/concerti#in-programma');
     <span class="dx">
       {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
       {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
+      {amministrazione && <a href={amministrazione}><Icona nome="persona" />Amministrazione</a>}
     </span>
   </div>
 </div>
@@ -41,6 +44,7 @@ const calendario = link(veste, '/concerti#in-programma');
         <a class="btn g" href={calendario}><Icona nome="calendario" />Calendario concerti</a>
         {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
         {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
+        {amministrazione && <a class="btn o" href={amministrazione}><Icona nome="persona" />Amministrazione</a>}
       </div>
     </div>
   </div>
