@@ -14,6 +14,39 @@
       "permanent": true
     },
     {
+      "source": "/:percorso*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://harmoniavocalis.com/:percorso*",
+      "permanent": true
+    },
+    {
+      "source": "/admin/:percorso*",
+      "has": [
+        {
+          "type": "host",
+          "value": "harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://romamusicanta.org/admin/:percorso*",
+      "permanent": false
+    },
+    {
+      "source": "/admin",
+      "has": [
+        {
+          "type": "host",
+          "value": "harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://romamusicanta.org/admin",
+      "permanent": false
+    },
+    {
       "source": "/stagione",
       "destination": "/",
       "permanent": true
