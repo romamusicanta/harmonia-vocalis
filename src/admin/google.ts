@@ -11,7 +11,7 @@ const AMBITI = [
   'profile',
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/drive',
-  // Per sapere se chi entra fa parte del gruppo degli amministratori
+  // Per sapere se chi entra fa parte del gruppo dei redattori
   'https://www.googleapis.com/auth/cloud-identity.groups.readonly',
 ];
 

@@ -75,10 +75,11 @@ export default {
     presentazione: 'Si apre con il Requiem di Mozart. Messe, oratori e grandi pagine corali con orchestra, a Roma e nel Lazio.',
   },
 
-  // Area Amministrazione (romamusicanta.org/admin): entrano i membri del gruppo admin@
+  // Area Amministrazione (romamusicanta.org/admin): entrano i membri del gruppo redattori@, che contiene
+  // admin@ (chi gestisce il sito) e chi scrive i contenuti: concerti, prove, spartiti, foto
   amministrazione: {
     dominio: 'romamusicanta.org',
-    gruppo: 'admin@romamusicanta.org',
+    gruppo: 'redattori@romamusicanta.org',
   },
 
   // Area coristi (romamusicanta.org/area): entrano i membri del gruppo coro@, anche con l'account
