@@ -1,23 +1,23 @@
 ---
-// Area coristi e area del Maestro: invito a installare l'app (la PWA, vedi src/componenti/TestaApp.astro), sotto la
+// Aree riservate (coristi, Maestro, Amministrazione): invito a installare l'app (la PWA, vedi src/componenti/TestaApp.astro), sotto la
 // barra delle sezioni. Nascosto finché lo script non sa che serve: su Android e nei browser che lo
 // permettono un pulsante apre la richiesta di installazione; su iPhone e iPad, dove non si può,
 // spiega come aggiungerla dalla schermata Home. Non compare se l'app è già aperta come app, né per
 // chi l'ha chiuso (localStorage hv-invito-app, una data per area, per 60 giorni).
 import Icona from '../componenti/Icona.astro';
 
-interface Props { maestro?: boolean }
-const { maestro = false } = Astro.props;
-const nome = maestro ? "l'area del Maestro" : "l'area coristi";
+interface Props { area?: 'coristi' | 'maestro' | 'admin' }
+const { area = 'coristi' } = Astro.props;
+const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", admin: "l'Amministrazione" }[area];
 ---
 
-<div class="invito-app" hidden data-chiave={maestro ? 'hv-invito-app-maestro' : 'hv-invito-app'}>
+<div class="invito-app" hidden data-chiave={area === 'coristi' ? 'hv-invito-app' : `hv-invito-app-${area}`}>
   <div class="w">
     <img src="/icone/icona-192.png" alt="" width="44" height="44" />
     <div class="testo">
       <b>Metti {nome} sul telefono</b>
       <span class="android">Si apre dalla schermata Home, come un'app.</span>
-      <span class="ios">In Safari tocca <Icona nome="condividi" /> <b>Condividi</b>, poi <b>Aggiungi alla schermata Home</b>: {nome} si aprirà con un tocco, come un'app.</span>
+      <span class="ios">In Safari tocca <Icona nome="condividi-ios" /> <b>Condividi</b>, poi <b>Aggiungi alla schermata Home</b>: {nome} si aprirà con un tocco, come un'app.</span>
     </div>
     <button type="button" class="btn g piccolo installa">Installa</button>
     <button type="button" class="chiudi-invito" aria-label="Non ora" title="Non ora"><Icona nome="chiudi" classe="" /></button>

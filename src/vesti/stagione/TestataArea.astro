@@ -104,4 +104,4 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     </div>
   </nav>
 )}
-{conBarra && tipo !== 'admin' && !DEMO && <InvitoApp maestro={tipo === 'maestro'} />}
+{conBarra && !DEMO && <InvitoApp area={tipo} />}
