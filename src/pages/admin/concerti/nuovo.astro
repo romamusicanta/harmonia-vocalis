@@ -15,6 +15,16 @@ const ruoli = ['Soprano', 'Mezzosoprano', 'Contralto', 'Tenore', 'Baritono', 'Ba
   <h1>Nuovo concerto</h1>
   <p class="tenue" style="max-width:62ch">Crea l'evento nel calendario "Concerti" e la cartella del concerto su Drive, con locandina e copertina già allegate. Dopo, per correggere qualcosa, si modifica l'evento direttamente nel calendario.</p>
 
+  <div class="scheda-admin" style="max-width:820px;margin-top:28px;border-width:2px;border-color:var(--accento)">
+    <b style="color:var(--primario);font-size:19px">Parti dalla locandina</b>
+    <p class="tenue" style="font-size:15px;margin:6px 0 14px">Carica la locandina: il sito la legge e riempie i campi qui sotto. Controllali sempre prima di creare il concerto, soprattutto data e nomi.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <input type="file" id="leggi-file" accept="image/jpeg,image/png,image/webp" />
+      <button class="btn g" type="button" id="leggi">Leggi la locandina</button>
+    </div>
+    <div id="letto" role="status"></div>
+  </div>
+
   <form class="modulo" id="nuovo-concerto" style="max-width:820px;margin-top:28px" novalidate>
     <h2>Quando e dove</h2>
     <div class="riga-campi">
@@ -57,6 +67,8 @@ const ruoli = ['Soprano', 'Mezzosoprano', 'Contralto', 'Tenore', 'Baritono', 'Ba
     </div>
     <p><button class="btn o" type="button" data-aggiungi="interpreti">+ Un altro interprete</button></p>
 
+    <div class="campo"><label for="video">Video su YouTube</label><input id="video" name="video" placeholder="https://www.youtube.com/watch?v=…" /><span class="aiuto">Per un concerto passato con la registrazione sul canale: l'indirizzo del video. Facoltativo.</span></div>
+
     <h2>Immagini</h2>
     <div class="riga-campi">
       <div class="campo"><label for="locandina">Locandina</label><input id="locandina" name="locandina" type="file" accept="image/jpeg,image/png,image/webp" /><span class="aiuto">La locandina ufficiale (JPEG o PNG; un PDF va prima salvato come immagine).</span></div>
@@ -74,15 +86,71 @@ const ruoli = ['Soprano', 'Mezzosoprano', 'Contralto', 'Tenore', 'Baritono', 'Ba
     const esito = document.getElementById('esito')!;
 
     // Righe ripetibili: si copia la prima, svuotata
+    function aggiungiRiga(id: string) {
+      const contenitore = document.getElementById(id)!;
+      const copia = contenitore.firstElementChild!.cloneNode(true) as HTMLElement;
+      copia.querySelectorAll('input').forEach((i) => { i.value = ''; i.required = false; });
+      contenitore.append(copia);
+      return copia;
+    }
     for (const b of document.querySelectorAll<HTMLButtonElement>('[data-aggiungi]')) {
-      b.addEventListener('click', () => {
-        const contenitore = document.getElementById(b.dataset.aggiungi!)!;
-        const copia = contenitore.firstElementChild!.cloneNode(true) as HTMLElement;
-        copia.querySelectorAll('input').forEach((i) => { i.value = ''; i.required = false; });
-        contenitore.append(copia);
-        copia.querySelector('input')!.focus();
+      b.addEventListener('click', () => aggiungiRiga(b.dataset.aggiungi!).querySelector('input')!.focus());
+    }
+
+    // Righe ripetibili riempite da un elenco: tante righe quanti gli elementi (almeno una)
+    function riempiRighe(id: string, elenco: Record<string, string | null>[]) {
+      const contenitore = document.getElementById(id)!;
+      while (contenitore.children.length > 1) contenitore.lastElementChild!.remove();
+      contenitore.querySelectorAll('input').forEach((i) => (i.value = ''));
+      elenco.forEach((voce, n) => {
+        const riga = n === 0 ? (contenitore.firstElementChild as HTMLElement) : aggiungiRiga(id);
+        for (const [campo, valore] of Object.entries(voce)) {
+          const input = riga.querySelector<HTMLInputElement>(`[name="${campo}"]`);
+          if (input) input.value = valore ?? '';
+        }
       });
     }
+
+    // "Leggi la locandina": i dati letti riempiono il modulo, la locandina va nel suo campo
+    const letto = document.getElementById('letto')!;
+    document.getElementById('leggi')!.addEventListener('click', async () => {
+      const file = (document.getElementById('leggi-file') as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const pulsante = document.getElementById('leggi') as HTMLButtonElement;
+      pulsante.disabled = true;
+      letto.className = 'messaggio';
+      letto.textContent = 'Leggo la locandina… (qualche secondo)';
+      try {
+        const ridotta = await riduci(file);
+        const dati = new FormData();
+        dati.set('locandina', ridotta);
+        const r = await fetch('/admin/concerti/leggi-locandina', { method: 'POST', body: dati });
+        const j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+        if (!j.ok) throw new Error(j.errore);
+        const d = j.dati;
+        modulo.reset();
+        for (const campo of ['data', 'ora', 'citta', 'sala', 'indirizzo', 'rassegna', 'organico', 'brani', 'organizza', 'ingresso', 'evidenza']) {
+          (modulo.elements.namedItem(campo) as HTMLInputElement).value = d[campo] ?? '';
+        }
+        riempiRighe('opere', d.opere);
+        riempiRighe('interpreti', d.interpreti);
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        (document.getElementById('locandina') as HTMLInputElement).files = dt.files;
+        const avvisi = [
+          ...(!d.locandina ? ['Non sembra la locandina di un concerto.'] : []),
+          ...(!d.coroCitato ? ['La locandina non nomina il coro: sei sicuro che sia un nostro concerto?'] : []),
+          ...d.dubbi,
+        ];
+        letto.className = `messaggio ${avvisi.length ? 'errore' : 'ok'}`;
+        letto.innerHTML = '<b>Campi riempiti dalla locandina: controllali.</b>' + (avvisi.length ? `<ul style="margin:8px 0 0 18px">${avvisi.map((a: string) => `<li>${a.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : '');
+      } catch (e) {
+        letto.className = 'messaggio errore';
+        letto.textContent = `Non letta: ${(e as Error).message}`;
+      } finally {
+        pulsante.disabled = false;
+      }
+    });
 
     function mostra(html: string, classe: string) {
       esito.className = `messaggio ${classe}`;
@@ -102,10 +170,19 @@ const ruoli = ['Soprano', 'Mezzosoprano', 'Contralto', 'Tenore', 'Baritono', 'Ba
           if (f instanceof File && f.size) dati.set(campo, await riduci(f));
           else dati.delete(campo);
         }
-        const r = await fetch('/admin/concerti/crea', { method: 'POST', body: dati });
-        const j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+        let r = await fetch('/admin/concerti/crea', { method: 'POST', body: dati });
+        let j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+        // Nel calendario c'è già un concerto quel giorno: si crea solo se lo conferma
+        if (j.giaPresente) {
+          if (!confirm(`Nel calendario c'è già un concerto quel giorno: «${j.giaPresente}». Lo creo lo stesso?`)) throw new Error('c’è già un concerto quel giorno');
+          dati.set('conferma', '1');
+          r = await fetch('/admin/concerti/crea', { method: 'POST', body: dati });
+          j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+        }
         if (!j.ok) throw new Error(j.errore);
         modulo.reset();
+        letto.className = '';
+        letto.textContent = '';
         mostra(`Concerto creato. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a> · <a href="${j.cartella}" target="_blank" rel="noopener">Apri la cartella su Drive</a>. Per vederlo sul sito: <a href="/admin">Pubblicazione</a> → "Pubblica ora".`, 'ok');
       } catch (e) {
         mostra(`Non creato: ${(e as Error).message}`, 'errore');

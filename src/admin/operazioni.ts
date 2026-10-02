@@ -32,6 +32,16 @@ export async function eventiConcerti(s: Sessione): Promise<EventoApi[]> {
   return items.filter((e) => e.status !== 'cancelled');
 }
 
+// Gli eventi di un giorno (ora di Roma), per non creare due volte lo stesso concerto
+export async function eventiDelGiorno(s: Sessione, data: string): Promise<EventoApi[]> {
+  const giorno = (d: string) => new Date(`${d}T00:00:00+01:00`);
+  const fine = giorno(data);
+  fine.setUTCDate(fine.getUTCDate() + 1);
+  const p = new URLSearchParams({ singleEvents: 'true', timeMin: giorno(data).toISOString(), timeMax: fine.toISOString(), timeZone: 'Europe/Rome' });
+  const { items = [] } = await api<{ items?: EventoApi[] }>(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events?${p}`);
+  return items.filter((e) => e.status !== 'cancelled');
+}
+
 // Lo stesso evento nella forma di node-ical, per leggerlo con src/motore/calendario.ts
 export function comeIcal(e: EventoApi): ical.VEvent {
   const soloGiorno = Boolean(e.start.date);

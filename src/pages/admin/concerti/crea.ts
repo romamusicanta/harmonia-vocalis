@@ -1,7 +1,7 @@
 // Crea un concerto dal modulo /admin/concerti/nuovo: cartella su Drive con locandina e copertina,
 // evento nel calendario "Concerti" scritto secondo la convenzione di src/motore/concerti.ts.
 import type { APIRoute } from 'astro';
-import { caricaFile, cartellaConcerto, creaEvento } from '../../../admin/operazioni';
+import { caricaFile, cartellaConcerto, creaEvento, eventiDelGiorno } from '../../../admin/operazioni';
 
 export const prerender = false;
 
@@ -47,6 +47,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!opere.length) return json({ ok: false, errore: "manca l'opera" }, 400);
     if (opere.some((o) => /:/.test(o.opera) && !o.autore)) return json({ ok: false, errore: 'un’opera senza autore non può contenere i due punti' }, 400);
 
+    // Video: l'indirizzo di YouTube o il solo ID
+    const indirizzoVideo = pulisci(f.get('video'));
+    const video = indirizzoVideo.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(indirizzoVideo) ? indirizzoVideo : '');
+    if (indirizzoVideo && !video) return json({ ok: false, errore: 'indirizzo del video non riconosciuto' }, 400);
+
+    // Un concerto già in calendario quel giorno: si crea solo con la conferma
+    if (!f.get('conferma')) {
+      const [gia] = await eventiDelGiorno(s, data);
+      if (gia) return json({ ok: false, giaPresente: gia.summary ?? 'senza titolo' });
+    }
+
     const nomi = tutti(f, 'nome');
     const interpreti = tutti(f, 'ruolo').map((ruolo, i) => ({ ruolo, nome: nomi[i] })).filter((x) => x.ruolo || x.nome);
     for (const x of interpreti) {
@@ -57,7 +68,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Descrizione secondo la convenzione: opere, poi organico e brani (dell'ultima), poi le etichette
     const righe = [
       ...opere.map((o) => (o.autore ? `${o.autore} · ${o.opera}` : o.opera)),
-      ...[['Organico', pulisci(f.get('organico'))], ['Brani', pulisci(f.get('brani'))], ['Evidenza', pulisci(f.get('evidenza'))], ['Organizza', pulisci(f.get('organizza'))], ['Ingresso', pulisci(f.get('ingresso'))]]
+      ...[['Organico', pulisci(f.get('organico'))], ['Brani', pulisci(f.get('brani'))], ['Evidenza', pulisci(f.get('evidenza'))], ['Organizza', pulisci(f.get('organizza'))], ['Ingresso', pulisci(f.get('ingresso'))], ['Video', video]]
         .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`),
       ...interpreti.map((x) => `${x.ruolo}: ${x.nome}`.trim()),
     ];

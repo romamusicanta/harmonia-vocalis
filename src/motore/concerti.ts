@@ -61,11 +61,21 @@ const prossimi = (dalCalendario ?? prossimiCoro).filter((c) => giorno(c) >= oggi
 
 export const prossimiConcerti = async (): Promise<Concerto[]> => prossimi;
 
-// L'archivio, dal più recente: quello storico di coro/concerti.ts più i concerti passati del
-// calendario (se un giorno è in tutti e due, vale coro/concerti.ts)
-const giorniStorici = new Set(archivioCoro.map(giorno));
-export const archivio = [...archivioCoro, ...(dalCalendario ?? []).filter((c) => giorno(c) < oggi && !giorniStorici.has(giorno(c)))]
-  .sort((a, b) => b.data.localeCompare(a.data));
+// L'archivio, dal più recente: i concerti passati del calendario più quelli storici di
+// coro/concerti.ts. Se un giorno è in tutti e due vale il calendario, e il file completa solo i
+// dati che l'evento non ha (per esempio il video): così chi crea nel calendario un concerto vecchio
+// (anche dall'area Amministrazione) prende il posto della riga del file senza toccare il codice.
+const passatiCalendario = new Map((dalCalendario ?? []).filter((c) => giorno(c) < oggi).map((c) => [giorno(c), c]));
+const soloDefiniti = (c: Concerto) => Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined)) as Partial<Concerto>;
+export const archivio = [
+  ...archivioCoro.map((f) => {
+    const c = passatiCalendario.get(giorno(f));
+    if (!c) return f;
+    passatiCalendario.delete(giorno(f));
+    return { ...f, ...soloDefiniti(c) };
+  }),
+  ...passatiCalendario.values(),
+].sort((a, b) => b.data.localeCompare(a.data));
 
 // ——— Formattazione ———
 
