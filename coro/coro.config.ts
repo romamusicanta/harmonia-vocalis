@@ -25,17 +25,17 @@ export default {
     cap: '00159',
     citta: 'Roma',
   },
-  // DA VERIFICARE: italiacori indica Via del Frantoio 2 (Liceo Artistico Enzo Rossi),
-  // la descrizione del canale YouTube indica Via di Casal Bruciato 15.
+  // Confermato da Mario il 2/10/2026. Le prove sono anche nel calendario privato "Prove": il venerdì
+  // solo prove supplementari, aggiunte volta per volta quando sono confermate
   prove: {
     nome: 'Liceo Artistico Enzo Rossi',
     indirizzo: 'Via del Frantoio 2',
     cap: '00159',
     citta: 'Roma',
-    orari: 'Ogni mercoledì e due venerdì al mese, dalle 20:00 alle 22:00',
+    orari: 'Ogni mercoledì dalle 20:00 alle 22:00, a volte anche il venerdì',
     riquadri: [
       ['Mer', 'Ogni settimana'],
-      ['Ven', 'Due volte al mese'],
+      ['Ven', 'Prove supplementari'],
       ['20:00', 'Fino alle 22:00'],
     ],
   },

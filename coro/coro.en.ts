@@ -6,10 +6,10 @@ export default {
   affiliazioni: 'Member of ARCL and Feniarco',
   descrizione: 'A mixed polyphonic choir in Rome conducted by Maestro Claudio Maria Micheli. Sacred and symphonic repertoire, from the Baroque to Morricone.',
   prove: {
-    orari: 'Every Wednesday and two Fridays a month, 8 to 10 pm',
+    orari: 'Every Wednesday, 8 to 10 pm, sometimes also on Fridays',
     riquadri: [
       ['Wed', 'Every week'],
-      ['Fri', 'Twice a month'],
+      ['Fri', 'Extra rehearsals'],
       ['8 pm', 'Until 10 pm'],
     ],
   },
