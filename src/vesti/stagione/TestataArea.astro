@@ -3,7 +3,8 @@
 // Amministrazione), sempre in tre fasce: barra scura con il sito pubblico e la tendina "Area
 // riservata" per passare da un'area all'altra; testata chiara con logo, nome dell'area, utente
 // collegato e uscita; barra delle sezioni. Sul telefono (sotto 1000px) barra scura e sezioni stanno
-// nel menu dell'hamburger (in alto aree riservate e sito pubblico, sotto le sezioni). Con conBarra = false (pagine di accesso) niente utente, sezioni né
+// nel menu dell'hamburger (in alto aree riservate e sito pubblico, sotto le sezioni), con
+// l'hamburger a sinistra, il logo al centro e utente ed Esci a destra. Con conBarra = false (pagine di accesso) niente utente, sezioni né
 // menu, solo "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
@@ -70,15 +71,15 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     </span>
   </div>
 </div>
-<header class="testata">
+<header class:list={['testata', { 'testata-area': conBarra && utente }]}>
   <div class="w">
-    <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
+    {conBarra && utente && <button class="hamb hamb-area" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-area"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>}
+    <span class="marchio-area"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
     {conBarra ? (
       utente && (
         <div class="azioni">
-          <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0).toUpperCase()}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
+          <span class="utente"><span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} /></span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
           <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
-          <button class="hamb hamb-area" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-area"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
         </div>
       )
     ) : (
