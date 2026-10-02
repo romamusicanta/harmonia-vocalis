@@ -78,7 +78,8 @@ export const chiudiCorista = (cookies: AstroCookies) => cookies.delete(NOME, { p
 // Il corista della sessione, ricontrollato nel gruppo se è passato un giorno; undefined se non
 // è più nel gruppo. Se Google non risponde, per non chiudere fuori nessuno vale l'ultimo controllo.
 export async function coristaValido(c: Corista): Promise<Corista | undefined> {
-  if (Date.now() - c.verificato < RICONTROLLO) return c;
+  // Le sessioni di prima del gruppo della direzione (senza il campo) si ricontrollano subito
+  if (Date.now() - c.verificato < RICONTROLLO && c.direzione !== undefined) return c;
   try {
     const gruppi = await gruppiDi(c.email);
     return gruppi.coro || gruppi.direzione ? { ...c, verificato: Date.now(), ...gruppi } : undefined;
