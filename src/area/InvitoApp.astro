@@ -1,0 +1,74 @@
+---
+// Area coristi: invito a installare l'app (la PWA, vedi src/componenti/TestaApp.astro), sotto la
+// barra delle sezioni. Nascosto finché lo script non sa che serve: su Android e nei browser che lo
+// permettono un pulsante apre la richiesta di installazione; su iPhone e iPad, dove non si può,
+// spiega come aggiungerla dalla schermata Home. Non compare se l'app è già aperta come app, né per
+// chi l'ha chiuso (localStorage hv-invito-app, per 60 giorni).
+import Icona from '../componenti/Icona.astro';
+---
+
+<div class="invito-app" hidden>
+  <div class="w">
+    <img src="/icone/icona-192.png" alt="" width="44" height="44" />
+    <div class="testo">
+      <b>Metti l'area coristi sul telefono</b>
+      <span class="android">Si apre dalla schermata Home, come un'app.</span>
+      <span class="ios">In Safari tocca <Icona nome="condividi" /> <b>Condividi</b>, poi <b>Aggiungi alla schermata Home</b>: l'area coristi si aprirà con un tocco, come un'app.</span>
+    </div>
+    <button type="button" class="btn g piccolo installa">Installa</button>
+    <button type="button" class="chiudi-invito" aria-label="Non ora" title="Non ora"><Icona nome="chiudi" classe="" /></button>
+  </div>
+</div>
+
+<style>
+  .invito-app { background: var(--bianco); border-bottom: 1px solid var(--linea); }
+  .invito-app .w { display: flex; align-items: center; gap: 14px; padding-top: 14px; padding-bottom: 14px; }
+  .invito-app img { border-radius: 10px; flex-shrink: 0; }
+  .invito-app .testo { flex: 1; min-width: 0; font-size: 14px; line-height: 1.45; color: var(--tenue); }
+  .invito-app .testo > b { display: block; color: var(--primario); font-size: 15px; }
+  .invito-app .testo b { color: var(--primario); }
+  .invito-app .testo :global(svg) { width: 16px; height: 16px; vertical-align: -3px; color: var(--primario); }
+  .invito-app .ios, .invito-app .installa { display: none; }
+  .invito-app.su-ios .ios { display: inline; }
+  .invito-app.su-ios .android { display: none; }
+  .invito-app.installabile .installa { display: inline-flex; flex-shrink: 0; }
+  .chiudi-invito { width: 40px; height: 40px; display: grid; place-items: center; background: none; border: 0; color: var(--tenue); border-radius: var(--raggio); flex-shrink: 0; cursor: pointer; }
+  .chiudi-invito:hover { background: var(--fondo); color: var(--primario); }
+</style>
+
+<script>
+  const CHIAVE = 'hv-invito-app';
+  const invito = document.querySelector<HTMLElement>('.invito-app');
+  const giaApp = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
+  let chiuso = false;
+  try { chiuso = Date.now() - Number(localStorage.getItem(CHIAVE) ?? 0) < 60 * 86400 * 1000; } catch {}
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let richiesta: (Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }) | undefined;
+  const nascondi = () => { if (invito) invito.hidden = true; };
+
+  if (invito && !giaApp && !chiuso) {
+    if (ios) {
+      invito.classList.add('su-ios');
+      invito.hidden = false;
+    }
+    // Chrome, Edge, Samsung Internet: la richiesta di installazione arriva quando il sito è installabile
+    addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      richiesta = e as typeof richiesta;
+      invito.classList.add('installabile');
+      invito.hidden = false;
+    });
+    invito.querySelector('.installa')?.addEventListener('click', async () => {
+      if (!richiesta) return;
+      await richiesta.prompt();
+      const { outcome } = await richiesta.userChoice;
+      richiesta = undefined;
+      if (outcome === 'accepted') nascondi();
+    });
+    invito.querySelector('.chiudi-invito')?.addEventListener('click', () => {
+      try { localStorage.setItem(CHIAVE, String(Date.now())); } catch {}
+      nascondi();
+    });
+    addEventListener('appinstalled', nascondi);
+  }
+</script>

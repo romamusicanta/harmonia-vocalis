@@ -5,6 +5,7 @@
 // Con conBarra = false (pagine di accesso) niente utente né sezioni, solo "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
+import InvitoApp from '../../area/InvitoApp.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link, linkArea } from '../../motore/url';
 import { corista } from '../../demo/area';
@@ -103,3 +104,4 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     </div>
   </nav>
 )}
+{conBarra && tipo === 'coristi' && !DEMO && <InvitoApp />}
