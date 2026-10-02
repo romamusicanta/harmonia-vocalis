@@ -148,12 +148,20 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 .schede.carosello > * { scroll-snap-align: start; }
 @media (max-width: 860px) { .schede.carosello { grid-auto-columns: calc((100% - 24px) / 2); } }
 @media (max-width: 560px) { .schede.carosello { grid-auto-columns: 85%; } }
-.frecce-carosello { display: inline-flex; gap: 8px; }
-.frecce-carosello[hidden] { display: none; }
-.freccia-carosello { width: 44px; height: 44px; display: grid; place-items: center; border: 2px solid var(--primario); border-radius: 50%; background: var(--bianco); color: var(--primario); cursor: pointer; }
-.freccia-carosello:first-child svg { transform: rotate(180deg); }
+/* Frecce ai lati del carosello, a metà altezza delle schede, e sfumatura sul lato con altre schede */
+.carosello-cont { position: relative; }
+.freccia-carosello { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 52px; height: 52px; display: grid; place-items: center; border: 2px solid var(--primario); border-radius: 50%; background: var(--bianco); color: var(--primario); cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); transition: opacity .2s, background .2s, color .2s; }
+.freccia-carosello[hidden] { display: none; }
+.freccia-carosello.sx { left: -26px; }
+.freccia-carosello.dx { right: -26px; }
+.freccia-carosello.sx svg { transform: rotate(180deg); }
 .freccia-carosello:hover:not(:disabled) { background: var(--primario); color: #fff; }
-.freccia-carosello:disabled { opacity: .3; cursor: default; }
+.freccia-carosello:disabled { opacity: .35; box-shadow: none; pointer-events: none; }
+@media (max-width: 1340px) { .freccia-carosello.sx { left: 8px; } .freccia-carosello.dx { right: 8px; } }
+.carosello-cont::before, .carosello-cont::after { content: ''; position: absolute; top: 0; bottom: 4px; width: 48px; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.carosello-cont::before { left: 0; background: linear-gradient(to right, var(--bianco), transparent); }
+.carosello-cont::after { right: 0; background: linear-gradient(to left, var(--bianco), transparent); }
+.carosello-cont.altro-sx::before, .carosello-cont.altro-dx::after { opacity: .9; }
 .sc { border: 1px solid var(--linea); display: flex; flex-direction: column; transition: box-shadow .2s; background: var(--bianco); min-width: 0; }
 a.sc:hover { box-shadow: var(--ombra); }
 .sc .top { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 20px 20px 16px; }

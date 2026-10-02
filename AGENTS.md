@@ -59,7 +59,7 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: per questo o
 - Due immagini identiche byte per byte (per esempio la stessa locandina in `coro/immagini` e su Drive) Astro le pubblica una volta sola, con il nome della prima.
 
 - Anteprima nei link condivisi: `Base.astro` mette i meta Open Graph nelle pagine indicizzate, con un JPEG fino a 1200 px della prop `anteprima` (pagine dei concerti: locandina, altrimenti foto; Il coro, Il Maestro, Canta con noi: la loro foto), altrimenti della foto di apertura. WhatsApp tiene in cache le anteprime: dopo un cambio può servire qualche giorno.
-- Home: le schede "Prossimi e recenti" sono un carosello orizzontale (frecce che compaiono solo se le schede non entrano, aggancio alle schede, immagini in caricamento differito: circa 50 KB l'una) con i concerti in programma e i passati con `Home: sì`; se nessun passato è scelto, i più recenti fino a 4 schede.
+- Home: le schede "Prossimi e recenti" sono un carosello orizzontale (frecce ai lati a metà altezza e sfumatura sul bordo con altre schede, quando non entrano tutte; aggancio alle schede; immagini in caricamento differito: circa 50 KB l'una) con i concerti in programma e i passati con `Home: sì`; se nessun passato è scelto, i più recenti fino a 4 schede.
 - Le miniature YouTube del canale esistono solo fino a `sddefault` (640×480): `maxresdefault` restituisce 404.
 - Il luogo delle prove è discordante tra italiacori (Via del Frantoio 2) e YouTube (Via di Casal Bruciato 15): da confermare prima della pubblicazione.
 - Le foto in `coro/immagini/` vengono dalla scheda italiacori: autori e permessi sono da verificare (`CREDITI.md`).

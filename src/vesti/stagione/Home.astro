@@ -64,19 +64,14 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 
 <section>
   <div class="w">
-    <div class="testa">
-      <h2>Prossimi e recenti</h2>
-      <div class="bottoni" style="align-items:center">
-        <span class="frecce-carosello" data-frecce hidden>
-          <button class="freccia-carosello" type="button" data-verso="-1" aria-label="Concerti precedenti"><Icona nome="freccia" /></button>
-          <button class="freccia-carosello" type="button" data-verso="1" aria-label="Concerti successivi"><Icona nome="freccia" /></button>
-        </span>
-        <a class="btn o" href={l('/concerti#archivio')}>Archivio completo</a>
-      </div>
-    </div>
+    <div class="testa"><h2>Prossimi e recenti</h2><a class="btn o" href={l('/concerti#archivio')}>Archivio completo</a></div>
     <!-- Dati: calendario "Concerti" (con "Home: sì/no") + archivio in coro/concerti.ts -->
-    <div class="schede carosello" data-carosello tabindex="0" aria-label="Concerti: scorri per vederne altri">
-      {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}
+    <div class="carosello-cont" data-carosello-cont>
+      <div class="schede carosello" data-carosello tabindex="0" aria-label="Concerti: scorri per vederne altri">
+        {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}
+      </div>
+      <button class="freccia-carosello sx" type="button" data-verso="-1" aria-label="Concerti precedenti" hidden><Icona nome="freccia" /></button>
+      <button class="freccia-carosello dx" type="button" data-verso="1" aria-label="Concerti successivi" hidden><Icona nome="freccia" /></button>
     </div>
   </div>
 </section>
@@ -151,16 +146,20 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 </section>
 
 <script>
-  // Carosello delle schede: le frecce compaiono solo se le schede non entrano, e scorrono di una
-  // pagina; ai bordi si disattivano. Senza JavaScript resta lo scorrimento orizzontale.
-  for (const carosello of document.querySelectorAll<HTMLElement>('[data-carosello]')) {
-    const frecce = carosello.closest('section')!.querySelector<HTMLElement>('[data-frecce]')!;
-    const [indietro, avanti] = frecce.querySelectorAll<HTMLButtonElement>('button');
+  // Carosello delle schede: le frecce ai lati compaiono se le schede non entrano tutte e scorrono
+  // di una pagina; al bordo raggiunto la freccia si attenua, e una sfumatura indica dove c'è ancora
+  // contenuto. Senza JavaScript resta lo scorrimento orizzontale.
+  for (const cont of document.querySelectorAll<HTMLElement>('[data-carosello-cont]')) {
+    const carosello = cont.querySelector<HTMLElement>('[data-carosello]')!;
+    const [indietro, avanti] = cont.querySelectorAll<HTMLButtonElement>('.freccia-carosello');
     const aggiorna = () => {
       const max = carosello.scrollWidth - carosello.clientWidth;
-      frecce.hidden = max <= 4;
+      const scorre = max > 4;
+      indietro.hidden = avanti.hidden = !scorre;
       indietro.disabled = carosello.scrollLeft <= 4;
       avanti.disabled = carosello.scrollLeft >= max - 4;
+      cont.classList.toggle('altro-sx', scorre && !indietro.disabled);
+      cont.classList.toggle('altro-dx', scorre && !avanti.disabled);
     };
     const lento = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     for (const b of [indietro, avanti]) {
