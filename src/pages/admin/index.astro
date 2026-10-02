@@ -1,0 +1,92 @@
+---
+// Pubblicazione e controlli: quando è stata costruita la versione online, il pulsante "Pubblica
+// ora" e, per ogni evento del calendario "Concerti", i problemi che la build troverebbe adesso.
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import { comeIcal, configurazioneMancante, eventiConcerti, type EventoApi } from '../../admin/operazioni';
+import { daEvento, slug } from '../../motore/calendario';
+import { esisteImmagine } from '../../motore/coro';
+import type { Concerto } from '../../motore/tipi';
+
+export const prerender = false;
+
+const sessione = Astro.locals.sessione!;
+const p = Astro.url.searchParams;
+const build = new Date(__ORA_BUILD__);
+const quando = (d: Date) => new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'full', timeStyle: 'short' }).format(d);
+const mancanti = configurazioneMancante();
+const immagini = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+const estensione: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
+
+interface Riga { e: EventoApi; c: Concerto; avvisi: string[]; daPubblicare: boolean; futuro: boolean }
+let righe: Riga[] = [];
+let erroreCalendario: string | undefined;
+try {
+  const oggi = new Date().toISOString().slice(0, 10);
+  righe = (await eventiConcerti(sessione)).map((e) => {
+    const avvisi: string[] = [];
+    const c = daEvento(comeIcal(e), (m) => avvisi.push(m));
+    for (const a of e.attachments ?? []) {
+      if (!immagini.has(a.mimeType)) avvisi.push(`allegato "${a.title}" non usato: il sito prende solo immagini JPEG, PNG, WebP o AVIF`);
+    }
+    // Un allegato che la versione online non ha ancora: serve "Pubblica ora"
+    const nuoviAllegati = (e.attachments ?? []).some((a) => immagini.has(a.mimeType) && a.fileId && !esisteImmagine(`drive/${a.fileId}.${estensione[a.mimeType]}`));
+    // Gli allegati non scaricati li segnala già il controllo qui sopra
+    const filtrati = avvisi.filter((m) => !(nuoviAllegati && /non scaricato da Drive/.test(m)));
+    return { e, c, avvisi: filtrati, daPubblicare: new Date(e.updated) > build || nuoviAllegati, futuro: c.data.slice(0, 10) >= oggi };
+  });
+} catch (err) {
+  erroreCalendario = (err as Error).message;
+}
+const futuri = righe.filter((r) => r.futuro);
+const passati = righe.filter((r) => !r.futuro).reverse();
+const daPubblicare = righe.filter((r) => r.daPubblicare).length;
+const conAvvisi = righe.filter((r) => r.avvisi.length).length;
+const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${c.data.slice(0, 10)}T12:00:00`));
+---
+
+<LayoutAdmin titolo="Pubblicazione" sezione="pubblicazione">
+  <h1>Ciao {sessione.nome}</h1>
+  <p class="tenue">Il sito si ricostruisce da solo ogni notte con i dati del calendario "Concerti", di Drive e di YouTube. Per non aspettare, usa "Pubblica ora".</p>
+
+  {mancanti.length > 0 && <p class="messaggio errore">Configurazione incompleta sul server: manca {mancanti.join(', ')}.</p>}
+  {p.get('pubblicato') && <p class="messaggio ok">Pubblicazione avviata: tra due o tre minuti il sito è aggiornato. Ricarica questa pagina: quando cambia l'ora della versione online, è fatto.</p>}
+  {p.get('errore') && <p class="messaggio errore">{p.get('errore')}</p>}
+
+  <div class="scheda-admin" style="display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between;margin-top:24px">
+    <div>
+      <span class="eti">Versione online</span>
+      <p style="font-size:19px;font-weight:600;color:var(--primario)">Costruita {quando(build)}</p>
+      {daPubblicare > 0
+        ? <p style="margin-top:6px"><b>{daPubblicare === 1 ? '1 concerto è cambiato' : `${daPubblicare} concerti sono cambiati`}</b> dopo questa versione: non sono ancora sul sito.</p>
+        : !erroreCalendario && <p class="tenue" style="margin-top:6px">Il calendario non è cambiato da allora.</p>}
+    </div>
+    <form method="post" action="/admin/pubblica"><button class="btn g" type="submit">Pubblica ora</button></form>
+  </div>
+
+  <h2>Controllo dei concerti</h2>
+  {erroreCalendario
+    ? <p class="messaggio errore">Non riesco a leggere il calendario: {erroreCalendario}</p>
+    : <p class="tenue">{righe.length === 1 ? '1 evento' : `${righe.length} eventi`} nel calendario "Concerti". {conAvvisi ? `${conAvvisi} con qualcosa da sistemare: apri l'evento nel calendario, correggi e poi pubblica.` : 'Nessun problema trovato.'}</p>}
+
+  {[{ titolo: 'In programma', elenco: futuri }, { titolo: 'Passati', elenco: passati }].map(({ titolo, elenco }) => elenco.length > 0 && (
+    <>
+      <h2 style="font-size:20px">{titolo}</h2>
+      <div style="display:grid;gap:10px">
+        {elenco.map(({ e, c, avvisi, daPubblicare }) => (
+          <div class="scheda-admin" style={`padding:16px 18px;${avvisi.length ? 'border-left:4px solid #b3261e' : ''}`}>
+            <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between">
+              <div><b style="color:var(--primario)">{dataBreve(c)}</b> · {[c.autore, c.titolo].filter(Boolean).join(', ')}{c.luogo && <span class="tenue"> · {c.luogo}</span>}</div>
+              <div style="display:flex;gap:14px;font-size:14px;flex-wrap:wrap">
+                {daPubblicare && <span class="tag">Da pubblicare</span>}
+                <a href={e.htmlLink} target="_blank" rel="noopener" style="text-decoration:underline">Apri nel calendario</a>
+                {!daPubblicare && <a href={`/concerti/${slug(c)}`} target="_blank" rel="noopener" style="text-decoration:underline">Pagina sul sito</a>}
+              </div>
+            </div>
+            {avvisi.length > 0 && <ul style="margin:10px 0 0 18px;color:#b3261e;font-size:15px">{avvisi.map((a) => <li>{a}</li>)}</ul>}
+            {!(e.attachments ?? []).some((a) => /locandina/i.test(a.title)) && !c.locandina && <p class="tenue" style="font-size:14px;margin-top:6px">Senza locandina: il sito ne genera una con i dati dell'evento.</p>}
+          </div>
+        ))}
+      </div>
+    </>
+  ))}
+</LayoutAdmin>

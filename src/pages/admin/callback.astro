@@ -1,0 +1,25 @@
+---
+// Ritorno da Google: si controlla lo state, si scambia il codice e si verifica che chi entra
+// faccia parte del gruppo degli amministratori.
+import { completaAccesso } from '../../admin/google';
+import { decifra, salvaSessione } from '../../admin/sessione';
+
+export const prerender = false;
+
+const p = Astro.url.searchParams;
+const atteso = decifra<{ stato: string; dopo: string }>(Astro.cookies.get('hv-stato')?.value);
+Astro.cookies.delete('hv-stato', { path: '/admin' });
+const errore = (m: string) => Astro.redirect(`/admin/accedi?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/admin' })}`);
+
+if (p.get('error')) return errore('Accesso annullato su Google.');
+if (!atteso || atteso.stato !== p.get('state') || !p.get('code')) return errore('Accesso scaduto o non valido: riprova.');
+let esito;
+try {
+  esito = await completaAccesso(p.get('code')!, `${Astro.url.origin}/admin/callback`);
+} catch (e) {
+  return errore(`Accesso non riuscito: ${(e as Error).message}`);
+}
+if (!esito.sessione) return errore(esito.errore ?? 'Accesso non riuscito.');
+salvaSessione(Astro.cookies, esito.sessione, Astro.url.protocol === 'https:');
+return Astro.redirect(atteso.dopo);
+---

@@ -1,0 +1,73 @@
+---
+// Layout dell'area Amministrazione: stessa grafica del sito (veste e colori di coro.config.ts),
+// barra propria con le sezioni dell'area e chi è entrato. Pagine noindex, mai in cache.
+import '../stile/palette.css';
+import '../stile/caratteri.css';
+import '../stile/comune.css';
+import { coro } from '../motore/coro';
+import { urlCaratteri } from '../motore/aspetto';
+import { aspettoDi } from '../motore/url';
+import { Logo } from '../motore/logo';
+import { vesti } from '../vesti';
+
+interface Props {
+  titolo: string;
+  sezione?: 'pubblicazione' | 'concerto' | 'foto';
+}
+const { titolo, sezione } = Astro.props;
+const veste = coro.aspetto.veste;
+const aspetto = aspettoDi(veste);
+const colori = aspetto.colori;
+const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k, v]) => `--${k}:${v}`).join(';') : undefined;
+const sessione = Astro.locals.sessione;
+const voci = [
+  { id: 'pubblicazione', href: '/admin', testo: 'Pubblicazione e controlli' },
+  { id: 'concerto', href: '/admin/concerti/nuovo', testo: 'Nuovo concerto' },
+  { id: 'foto', href: '/admin/foto', testo: 'Foto del sito' },
+];
+---
+
+<!doctype html>
+<html lang="it" data-veste={veste} data-palette={colori ? 'personalizzata' : aspetto.palette} data-carattere={aspetto.carattere} style={stileColori}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{titolo} — Amministrazione {coro.nome}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href={urlCaratteri([aspetto.carattere], coro.aspetto.caratteriLogo)} />
+    {vesti[veste].stili.map((s) => <link rel="stylesheet" href={s} />)}
+    <style is:global>
+      .barra-admin { background: var(--primario); color: #fff; }
+      .barra-admin .w { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 14px; padding-bottom: 14px; }
+      .barra-admin .marchio { display: flex; align-items: center; gap: 14px; color: #fff; font-weight: 700; }
+      .barra-admin .marchio svg { height: 30px; width: auto; }
+      .barra-admin nav { display: flex; flex-wrap: wrap; gap: 4px 18px; flex: 1; }
+      .barra-admin nav a { color: var(--primario-chiaro, #cfd6dc); font-weight: 600; font-size: 15px; padding: 4px 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+      .barra-admin nav a.attiva, .barra-admin nav a:hover { color: #fff; border-color: var(--accento); }
+      .barra-admin .chi { font-size: 14px; color: var(--primario-chiaro, #cfd6dc); }
+      .barra-admin .chi a { color: #fff; text-decoration: underline; margin-left: 8px; }
+      main.admin { padding: 40px 0 80px; }
+      main.admin h1 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(28px, 3.4vw, 40px); color: var(--primario); margin-bottom: 8px; }
+      main.admin h2 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 24px; color: var(--primario); margin: 40px 0 14px; }
+      .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
+      .messaggio.ok { border-color: #2e7d4f; }
+      .messaggio.errore { border-color: #b3261e; color: #b3261e; }
+      .scheda-admin { background: var(--bianco); border: 1px solid var(--linea); padding: 22px; border-radius: var(--raggio); }
+    </style>
+  </head>
+  <body>
+    <header class="barra-admin">
+      <div class="w">
+        <a class="marchio" href="/admin">{Logo ? <span style="color:#fff"><Logo /></span> : coro.nome}<span>Amministrazione</span></a>
+        <nav aria-label="Sezioni">{voci.map((v) => <a href={v.href} class:list={{ attiva: v.id === sezione }}>{v.testo}</a>)}</nav>
+        {sessione && <span class="chi">{sessione.email}<a href="/admin/esci">Esci</a></span>}
+      </div>
+    </header>
+    <main class="admin" id="contenuto">
+      <div class="w">
+        <slot />
+      </div>
+    </main>
+  </body>
+</html>

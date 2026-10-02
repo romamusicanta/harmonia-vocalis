@@ -1,0 +1,30 @@
+---
+// Accesso all'area Amministrazione: si va da Google e si torna su /admin/callback.
+// Un valore casuale (state) in un cookie protegge il ritorno da richieste estranee.
+import { randomBytes } from 'node:crypto';
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import { configurato, urlAccesso } from '../../admin/google';
+import { cifra } from '../../admin/sessione';
+
+export const prerender = false;
+
+const dopo = Astro.url.searchParams.get('dopo') ?? '/admin';
+const errore = Astro.url.searchParams.get('errore');
+if (configurato() && !errore) {
+  const stato = randomBytes(16).toString('hex');
+  Astro.cookies.set('hv-stato', cifra({ stato, dopo: dopo.startsWith('/admin') ? dopo : '/admin' }), { httpOnly: true, secure: Astro.url.protocol === 'https:', sameSite: 'lax', path: '/admin', maxAge: 600 });
+  return Astro.redirect(urlAccesso(`${Astro.url.origin}/admin/callback`, stato));
+}
+---
+
+<LayoutAdmin titolo="Accesso">
+  <h1>Area Amministrazione</h1>
+  {errore ? (
+    <>
+      <p class="messaggio errore">{errore}</p>
+      <p><a class="btn g" href={`/admin/accedi?${new URLSearchParams({ dopo })}`}>Riprova</a></p>
+    </>
+  ) : (
+    <p class="messaggio errore">L'accesso non è ancora configurato: mancano le credenziali di Google sul server.</p>
+  )}
+</LayoutAdmin>

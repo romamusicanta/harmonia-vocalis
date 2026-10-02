@@ -65,6 +65,13 @@ export const schemaCoro = z.object({
     presentazione: z.string(),
   }),
 
+  // Area Amministrazione (/admin): accesso con Google per gli account del dominio che fanno parte
+  // del gruppo indicato
+  amministrazione: z.object({
+    dominio: z.string(),
+    gruppo: z.string(),
+  }).optional(),
+
   foto: z.object({
     apertura: z.string(),
     coro: z.string(),
