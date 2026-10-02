@@ -1,0 +1,157 @@
+---
+// Area coristi, pagina Prove nel sito vero: prove (calendario "Prove") e concerti (calendario
+// "Concerti") dei prossimi tre mesi, con "Non ci sarò" che scrive nel foglio delle assenze
+// (/area/assenze). Chi tace è presente.
+import Icona from '../componenti/Icona.astro';
+import { CALENDARIO_PROVE_ID } from 'astro:env/server';
+import { parti } from '../motore/concerti';
+import { aperto, assenze, configurati, coristaDi, eventi, luogoDi, oggi, piuGiorni, type Evento } from './dati';
+
+let errore: string | undefined;
+let elenco: Evento[] = [];
+let mie = new Map<string, string>(); // id evento → nota
+let io: Awaited<ReturnType<typeof coristaDi>>;
+if (!configurati()) errore = 'Le prove non sono ancora collegate: mancano le impostazioni sul server.';
+else {
+  try {
+    io = await coristaDi(Astro.locals.corista!.email);
+    elenco = await eventi(oggi(), piuGiorni(oggi(), 92));
+    if (io) mie = new Map((await assenze()).filter((a) => a.email === io!.email).map((a) => [a.idEvento, a.nota]));
+  } catch (e) {
+    errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+  }
+}
+
+const mesi = new Map<string, Evento[]>();
+for (const e of elenco) {
+  const d = parti({ data: e.data });
+  const chiave = `${d.mese} ${d.anno}`;
+  if (!mesi.has(chiave)) mesi.set(chiave, []);
+  mesi.get(chiave)!.push(e);
+}
+const prossima = elenco.find((e) => e.tipo === 'prova');
+const iscrizione = CALENDARIO_PROVE_ID && `https://calendar.google.com/calendar/u/0/r?${new URLSearchParams({ cid: CALENDARIO_PROVE_ID })}`;
+const oggiIso = oggi();
+---
+
+<div class="area-intesta">
+  <div class="w">
+    <div>
+      <span class="eti" style="margin-bottom:12px">Calendario prove</span>
+      <h1>Prove</h1>
+      <p>Se non puoi venire a una prova o a un concerto, segnalalo qui: chi non segnala niente è atteso. Le note le leggono il Maestro e i redattori.</p>
+    </div>
+    {iscrizione && (
+      <div class="bottoni">
+        <a class="btn g" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario" />Aggiungi il calendario prove al tuo telefono</a>
+      </div>
+    )}
+  </div>
+</div>
+
+<div class="area-main">
+  <div class="w">
+    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {!errore && !io && <p class="carta" style="padding:20px">Il tuo indirizzo ({Astro.locals.corista!.email}) non è nella scheda dei coristi, quindi non puoi segnalare assenze. Scrivi ai redattori.</p>}
+    {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Nessuna prova in calendario nei prossimi tre mesi.</p>}
+
+    <div class="prove">
+      {[...mesi].map(([mese, gruppo]) => (
+        <>
+          <h2 class="mese-sep">{mese}</h2>
+          {gruppo.map((e) => {
+            const d = parti({ data: e.data });
+            const assente = mie.has(e.id);
+            const modificabile = io && aperto(e);
+            return (
+              <article class:list={['prova', { speciale: e.tipo === 'concerto' }]}>
+                <div class="quando"><b>{d.giorno}</b><span>{d.giornoSettimana}</span><small>{e.inizio ? `${e.inizio}–${e.fine}` : 'orario da definire'}</small></div>
+                <div class="cosa">
+                  <h3>{e.titolo} {e === prossima && <span class="tag">Prossima</span>}{e.tipo === 'concerto' && <span class="tag blu">Concerto</span>}{e.data === oggiIso && <span class="tag">Oggi</span>}</h3>
+                  {e.tipo === 'prova' && e.righe.length > 0 && <div class="elenco-brani">{e.righe.map(([k, v], i) => <>{i > 0 && <br />}<b>{k}:</b> {v}</>)}</div>}
+                  {luogoDi(e) && <div class="meta"><span><Icona nome="luogo" />{luogoDi(e)}</span></div>}
+                </div>
+                <div class="az">
+                  {modificabile ? (
+                    <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id}>
+                      <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button" style="width:100%"><Icona nome="chiudi" />Non ci sarò</button></div>
+                      <div class="fatto">
+                        <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata · <button class="togli" type="button">Ritira</button></div>
+                        <div class="nota-assenza"><label for={`n-${e.id}`}>Nota (facoltativa)</label><input id={`n-${e.id}`} class="nota" maxlength="300" value={mie.get(e.id) ?? ''} placeholder="Es. sono fuori Roma" /></div>
+                      </div>
+                    </div>
+                  ) : assente ? (
+                    <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata</div>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </>
+      ))}
+    </div>
+
+    {io && !errore && (
+      <form class="carta periodo" style="margin-top:28px;padding:22px;display:grid;gap:12px">
+        <b style="color:var(--primario);font-size:18px">Assente per un periodo</b>
+        <span class="tenue" style="font-size:15px">Segna in una volta tutte le prove e i concerti tra due date.</span>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
+          <label style="display:grid;gap:4px;font-size:14px">Dal<input type="date" name="dal" required min={oggiIso} /></label>
+          <label style="display:grid;gap:4px;font-size:14px">Al<input type="date" name="al" required min={oggiIso} /></label>
+          <label style="display:grid;gap:4px;font-size:14px;flex:1 1 220px">Nota (facoltativa)<input name="nota" maxlength="300" placeholder="Es. viaggio di lavoro" /></label>
+          <button class="btn g piccolo" type="submit">Segna le assenze</button>
+        </div>
+      </form>
+    )}
+    <p class="tenue" style="margin-top:28px;font-size:15px;display:flex;gap:10px"><Icona nome="aggiorna" /><span>Il calendario si aggiorna da solo: se una prova viene spostata o annullata, lo vedi qui e sul telefono.</span></p>
+  </div>
+</div>
+
+<style>
+  .periodo input { padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); min-height: 44px; font: inherit; }
+</style>
+
+<script>
+  const avvisa = (t: string) => (window as unknown as { avvisa?: (t: string) => void }).avvisa?.(t);
+  async function invia(dati: Record<string, string>) {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(dati)) f.set(k, v);
+    const r = await fetch('/area/assenze', { method: 'POST', body: f });
+    const esito = await r.json().catch(() => ({ ok: false, errore: `errore ${r.status}` }));
+    if (!esito.ok) throw new Error(esito.errore);
+    return esito;
+  }
+
+  document.querySelectorAll<HTMLElement>('.assenza[data-evento]').forEach((a) => {
+    const evento = a.dataset.evento!;
+    const nota = a.querySelector<HTMLInputElement>('.nota')!;
+    const prova = async (fn: () => Promise<unknown>, ok: string) => {
+      a.setAttribute('aria-busy', 'true');
+      try { await fn(); avvisa(ok); } catch (e) { alert((e as Error).message); } finally { a.removeAttribute('aria-busy'); }
+    };
+    a.querySelector('.segna')!.addEventListener('click', () => prova(async () => {
+      await invia({ azione: 'segna', evento, nota: nota.value });
+      a.classList.add('segnalata');
+      nota.focus();
+    }, 'Assenza segnalata'));
+    a.querySelector('.togli')!.addEventListener('click', () => prova(async () => {
+      await invia({ azione: 'togli', evento });
+      a.classList.remove('segnalata');
+      nota.value = '';
+    }, 'Assenza ritirata: sei atteso'));
+    nota.addEventListener('change', () => prova(() => invia({ azione: 'segna', evento, nota: nota.value }), 'Nota salvata'));
+  });
+
+  document.querySelector<HTMLFormElement>('form.periodo')?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const form = ev.currentTarget as HTMLFormElement;
+    const d = Object.fromEntries(new FormData(form)) as Record<string, string>;
+    try {
+      const { segnate } = await invia({ azione: 'periodo', ...d });
+      avvisa(segnate.length ? `Segnate ${segnate.length} assenze` : 'Nessuna prova in quel periodo');
+      location.reload();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  });
+</script>

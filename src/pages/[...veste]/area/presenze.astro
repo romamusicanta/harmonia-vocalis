@@ -1,8 +1,10 @@
 ---
 // Area coristi: presenze attese alla prossima prova per sezione, assenti segnalati,
-// registro delle ultime prove e presenze personali.
+// registro delle ultime prove e presenze personali. Nel sito vero i dati veri
+// (src/area/PresenzeVere.astro), nella demo quelli di esempio.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
+import PresenzeVere from '../../../area/PresenzeVere.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import {
@@ -27,6 +29,7 @@ const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 ---
 
 <Base veste={veste} titolo="Presenze · Area coristi" area={{ sezione: 'presenze' }}>
+  {DEMO ? (<>
   <div class="area-intesta">
     <div class="w">
       <div>
@@ -90,4 +93,5 @@ const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
       </div>
     </div>
   </div>
+  </>) : <PresenzeVere veste={veste} />}
 </Base>

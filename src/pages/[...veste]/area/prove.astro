@@ -1,7 +1,9 @@
 ---
 // Area coristi: calendario delle prove, raggruppate per mese, con segnalazione di assenza.
+// Nel sito vero i dati veri (src/area/ProveVere.astro), nella demo quelli di esempio.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
+import ProveVere from '../../../area/ProveVere.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { prove, prossimaProva, luogoProva, giorno, type Prova } from '../../../demo/area';
@@ -19,6 +21,7 @@ for (const p of prove) {
 ---
 
 <Base veste={veste} titolo="Prove · Area coristi" area={{ sezione: 'prove' }}>
+  {DEMO ? (<>
   <div class="area-intesta">
     <div class="w">
       <div>
@@ -66,4 +69,5 @@ for (const p of prove) {
       <p class="tenue" style="margin-top:28px;font-size:15px;display:flex;gap:10px"><Icona nome="aggiorna" /><span>Il calendario si aggiorna da solo: se una prova viene spostata o annullata, lo vedi qui e sul telefono.</span></p>
     </div>
   </div>
+  </>) : <ProveVere />}
 </Base>

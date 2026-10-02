@@ -1,5 +1,6 @@
 // Accesso all'area coristi: si entra con un account Google qualunque (anche personale), purché
-// l'indirizzo faccia parte del gruppo dei coristi (coro.coristi.gruppo). A Google si chiedono solo
+// l'indirizzo faccia parte del gruppo dei coristi (coro.coristi.gruppo) o di quello della direzione
+// (coro.coristi.direzione: il Maestro e gli amministratori, che vedono solo /area/direzione). A Google si chiedono solo
 // nome ed email, con il client OAuth "Sito - area coristi" del progetto Google Cloud
 // harmonia-vocalis-coristi (consenso Esterno: quello dell'area Amministrazione è Interno e
 // lascerebbe entrare solo gli account @romamusicanta.org).
@@ -15,6 +16,17 @@ export interface Corista {
   email: string;
   nome: string;
   verificato: number; // quando si è controllato l'ultima volta che è nel gruppo (ms)
+  coro?: boolean;      // nel gruppo dei coristi (le sessioni di prima del 3/10/2026 non lo hanno: sì)
+  direzione?: boolean; // nel gruppo della direzione
+}
+
+export const eCorista = (c: Corista) => c.coro !== false;
+
+// In quali gruppi è l'indirizzo
+async function gruppiDi(email: string) {
+  const { gruppo, direzione } = coro.coristi!;
+  const [inCoro, inDirezione] = await Promise.all([nelGruppo(email, gruppo), direzione ? nelGruppo(email, direzione) : false]);
+  return { coro: inCoro, direzione: inDirezione };
 }
 
 const NOME = 'hv-corista';
@@ -46,10 +58,11 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const { access_token } = await r.json();
   const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${access_token}` } })).json();
   if (!io.email_verified) return { errore: 'L’indirizzo di questo account Google non è verificato.' };
-  if (!(await nelGruppo(io.email, coro.coristi!.gruppo))) {
-    return { errore: `L’indirizzo ${io.email} non è nell’elenco dei coristi. Se sei del coro, chiedi al direttivo di aggiungerlo, oppure entra con l’indirizzo che hai comunicato al coro.` };
+  const gruppi = await gruppiDi(io.email);
+  if (!gruppi.coro && !gruppi.direzione) {
+    return { errore: `L’indirizzo ${io.email} non è nell’elenco dei coristi. Entra con il tuo account dell’associazione (nome.cognome@${coro.amministrazione?.dominio ?? 'romamusicanta.org'}); se non lo hai, chiedi al direttivo.` };
   }
-  return { corista: { email: io.email, nome: io.given_name ?? io.name ?? io.email, verificato: Date.now() } };
+  return { corista: { email: io.email, nome: io.given_name ?? io.name ?? io.email, verificato: Date.now(), ...gruppi } };
 }
 
 const opzioni = (secure: boolean) => ({ httpOnly: true, secure, sameSite: 'lax' as const, path: '/area' });
@@ -67,7 +80,8 @@ export const chiudiCorista = (cookies: AstroCookies) => cookies.delete(NOME, { p
 export async function coristaValido(c: Corista): Promise<Corista | undefined> {
   if (Date.now() - c.verificato < RICONTROLLO) return c;
   try {
-    return (await nelGruppo(c.email, coro.coristi!.gruppo)) ? { ...c, verificato: Date.now() } : undefined;
+    const gruppi = await gruppiDi(c.email);
+    return gruppi.coro || gruppi.direzione ? { ...c, verificato: Date.now(), ...gruppi } : undefined;
   } catch {
     return c;
   }

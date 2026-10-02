@@ -82,10 +82,12 @@ export default {
     gruppo: 'redattori@romamusicanta.org',
   },
 
-  // Area coristi (romamusicanta.org/area): entrano i membri del gruppo coro@, anche con l'account
-  // Google personale (membri esterni del gruppo)
+  // Area coristi (romamusicanta.org/area): entrano i membri del gruppo coro@ (i coristi attuali, con
+  // l'account dell'associazione). I membri di maestro@ (il Maestro, anche con il suo Gmail, e admin@)
+  // vedono solo la pagina dei report, /area/direzione
   coristi: {
     gruppo: 'coro@romamusicanta.org',
+    direzione: 'maestro@romamusicanta.org',
   },
 
   // Foto di riserva, dalla scheda italiacori del coro (vedi immagini/CREDITI.md). Quelle vere si

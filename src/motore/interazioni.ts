@@ -44,8 +44,8 @@ export function attivaVideo(v: HTMLElement) {
 }
 $$('.video[data-id]').forEach(attivaVideo);
 
-// "Non ci sarò"
-$$('.assenza').forEach((a) => {
+// "Non ci sarò" della demo (quelle vere, con data-evento, le gestisce src/area/ProveVere.astro)
+$$('.assenza:not([data-evento])').forEach((a) => {
   a.querySelector('.segnala')?.addEventListener('click', () => {
     a.classList.add('segnalata');
     a.querySelector<HTMLElement>('.nota-assenza textarea, .nota-assenza input')?.focus();

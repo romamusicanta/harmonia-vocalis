@@ -1,4 +1,5 @@
-// Chi fa parte del coro: lo chiede a Google l'account di servizio del sito (sito-harmonia-vocalis),
+// Chi fa parte del coro, e i dati dell'area (foglio "Coristi e assenze", calendari Prove e Concerti,
+// vedi dati.ts): li chiede a Google l'account di servizio del sito (sito-harmonia-vocalis),
 // che ha il ruolo di amministratore "Lettore gruppi" in Workspace. Niente chiavi: la funzione si
 // presenta con il suo token OIDC di Vercel, che la federazione delle identità del progetto Google
 // Cloud scambia con un accesso temporaneo dell'account di servizio (come la build per Drive, vedi
@@ -6,13 +7,18 @@
 import { getVercelOidcToken } from '@vercel/oidc';
 import { GCP_PROJECT_NUMBER, GCP_SERVICE_ACCOUNT_EMAIL, GCP_WORKLOAD_IDENTITY_POOL_ID, GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID } from 'astro:env/server';
 
-const AMBITO = 'https://www.googleapis.com/auth/cloud-identity.groups.readonly';
+// Gruppi (chi entra), foglio "Coristi e assenze" (lettura e scrittura) e calendari Prove e Concerti
+const AMBITI = [
+  'https://www.googleapis.com/auth/cloud-identity.groups.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/calendar.readonly',
+];
 const CI = 'https://cloudidentity.googleapis.com/v1';
 
 // Il token dell'account di servizio dura un'ora: si tiene finché vale
 let inCache: { token: string; scade: number } | undefined;
 
-async function tokenServizio() {
+export async function tokenServizio() {
   if (inCache && Date.now() < inCache.scade) return inCache.token;
   if (!GCP_PROJECT_NUMBER || !GCP_SERVICE_ACCOUNT_EMAIL) throw new Error('mancano le variabili GCP_* sul server');
   const sts = await fetch('https://sts.googleapis.com/v1/token', {
@@ -32,7 +38,7 @@ async function tokenServizio() {
   const sa = await fetch(`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SERVICE_ACCOUNT_EMAIL}:generateAccessToken`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${federato}` },
-    body: JSON.stringify({ scope: [AMBITO], lifetime: '3600s' }),
+    body: JSON.stringify({ scope: AMBITI, lifetime: '3600s' }),
   });
   if (!sa.ok) throw new Error(`accesso all'account di servizio rifiutato (${sa.status})`);
   const { accessToken } = await sa.json();
@@ -40,11 +46,13 @@ async function tokenServizio() {
   return accessToken as string;
 }
 
-async function ci<T>(url: string): Promise<T> {
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${await tokenServizio()}` } });
+// Una chiamata alle API di Google a nome dell'account di servizio
+export async function google<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${await tokenServizio()}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}) } });
   if (!r.ok) throw new Error(`Google (${r.status}): ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }
+const ci = google;
 
 // Il nome del gruppo per le API (groups/…), cercato una volta dall'indirizzo
 const nomiGruppi = new Map<string, string>();
@@ -54,7 +62,7 @@ const DURATA_ELENCO = 5 * 60 * 1000;
 
 // Gli indirizzi Gmail valgono anche con i punti spostati e in maiuscolo: mario.rossi@gmail.com e
 // MarioRossi@gmail.com sono lo stesso account
-function normalizza(email: string) {
+export function normalizza(email: string) {
   const [utente, dominio] = email.toLowerCase().split('@');
   return ['gmail.com', 'googlemail.com'].includes(dominio) ? `${utente.replace(/\./g, '')}@gmail.com` : `${utente}@${dominio}`;
 }

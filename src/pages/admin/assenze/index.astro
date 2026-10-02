@@ -1,0 +1,113 @@
+---
+// Assenze: i redattori scelgono una prova o un concerto (ultimi due mesi e prossimo mese) e
+// correggono chi c'era, partendo da quanto dichiarato dai coristi. Un tocco su un nome lo segna
+// assente o presente (/admin/assenze/cambia). Stessi dati dell'area coristi (src/area/dati.ts).
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import { assenze, configurati, coristi, eventi, oggi, piuGiorni, riepilogo, sezioniDi, type Evento, type Riepilogo } from '../../../area/dati';
+import { parti } from '../../../motore/concerti';
+
+export const prerender = false;
+
+let errore: string | undefined;
+let elenco: Evento[] = [];
+let r: Riepilogo | undefined;
+if (!configurati()) errore = 'Mancano le variabili FOGLIO_CORISTI_ID e CALENDARIO_PROVE_ID sul server.';
+else {
+  try {
+    const [tutti, tutte, ev] = await Promise.all([coristi(), assenze(), eventi(piuGiorni(oggi(), -62), piuGiorni(oggi(), 31))]);
+    elenco = ev;
+    const scelto = Astro.url.searchParams.get('evento');
+    // Senza scelta: l'ultima prova o concerto già iniziati, altrimenti il primo in programma
+    const e = elenco.find((x) => x.id === scelto) ?? elenco.filter((x) => x.inizioMs <= Date.now()).at(-1) ?? elenco[0];
+    if (e) r = riepilogo(e, tutti, tutte);
+  } catch (e) {
+    errore = `Google non ha risposto: ${(e as Error).message}`;
+  }
+}
+const etichetta = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana.slice(0, 3)} ${Number(d.giorno)} ${d.meseBreve.toLowerCase()}${e.inizio ? ` ${e.inizio}` : ''} · ${e.tipo === 'concerto' ? 'Concerto: ' : ''}${e.titolo}`; };
+const assenti = new Map(r?.assenti.map((c) => [c.email, c]) ?? []);
+---
+
+<LayoutAdmin titolo="Assenze" sezione="assenze">
+  <h1>Assenze</h1>
+  <p class="tenue" style="max-width:64ch">Chi non ha un'assenza è contato presente. I coristi segnalano le loro dall'area coristi fino all'inizio della prova; qui si correggono, anche dopo. Un tocco su un nome lo segna assente o presente e si salva subito nel foglio "Coristi e assenze" del Drive.</p>
+  {errore && <p class="messaggio errore">{errore}</p>}
+
+  {elenco.length > 0 && (
+    <form method="get" style="margin:20px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <select name="evento" onchange="this.form.submit()" style="padding:10px 12px;border:2px solid var(--linea);border-radius:var(--raggio);background:var(--bianco);font:inherit;max-width:100%">
+        {elenco.map((e) => <option value={e.id} selected={e.id === r?.evento.id}>{etichetta(e)}</option>)}
+      </select>
+      <noscript><button class="btn g piccolo">Mostra</button></noscript>
+    </form>
+  )}
+
+  {r && (
+    <>
+      <p id="conteggio" style="font-size:18px"><b>{r.attesi.length - r.assenti.length}</b> presenti su {r.attesi.length} · <b>{r.assenti.length}</b> assenti</p>
+      <div class="sezioni-assenze" data-evento={r.evento.id}>
+        {sezioniDi(r.attesi).filter((s) => r!.attesi.some((c) => c.sezione === s)).map((s) => (
+          <section class="scheda-admin">
+            <h2 style="margin:0 0 10px;font-size:20px">{s}</h2>
+            <ul>
+              {r!.attesi.filter((c) => c.sezione === s).map((c) => {
+                const a = assenti.get(c.email);
+                return (
+                  <li>
+                    <button type="button" class:list={['corista', { assente: a }]} data-email={c.email} aria-pressed={a ? 'true' : 'false'}>
+                      <span class="nome">{c.nome} {c.cognome}</span>
+                      <span class="stato">{a ? (a.daRedattore ? 'Assente · redattori' : 'Assente · dichiarata') : 'Presente'}</span>
+                    </button>
+                    {a?.nota && <small class="tenue">{a.nota}</small>}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </>
+  )}
+
+  <style>
+    .sezioni-assenze { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+    .sezioni-assenze ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .corista { width: 100%; display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); font: inherit; text-align: left; cursor: pointer; min-height: 44px; }
+    .corista .stato { font-size: 13px; color: var(--tenue); white-space: nowrap; }
+    .corista.assente { border-color: #b3261e; background: color-mix(in srgb, #b3261e 8%, var(--bianco)); }
+    .corista.assente .stato { color: #b3261e; font-weight: 700; }
+    .corista[aria-busy] { opacity: .5; }
+    .sezioni-assenze small { display: block; padding: 2px 12px 4px; font-size: 13px; }
+  </style>
+
+  <script>
+    const box = document.querySelector<HTMLElement>('.sezioni-assenze');
+    const conteggio = () => {
+      const tutti = document.querySelectorAll('.corista').length;
+      const assenti = document.querySelectorAll('.corista.assente').length;
+      document.querySelector('#conteggio')!.innerHTML = `<b>${tutti - assenti}</b> presenti su ${tutti} · <b>${assenti}</b> assenti`;
+    };
+    box?.querySelectorAll<HTMLButtonElement>('.corista').forEach((b) => b.addEventListener('click', async () => {
+      const assente = !b.classList.contains('assente');
+      const f = new FormData();
+      f.set('evento', box.dataset.evento!);
+      f.set('email', b.dataset.email!);
+      f.set('assente', assente ? '1' : '0');
+      b.setAttribute('aria-busy', 'true');
+      try {
+        const r = await fetch('/admin/assenze/cambia', { method: 'POST', body: f });
+        const esito = await r.json().catch(() => ({ ok: false, errore: `errore ${r.status}` }));
+        if (!esito.ok) throw new Error(esito.errore);
+        b.classList.toggle('assente', assente);
+        b.setAttribute('aria-pressed', String(assente));
+        b.querySelector('.stato')!.textContent = assente ? 'Assente · redattori' : 'Presente';
+        if (!assente) b.parentElement?.querySelector('small')?.remove();
+        conteggio();
+      } catch (e) {
+        alert((e as Error).message);
+      } finally {
+        b.removeAttribute('aria-busy');
+      }
+    }));
+  </script>
+</LayoutAdmin>

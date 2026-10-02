@@ -4,6 +4,7 @@ import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
+import { eCorista } from '../../area/accesso';
 import { corista } from '../../demo/area';
 import type { Veste } from '../../motore/aspetto';
 
@@ -23,6 +24,11 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
   { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
   { id: 'presenze', testo: 'Presenze', icona: 'presenze', href: link(veste, '/area/presenze') },
 ];
+// La direzione (il Maestro e gli amministratori) ha la sua pagina; chi non è corista vede solo quella
+const io = Astro.locals.corista;
+const direzione = { id: 'direzione', testo: 'Direzione', icona: 'persone' as NomeIcona, href: '/area/direzione' };
+if (io && !eCorista(io)) sezioni.splice(0, sezioni.length, direzione);
+else if (io?.direzione) sezioni.push(direzione);
 ---
 
 <div class="servizio area-s">
@@ -33,7 +39,7 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
 </div>
 <header class="testata">
   <div class="w">
-    <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={link(veste, conBarra ? '/area' : '/')} /><span class="etichetta-area">Area coristi</span></span>
+    <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={link(veste, !conBarra ? '/' : io && !eCorista(io) ? '/area/direzione' : '/area')} /><span class="etichetta-area">Area coristi</span></span>
     {conBarra ? (
       <div class="azioni">
         <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0)}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
@@ -49,9 +55,9 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
     <div class="w"><Icona nome="info" classe="" /><span><b>Demo:</b> qui l'area coristi è aperta a tutti. Nel sito vero si entra con l'account Google, solo se l'indirizzo è nell'elenco dei coristi. Nomi e dati sono di esempio.</span></div>
   </div>
 )}
-{ANTEPRIMA_AREA && (
+{ANTEPRIMA_AREA && sezione !== 'direzione' && (
   <div class="avviso-anteprima" role="note">
-    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. Per ora prove, repertorio, presenze e avvisi sono dati di esempio.</span></div>
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Prove</b> e <b>Presenze</b> sono vere; bacheca, repertorio, registrazioni e concerti sono ancora dati di esempio.</span></div>
   </div>
 )}
 {conBarra && (

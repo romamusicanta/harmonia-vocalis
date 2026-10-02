@@ -1,0 +1,142 @@
+---
+// Area coristi, pagina della direzione (gruppo coro.coristi.direzione: il Maestro e gli
+// amministratori; il middleware la apre solo a loro): chi manca alla prossima prova e al prossimo
+// concerto, con le note; assiduità della stagione per corista; storico delle prove.
+// Fonte: foglio "Coristi e assenze" e calendari Prove e Concerti (src/area/dati.ts).
+import Base from '../../layouts/Base.astro';
+import { vesteCorrente } from '../../motore/url';
+import { parti } from '../../motore/concerti';
+import { assenze, attivi, configurati, coristi, eventi, inizioStagione, oggi, piuGiorni, riepilogo, sezioniDi, type Riepilogo } from '../../area/dati';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+
+let errore: string | undefined;
+let prossimi: Riepilogo[] = [];
+let storico: Riepilogo[] = [];
+let assiduita: { nome: string; sezione: string; prove: number; assenze: number; ultime: number; ultimeProve: number }[] = [];
+const stagione = inizioStagione(oggi());
+if (!configurati()) errore = 'I report non sono ancora collegati: mancano le impostazioni sul server.';
+else {
+  try {
+    const [elenco, tutte, futuri, passati] = await Promise.all([
+      coristi(), assenze(), eventi(oggi(), piuGiorni(oggi(), 90)), eventi(stagione, piuGiorni(oggi(), -1)),
+    ]);
+    const adesso = Date.now() - 3 * 3600 * 1000;
+    const prova = futuri.find((e) => e.tipo === 'prova' && e.inizioMs > adesso);
+    const concerto = futuri.find((e) => e.tipo === 'concerto' && e.inizioMs > adesso);
+    prossimi = [prova, concerto].filter((e) => e).sort((a, b) => a!.inizioMs - b!.inizioMs).map((e) => riepilogo(e!, elenco, tutte));
+    const proveFatte = passati.filter((e) => e.tipo === 'prova').map((e) => riepilogo(e, elenco, tutte));
+    storico = [...passati].reverse().slice(0, 12).map((e) => riepilogo(e, elenco, tutte));
+    const ultime4 = proveFatte.slice(-4);
+    assiduita = attivi(elenco, oggi()).map((c) => {
+      const sue = proveFatte.filter((r) => r.attesi.some((x) => x.email === c.email));
+      const assenzeSue = sue.filter((r) => r.assenti.some((x) => x.email === c.email)).length;
+      const ultimeSue = ultime4.filter((r) => r.attesi.some((x) => x.email === c.email));
+      return {
+        nome: `${c.nome} ${c.cognome}`, sezione: c.sezione, prove: sue.length, assenze: assenzeSue,
+        ultimeProve: ultimeSue.length, ultime: ultimeSue.filter((r) => r.assenti.some((x) => x.email === c.email)).length,
+      };
+    }).sort((a, b) => b.assenze / (b.prove || 1) - a.assenze / (a.prove || 1) || a.nome.localeCompare(b.nome, 'it'));
+  } catch (e) {
+    errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+  }
+}
+
+const percento = (parte: number, totale: number) => `${totale ? Math.round((parte / totale) * 100) : 0}%`;
+const quando = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
+const breve = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana.slice(0, 3)} ${Number(d.giorno)} ${d.meseBreve.toLowerCase()}`; };
+const sezioniAssiduita = sezioniDi(assiduita);
+---
+
+<Base veste={veste} titolo="Direzione · Area coristi" area={{ sezione: 'direzione' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Direzione</span>
+        <h1>Chi c'è e chi manca</h1>
+        <p>Le assenze le segnalano i coristi e le correggono i redattori; chi non segnala niente è contato presente. Riservato al Maestro e agli amministratori del sito.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {errore && <p class="carta" style="padding:20px">{errore}</p>}
+      <div class="cruscotto">
+        {prossimi.map((r) => (
+          <article class="carta c-6 su">
+            <div class="ct"><h2>{quando(r.evento.data)}{r.evento.inizio && ` · ${r.evento.inizio}`}</h2><span class:list={['tag', { blu: r.evento.tipo === 'concerto' }]}>{r.evento.tipo === 'concerto' ? 'Prossimo concerto' : 'Prossima prova'}</span></div>
+            <div class="cc" style="border-bottom:1px solid var(--linea)">
+              <div class="tenue" style="font-size:15px;margin-bottom:8px">{r.evento.titolo}</div>
+              <b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:48px;line-height:.8;color:var(--primario)">{r.attesi.length - r.assenti.length}</b><span class="tenue" style="font-size:17px;font-weight:600;margin-left:10px">attesi su {r.attesi.length}</span>
+            </div>
+            <div class="sezioni-presenze">
+              {r.perSezione.map((s) => (
+                <div class="sp"><span class="nome">{s.sezione}</span><span class="cifre"><b>{s.presenti}</b> / {s.totale}{s.assenti > 0 && ` · ${s.assenti} ${s.assenti === 1 ? 'assente' : 'assenti'}`}</span><span class="barra"><i style={`width:${percento(s.presenti, s.totale)};background:var(--primario)`}></i><i style={`width:${percento(s.assenti, s.totale)};background:var(--rosso)`}></i></span></div>
+              ))}
+            </div>
+            {r.assenti.length > 0 ? (
+              <ul class="assenti" style="border-top:1px solid var(--linea)">
+                {r.assenti.map((c) => <li><span class="av">{c.nome.charAt(0)}{c.cognome.charAt(0)}</span><b>{c.nome} {c.cognome}<small>{c.sezione}{c.daRedattore && ' · segnata dai redattori'}</small></b>{c.nota ? <span>{c.nota}</span> : <span class="tenue" style="font-style:italic">Nessuna nota</span>}</li>)}
+              </ul>
+            ) : <div class="cc tenue">Nessuna assenza segnalata.</div>}
+          </article>
+        ))}
+
+        {assiduita.length > 0 && (
+          <article class="carta c-12">
+            <div class="ct"><h2>Assiduità della stagione</h2><span class="tenue" style="font-size:14px">Prove dal 1 settembre, chi manca di più in alto</span></div>
+            {assiduita.every((a) => !a.prove) && <div class="cc tenue" style="border-bottom:1px solid var(--linea)">Nessuna prova ancora fatta in questa stagione: i numeri compaiono dopo la prima.</div>}
+            <div class="cc filtri-sezione" style="display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--linea)">
+              <button type="button" class="btn piccolo o on" data-sezione="">Tutte</button>
+              {sezioniAssiduita.filter((s) => assiduita.some((a) => a.sezione === s)).map((s) => <button type="button" class="btn piccolo o" data-sezione={s}>{s}</button>)}
+            </div>
+            <div class="tabella-wrap">
+              <table class="tabella" id="assiduita">
+                <thead><tr><th>Corista</th><th>Sezione</th><th class="num">Presenze</th><th class="num">Assenze</th><th class="num">Ultime 4 prove</th></tr></thead>
+                <tbody>
+                  {assiduita.map((a) => (
+                    <tr data-sezione={a.sezione}><td>{a.nome}</td><td>{a.sezione}</td><td class="num">{a.prove ? <span class="cella-barra"><b>{percento(a.prove - a.assenze, a.prove)}</b><span class="barra"><i style={`width:${percento(a.prove - a.assenze, a.prove)}`}></i></span></span> : '—'}</td><td class="num">{a.prove ? `${a.assenze} su ${a.prove}` : '—'}</td><td class="num">{a.ultimeProve ? (a.ultime ? <b style="color:var(--rosso)">{a.ultime} {a.ultime === 1 ? 'assenza' : 'assenze'}</b> : 'sempre presente') : '—'}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        )}
+
+        {storico.length > 0 && (
+          <article class="carta c-12">
+            <div class="ct"><h2>Storico</h2><span class="tenue" style="font-size:14px">Ultime prove e concerti della stagione</span></div>
+            <ul class="storico">
+              {storico.map((r) => (
+                <li>
+                  <details>
+                    <summary><span class="dt">{breve(r.evento.data)}</span><span class="ti">{r.evento.titolo}</span><span class="nm"><b>{r.attesi.length - r.assenti.length}</b>/{r.attesi.length}</span></summary>
+                    <div class="tenue" style="padding:4px 0 12px">{r.assenti.length ? r.assenti.map((c) => `${c.nome} ${c.cognome} (${c.sezione}${c.nota ? `: ${c.nota}` : ''})`).join(' · ') : 'Nessun assente.'}</div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </article>
+        )}
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .storico { list-style: none; padding: 0 24px 12px; margin: 0; }
+  .storico li { border-top: 1px solid var(--linea); }
+  .storico summary { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; cursor: pointer; }
+  .storico .ti { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filtri-sezione .on { background: var(--primario); color: #fff; }
+</style>
+
+<script>
+  const filtri = document.querySelectorAll<HTMLButtonElement>('.filtri-sezione button');
+  filtri.forEach((b) => b.addEventListener('click', () => {
+    filtri.forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll<HTMLElement>('#assiduita tbody tr').forEach((r) => { r.hidden = Boolean(b.dataset.sezione) && r.dataset.sezione !== b.dataset.sezione; });
+  }));
+</script>

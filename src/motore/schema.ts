@@ -76,6 +76,8 @@ export const schemaCoro = z.object({
   // gruppo indicato (anche come membro esterno)
   coristi: z.object({
     gruppo: z.string(),
+    // Chi vede i report su prove e assenze (/area/direzione): il Maestro e gli amministratori
+    direzione: z.string().optional(),
   }).optional(),
 
   foto: z.object({

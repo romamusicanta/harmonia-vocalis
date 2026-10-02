@@ -41,6 +41,9 @@ export default defineConfig({
       DRIVE_CARTELLA_FOTO: envField.string({ context: 'server', access: 'secret', optional: true }),
       CORISTI_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       CORISTI_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Area coristi: foglio "Coristi e assenze" e calendario privato "Prove"
+      FOGLIO_CORISTI_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      CALENDARIO_PROVE_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       // Federazione delle identità verso l'account di servizio (anche per la build, vedi scripts/)
       GCP_PROJECT_NUMBER: envField.string({ context: 'server', access: 'secret', optional: true }),
       GCP_SERVICE_ACCOUNT_EMAIL: envField.string({ context: 'server', access: 'secret', optional: true }),
