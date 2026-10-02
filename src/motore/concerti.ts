@@ -16,7 +16,9 @@
 //                    Ingresso: libero
 //                    Organico: per soli, coro e orchestra      (dell'opera appena sopra)
 //                    Brani: Introitus, Kyrie, Dies irae        (dell'opera appena sopra)
-//                    Foto: terme.jpg                           (file in coro/immagini, per le schede)
+//                    Foto: terme.jpg                           (file in coro/immagini, per le schede:
+//                                                               solo una foto di quel concerto; senza,
+//                                                               le schede mostrano la locandina)
 //                    Locandina: locandina-rignano.jpg          (file in coro/immagini, al posto di
 //                                                               quella generata dal sito)
 //                    Video: 43p4ArVIS_Q                        (ID YouTube, dopo il concerto)

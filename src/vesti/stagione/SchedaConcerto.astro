@@ -1,5 +1,5 @@
 ---
-// Veste Stagione: scheda concerto verticale (data grande, foto, autore e titolo).
+// Veste Stagione: scheda concerto verticale (data grande, foto o locandina, autore e titolo).
 import Foto from '../../componenti/Foto.astro';
 import { parti } from '../../motore/concerti';
 import type { Concerto } from '../../motore/tipi';
@@ -14,6 +14,8 @@ interface Props {
 }
 const { concerto: c, href, etichetta, grigia, azione, conFoto = true } = Astro.props;
 const d = parti(c);
+// Senza foto del concerto, la locandina intera (non ritagliata) sul fondo della scheda
+const anteprima = c.foto ?? c.locandina;
 ---
 
 <a class="sc" href={href}>
@@ -21,7 +23,7 @@ const d = parti(c);
     <span class="data-grande">{d.incerta ? d.anno : d.giorno}<small>{d.incerta ? 'data da precisare' : `${d.meseBreve} ${d.anno}`}</small></span>
     <span class:list={['tag', { grigio: grigia }]}>{etichetta}</span>
   </div>
-  {conFoto && c.foto && <div class="img"><Foto nome={c.foto} sizes="(min-width: 1000px) 25vw, 100vw" /></div>}
+  {conFoto && anteprima && <div class:list={['img', { locandina: !c.foto }]}><Foto nome={anteprima} alt={c.foto ? '' : `Locandina: ${c.titolo}`} sizes="(min-width: 1000px) 25vw, 100vw" /></div>}
   <div class="corpo">
     {c.autore && <span class="aut">{c.autore}</span>}
     <h3>{c.titolo}</h3>

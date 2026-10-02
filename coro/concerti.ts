@@ -36,7 +36,6 @@ export const prossimi: Concerto[] = [
       { ruolo: 'Tenore', nome: 'Antonio Sapio' },
       { ruolo: 'Basso', nome: 'Massimo Simeoli' },
     ],
-    foto: 'terme.jpg',
     locandina: 'locandina-rignano.jpg',
   },
 ];
