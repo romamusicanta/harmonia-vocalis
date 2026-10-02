@@ -8,6 +8,7 @@ import { SESSIONE_SEGRETO } from 'astro:env/server';
 export interface Sessione {
   email: string;
   nome: string;
+  foto?: string; // foto dell'account Google ('' se non c'è)
   accesso: string; // token di accesso di Google
   rinnovo?: string; // token per rinnovarlo, se Google l'ha dato
   scade: number; // scadenza del token di accesso (ms)

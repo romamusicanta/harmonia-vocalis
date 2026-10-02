@@ -20,13 +20,14 @@ interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: 
 const { veste, sezione, conBarra = true, maestro = false, admin = false } = Astro.props;
 const tipo = admin ? 'admin' : maestro ? 'maestro' : 'coristi';
 
-// Chi è entrato (src/middleware.ts); nella demo il corista di esempio
+// Chi è entrato (src/middleware.ts), con la foto dell'account Google se c'è (altrimenti, o se non si
+// carica, l'icona della persona); nella demo il corista di esempio
 const sessione = Astro.locals.sessione;
 const utente = admin
-  ? sessione && { nome: sessione.nome || sessione.email, dettaglio: sessione.email }
+  ? sessione && { nome: sessione.nome || sessione.email, dettaglio: sessione.email, foto: sessione.foto }
   : Astro.locals.corista
-    ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email }
-    : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}` };
+    ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email, foto: Astro.locals.corista.foto }
+    : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}`, foto: undefined as string | undefined };
 const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : '/area/esci';
 
 const aree = areeRiservate(veste);
@@ -78,7 +79,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     {conBarra ? (
       utente && (
         <div class="azioni">
-          <span class="utente"><span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} /></span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
+          <span class="utente"><span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} />{utente.foto && <img src={utente.foto} alt="" referrerpolicy="no-referrer" onerror="this.remove()" />}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
           <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
         </div>
       )

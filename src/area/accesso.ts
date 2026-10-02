@@ -15,6 +15,7 @@ import { nelGruppo } from './servizio';
 export interface Corista {
   email: string;
   nome: string;
+  foto?: string; // foto dell'account Google (le sessioni di prima del 3/10/2026 non la hanno)
   verificato: number; // quando si è controllato l'ultima volta che è nel gruppo (ms)
   coro?: boolean;      // nel gruppo dei coristi (le sessioni di prima del 3/10/2026 non lo hanno: sì)
   direzione?: boolean; // nel gruppo della direzione
@@ -64,7 +65,7 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   if (!gruppi.coro && !gruppi.direzione) {
     return { errore: `L’indirizzo ${io.email} non è nell’elenco dei coristi. Entra con il tuo account dell’associazione (nome.cognome@${coro.amministrazione?.dominio ?? 'romamusicanta.org'}); se non lo hai, chiedi al direttivo.` };
   }
-  return { corista: { email: io.email, nome: io.given_name ?? io.name ?? io.email, verificato: Date.now(), ...gruppi } };
+  return { corista: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', verificato: Date.now(), ...gruppi } };
 }
 
 const opzioni = (secure: boolean) => ({ httpOnly: true, secure, sameSite: 'lax' as const, path: '/' });

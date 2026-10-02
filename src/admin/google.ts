@@ -54,7 +54,7 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
   if (!(await nelGruppo(t.access_token, io.email, gruppo))) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };
   return {
-    sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000 },
+    sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000 },
   };
 }
 
@@ -75,7 +75,9 @@ export async function tokenValido(s: Sessione): Promise<Sessione | undefined> {
   if (!s.rinnovo) return undefined;
   try {
     const t = await token({ refresh_token: s.rinnovo, grant_type: 'refresh_token' });
-    return { ...s, accesso: t.access_token, scade: Date.now() + (t.expires_in - 60) * 1000 };
+    // Le sessioni di prima del 3/10/2026 non hanno la foto: si prende al primo rinnovo
+    const foto = s.foto ?? (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } }).then((r) => r.json()).then((io) => io.picture ?? '').catch(() => undefined));
+    return { ...s, foto, accesso: t.access_token, scade: Date.now() + (t.expires_in - 60) * 1000 };
   } catch {
     return undefined;
   }
