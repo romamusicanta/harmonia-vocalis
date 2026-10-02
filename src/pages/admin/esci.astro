@@ -1,0 +1,12 @@
+---
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import { chiudiSessione } from '../../admin/sessione';
+
+export const prerender = false;
+chiudiSessione(Astro.cookies);
+---
+
+<LayoutAdmin titolo="Uscita">
+  <h1>Sei uscito</h1>
+  <p class="bottoni"><a class="btn g" href="/admin">Rientra</a><a class="btn o" href="/">Vai al sito</a></p>
+</LayoutAdmin>

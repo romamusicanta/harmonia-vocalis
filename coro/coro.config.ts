@@ -75,6 +75,12 @@ export default {
     presentazione: 'Si apre con il Requiem di Mozart. Messe, oratori e grandi pagine corali con orchestra, a Roma e nel Lazio.',
   },
 
+  // Area Amministrazione (romamusicanta.org/admin): entrano i membri del gruppo admin@
+  amministrazione: {
+    dominio: 'romamusicanta.org',
+    gruppo: 'admin@romamusicanta.org',
+  },
+
   // Foto di riserva, dalla scheda italiacori del coro (vedi immagini/CREDITI.md). Quelle vere si
   // cambiano su Drive, nella cartella Sito/Foto del Drive condiviso: apertura, coro, prove,
   // maestro (questa al posto di maestro.foto) e accesso, con questi nomi (.jpg o .png).

@@ -1,0 +1,70 @@
+---
+// Foto del sito: le foto generali (cartella Sito/Foto del Drive condiviso) con quella pubblicata
+// adesso accanto e il caricamento di una nuova. L'invio va a /admin/foto/carica.
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import { coro, immagine } from '../../motore/coro';
+
+export const prerender = false;
+
+const posti = [
+  { nome: 'apertura', titolo: 'Apertura', dove: 'Home, in alto: la prima cosa che si vede; anche anteprima dei link condivisi.', consiglio: 'Il coro in concerto, orizzontale, almeno 2000 px.', attuale: coro.foto.apertura },
+  { nome: 'coro', titolo: 'Il coro', dove: 'Pagina "Il coro" (a tutta larghezza) e sezione "Il coro" della home.', consiglio: 'Il coro intero, orizzontale, almeno 2400 px.', attuale: coro.foto.coro },
+  { nome: 'prove', titolo: 'Prove', dove: 'Pagina "Canta con noi".', consiglio: 'Una prova del coro.', attuale: coro.foto.prove ?? coro.foto.coro },
+  { nome: 'maestro', titolo: 'Il Maestro', dove: 'Home e pagina "Il Maestro".', consiglio: `Ritratto del M° ${coro.maestro.nome}, quadrato o verticale, almeno 1200 px.`, attuale: coro.maestro.foto },
+  { nome: 'accesso', titolo: 'Accesso coristi', dove: "Pagina di accesso dell'area coristi (se manca, si usa l'apertura).", consiglio: 'Facoltativa.', attuale: coro.foto.accesso },
+];
+---
+
+<LayoutAdmin titolo="Foto del sito" sezione="foto">
+  <h1>Foto del sito</h1>
+  <p class="tenue" style="max-width:64ch">Accanto a ogni posto c'è la foto pubblicata adesso. Caricandone una nuova, sostituisce quella su Drive (cartella Sito/Foto); sul sito compare con la prossima pubblicazione. Prima di caricare: chi l'ha scattata e il consenso delle persone riconoscibili.</p>
+  <p id="esito" role="status"></p>
+
+  <div style="display:grid;gap:16px;margin-top:20px">
+    {posti.map((p) => (
+      <form class="scheda-admin modulo-foto" data-nome={p.nome} style="display:grid;grid-template-columns:minmax(0,200px) 1fr;gap:20px;align-items:center">
+        <img src={immagine(p.attuale).src} alt="" loading="lazy" style="width:100%;height:140px;object-fit:cover;border-radius:var(--raggio);background:var(--primario)" />
+        <div style="display:grid;gap:8px">
+          <b style="color:var(--primario);font-size:19px">{p.titolo}</b>
+          <span class="tenue" style="font-size:15px">{p.dove} {p.consiglio}</span>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+            <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" required />
+            <button class="btn g" type="submit">Sostituisci</button>
+          </div>
+        </div>
+      </form>
+    ))}
+  </div>
+
+  <script>
+    import { riduci } from '../../admin/immagini';
+
+    const esito = document.getElementById('esito')!;
+    const mostra = (html: string, classe: string) => { esito.className = `messaggio ${classe}`; esito.innerHTML = html; esito.scrollIntoView({ block: 'nearest' }); };
+
+    for (const modulo of document.querySelectorAll<HTMLFormElement>('.modulo-foto')) {
+      modulo.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const file = (modulo.elements.namedItem('foto') as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const pulsante = modulo.querySelector('button')!;
+        pulsante.disabled = true;
+        mostra('Carico la foto…', '');
+        try {
+          const dati = new FormData();
+          dati.set('nome', modulo.dataset.nome!);
+          dati.set('foto', await riduci(file));
+          const r = await fetch('/admin/foto/carica', { method: 'POST', body: dati });
+          const j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+          if (!j.ok) throw new Error(j.errore);
+          modulo.reset();
+          mostra(`Foto "${modulo.dataset.nome}" sostituita su Drive. Per vederla sul sito: <a href="/admin">Pubblicazione</a> → "Pubblica ora".`, 'ok');
+        } catch (e) {
+          mostra(`Non caricata: ${(e as Error).message}`, 'errore');
+        } finally {
+          pulsante.disabled = false;
+        }
+      });
+    }
+  </script>
+</LayoutAdmin>
