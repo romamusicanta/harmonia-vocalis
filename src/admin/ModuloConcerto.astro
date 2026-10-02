@@ -6,10 +6,11 @@
 import { coro } from '../motore/coro';
 import type { DatiConcerto } from './concerto';
 
+interface Allegato { title: string; fileUrl: string; fileId?: string }
 interface Props {
   valori?: DatiConcerto;
   // In modifica: l'evento e gli allegati attuali
-  evento?: { id: string; htmlLink: string; locandina?: { title: string; fileUrl: string }; copertina?: { title: string; fileUrl: string } };
+  evento?: { id: string; htmlLink: string; locandina?: Allegato; copertina?: Allegato };
 }
 const { valori, evento } = Astro.props;
 const v = valori;
@@ -17,6 +18,8 @@ const modifica = Boolean(evento);
 const ruoli = ['Soprano', 'Mezzosoprano', 'Contralto', 'Tenore', 'Baritono', 'Basso', 'Solisti', 'Orchestra', 'Canta insieme a noi', 'Direttore', 'Maestro del coro', 'Pianoforte', 'Organo', 'Percussioni', 'Voce recitante'];
 const opere = v?.opere.length ? v.opere : [{ autore: '', opera: '' }];
 const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' }];
+// Anteprima di un allegato attuale, letta da Drive
+const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new URLSearchParams({ id: a.fileId })}`;
 ---
 
 <div class="scheda-admin" style="max-width:820px;margin-top:28px;border-width:2px;border-color:var(--accento)">
@@ -90,11 +93,19 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
     <div class="campo"><label for="locandina">Locandina</label>
       {evento?.locandina && <span style="font-size:15px">Ora: <a href={evento.locandina.fileUrl} target="_blank" rel="noopener" style="text-decoration:underline">{evento.locandina.title}</a></span>}
       {!evento?.locandina && v?.rigaLocandina && <span style="font-size:15px">Ora: {v.rigaLocandina} (nel sito)</span>}
+      <div class="anteprime-file" data-tipo="locandina">
+        {anteprima(evento?.locandina) && <figure class="attuale"><img src={anteprima(evento?.locandina)} alt="" loading="lazy" /><figcaption>Ora</figcaption></figure>}
+        <figure class="da-salvare" data-per="locandina" hidden><img alt="" /><figcaption>{modifica ? 'Nuova, da salvare' : 'Scelta'}</figcaption></figure>
+      </div>
       <input id="locandina" name="locandina" type="file" accept="image/jpeg,image/png,image/webp" />
       <span class="aiuto">{modifica ? 'Caricandone una, prende il posto di quella attuale (che resta su Drive).' : 'La locandina ufficiale (JPEG o PNG; un PDF va prima salvato come immagine).'}</span></div>
     <div class="campo"><label for="copertina">Foto principale</label>
       {evento?.copertina && <span style="font-size:15px">Ora: <a href={evento.copertina.fileUrl} target="_blank" rel="noopener" style="text-decoration:underline">{evento.copertina.title}</a></span>}
       {!evento?.copertina && v?.rigaFoto && <span style="font-size:15px">Ora: {v.rigaFoto} (nel sito)</span>}
+      <div class="anteprime-file" data-tipo="copertina">
+        {anteprima(evento?.copertina) && <figure class="attuale"><img src={anteprima(evento?.copertina)} alt="" loading="lazy" /><figcaption>Ora</figcaption></figure>}
+        <figure class="da-salvare" data-per="copertina" hidden><img alt="" /><figcaption>{modifica ? 'Nuova, da salvare' : 'Scelta'}</figcaption></figure>
+      </div>
       <input id="copertina" name="copertina" type="file" accept="image/jpeg,image/png,image/webp" />
       <span class="aiuto">Una foto del coro in questo concerto, la più bella: nelle schede prende il posto della locandina. Solo con il consenso delle persone riconoscibili.</span></div>
   </div>
@@ -106,6 +117,18 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
   <p id="esito" role="status"></p>
 </form>
 
+<style>
+  .anteprime-file { display: flex; flex-wrap: wrap; gap: 12px; }
+  .anteprime-file:empty { display: none; }
+  .anteprime-file figure { margin: 0; width: 160px; }
+  .anteprime-file img { display: block; width: 100%; height: 200px; border-radius: var(--raggio); background: var(--fondo); }
+  .anteprime-file[data-tipo='locandina'] img { object-fit: contain; }
+  .anteprime-file[data-tipo='copertina'] img { object-fit: cover; }
+  .anteprime-file figcaption { font-size: 13px; margin-top: 4px; color: var(--tenue); }
+  .anteprime-file .da-salvare figcaption { font-weight: 700; color: var(--primario); }
+  .anteprime-file .da-salvare img { outline: 3px solid var(--accento); outline-offset: -3px; }
+</style>
+
 <script>
   import { riduci } from './immagini';
 
@@ -113,6 +136,18 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
   const modifica = Boolean(modulo.dataset.modifica);
   const esito = document.getElementById('esito')!;
   const letto = document.getElementById('letto')!;
+
+  // Anteprima del file scelto per locandina e foto principale, prima di salvare
+  function aggiornaAnteprima(campo: string) {
+    const file = (document.getElementById(campo) as HTMLInputElement).files?.[0];
+    const figura = document.querySelector<HTMLElement>(`.da-salvare[data-per="${campo}"]`)!;
+    const img = figura.querySelector('img')!;
+    if (img.src) URL.revokeObjectURL(img.src);
+    figura.hidden = !file;
+    if (file) img.src = URL.createObjectURL(file);
+    else img.removeAttribute('src');
+  }
+  for (const campo of ['locandina', 'copertina']) document.getElementById(campo)!.addEventListener('change', () => aggiornaAnteprima(campo));
 
   // Righe ripetibili: si copia la prima, svuotata
   function aggiungiRiga(id: string) {
@@ -157,7 +192,7 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
       const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
       if (!j.ok) throw new Error(j.errore);
       const d = j.dati;
-      if (!modifica) modulo.reset();
+      if (!modifica) { modulo.reset(); aggiornaAnteprima('copertina'); }
       for (const campo of ['data', 'ora', 'citta', 'sala', 'indirizzo', 'rassegna', 'organico', 'brani', 'organizza', 'ingresso', 'evidenza']) {
         const input = modulo.elements.namedItem(campo) as HTMLInputElement;
         if (!modifica || !input.value.trim()) input.value = d[campo] ?? input.value;
@@ -167,6 +202,7 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
       const dt = new DataTransfer();
       dt.items.add(file);
       (document.getElementById('locandina') as HTMLInputElement).files = dt.files;
+      aggiornaAnteprima('locandina');
       const avvisi = [
         ...(!d.locandina ? ['Non sembra la locandina di un concerto.'] : []),
         ...(!d.coroCitato ? ['La locandina non nomina il coro: sei sicuro che sia un nostro concerto?'] : []),
@@ -216,9 +252,27 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
       if (modifica) {
         (document.getElementById('locandina') as HTMLInputElement).value = '';
         (document.getElementById('copertina') as HTMLInputElement).value = '';
+        // Le immagini appena salvate prendono il posto di quelle attuali nelle anteprime
+        for (const campo of ['locandina', 'copertina']) {
+          const scelta = document.querySelector<HTMLElement>(`.da-salvare[data-per="${campo}"]`)!;
+          if (scelta.hidden) continue;
+          scelta.parentElement!.querySelector('.attuale')?.remove();
+          scelta.querySelector('figcaption')!.textContent = 'Ora (da pubblicare)';
+          scelta.classList.remove('da-salvare');
+          scelta.removeAttribute('data-per');
+          const nuova = scelta.cloneNode(true) as HTMLElement;
+          nuova.hidden = true;
+          nuova.classList.add('da-salvare');
+          nuova.dataset.per = campo;
+          nuova.querySelector('img')!.removeAttribute('src');
+          nuova.querySelector('figcaption')!.textContent = 'Nuova, da salvare';
+          scelta.after(nuova);
+          scelta.classList.add('attuale');
+        }
         mostra(`Modifiche salvate. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}`, 'ok');
       } else {
         modulo.reset();
+        for (const campo of ['locandina', 'copertina']) aggiornaAnteprima(campo);
         letto.className = '';
         letto.textContent = '';
         mostra(`Concerto creato. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}`, 'ok');

@@ -164,6 +164,27 @@ export async function sostituisciFotoSito(s: Sessione, nome: (typeof NOMI_FOTO_S
   });
 }
 
+// Le foto del sito come sono adesso su Drive, per nome (apertura, coro…), con l'ora dell'ultima
+// modifica: più recente della build vuol dire che sul sito non c'è ancora
+export async function fotoSitoSuDrive(s: Sessione): Promise<Record<string, { id: string; modificata: string }>> {
+  const p = new URLSearchParams({ q: `'${DRIVE_CARTELLA_FOTO}' in parents and trashed = false and mimeType contains 'image/'`, fields: 'files(id,name,modifiedTime)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '50' });
+  const { files } = await api<{ files: { id: string; name: string; modifiedTime: string }[] }>(s, `${DRIVE}/files?${p}`);
+  return Object.fromEntries(files.map((f) => [f.name.replace(/\.[^.]+$/, '').trim().toLowerCase(), { id: f.id, modificata: f.modifiedTime }]));
+}
+
+// Un'immagine del Drive da mostrare nell'area (anteprime): il file stesso se sta nel limite di
+// 4,5 MB delle risposte delle funzioni, altrimenti la miniatura grande che prepara Drive
+export async function immagineDrive(s: Sessione, id: string): Promise<Response> {
+  const f = await api<{ mimeType: string; size?: string; thumbnailLink?: string }>(s, `${DRIVE}/files/${encodeURIComponent(id)}?supportsAllDrives=true&fields=mimeType,size,thumbnailLink`);
+  if (!f.mimeType.startsWith('image/')) throw new Error('non è un’immagine');
+  const url = Number(f.size ?? 0) <= 4_000_000 || !f.thumbnailLink
+    ? `${DRIVE}/files/${encodeURIComponent(id)}?alt=media&supportsAllDrives=true`
+    : f.thumbnailLink.replace(/=s\d+$/, '=s1600');
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${s.accesso}` } });
+  if (!r.ok) throw new Error(`Google (${r.status})`);
+  return new Response(r.body, { headers: { 'Content-Type': r.headers.get('Content-Type') ?? f.mimeType } });
+}
+
 // ——— Pubblicazione ———
 
 export async function pubblica() {

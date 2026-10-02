@@ -1,10 +1,23 @@
 ---
 // Foto del sito: le foto generali (cartella Sito/Foto del Drive condiviso) con quella pubblicata
-// adesso accanto e il caricamento di una nuova. L'invio va a /admin/foto/carica.
+// adesso accanto, quella già su Drive ma non ancora pubblicata e il caricamento di una nuova, con
+// l'anteprima del file scelto. L'invio va a /admin/foto/carica.
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import { fotoSitoSuDrive } from '../../admin/operazioni';
 import { coro, immagine } from '../../motore/coro';
 
 export const prerender = false;
+
+// Su Drive e modificate dopo la build: sul sito non ci sono ancora
+let suDrive: Awaited<ReturnType<typeof fotoSitoSuDrive>> = {};
+try {
+  suDrive = await fotoSitoSuDrive(Astro.locals.sessione!);
+} catch {}
+const build = new Date(__ORA_BUILD__);
+const nuova = (nome: string) => {
+  const f = suDrive[nome];
+  return f && new Date(f.modificata) > build ? `/admin/drive/immagine?${new URLSearchParams({ id: f.id, v: f.modificata })}` : undefined;
+};
 
 const posti = [
   { nome: 'apertura', titolo: 'Apertura', dove: 'Home, in alto: la prima cosa che si vede; anche anteprima dei link condivisi.', consiglio: 'Il coro in concerto, orizzontale, almeno 2000 px.', attuale: coro.foto.apertura },
@@ -17,14 +30,18 @@ const posti = [
 
 <LayoutAdmin titolo="Foto del sito" sezione="foto">
   <h1>Foto del sito</h1>
-  <p class="tenue" style="max-width:64ch">Accanto a ogni posto c'è la foto pubblicata adesso. Caricandone una nuova, sostituisce quella su Drive (cartella Sito/Foto); sul sito compare con la prossima pubblicazione. Prima di caricare: chi l'ha scattata e il consenso delle persone riconoscibili.</p>
+  <p class="tenue" style="max-width:64ch">Accanto a ogni posto c'è la foto pubblicata adesso. Caricandone una nuova, sostituisce quella su Drive (cartella Sito/Foto); sul sito compare con la prossima pubblicazione (fino ad allora si vede qui accanto, "da pubblicare"). Prima di caricare: chi l'ha scattata e il consenso delle persone riconoscibili.</p>
   <p id="esito" role="status"></p>
 
   <div style="display:grid;gap:16px;margin-top:20px">
     {posti.map((p) => (
-      <form class="scheda-admin modulo-foto" data-nome={p.nome} style="display:grid;grid-template-columns:minmax(0,200px) 1fr;gap:20px;align-items:center">
-        <img src={immagine(p.attuale).src} alt="" loading="lazy" style="width:100%;height:140px;object-fit:cover;border-radius:var(--raggio);background:var(--primario)" />
-        <div style="display:grid;gap:8px">
+      <form class="scheda-admin modulo-foto" data-nome={p.nome} style="display:flex;flex-wrap:wrap;gap:20px;align-items:center">
+        <div class="anteprime">
+          <figure><img src={immagine(p.attuale).src} alt="" loading="lazy" /><figcaption>Sul sito</figcaption></figure>
+          {nuova(p.nome) && <figure class="nuova"><img src={nuova(p.nome)} alt="" loading="lazy" /><figcaption>Su Drive, da pubblicare</figcaption></figure>}
+          <figure class="da-salvare" hidden><img alt="" /><figcaption>Scelta, non ancora caricata</figcaption></figure>
+        </div>
+        <div style="display:grid;gap:8px;flex:1 1 280px">
           <b style="color:var(--primario);font-size:19px">{p.titolo}</b>
           <span class="tenue" style="font-size:15px">{p.dove} {p.consiglio}</span>
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
@@ -36,6 +53,15 @@ const posti = [
     ))}
   </div>
 
+  <style>
+    .anteprime { display: flex; flex-wrap: wrap; gap: 12px; }
+    .anteprime figure { margin: 0; width: 180px; }
+    .anteprime img { display: block; width: 100%; height: 130px; object-fit: cover; border-radius: var(--raggio); background: var(--primario); }
+    .anteprime figcaption { font-size: 13px; margin-top: 4px; color: var(--tenue); }
+    .anteprime .nuova figcaption, .anteprime .da-salvare figcaption { font-weight: 700; color: var(--primario); }
+    .anteprime .da-salvare img { outline: 3px solid var(--accento); outline-offset: -3px; }
+  </style>
+
   <script>
     import { riduci } from '../../admin/immagini';
 
@@ -43,6 +69,18 @@ const posti = [
     const mostra = (html: string, classe: string) => { esito.className = `messaggio ${classe}`; esito.innerHTML = html; esito.scrollIntoView({ block: 'nearest' }); };
 
     for (const modulo of document.querySelectorAll<HTMLFormElement>('.modulo-foto')) {
+      // Anteprima del file appena scelto, prima ancora di caricarlo
+      const input = modulo.elements.namedItem('foto') as HTMLInputElement;
+      const scelta = modulo.querySelector<HTMLElement>('.da-salvare')!;
+      const didascalia = scelta.querySelector('figcaption')!;
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        const img = scelta.querySelector('img')!;
+        if (img.src) URL.revokeObjectURL(img.src);
+        scelta.hidden = !file;
+        if (file) { img.src = URL.createObjectURL(file); didascalia.textContent = 'Scelta, non ancora caricata'; }
+      });
+
       modulo.addEventListener('submit', async (ev) => {
         ev.preventDefault();
         const file = (modulo.elements.namedItem('foto') as HTMLInputElement).files?.[0];
@@ -57,6 +95,9 @@ const posti = [
           const r = await fetch('/admin/foto/carica', { method: 'POST', body: dati });
           const j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
           if (!j.ok) throw new Error(j.errore);
+          // La foto scelta resta come anteprima: ora è quella su Drive, da pubblicare
+          modulo.querySelector('.nuova')?.remove();
+          didascalia.textContent = 'Su Drive, da pubblicare';
           modulo.reset();
           mostra(`Foto "${modulo.dataset.nome}" sostituita su Drive. Per vederla sul sito: <a href="/admin">Pubblicazione</a> → "Pubblica ora".`, 'ok');
         } catch (e) {
