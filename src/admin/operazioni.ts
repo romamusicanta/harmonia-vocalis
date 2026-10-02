@@ -65,6 +65,19 @@ export async function creaEvento(s: Sessione, corpo: object): Promise<EventoApi>
   });
 }
 
+export async function leggiEvento(s: Sessione, id: string): Promise<EventoApi> {
+  return api(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events/${encodeURIComponent(id)}`);
+}
+
+export async function aggiornaEvento(s: Sessione, id: string, corpo: object): Promise<EventoApi> {
+  const p = new URLSearchParams({ supportsAttachments: 'true' });
+  return api(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events/${encodeURIComponent(id)}?${p}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo),
+  });
+}
+
 // ——— Drive ———
 
 const virgolette = (s: string) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -109,6 +122,29 @@ export async function caricaFile(s: Sessione, file: File, nome: string, genitore
     headers: { 'Content-Type': `multipart/related; boundary=${confine}` },
     body: corpo,
   });
+}
+
+// La cartella che contiene un file (per la Modifica: quella del concerto); undefined se non si legge
+export async function cartellaDelFile(s: Sessione, id: string): Promise<string | undefined> {
+  try {
+    return (await api<{ parents?: string[] }>(s, `${DRIVE}/files/${id}?fields=parents&supportsAllDrives=true`)).parents?.[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// Locandina e copertina dal modulo (già ridotte dal browser), caricate nella cartella del concerto,
+// pronte da allegare all'evento
+export async function caricaImmagini(s: Sessione, f: FormData, cartella: string) {
+  const nuovi: { fileUrl: string; title: string; mimeType: string }[] = [];
+  for (const campo of ['locandina', 'copertina']) {
+    const file = f.get(campo);
+    if (!(file instanceof File) || !file.size) continue;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return { errore: `${campo}: solo immagini JPEG, PNG o WebP` };
+    const caricato = await caricaFile(s, file, `${campo}.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`, cartella);
+    nuovi.push({ fileUrl: caricato.webViewLink, title: caricato.name, mimeType: file.type });
+  }
+  return { nuovi };
 }
 
 // Foto del sito: sostituisce il contenuto del file con quel nome in Sito/Foto (lo stesso file, così

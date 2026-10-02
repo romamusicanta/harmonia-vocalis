@@ -187,6 +187,7 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
               <div><b style="color:var(--primario)">{dataBreve(c)}</b> · {[c.autore, c.titolo].filter(Boolean).join(', ')}{c.luogo && <span class="tenue"> · {c.luogo}</span>}</div>
               <div style="display:flex;gap:14px;font-size:14px;flex-wrap:wrap">
                 {daPubblicare && <span class="tag">Da pubblicare</span>}
+                <a href={`/admin/concerti/modifica?id=${encodeURIComponent(e.id)}`} style="text-decoration:underline;font-weight:700">Modifica</a>
                 <a href={e.htmlLink} target="_blank" rel="noopener" style="text-decoration:underline">Apri nel calendario</a>
                 {!daPubblicare && <a href={`/concerti/${slug(c)}`} target="_blank" rel="noopener" style="text-decoration:underline">Pagina sul sito</a>}
               </div>

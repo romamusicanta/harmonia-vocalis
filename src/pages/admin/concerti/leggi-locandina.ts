@@ -6,6 +6,9 @@ import type { APIRoute } from 'astro';
 import { generateText, Output } from 'ai';
 import { z } from 'astro/zod';
 import { coro } from '../../../motore/coro';
+import { daEvento } from '../../../motore/calendario';
+import { comeIcal, eventiConcerti } from '../../../admin/operazioni';
+import type { Sessione } from '../../../admin/sessione';
 
 export const prerender = false;
 
@@ -48,14 +51,31 @@ Regole:
 - Nomi delle persone come sulla locandina, ma con le maiuscole normali ("Antonio Sapio", non "ANTONIO SAPIO").
 - Loghi di enti e sponsor non sono organizzatori, a meno che la locandina dica chi organizza.`;
 
+// I nomi già nell'archivio (interpreti degli eventi del calendario), per scrivere allo stesso modo
+// quelli letti sulla locandina: "Digregorio" → "Di Gregorio", "ANTONIO SAPIO" → "Antonio Sapio"
+const chiave = (nome: string) => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+
+async function nomiInArchivio(s: Sessione) {
+  const nomi = new Map<string, string>([[chiave(coro.maestro.nome), coro.maestro.nome]]);
+  for (const e of await eventiConcerti(s)) {
+    for (const i of daEvento(comeIcal(e), () => {}).interpreti ?? []) {
+      for (const nome of (i.nome ?? '').split(/,\s*/)) if (nome) nomi.set(chiave(nome), nome);
+    }
+  }
+  return nomi;
+}
+
+const uniforma = (nomi: Map<string, string>, testo: string) =>
+  testo.split(/,\s*/).map((n) => nomi.get(chiave(n)) ?? n).join(', ');
+
 const json = (corpo: object, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } });
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const f = await request.formData();
     const file = f.get('locandina');
     if (!(file instanceof File) || !/^image\/(jpeg|png|webp)$/.test(file.type)) return json({ ok: false, errore: 'serve un’immagine JPEG, PNG o WebP' }, 400);
-    const { output } = await generateText({
+    const [{ output }, nomi] = await Promise.all([generateText({
       model: MODELLO,
       output: Output.object({ schema }),
       system: istruzioni,
@@ -66,7 +86,8 @@ export const POST: APIRoute = async ({ request }) => {
           { type: 'file', mediaType: file.type, data: new Uint8Array(await file.arrayBuffer()) },
         ],
       }],
-    });
+    }), nomiInArchivio(locals.sessione!).catch(() => new Map<string, string>())]);
+    output.interpreti = output.interpreti.map((i) => ({ ...i, nome: uniforma(nomi, i.nome) }));
     return json({ ok: true, dati: output });
   } catch (e) {
     const messaggio = (e as Error).message;
