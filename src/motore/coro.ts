@@ -1,6 +1,8 @@
 // Punto di accesso ai dati del coro: configurazione validata, immagini, modalità demo.
 import configGrezza from '../../coro/coro.config';
 import { schemaCoro } from './schema';
+import inglese from '../../coro/coro.en';
+import type { Lingua } from './lingua';
 
 const esito = schemaCoro.safeParse(configGrezza);
 if (!esito.success) {
@@ -41,12 +43,28 @@ export const sezioneAlSingolare = (sezione: string) => sezione.replace(/\p{L}+/g
 
 // In elenco, in minuscolo: "soprani, contralti, tenori e bassi"; se l'ultima sezione ha già una
 // "e" ("baritoni e bassi") la si attacca con la virgola, per non scrivere "tenori e baritoni e bassi"
-export function elencoSezioni(organico: { sezione: string }[]) {
+export function elencoSezioni(organico: { sezione: string }[], lingua: Lingua = 'it') {
+  const e = lingua === 'en' ? 'and' : 'e';
   const nomi = organico.map((s) => s.sezione.toLowerCase());
   const ultima = nomi.pop();
   if (!nomi.length || !ultima) return ultima ?? '';
-  return `${nomi.join(', ')}${/ e /.test(ultima) ? ', ' : ' e '}${ultima}`;
+  return `${nomi.join(', ')}${new RegExp(` ${e} `).test(ultima) ? ', ' : ` ${e} `}${ultima}`;
 }
+
+// I dati del coro in una lingua: in inglese i testi di coro/coro.en.ts sopra quelli di
+// coro.config.ts (oggetti fusi, elenchi voce per voce, elenchi di elenchi sostituiti)
+function fondi(base: any, sopra: any): any {
+  if (sopra === undefined) return base;
+  if (Array.isArray(base) && Array.isArray(sopra)) {
+    return Array.isArray(sopra[0]) ? sopra : base.map((v, i) => fondi(v, sopra[i]));
+  }
+  if (base && typeof base === 'object' && sopra && typeof sopra === 'object') {
+    return Object.fromEntries(Object.keys({ ...base, ...sopra }).map((k) => [k, fondi(base[k], sopra[k])]));
+  }
+  return sopra;
+}
+
+export const coroIn = (lingua: Lingua): typeof coro => (lingua === 'en' ? fondi(coro, inglese) : coro);
 
 export const indirizzo = (l: { indirizzo: string; cap: string; citta: string }) => `${l.indirizzo}, ${l.cap} ${l.citta}`;
 

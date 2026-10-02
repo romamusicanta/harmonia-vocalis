@@ -1,0 +1,151 @@
+---
+// Pagina "Canta con noi": audizioni, prove, candidatura e domande frequenti.
+import type { Veste } from '../motore/aspetto';
+import Base from '../layouts/Base.astro';
+import Icona from '../componenti/Icona.astro';
+import Foto from '../componenti/Foto.astro';
+import Video from '../componenti/Video.astro';
+import NotaVideo from '../componenti/NotaVideo.astro';
+import { AREA_CORISTI, DEMO, elencoSezioni, sezioneAlSingolare } from '../motore/coro';
+import { contesto } from '../motore/url';
+import { videoIn } from '../motore/inglese';
+import { linkMappa } from '../motore/concerti';
+import { elencoVideo } from '../motore/video';
+import { testo } from '../motore/testi';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+
+type Testi = {
+  presentazione: string;
+  passi: { titolo: string; testo: string }[];
+  domande: { domanda: string; risposta: string }[];
+};
+const { dati } = testo<Testi>('canta-con-noi', lingua);
+
+// Sezioni vocali: "Soprani" → "Soprano", "Tenori" → "Tenore"
+// Sigla dell'organico: Soprani, Contralti, Tenori, Bassi → "SATB"
+const sigla = coro.organico.map((s) => (/^(contr|alt)/i.test(s.sezione) ? 'A' : s.sezione.charAt(0).toUpperCase())).join('');
+const inLettere = en ? ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'] : ['Nessuna', 'Una', 'Due', 'Tre', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Otto'];
+const n = coro.organico.length;
+const sezioni = `${inLettere[n] ?? n} ${en ? (n === 1 ? 'section' : 'sections') : n === 1 ? 'sezione' : 'sezioni'}`;
+const elencoVoci = elencoSezioni(coro.organico, lingua);
+const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+const indirizzoProve = `${coro.prove.indirizzo}, ${coro.prove.cap} ${en && coro.prove.citta === 'Roma' ? 'Rome' : coro.prove.citta}`;
+const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((v) => v.autore === 'Il coro') : undefined, lingua);
+---
+
+<Base veste={veste} titolo={en ? 'Sing with us' : 'Canta con noi'} anteprima={coro.foto.prove ?? coro.foto.coro} descrizione={en ? `Open auditions: the ${coro.nome} is looking for new voices in Rome.` : `Audizioni aperte: il ${coro.nome} cerca nuove voci a ${coro.citta}.`} pagina="canta-con-noi">
+  {/* Dati: stagione e presentazione da coro.config.ts e coro/testi/canta-con-noi.md; organico e prove da coro.config.ts */}
+  <section class="apertura" style="border-bottom:1px solid var(--linea)">
+    <div class="w" style="padding-top:0">
+      <div class="stagione" style="padding-top:72px">
+        <span class="eti">{en ? 'Open auditions · Season' : 'Audizioni aperte · Stagione'} {coro.stagione.sigla}</span>
+        <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{en ? 'Sing with us' : 'Canta con noi'}<span>.</span></h1>
+        <div>
+          <p>{dati.presentazione}</p>
+          <div class="bottoni" style="margin-top:24px"><a class="btn g" href="#candidatura">{en ? 'Apply' : 'Candidati'}</a><a class="btn o" href="#prove">{en ? 'When we rehearse' : 'Quando proviamo'}</a></div>
+        </div>
+      </div>
+      <div class="blocco-foto" style="min-height:480px;background:var(--accento)">
+        <Foto nome={coro.foto.prove ?? coro.foto.coro} alt={en ? (coro.foto.prove ? `The ${coro.nome} at a rehearsal` : `The ${coro.nome}`) : coro.foto.prove ? `Il ${coro.nome} durante una prova` : `Il ${coro.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="mix-blend-mode:multiply;opacity:.55" />
+        <div class="scheda" style="background:var(--primario);color:#fff;max-width:340px"><div class="n" style="color:var(--accento)">{sigla}</div><p>{sezioni}, {en ? 'one sound' : 'un solo suono'}<span style="color:var(--primario-chiaro)">{en ? `Rehearsals in Rome, ${minuscola(coro.prove.orari)}` : `Prove a ${coro.prove.citta}, ${minuscola(coro.prove.orari)}`}</span></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="w">
+      <div class="testa"><h2>{en ? 'What to expect' : 'Cosa ti aspetta'}</h2></div>
+      {/* Dati: coro/testi/canta-con-noi.md (passi) */}
+      <div class="passi">
+        {dati.passi.map((p) => <div class="passo"><h3>{p.titolo}</h3><p>{p.testo}</p></div>)}
+      </div>
+    </div>
+  </section>
+
+  {/* Dati: coro.prove in coro.config.ts (orari, riquadri, sede) */}
+  <section class="fascia" id="prove">
+    <div class="w due">
+      <div>
+        <span class="eti gialla" style="margin-bottom:16px">{en ? 'Rehearsals' : 'Le prove'}</span>
+        <h2>{en ? 'When we rehearse' : 'Quando proviamo'}</h2>
+        <p>{en ? `${coro.prove.orari}, in Rome.` : `${coro.prove.orari}, a ${coro.prove.citta}.`}{AREA_CORISTI && DEMO && ' Le basi per lo studio a casa sono nell’area riservata ai coristi.'}</p>
+      </div>
+      <div>
+        <div class="numeri" style="background:var(--primario-2);border-color:var(--primario-2)">
+          {coro.prove.riquadri.map(([valore, nota]) => (
+            <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{valore}</b><span style="color:var(--primario-chiaro)">{nota}</span></div>
+          ))}
+        </div>
+        <p style="display:flex;gap:10px;align-items:flex-start;font-size:16px;margin:20px 0 0;max-width:none"><Icona nome="luogo" classe="" /><span><b style="color:#fff">{coro.prove.nome}</b><br />{indirizzoProve}<br /><a href={linkMappa(indirizzoProve)} target="_blank" rel="noopener" style="color:var(--accento);font-weight:700">{en ? 'Open the map' : 'Apri la mappa'}</a></span></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="candidatura">
+    <div class="w">
+      <div class="due-col">
+        <div>
+          <div class="testa"><h2>{en ? 'Apply' : 'Candidati'}</h2></div>
+          {DEMO ? (
+            // DA FARE: servizio di invio dei moduli. Per ora il modulo esiste solo nella demo.
+            <form class="modulo" data-finto>
+              <div class="riga-campi">
+                <div class="campo"><label for="nome">Nome e cognome</label><input id="nome" name="nome" autocomplete="name" required /></div>
+                <div class="campo"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="email" required /></div>
+              </div>
+              <div class="riga-campi">
+                <div class="campo"><label for="tel">Telefono</label><input id="tel" type="tel" name="telefono" autocomplete="tel" /><span class="aiuto">Facoltativo: ti chiamiamo per fissare l'audizione.</span></div>
+                <div class="campo"><span class="lab">La tua voce</span>
+                  {/* Dati: coro.organico in coro.config.ts, più "Non so" */}
+                  <div class="voci" role="radiogroup" aria-label="La tua voce">
+                    {coro.organico.map((s) => <label><input type="radio" name="voce" value={sezioneAlSingolare(s.sezione).toLowerCase()} /><span>{sezioneAlSingolare(s.sezione)}</span></label>)}
+                    <label><input type="radio" name="voce" value="non so" checked /><span>Non so</span></label>
+                  </div>
+                </div>
+              </div>
+              <div class="campo"><label for="esp">Esperienze corali</label><textarea id="esp" name="esperienze" placeholder="Cori in cui hai cantato, studi musicali, se leggi la musica… Va benissimo anche «nessuna»."></textarea></div>
+              <div class="campo"><label for="msg">Messaggio</label><textarea id="msg" name="messaggio" style="min-height:90px" placeholder="Qualcosa che vuoi dirci?"></textarea></div>
+              <label class="consenso"><input type="checkbox" required /><span>Ho letto l'<a href={l('/privacy')}>informativa privacy</a> e acconsento al trattamento dei miei dati per essere ricontattato riguardo all'audizione.</span></label>
+              <div><button class="btn" type="submit">Invia la candidatura <Icona nome="freccia" /></button></div>
+              <div class="conferma" role="status"><b>Grazie, abbiamo ricevuto la tua candidatura.</b>Ti scriveremo entro pochi giorni per fissare l'audizione. (Demo: nessun dato è stato inviato.)</div>
+            </form>
+          ) : (
+            <div>
+              <p class="tenue" style="font-size:19px;margin:0 0 24px;max-width:48ch">{en
+                ? `Write us a few lines about yourself: the voice you think you have (${elencoVoci}, or “I don’t know”), your choral experience, how to reach you. We will reply to arrange the audition. Writing in English is fine.`
+                : `Scrivici due righe su di te: la voce che pensi di avere (${elencoVoci}, o «non so»), le tue esperienze corali, un recapito. Ti risponderemo per fissare l'audizione.`}</p>
+              <a class="btn" href={`mailto:${coro.email}?subject=${encodeURIComponent(en ? 'Application to the choir' : 'Candidatura al coro')}`}><Icona nome="email" />{coro.email}</a>
+            </div>
+          )}
+        </div>
+        <aside class="appiccicoso">
+          {/* Dati: coro/testi/canta-con-noi.md (domande) */}
+          <div class="riquadro giallo">
+            <h3>{en ? 'Frequently asked questions' : 'Domande frequenti'}</h3>
+            <dl style="display:grid;gap:16px;font-size:15px">
+              {dati.domande.map((d) => <div><dt style="font-weight:800">{d.domanda}</dt><dd>{d.risposta}</dd></div>)}
+            </dl>
+          </div>
+          {DEMO && (
+            <div class="riquadro">
+              <h3>Preferisci scriverci?</h3>
+              <p class="tenue" style="margin-bottom:14px">Mandaci due righe su di te.</p>
+              <a class="link-freccia" href={`mailto:${coro.email}`}><Icona nome="email" />{coro.email}</a>
+            </div>
+          )}
+          {videoInvito && (
+            <div style="margin-top:20px">
+              {/* Dati: canale YouTube, primo video con autore "Il coro" */}
+              <Video video={videoInvito} titolo={en ? `The video “${videoInvito.titolo}”` : `Il video «${videoInvito.titolo}»`} sottotitolo="" piccolo />
+              <NotaVideo breve />
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  </section>
+</Base>

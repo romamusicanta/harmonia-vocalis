@@ -1,12 +1,12 @@
 ---
 // Veste Stagione: piè di pagina a colonne, con la firma del modello.
 import Marchio from './Marchio.astro';
-import { coro } from '../../motore/coro';
-import { link, linkArea } from '../../motore/url';
+import { contesto, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
+const { en, l: link, coro } = contesto(Astro.url, veste);
 const f = coro.funzioni;
 const l = coro.link;
 ---
@@ -15,40 +15,40 @@ const l = coro.link;
   <div class="w">
     <div class="colonne">
       <div>
-        <Marchio href={link(veste, '/')} />
+        <Marchio href={link('/')} />
         <p>{coro.descrizione}</p>
       </div>
       <div>
-        <h4>Il coro</h4>
+        <h4>{en ? 'The choir' : 'Il coro'}</h4>
         <ul>
-          <li><a href={link(veste, '/il-coro')}>Storia e direttivo</a></li>
-          <li><a href={link(veste, '/il-maestro')}>Il Maestro</a></li>
-          {f.cantaConNoi && <li><a href={link(veste, '/canta-con-noi')}>Canta con noi</a></li>}
-          {f.organizzatori && <li><a href={link(veste, '/organizzatori')}>Per gli organizzatori</a></li>}
+          <li><a href={link('/il-coro')}>{en ? 'History and board' : 'Storia e direttivo'}</a></li>
+          <li><a href={link('/il-maestro')}>{en ? 'The conductor' : 'Il Maestro'}</a></li>
+          {f.cantaConNoi && <li><a href={link('/canta-con-noi')}>{en ? 'Sing with us' : 'Canta con noi'}</a></li>}
+          {f.organizzatori && <li><a href={link('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a></li>}
         </ul>
       </div>
       <div>
-        <h4>Concerti e musica</h4>
+        <h4>{en ? 'Concerts and music' : 'Concerti e musica'}</h4>
         <ul>
-          <li><a href={link(veste, '/concerti')}>Stagione e archivio</a></li>
-          {f.ascolta && <li><a href={link(veste, '/ascolta')}>Registrazioni</a></li>}
-          {l.youtube && <li><a href={l.youtube}>Canale YouTube</a></li>}
+          <li><a href={link('/concerti')}>{en ? 'Season and archive' : 'Stagione e archivio'}</a></li>
+          {f.ascolta && <li><a href={link('/ascolta')}>{en ? 'Recordings' : 'Registrazioni'}</a></li>}
+          {l.youtube && <li><a href={l.youtube}>{en ? 'YouTube channel' : 'Canale YouTube'}</a></li>}
           {l.instagram && <li><a href={l.instagram}>Instagram</a></li>}
           {l.facebook && <li><a href={l.facebook}>Facebook</a></li>}
         </ul>
       </div>
       <div>
-        <h4>Contatti</h4>
+        <h4>{en ? 'Contact' : 'Contatti'}</h4>
         <ul>
           <li><a href={`mailto:${coro.email}`}>{coro.email}</a></li>
           {coro.sede && <li>{coro.sede.indirizzo}<br />{coro.sede.cap} {coro.sede.citta}</li>}
-          <li><a href={link(veste, '/contatti')}>Scrivici</a></li>
+          <li><a href={link('/contatti')}>{en ? 'Write to us' : 'Scrivici'}</a></li>
         </ul>
       </div>
     </div>
     <div class="fondo-piede">
       <span>© {new Date().getFullYear()} {coro.associazione ?? coro.nome}{coro.affiliazioni && ` · ${coro.affiliazioni}`}</span>
-      <span><a href={link(veste, '/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>Area coristi</a></>}</span>
+      <span><a href={link('/privacy')}>Privacy</a>{linkArea(veste) && <> · <a href={linkArea(veste)}>{en ? 'Members' : 'Area coristi'}</a></>}</span>
     </div>
   </div>
 </footer>

@@ -2,49 +2,55 @@
 // Veste Stagione: barra di servizio, testata con marchio e menu, menu mobile.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
-import { coro, DEMO } from '../../motore/coro';
-import { link, linkArea } from '../../motore/url';
+import { DEMO } from '../../motore/coro';
+import { contesto, linkArea } from '../../motore/url';
+import { alternativa } from '../../motore/lingua';
 import { vociMenu, type Pagina } from '../../motore/navigazione';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste; pagina?: Pagina }
 const { veste, pagina } = Astro.props;
-const voci = vociMenu(veste);
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+const voci = vociMenu(veste, lingua);
 const f = coro.funzioni;
-const calendario = link(veste, '/concerti#in-programma');
+const calendario = l('/concerti#in-programma');
+// Selettore della lingua: porta alla stessa pagina nell'altra lingua (solo nel sito vero)
+const altra = !DEMO ? alternativa(Astro.url) : undefined;
 // Area Amministrazione (/admin, accesso con Google per il gruppo admin@): solo nel sito vero
 const amministrazione = !DEMO && coro.amministrazione ? '/admin' : undefined;
 ---
 
 <div class="servizio">
   <div class="w">
-    <span class="info">{[coro.associazione && `Coro dell'${coro.associazione}`, coro.affiliazioni].filter(Boolean).join(' · ')}</span>
+    <span class="info">{[coro.associazione && (en ? `Choir of the ${coro.associazione}` : `Coro dell'${coro.associazione}`), coro.affiliazioni].filter(Boolean).join(' · ')}</span>
     <span class="dx">
-      {f.organizzatori && <a href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-      {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
-      {amministrazione && <a href={amministrazione}><Icona nome="persona" />Amministrazione</a>}
+      {f.organizzatori && <a href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
+      {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />{en ? 'Members' : 'Area coristi'}</a>}
+      {amministrazione && <a href={amministrazione}><Icona nome="persona" />{en ? 'Admin' : 'Amministrazione'}</a>}
+      {altra && <span class="lingue" aria-label={en ? 'Language' : 'Lingua'}>{en ? <a href={altra.href} hreflang="it" lang="it">IT</a> : <b aria-current="true">IT</b>}<span aria-hidden="true">|</span>{en ? <b aria-current="true">EN</b> : <a href={altra.href} hreflang="en" lang="en">EN</a>}</span>}
     </span>
   </div>
 </div>
 <header class="testata">
   <div class="w">
-    <Marchio href={link(veste, '/')} />
-    <nav class="nav" aria-label="Principale">
+    <Marchio href={l('/')} />
+    <nav class="nav" aria-label={en ? 'Main' : 'Principale'}>
       {voci.map((v) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}</a>)}
     </nav>
     <div class="azioni">
-      <a class="btn g" href={calendario}><Icona nome="calendario" />Calendario</a>
-      <button class="hamb" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
+      <a class="btn g" href={calendario}><Icona nome="calendario" />{en ? 'Calendar' : 'Calendario'}</a>
+      <button class="hamb" type="button" aria-label={en ? 'Open the menu' : 'Apri il menu'} aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
     </div>
   </div>
   <div class="menu-mobile" id="menu-mobile">
     <div class="w">
       {voci.map((v) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href}>{v.testo}<Icona nome="freccia" classe="" /></a>)}
       <div class="extra">
-        <a class="btn g" href={calendario}><Icona nome="calendario" />Calendario concerti</a>
-        {f.organizzatori && <a class="btn o" href={link(veste, '/organizzatori')}>Per gli organizzatori</a>}
-        {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />Area coristi</a>}
-        {amministrazione && <a class="btn o" href={amministrazione}><Icona nome="persona" />Amministrazione</a>}
+        <a class="btn g" href={calendario}><Icona nome="calendario" />{en ? 'Concert calendar' : 'Calendario concerti'}</a>
+        {f.organizzatori && <a class="btn o" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
+        {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />{en ? 'Members' : 'Area coristi'}</a>}
+        {amministrazione && <a class="btn o" href={amministrazione}><Icona nome="persona" />{en ? 'Admin' : 'Amministrazione'}</a>}
+        {altra && <a class="btn o" href={altra.href} hreflang={altra.lingua} lang={altra.lingua}>{en ? 'Italiano' : 'English'}</a>}
       </div>
     </div>
   </div>

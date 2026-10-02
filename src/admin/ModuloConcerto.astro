@@ -36,6 +36,7 @@ const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' 
   <input type="hidden" name="rigaFoto" value={v?.rigaFoto} />
   <input type="hidden" name="rigaLocandina" value={v?.rigaLocandina} />
   <input type="hidden" name="rigaHome" value={v?.rigaHome} />
+  <input type="hidden" name="righeEN" value={JSON.stringify(v?.righeEN ?? [])} />
 
   <h2>Quando e dove</h2>
   <div class="riga-campi">

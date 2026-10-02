@@ -142,6 +142,7 @@ $$('[data-finto-avviso]').forEach((b) => b.addEventListener('click', (e) => {
 // Copia link della pagina
 $$('[data-copia-link]').forEach((b) => b.addEventListener('click', async (e) => {
   e.preventDefault();
-  try { await navigator.clipboard.writeText(location.href); avvisa('Link copiato negli appunti'); }
-  catch { avvisa('Copia non riuscita: usa la barra degli indirizzi'); }
+  const en = document.documentElement.lang === 'en';
+  try { await navigator.clipboard.writeText(location.href); avvisa(en ? 'Link copied to the clipboard' : 'Link copiato negli appunti'); }
+  catch { avvisa(en ? 'Copy failed: use the address bar' : 'Copia non riuscita: usa la barra degli indirizzi'); }
 }));

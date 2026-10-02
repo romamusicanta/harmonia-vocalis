@@ -32,6 +32,10 @@ svg { flex-shrink: 0; }
 .servizio .info { display: none; }
 .servizio .dx { display: flex; gap: 20px; margin-left: auto; }
 .servizio .dx a { display: inline-flex; gap: 6px; align-items: center; }
+/* Selettore della lingua: IT | EN, la lingua corrente in evidenza */
+.servizio .lingue { display: inline-flex; gap: 6px; align-items: center; font-weight: 700; letter-spacing: .04em; }
+.servizio .lingue b { color: #fff; }
+.servizio .lingue span { opacity: .5; }
 @media (min-width: 760px) { .servizio .info { display: inline; } }
 
 /* ——— Header ——— */

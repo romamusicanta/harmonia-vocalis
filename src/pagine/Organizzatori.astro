@@ -1,0 +1,213 @@
+---
+// Pagina "Per gli organizzatori": numeri, chi siamo, repertorio pronto, video, luoghi, contatti per ingaggi.
+import type { Veste } from '../motore/aspetto';
+import Base from '../layouts/Base.astro';
+import Icona from '../componenti/Icona.astro';
+import Video from '../componenti/Video.astro';
+import NotaVideo from '../componenti/NotaVideo.astro';
+import { DEMO, elencoSezioni } from '../motore/coro';
+import { contesto } from '../motore/url';
+import { concertoIn, videoIn } from '../motore/inglese';
+import { archivio, parti, semplifica } from '../motore/concerti';
+import { elencoVideo, titoloCompleto } from '../motore/video';
+import { testo } from '../motore/testi';
+import type { Concerto } from '../motore/tipi';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+
+type Testi = { presentazione: string; daSapere: string[] };
+const { dati, Contenuto } = testo<Testi>('organizzatori', lingua);
+// L'archivio nella lingua della pagina
+const arch = archivio.map((c) => concertoIn(c, lingua));
+
+const cognome = (autore?: string) => autore?.split(' ').at(-1);
+const conAscolta = coro.funzioni.ascolta;
+const video = (await elencoVideo()).map((v) => videoIn(v, lingua));
+const videoEsiste = (id?: string) => Boolean(id && video.some((v) => v.id === id));
+
+// ——— Repertorio pronto: un'opera per autore e titolo, dall'archivio ———
+// Numero di catalogo in coda al titolo: "Requiem K 626" → "K 626", "Requiem op. 48" → "op. 48"
+const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*[\w.\/]+(?:\s+n\.\s*\d+)?)$/;
+type Opera = { autore: string; titolo: string; catalogo?: string; concerti: Concerto[]; luoghi: string[]; video?: string };
+const opere = new Map<string, Opera>();
+for (const c of arch) {
+  if (!c.autore) continue; // i programmi misti senza autore non sono un'opera da proporre
+  const chiave = semplifica(`${c.autore} ${c.titolo}`);
+  const o = opere.get(chiave) ?? { autore: c.autore, titolo: c.titolo, catalogo: c.titolo.match(CATALOGO)?.[1], concerti: [], luoghi: [] };
+  o.concerti.push(c);
+  if (c.luogo && !o.luoghi.includes(c.luogo)) o.luoghi.push(c.luogo);
+  if (!o.video && videoEsiste(c.video)) o.video = c.video;
+  opere.set(chiave, o);
+}
+// Le più eseguite prima; a parità, la più recente (l'archivio è già dal più recente)
+const repertorio = [...opere.values()].sort((a, b) => b.concerti.length - a.concerti.length);
+const inScheda = repertorio.slice(0, 8);
+const altre = repertorio.slice(8);
+
+// ——— Luoghi e rassegne, distinti, dal più recente ———
+const distinti = (valori: (string | undefined)[]) => [...new Set(valori.filter((v): v is string => Boolean(v)))];
+const luoghi = distinti(arch.map((c) => c.luogo));
+const rassegne = distinti(arch.map((c) => c.rassegna));
+
+// ——— Numeri ———
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+const sezioni = elencoSezioni(coro.organico, lingua);
+const primo = arch.at(-1);
+
+// ——— Video: registrazioni legate ai concerti dell'archivio ———
+const concertoDelVideo = new Map(arch.filter((c) => c.video).map((c) => [c.video!, c]));
+const videoConcerti = video.filter((v) => concertoDelVideo.has(v.id));
+const [videoPrincipale, ...altriVideo] = videoConcerti.length ? videoConcerti : video.filter((v) => v.autore !== 'Il coro');
+const doveQuando = (id: string) => {
+  const c = concertoDelVideo.get(id);
+  return c ? [c.luogo, parti(c).anno].filter(Boolean).join(', ') : undefined;
+};
+
+// ——— Scheda del coro in PDF ———
+const schedaPdf = coro.link.schedaPdf;
+const avvisoPdf = 'Nel sito vero scarica la scheda del coro in PDF';
+const conScheda = Boolean(schedaPdf) || DEMO;
+const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Proposta di concerto')}`;
+---
+
+<Base veste={veste} titolo={en ? 'For organisers' : 'Per gli organizzatori'} descrizione={en ? `Invite the ${coro.nome} to sing: ready repertoire, videos and booking contacts.` : `Invitate il ${coro.nome} a cantare: repertorio pronto, video e contatti per ingaggi.`} pagina="organizzatori">
+  {/* Dati: coro/testi/organizzatori.md (presentazione); coro.link.schedaPdf */}
+  <header class="intesta blu">
+    <div class="w due">
+      <div>
+        <span class="eti" style="margin-bottom:20px">{en ? 'For organisers' : 'Per gli organizzatori'}</span>
+        <h1>{en ? 'We bring the choir to you' : 'Portiamo il coro da voi'}<span>.</span></h1>
+      </div>
+      <div>
+        <p class="lead">{dati.presentazione}</p>
+        <div class="bottoni" style="margin-top:24px">
+          <a class="btn g" href="#contatti-ingaggi"><Icona nome="email" />{en ? 'Ask for a proposal' : 'Chiedi una proposta'}</a>
+          {schedaPdf ? (
+            <a class="btn oc" href={schedaPdf} download><Icona nome="scarica" />{en ? 'Choir profile (PDF, Italian)' : 'Scheda del coro (PDF)'}</a>
+          ) : DEMO && (
+            <a class="btn oc" href="#" data-finto-avviso={avvisoPdf}><Icona nome="scarica" />Scheda del coro (PDF)</a>
+          )}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {/* Dati: organico in coro.config.ts; opere, luoghi e primo concerto dall'archivio in coro/concerti.ts */}
+  <section class="sezione stretta" style="background:var(--primario);padding-top:0">
+    <div class="w">
+      <div class="numeri" style="background:var(--primario-2);border-color:var(--primario-2)">
+        <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{voci}</b><span style="color:var(--primario-chiaro)">{en ? 'Voices' : 'Voci'}: {sezioni}</span></div>
+        {repertorio.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{repertorio.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Works in the repertoire, already performed in concert' : 'Opere in repertorio, già eseguite in concerto'}</span></div>}
+        {luoghi.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{luoghi.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Places where we have sung' : 'Località in cui abbiamo cantato'}</span></div>}
+        {primo && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{parti(primo).anno}</b><span style="color:var(--primario-chiaro)">{en ? 'First concert' : 'Primo concerto'}: <em>{primo.titolo}</em>{primo.autore && ` ${en ? 'by' : 'di'} ${cognome(primo.autore)}`}</span></div>}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="w">
+      <div class="due-col">
+        {/* Dati: coro.config.ts (nome, associazione, direttore) + corpo di coro/testi/organizzatori.md */}
+        <div class="testo-lungo">
+          <span class="eti" style="margin-bottom:14px">{en ? 'Who we are, in brief' : 'Chi siamo, in breve'}</span>
+          {en
+            ? <p class="apertura-testo">The {coro.nome} is {coro.associazione ? `the choir of the ${coro.associazione}` : `a ${coro.tipo.toLowerCase()} from ${coro.citta}`}, conducted by Maestro {coro.maestro.nome}.</p>
+            : <p class="apertura-testo">Il {coro.nome} è {coro.associazione ? `il coro dell’${coro.associazione}` : `un ${coro.tipo.toLowerCase()} di ${coro.citta}`}, diretto dal M° {coro.maestro.nome}.</p>}
+          <Contenuto />
+        </div>
+        {/* Dati: coro/testi/organizzatori.md (daSapere) */}
+        <aside class="riquadro giallo">
+          <h3>{en ? 'What we need to know' : 'Cosa ci serve sapere'}</h3>
+          <ul class="elenco-puntato" style="font-size:15px;font-weight:500">
+            {dati.daSapere.map((r) => <li>{r}</li>)}
+          </ul>
+          <a class="btn" style="margin-top:20px" href="#contatti-ingaggi">{en ? 'Write to us' : 'Scrivici'}</a>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  {inScheda.length > 0 && (
+    <section style="background:var(--fondo)">
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2><p>{en ? 'Works already performed in concert, available again, also with orchestra.' : 'Opere già eseguite in concerto, riproponibili anche con orchestra.'}{conAscolta && coro.link.youtube && (en ? ' The recordings are on our channel.' : ' Le registrazioni sono sul nostro canale.')}</p></div>
+        {/* Dati: archivio in coro/concerti.ts (un'opera per autore e titolo) e canale YouTube */}
+        <div class="schede">
+          {inScheda.map((o) => {
+            const conVideo = conAscolta && o.video;
+            return (
+              <a class="sc" href={conVideo ? l(`/ascolta#${o.video}`) : l('/concerti#archivio')}>
+                <div class="top"><span class="data-grande" style="font-size:30px">{o.catalogo ?? parti(o.concerti[0]).anno}</span>{conVideo ? <span class="tag">Video</span> : <span class="tag grigio">{en ? 'Archive' : 'Archivio'}</span>}</div>
+                <div class="corpo"><span class="aut">{o.autore}</span><h3>{o.catalogo ? o.titolo.replace(CATALOGO, '') : o.titolo}</h3><span class="luogo">{o.luoghi.join(', ')}</span><span class="link">{conVideo ? (en ? 'Listen' : 'Ascolta') : (en ? 'In the archive' : 'Nell’archivio')} →</span></div>
+              </a>
+            );
+          })}
+        </div>
+        {altre.length > 0 && (
+          <p class="tenue" style="margin-top:24px;font-size:15px">{en ? 'And also' : 'E ancora'}: {altre.map((o, i) => <>{i > 0 && ', '}<em>{o.titolo}</em> {en ? 'by' : 'di'} {cognome(o.autore)}</>)}.</p>
+        )}
+      </div>
+    </section>
+  )}
+
+  {conAscolta && videoPrincipale && (
+    <section class="fascia">
+      {/* Dati: canale YouTube, video delle registrazioni dei concerti in archivio */}
+      <div class="w due">
+        <div>
+          <span class="eti gialla" style="margin-bottom:16px">{en ? 'Our best videos' : 'I video migliori'}</span>
+          <h2>{en ? 'Hear how we sound' : 'Sentite come suoniamo'}</h2>
+          <p>{en ? 'Full live recordings: the quickest way to get an idea.' : 'Registrazioni integrali dal vivo: il modo più rapido per farsi un\'idea.'}</p>
+          <a class="btn g" href={l('/ascolta')}>{en ? 'All recordings' : 'Tutte le registrazioni'}</a>
+        </div>
+        <div>
+          <Video video={videoPrincipale} />
+          {altriVideo.length > 0 && (
+            <div class="lista-mini">
+              {altriVideo.slice(0, 2).map((v) => <a href={l(`/ascolta#${v.id}`)}>{titoloCompleto(v)} <em>{doveQuando(v.id) ?? v.pubblicato.slice(0, 4)}</em></a>)}
+            </div>
+          )}
+          <NotaVideo />
+        </div>
+      </div>
+    </section>
+  )}
+
+  {luoghi.length > 0 && (
+    <section>
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Where we have sung' : 'Dove abbiamo cantato'}</h2></div>
+        {/* Dati: luoghi distinti dell'archivio in coro/concerti.ts */}
+        <div style="display:flex;flex-wrap:wrap;gap:10px 12px">
+          {luoghi.map((luogo) => <span class="tag bordo" style="font-size:14px;padding:10px 14px">{luogo}</span>)}
+        </div>
+        <p class="tenue" style="margin-top:20px;font-size:15px">{rassegne.length > 0 && <>{en ? 'Series and events' : 'Rassegne ed eventi'}: {rassegne.join(', ')}. </>}<a class="link-freccia" href={l('/concerti#archivio')}>{en ? 'Full archive' : 'Archivio completo'} <Icona nome="freccia" /></a></p>
+      </div>
+    </section>
+  )}
+
+  <section id="contatti-ingaggi" style="background:var(--fondo)">
+    <div class="w">
+      <div class="due-col metà">
+        {/* Dati: coro.email in coro.config.ts */}
+        <div>
+          <span class="eti" style="margin-bottom:16px">{en ? 'Booking contacts' : 'Contatti per ingaggi'}</span>
+          <h2>{en ? 'Let’s talk' : 'Parliamone'}</h2>
+          <p class="tenue" style="font-size:19px;margin:18px 0 28px;max-width:40ch">{en ? 'Tell us the date, venue and programme you have in mind: we will send you a proposal.' : 'Indicate data, luogo e programma che avete in mente: vi mandiamo una proposta.'}</p>
+          <div class="bottoni"><a class="btn" href={`mailto:${coro.email}${oggetto}`}><Icona nome="email" />{coro.email}</a></div>
+        </div>
+        {conScheda && (
+          <div class="riquadro bordo" style="display:grid;gap:18px;padding:32px">
+            {/* Dati: coro.link.schedaPdf in coro.config.ts */}
+            <div style="display:flex;gap:16px;align-items:center"><span class="icona-q g"><Icona nome="documento" classe="" /></span><div><b style="color:var(--primario);font-size:18px;display:block">{en ? 'Choir profile' : 'Scheda del coro'}</b><span class="tenue" style="font-size:14px">{en ? 'Presentation, voices, repertoire, video links · PDF' : 'Presentazione, organico, repertorio, link ai video · PDF'}</span></div></div>
+            {schedaPdf
+              ? <a class="btn g" href={schedaPdf} download><Icona nome="scarica" />{en ? 'Download the profile' : 'Scarica la scheda'}</a>
+              : <a class="btn g" href="#" data-finto-avviso={avvisoPdf}><Icona nome="scarica" />Scarica la scheda</a>}
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Base>

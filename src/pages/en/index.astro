@@ -1,0 +1,12 @@
+---
+import Base from '../../layouts/Base.astro';
+import { coro } from '../../motore/coro';
+import { vesti } from '../../vesti';
+
+const veste = coro.aspetto.veste;
+const { Home } = vesti[veste];
+---
+
+<Base veste={veste} pagina="home">
+  <Home veste={veste} />
+</Base>

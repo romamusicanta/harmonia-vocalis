@@ -1,0 +1,198 @@
+---
+import type { Veste } from '../motore/aspetto';
+// Scheda di un concerto, in programma o passato (tutti quelli con una data precisa): locandina
+// ufficiale o generata, dati, calendario e condivisione, programma, interpreti, registrazione
+// (dello stesso programma dall'archivio, o del concerto stesso se è passato), altri concerti.
+import Base from '../layouts/Base.astro';
+import Icona from '../componenti/Icona.astro';
+import Foto from '../componenti/Foto.astro';
+import Video from '../componenti/Video.astro';
+import NotaVideo from '../componenti/NotaVideo.astro';
+import { immagine } from '../motore/coro';
+import { Logo } from '../motore/logo';
+import { contesto } from '../motore/url';
+import { archivio, linkGoogleCalendar, linkMappa, luogoCompleto, parti, prossimiConcerti, slug, stagione } from '../motore/concerti';
+import { trovaVideo } from '../motore/video';
+import type { Brano, Concerto } from '../motore/tipi';
+import { vesti } from '../vesti';
+import { concertoIn, videoIn } from '../motore/inglese';
+
+interface Props { concerto: Concerto; veste: Veste }
+const { concerto: originale, veste } = Astro.props;
+const { SchedaConcerto } = vesti[veste];
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+// Il concerto nella lingua della pagina; identificativo e confronti sui dati originali
+const c = concertoIn(originale, lingua);
+const id = slug(originale);
+
+const prossimi = await prossimiConcerti();
+const primo = prossimi[0] === originale || (prossimi[0] && slug(prossimi[0]) === id);
+const passato = !prossimi.some((x) => slug(x) === id);
+const d = parti(c, lingua);
+const cognome = c.autore?.split(/\s+/).at(-1);
+const titoloBreve = [cognome, c.titolo].filter(Boolean).join(', ');
+const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const quando = minuscola(d.esteso);
+const dove = luogoCompleto(c);
+const indirizzoMappa = c.indirizzo ?? [c.sala, c.luogo].filter(Boolean).join(', ');
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+
+const indirizzoPagina = new URL(l(`/concerti/${id}`), coro.url).href;
+const testoWhatsApp = `${titoloBreve} — ${quando}${c.luogo ? `, ${c.luogo}` : ''}. ${coro.nome}\n${indirizzoPagina}`;
+
+// Programma: quello dettagliato se c'è (brani, organico, più opere), altrimenti autore e titolo
+const programma: Brano[] = c.programma?.length ? c.programma : [{ autore: c.autore, opera: c.titolo }];
+
+// Direttore: il Maestro del coro, oppure quello indicato nell'evento ("Direttore: …"); in quel
+// caso il Maestro compare come maestro del coro e non si ripete tra gli interpreti
+// (riconosciuto sul ruolo originale; gli interpreti tradotti hanno lo stesso ordine)
+const posDirettore = originale.interpreti?.findIndex((i) => /^direttore$/i.test(i.ruolo) && i.nome) ?? -1;
+const direttore = posDirettore >= 0 ? c.interpreti![posDirettore] : undefined;
+const interpreti = c.interpreti?.filter((i, n) => n !== posDirettore && i.nome !== coro.maestro.nome);
+
+// Registrazione: per un concerto passato la sua, per uno in programma quella dello stesso
+// programma, se c'è nell'archivio (la più recente)
+const giaEseguito = passato ? (c.video ? c : undefined) : archivio.find((a) => a.video && a.titolo === originale.titolo);
+const video = videoIn(await trovaVideo(giaEseguito?.video), lingua);
+const pg = giaEseguito && parti(giaEseguito, lingua);
+
+// Altri concerti: gli altri in programma, poi i più recenti dell'archivio
+const linkArchivio = (x: Concerto) => l(x.dataIncerta ? `/concerti#${stagione(x).id}` : `/concerti/${slug(x)}`);
+const altri = [
+  ...prossimi.filter((x) => slug(x) !== id).map((x) => ({ c: x, href: l(`/concerti/${slug(x)}`), etichetta: en ? 'Upcoming' : 'In programma', grigia: false, azione: en ? 'Details and calendar' : 'Dettagli e calendario' })),
+  ...archivio.filter((x) => slug(x) !== id).map((x) => ({ c: x, href: linkArchivio(x), etichetta: `${en ? 'Season' : 'Stagione'} ${stagione(x).sigla}`, grigia: true, azione: x.dataIncerta ? (en ? 'In the archive' : "Nell'archivio") : (en ? 'Details' : 'Dettagli') })),
+].slice(0, 3);
+---
+
+<Base veste={veste} titolo={titoloBreve} pagina="concerti" anteprima={c.locandina ?? c.foto} descrizione={`${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`}>
+  <header class="intesta" style="padding-bottom:0;border:0">
+    <div class="w">
+      <nav class="briciole" aria-label={en ? 'Breadcrumb' : 'Percorso'}><a href={l('/')}>Home</a><span>/</span><a href={l('/concerti')}>{en ? 'Season' : 'Stagione'} {stagione(c).sigla}</a><span>/</span><span>{c.titolo}</span></nav>
+    </div>
+  </header>
+
+  <section style="padding-top:40px">
+    <div class="w">
+      <div class="due-col larga-dx" style="align-items:start">
+        <div>
+          {c.locandina ? (
+            <>
+              {/* Locandina ufficiale: riga "Locandina:" dell'evento, file in coro/immagini */}
+              <a class="locandina-cont" href={immagine(c.locandina).src} target="_blank" rel="noopener" style="display:block"><Foto nome={c.locandina} alt={`${en ? 'Poster' : 'Locandina'}: ${titoloBreve}, ${quando}${c.luogo ? `, ${c.luogo}` : ''}`} sizes="(min-width: 980px) 540px, 100vw" caricamento="eager" style="width:100%;height:auto;display:block" /></a>
+              <p class="nota-privacy">{en ? 'Concert poster: tap to enlarge.' : 'Locandina del concerto: tocca per ingrandirla.'}</p>
+            </>
+          ) : (<>
+          <div class="locandina-cont"><div class="locandina" role="img" aria-label={`${en ? 'Poster' : 'Locandina'}: ${titoloBreve}, ${quando}${c.luogo ? `, ${c.luogo}` : ''}`}>
+            <svg class="diap" viewBox="0 0 22 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 2v9a8 8 0 0 0 16 0V2" /><path d="M11 19v7" /></svg>
+            <div class="fascia-g"></div>
+            {/* Logo del coro, se c'è; altrimenti marchio testuale (sigla e nome) */}
+            <div class="testa-l">
+              {Logo ? <span class="logo-coro locandina-logo"><Logo /></span> : <span style="display:flex;align-items:center;gap:2cqw;color:#fff;letter-spacing:.08em"><b style="display:grid;place-items:center;width:6.4cqw;height:6.4cqw;background:var(--accento);color:var(--primario);border-radius:var(--raggio);letter-spacing:0">{coro.sigla}</b>{coro.nome}</span>}
+              {c.rassegna && <span style="text-align:right">{c.rassegna}</span>}
+            </div>
+            <div class="autore">{cognome ?? c.titolo}</div>
+            {cognome && <div class="opera">{c.titolo}</div>}
+            <div class="piede">
+              <div class="gg">{d.giorno}.{c.data.slice(5, 7)}<small>{d.giornoSettimana} · {d.anno}</small></div>
+              <div class="dove">{c.luogo && <b>{c.luogo}</b>}{en ? 'Cond.' : 'Dir.'} {direttore ? direttore.nome : `${en ? 'Maestro' : 'M°'} ${coro.maestro.nome}`}</div>
+            </div>
+          </div></div>
+          <p class="nota-privacy">{en ? (passato ? 'Poster generated by the website.' : 'Poster generated by the website from the calendar.') : (passato ? 'Locandina generata dal sito.' : 'Locandina generata dal sito con i dati del calendario.')}</p>
+          </>)}
+          {/* Dati: Google Calendar "Concerti" (convenzione in src/motore/concerti.ts) */}
+        </div>
+
+        <div>
+          <span class="tag" style="margin-bottom:20px">{passato ? `${en ? 'Archive · season' : 'Archivio · stagione'} ${stagione(c).sigla}` : primo ? (en ? 'Next concert' : 'Prossimo concerto') : (en ? 'Upcoming' : 'In programma')}</span>
+          {c.rassegna && <span class="eti" style="margin:18px 0 12px">{c.rassegna}</span>}
+          <h1 style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:clamp(34px,4.2vw,54px);line-height:1;letter-spacing:-0.012em;color:var(--primario)">{c.titolo}<span style="color:var(--accento)">.</span></h1>
+          {c.autore && <p style="font-family:var(--f-titoli);font-size:22px;color:var(--primario);font-weight:600;margin-top:14px">{c.autore}</p>}
+
+          <dl class="dati" style="margin:36px 0;padding:24px 0;border-top:3px solid var(--primario);border-bottom:1px solid var(--linea);font-size:17px;gap:16px 28px">
+            <dt>{en ? 'When' : 'Quando'}</dt><dd>{d.esteso}{(d.ora || !passato) && <><br /><span class="tenue" style="font-weight:500">{d.ora ? (en ? d.ora : `Ore ${d.ora}`) : (en ? 'Time to be confirmed' : 'Orario da definire')}</span></>}</dd>
+            {dove && <><dt>{en ? 'Where' : 'Dove'}</dt><dd>{dove}<br /><a class="link-freccia" style="margin-top:6px" href={linkMappa(indirizzoMappa)} target="_blank" rel="noopener"><Icona nome="mappa" />{en ? 'Open the map' : 'Apri la mappa'}</a></dd></>}
+            {c.rassegna && <><dt>{en ? 'Series' : 'Rassegna'}</dt><dd>{c.rassegna}</dd></>}
+            {c.organizza && <><dt>{en ? 'Organised by' : 'Organizza'}</dt><dd>{c.organizza}</dd></>}
+            {c.ingresso ? <><dt>{en ? 'Admission' : 'Ingresso'}</dt><dd>{c.ingresso}</dd></> : !passato && <><dt>{en ? 'Admission' : 'Ingresso'}</dt><dd class="tenue" style="font-weight:500">{en ? 'Details coming soon' : 'Informazioni in arrivo'}</dd></>}
+          </dl>
+
+          <div class="bottoni" id="calendario">
+            {!passato && <a class="btn g" href={linkGoogleCalendar(c)} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Add to calendar' : 'Aggiungi al calendario'}</a>}
+            <a class="btn" href={`https://wa.me/?text=${encodeURIComponent(testoWhatsApp)}`} target="_blank" rel="noopener"><Icona nome="whatsapp" />{en ? 'Share on WhatsApp' : 'Condividi su WhatsApp'}</a>
+            <a class="btn o" href="#" data-copia-link><Icona nome="condividi" />{en ? 'Copy link' : 'Copia link'}</a>
+          </div>
+          {!passato && <p class="tenue" style="font-size:14px;margin-top:14px">{en ? 'Google Calendar, Apple Calendar and Outlook: the link opens the event already filled in.' : 'Google Calendar, Apple Calendario e Outlook: il link apre l\'evento già compilato.'}</p>}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--fondo)">
+    <div class="w">
+      <div class="due-col metà">
+        <div>
+          <div class="testa"><h2>{en ? 'Programme' : 'Programma'}</h2></div>
+          {/* Dati: descrizione dell'evento nel calendario (opere, Organico:, Brani:) o coro/concerti.ts */}
+          {programma.map((b) => (
+            <>
+              <div class="riga" style="grid-template-columns:minmax(0,1fr) auto;border-bottom:3px solid var(--primario)">
+                <div class="cosa">{b.autore && <span class="aut">{b.autore}</span>}<b style="font-size:26px">{b.opera}</b>{b.organico && <span class="tenue" style="font-size:15px">{b.organico}</span>}</div>
+              </div>
+              {b.parti && b.parti.length > 0 && (
+                <ol class="elenco-puntato" style="margin-top:24px;columns:2;column-gap:32px;display:block">
+                  {b.parti.map((p) => <li style="margin-bottom:10px">{p}</li>)}
+                </ol>
+              )}
+            </>
+          ))}
+        </div>
+        <div>
+          <div class="testa"><h2>{en ? 'Performers' : 'Interpreti'}</h2></div>
+          {/* Dati: coro/coro.config.ts (maestro, organico) e interpreti del concerto */}
+          <div class="persone in-colonna" style="grid-template-columns:1fr">
+            {direttore && <div class="persona"><span class="ruolo">{en ? 'Conductor' : 'Direttore'}</span><b>{direttore.nome}</b></div>}
+            <div class="persona"><span class="ruolo">{direttore ? (en ? 'Chorus master' : 'Maestro del coro') : (en ? 'Conductor' : 'Direttore')}</span><b>{en ? 'Maestro' : 'M°'} {coro.maestro.nome}</b><a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>{en ? 'Biography' : 'Biografia'} <Icona nome="freccia" /></a></div>
+            <div class="persona"><span class="ruolo">{en ? 'Choir' : 'Coro'}</span><b>{coro.nome}</b><span class="tenue" style="font-size:15px">{en ? `About ${voci} voices` : `Circa ${voci} voci`} · <a href={l('/il-coro')} style="text-decoration:underline">{en ? 'the choir' : 'il coro'}</a></span></div>
+            {interpreti?.map((i) => (
+              <div class="persona">
+                <span class="ruolo">{i.ruolo}</span>
+                {i.nome ? <b>{i.nome}</b> : <b class="tenue" style="color:var(--tenue)">{en ? 'To be announced' : 'Da annunciare'}</b>}
+                {i.nota && <span class="tenue" style="font-size:15px">{i.nota}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {giaEseguito && video && pg && (
+    <section class="fascia">
+      {/* Dati: archivio in coro/concerti.ts (stesso titolo, con video) e canale YouTube */}
+      <div class="w due">
+        <div>
+          <span class="eti gialla" style="margin-bottom:16px">{passato ? (en ? 'The recording' : 'La registrazione') : (en ? 'From our archive' : 'Dal nostro archivio')}</span>
+          <h2>{passato ? (en ? 'Listen to this concert' : 'Ascolta questo concerto') : (en ? `Listen to our ${pg.anno} performance` : `Ascolta la nostra esecuzione del ${pg.anno}`)}</h2>
+          <p>{[giaEseguito.luogo, pg.incerta ? pg.anno : en ? `${Number(pg.giorno)} ${pg.mese} ${pg.anno}` : `${Number(pg.giorno)} ${pg.mese.toLowerCase()} ${pg.anno}`].filter(Boolean).join(', ')}. {en ? 'The concert recording on our channel.' : 'La registrazione del concerto sul nostro canale.'}</p>
+          {coro.funzioni.ascolta && <a class="btn oc" href={l('/ascolta')}>{en ? 'All recordings' : 'Tutte le registrazioni'}</a>}
+        </div>
+        <div>
+          <Video video={video} />
+          <NotaVideo />
+        </div>
+      </div>
+    </section>
+  )}
+
+  {altri.length > 0 && (
+    <section>
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Other concerts' : 'Altri concerti'}</h2><a class="btn o" href={l('/concerti')}>{en ? 'Season and archive' : 'Stagione e archivio'}</a></div>
+        {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+        <div class="schede">
+          {altri.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} conFoto={false} />)}
+        </div>
+      </div>
+    </section>
+  )}
+</Base>

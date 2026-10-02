@@ -15,7 +15,7 @@ interface Props {
 const { video, titolo = titoloCompleto(video), sottotitolo = video.sottotitolo, piccolo, id } = Astro.props;
 ---
 
-<button class:list={['video', { piccolo }]} type="button" id={id} data-id={video.id} data-finto={eFinto(video) ? '' : undefined} aria-label={`Riproduci: ${titolo}`}>
+<button class:list={['video', { piccolo }]} type="button" id={id} data-id={video.id} data-finto={eFinto(video) ? '' : undefined} aria-label={`${Astro.url.pathname.startsWith('/en') ? 'Play' : 'Riproduci'}: ${titolo}`}>
   <img src={miniatura(video)} alt="" loading="lazy" />
   <span class="play"><i><Icona nome="play" classe="" /></i><b>{titolo}{sottotitolo && <span>{sottotitolo}</span>}</b></span>
 </button>
