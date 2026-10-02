@@ -103,7 +103,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
 
   <section id="archivio" style="background:var(--fondo)">
     <div class="w">
-      <div class="testa"><h2>Archivio</h2><p>Programmi eseguiti dalla prima stagione a oggi. Il pulsante play porta alla registrazione integrale sul nostro canale.</p></div>
+      <div class="testa"><h2>Archivio</h2><p>Programmi eseguiti dalla prima stagione a oggi. Il titolo apre la scheda del concerto, il pulsante play la registrazione integrale sul nostro canale.</p></div>
       <div class="filtri" data-filtri="#elenco-archivio">
         <div class="gruppo"><span>Autore</span>
           <button class="chip on" type="button" data-filtro="autore" data-valore="tutti">Tutti</button>
@@ -114,7 +114,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
           {anni.map((a) => <button class="chip" type="button" data-filtro="anno" data-valore={a}>{a}</button>)}
         </div>
       </div>
-      {/* Dati: archivio dei programmi curato a mano (coro/concerti.ts), con gli ID dei video YouTube */}
+      {/* Dati: eventi passati del calendario "Concerti" e archivio storico in coro/concerti.ts, con gli ID dei video YouTube */}
       <div id="elenco-archivio">
         {stagioni.map(({ stagione: s, concerti }) => (
           <div class="stag" data-gruppo id={s.id}>
@@ -129,7 +129,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
                     : <span class="quando">{p.giorno}<small>{p.meseBreve} {p.anno}</small></span>}
                   <div class="cosa">
                     {c.autore && <span class="aut">{c.autore}</span>}
-                    <b>{c.titolo}</b>
+                    {p.incerta ? <b>{c.titolo}</b> : <b><a href={l(`/concerti/${slug(c)}`)}>{c.titolo}</a></b>}
                     {c.evidenza && <span class="tag" style="margin-top:8px">{c.evidenza}</span>}
                   </div>
                   <span class="dove">{dove ? <><Icona nome="luogo" />{dove}</> : <span class="tenue" style="font-size:14px">Luogo non indicato</span>}</span>

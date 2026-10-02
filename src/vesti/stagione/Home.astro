@@ -21,7 +21,7 @@ const prossimo = prossimi[0];
 const d = prossimo && parti(prossimo);
 const schede = [
   ...prossimi.slice(0, 2).map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 ? 'Prossimo' : 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
-  ...archivio.slice(0, 4).map((c) => ({ c, href: l(`/concerti#${stagione(c).id}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: "Nell'archivio" })),
+  ...archivio.slice(0, 4).map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? "Nell'archivio" : 'Dettagli' })),
 ].slice(0, 4);
 
 const evidenza = coro.funzioni.ascolta ? await videoInEvidenza() : undefined;

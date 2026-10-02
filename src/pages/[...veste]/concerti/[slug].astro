@@ -1,6 +1,7 @@
 ---
-// Scheda di un prossimo concerto: locandina generata, dati, calendario e condivisione,
-// programma, interpreti, registrazione dello stesso programma dall'archivio, altri concerti.
+// Scheda di un concerto, in programma o passato (tutti quelli con una data precisa): locandina
+// ufficiale o generata, dati, calendario e condivisione, programma, interpreti, registrazione
+// (dello stesso programma dall'archivio, o del concerto stesso se è passato), altri concerti.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import Foto from '../../../componenti/Foto.astro';
@@ -15,7 +16,7 @@ import type { Brano, Concerto } from '../../../motore/tipi';
 import { vesti } from '../../../vesti';
 
 export async function getStaticPaths() {
-  const concerti = await prossimiConcerti();
+  const concerti = [...(await prossimiConcerti()), ...archivio.filter((c) => !c.dataIncerta)];
   return percorsiVesti().flatMap(({ params }) =>
     concerti.map((concerto) => ({ params: { veste: params.veste, slug: slug(concerto) }, props: { concerto } })),
   );
@@ -29,6 +30,7 @@ const l = (p: string) => link(veste, p);
 
 const prossimi = await prossimiConcerti();
 const primo = prossimi[0] === c || (prossimi[0] && slug(prossimi[0]) === slug(c));
+const passato = !prossimi.some((x) => slug(x) === slug(c));
 const d = parti(c);
 const cognome = c.autore?.split(/\s+/).at(-1);
 const titoloBreve = [cognome, c.titolo].filter(Boolean).join(', ');
@@ -44,19 +46,22 @@ const testoWhatsApp = `${titoloBreve} — ${quando}${c.luogo ? `, ${c.luogo}` : 
 // Programma: quello dettagliato se c'è (brani, organico, più opere), altrimenti autore e titolo
 const programma: Brano[] = c.programma?.length ? c.programma : [{ autore: c.autore, opera: c.titolo }];
 
-// Registrazione dello stesso programma, se c'è nell'archivio (la più recente)
-const giaEseguito = archivio.find((a) => a.video && a.titolo === c.titolo);
+// Direttore: il Maestro del coro, oppure quello indicato nell'evento ("Direttore: …"); in quel
+// caso il Maestro compare come maestro del coro e non si ripete tra gli interpreti
+const direttore = c.interpreti?.find((i) => /^direttore$/i.test(i.ruolo) && i.nome);
+const interpreti = c.interpreti?.filter((i) => i !== direttore && i.nome !== coro.maestro.nome);
+
+// Registrazione: per un concerto passato la sua, per uno in programma quella dello stesso
+// programma, se c'è nell'archivio (la più recente)
+const giaEseguito = passato ? (c.video ? c : undefined) : archivio.find((a) => a.video && a.titolo === c.titolo);
 const video = await trovaVideo(giaEseguito?.video);
 const pg = giaEseguito && parti(giaEseguito);
 
 // Altri concerti: gli altri in programma, poi i più recenti dell'archivio
+const linkArchivio = (x: Concerto) => l(x.dataIncerta ? `/concerti#${stagione(x).id}` : `/concerti/${slug(x)}`);
 const altri = [
   ...prossimi.filter((x) => slug(x) !== slug(c)).map((x) => ({ c: x, href: l(`/concerti/${slug(x)}`), etichetta: 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
-  ...archivio.map((x) =>
-    x.video && coro.funzioni.ascolta
-      ? { c: x, href: l(`/ascolta#${x.video}`), etichetta: 'Con video', grigia: true, azione: 'Guarda il video' }
-      : { c: x, href: l(`/concerti#${stagione(x).id}`), etichetta: `Stagione ${stagione(x).sigla}`, grigia: true, azione: "Nell'archivio" },
-  ),
+  ...archivio.filter((x) => slug(x) !== slug(c)).map((x) => ({ c: x, href: linkArchivio(x), etichetta: `Stagione ${stagione(x).sigla}`, grigia: true, azione: x.dataIncerta ? "Nell'archivio" : 'Dettagli' })),
 ].slice(0, 3);
 ---
 
@@ -90,34 +95,34 @@ const altri = [
             {cognome && <div class="opera">{c.titolo}</div>}
             <div class="piede">
               <div class="gg">{d.giorno}.{c.data.slice(5, 7)}<small>{d.giornoSettimana} · {d.anno}</small></div>
-              <div class="dove">{c.luogo && <b>{c.luogo}</b>}Dir. M° {coro.maestro.nome}</div>
+              <div class="dove">{c.luogo && <b>{c.luogo}</b>}Dir. {direttore ? direttore.nome : `M° ${coro.maestro.nome}`}</div>
             </div>
           </div></div>
-          <p class="nota-privacy">Locandina generata dal sito con i dati del calendario.</p>
+          <p class="nota-privacy">{passato ? 'Locandina generata dal sito.' : 'Locandina generata dal sito con i dati del calendario.'}</p>
           </>)}
           {/* Dati: Google Calendar "Concerti" (convenzione in src/motore/concerti.ts) */}
         </div>
 
         <div>
-          <span class="tag" style="margin-bottom:20px">{primo ? 'Prossimo concerto' : 'In programma'}</span>
+          <span class="tag" style="margin-bottom:20px">{passato ? `Archivio · stagione ${stagione(c).sigla}` : primo ? 'Prossimo concerto' : 'In programma'}</span>
           {c.rassegna && <span class="eti" style="margin:18px 0 12px">{c.rassegna}</span>}
           <h1 style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:clamp(34px,4.2vw,54px);line-height:1;letter-spacing:-0.012em;color:var(--primario)">{c.titolo}<span style="color:var(--accento)">.</span></h1>
           {c.autore && <p style="font-family:var(--f-titoli);font-size:22px;color:var(--primario);font-weight:600;margin-top:14px">{c.autore}</p>}
 
           <dl class="dati" style="margin:36px 0;padding:24px 0;border-top:3px solid var(--primario);border-bottom:1px solid var(--linea);font-size:17px;gap:16px 28px">
-            <dt>Quando</dt><dd>{d.esteso}<br /><span class="tenue" style="font-weight:500">{d.ora ? `Ore ${d.ora}` : 'Orario da definire'}</span></dd>
+            <dt>Quando</dt><dd>{d.esteso}{(d.ora || !passato) && <><br /><span class="tenue" style="font-weight:500">{d.ora ? `Ore ${d.ora}` : 'Orario da definire'}</span></>}</dd>
             {dove && <><dt>Dove</dt><dd>{dove}<br /><a class="link-freccia" style="margin-top:6px" href={linkMappa(indirizzoMappa)} target="_blank" rel="noopener"><Icona nome="mappa" />Apri la mappa</a></dd></>}
             {c.rassegna && <><dt>Rassegna</dt><dd>{c.rassegna}</dd></>}
             {c.organizza && <><dt>Organizza</dt><dd>{c.organizza}</dd></>}
-            <dt>Ingresso</dt>{c.ingresso ? <dd>{c.ingresso}</dd> : <dd class="tenue" style="font-weight:500">Informazioni in arrivo</dd>}
+            {c.ingresso ? <><dt>Ingresso</dt><dd>{c.ingresso}</dd></> : !passato && <><dt>Ingresso</dt><dd class="tenue" style="font-weight:500">Informazioni in arrivo</dd></>}
           </dl>
 
           <div class="bottoni" id="calendario">
-            <a class="btn g" href={linkGoogleCalendar(c)} target="_blank" rel="noopener"><Icona nome="calendario-piu" />Aggiungi al calendario</a>
+            {!passato && <a class="btn g" href={linkGoogleCalendar(c)} target="_blank" rel="noopener"><Icona nome="calendario-piu" />Aggiungi al calendario</a>}
             <a class="btn" href={`https://wa.me/?text=${encodeURIComponent(testoWhatsApp)}`} target="_blank" rel="noopener"><Icona nome="whatsapp" />Condividi su WhatsApp</a>
             <a class="btn o" href="#" data-copia-link><Icona nome="condividi" />Copia link</a>
           </div>
-          <p class="tenue" style="font-size:14px;margin-top:14px">Google Calendar, Apple Calendario e Outlook: il link apre l'evento già compilato.</p>
+          {!passato && <p class="tenue" style="font-size:14px;margin-top:14px">Google Calendar, Apple Calendario e Outlook: il link apre l'evento già compilato.</p>}
         </div>
       </div>
     </div>
@@ -146,9 +151,10 @@ const altri = [
           <div class="testa"><h2>Interpreti</h2></div>
           {/* Dati: coro/coro.config.ts (maestro, organico) e interpreti del concerto */}
           <div class="persone in-colonna" style="grid-template-columns:1fr">
-            <div class="persona"><span class="ruolo">Direttore</span><b>M° {coro.maestro.nome}</b><a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>Biografia <Icona nome="freccia" /></a></div>
+            {direttore && <div class="persona"><span class="ruolo">Direttore</span><b>{direttore.nome}</b></div>}
+            <div class="persona"><span class="ruolo">{direttore ? 'Maestro del coro' : 'Direttore'}</span><b>M° {coro.maestro.nome}</b><a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>Biografia <Icona nome="freccia" /></a></div>
             <div class="persona"><span class="ruolo">Coro</span><b>{coro.nome}</b><span class="tenue" style="font-size:15px">Circa {voci} voci · <a href={l('/il-coro')} style="text-decoration:underline">il coro</a></span></div>
-            {c.interpreti?.map((i) => (
+            {interpreti?.map((i) => (
               <div class="persona">
                 <span class="ruolo">{i.ruolo}</span>
                 {i.nome ? <b>{i.nome}</b> : <b class="tenue" style="color:var(--tenue)">Da annunciare</b>}
@@ -166,8 +172,8 @@ const altri = [
       {/* Dati: archivio in coro/concerti.ts (stesso titolo, con video) e canale YouTube */}
       <div class="w due">
         <div>
-          <span class="eti gialla" style="margin-bottom:16px">Dal nostro archivio</span>
-          <h2>Ascolta la nostra esecuzione del {pg.anno}</h2>
+          <span class="eti gialla" style="margin-bottom:16px">{passato ? 'La registrazione' : 'Dal nostro archivio'}</span>
+          <h2>{passato ? 'Ascolta questo concerto' : `Ascolta la nostra esecuzione del ${pg.anno}`}</h2>
           <p>{[giaEseguito.luogo, pg.incerta ? pg.anno : `${Number(pg.giorno)} ${pg.mese.toLowerCase()} ${pg.anno}`].filter(Boolean).join(', ')}. La registrazione del concerto sul nostro canale.</p>
           {coro.funzioni.ascolta && <a class="btn oc" href={l('/ascolta')}>Tutte le registrazioni</a>}
         </div>

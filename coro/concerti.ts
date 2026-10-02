@@ -42,16 +42,12 @@ export const prossimi: Concerto[] = [
 ];
 
 export const archivio: Concerto[] = [
-  // Stagione 2025/26
-  { data: '2026-06-06', autore: 'C. Orff', titolo: 'Carmina Burana', luogo: 'Roma', foto: 'anagni.jpg' },
-  { data: '2026-03-28', autore: 'W. A. Mozart', titolo: 'Requiem K 626', foto: 'palco.jpg' }, // DA VERIFICARE: luogo non indicato
-  { data: '2025-10-24', autore: 'G. Rossini', titolo: 'Stabat Mater', luogo: 'Roma', foto: 'chiesa.jpg' },
-  { data: '2025-10-18', autore: 'G. Rossini', titolo: 'Stabat Mater', luogo: 'Rignano Flaminio' },
+  // Dalla stagione 2024/25 i concerti di cui abbiamo la locandina sono nel calendario "Concerti"
+  // (eventi passati, con la locandina allegata): qui restano solo gli altri.
 
   // Stagione 2024/25
-  { data: '2025-07-27', titolo: 'Concerto', luogo: 'Ariccia' },
+  // DA VERIFICARE: la locandina del Festival Sacro del Lazio 2025 (17/5, Campagnano) non nomina il coro
   { data: '2025-05-17', titolo: 'Festival Sacro', luogo: 'Campagnano di Roma' },
-  { data: '2025-05-11', autore: 'G. F. Händel', titolo: 'Messiah HWV 56', luogo: 'Roma', video: '43p4ArVIS_Q' },
   { data: '2024-12-21', autore: 'G. Puccini', titolo: 'Messa di Gloria', luogo: 'Segni' },
   { data: '2024-12-13', titolo: 'Concerto di Santa Lucia', luogo: 'Marino' },
   { data: '2024-11-30', autore: 'G. Puccini', titolo: 'Messa di Gloria', luogo: 'Albano Laziale' },
