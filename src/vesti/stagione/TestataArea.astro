@@ -3,7 +3,7 @@
 // Amministrazione), sempre in tre fasce: barra scura con il sito pubblico e la tendina "Area
 // riservata" per passare da un'area all'altra; testata chiara con logo, nome dell'area, utente
 // collegato e uscita; barra delle sezioni. Sul telefono (sotto 1000px) barra scura e sezioni stanno
-// nel menu dell'hamburger. Con conBarra = false (pagine di accesso) niente utente, sezioni né
+// nel menu dell'hamburger (in alto aree riservate e sito pubblico, sotto le sezioni). Con conBarra = false (pagine di accesso) niente utente, sezioni né
 // menu, solo "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
@@ -88,14 +88,16 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
   {conBarra && (
     <div class="menu-mobile" id="menu-area">
       <div class="w">
-        {sezioni.map((s) => <a class:list={['voce', { on: s.id === sezione }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a>)}
         {aree.length > 1 && (
-          <div class="riservate-mobile">
+          <div class="riservate-mobile in-testa">
             <span class="eti"><Icona nome="lucchetto" />Area riservata</span>
             {aree.map((a) => <a href={a.href} class:list={{ on: a.id === tipo }} aria-current={a.id === tipo ? 'page' : undefined}><Icona nome={a.icona} />{a.testo}</a>)}
           </div>
         )}
-        <div class="extra"><a class="btn o" href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></div>
+        <div class="extra in-testa"><a class="btn o" href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></div>
+        <div class="voci-area">
+          {sezioni.map((s) => <a class:list={['voce', { on: s.id === sezione }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a>)}
+        </div>
       </div>
     </div>
   )}

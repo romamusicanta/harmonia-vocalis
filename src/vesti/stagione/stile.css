@@ -56,6 +56,9 @@ svg { flex-shrink: 0; }
 .riservate-mobile .eti { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .riservate-mobile a { display: flex; gap: 12px; align-items: center; padding: 12px 0; font-weight: 600; font-size: 17px; color: var(--primario); }
 .riservate-mobile a.on { box-shadow: inset 4px 0 0 var(--accento); padding-left: 14px; }
+.riservate-mobile.in-testa { margin-top: 8px; }
+.menu-mobile .extra.in-testa { margin-top: 12px; }
+.menu-mobile .voci-area { margin-top: 24px; border-top: 1px solid var(--linea); }
 
 /* ——— Header ——— */
 .testata { border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: color-mix(in srgb, var(--bianco) 96%, transparent); backdrop-filter: blur(8px); z-index: 30; }
