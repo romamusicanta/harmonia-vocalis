@@ -23,6 +23,9 @@
 //                                                               quella generata dal sito)
 //                    Video: 43p4ArVIS_Q                        (ID YouTube, dopo il concerto)
 //                    Evidenza: Il primo concerto del coro
+//                    Home: sì                                  (in home page anche se è passato;
+//                                                               "Home: no" lo toglie anche se è in programma;
+//                                                               si cambia dall'area Amministrazione)
 //                  ogni altra etichetta è un interprete:
 //                    Orchestra: Orchestra Sinfonica di Roma
 //                    Soprano: Maria Rossi

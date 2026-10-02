@@ -25,10 +25,12 @@ export interface DatiConcerto {
   // Righe "Foto:" e "Locandina:" già nell'evento (file in coro/immagini): si conservano
   rigaFoto: string;
   rigaLocandina: string;
+  // "Home: sì/no": si cambia dall'elenco dei concerti, il modulo la conserva
+  rigaHome: string;
 }
 
 // Etichette che il sito legge come dati, non come interpreti
-const riservate = ['organizza', 'ingresso', 'organico', 'brani', 'foto', 'locandina', 'video', 'evidenza'];
+const riservate = ['organizza', 'ingresso', 'organico', 'brani', 'foto', 'locandina', 'video', 'evidenza', 'home'];
 const pulisci = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '');
 const tutti = (f: FormData, nome: string) => f.getAll(nome).map(pulisci);
 
@@ -65,7 +67,7 @@ export function datiDalModulo(f: FormData): DatiConcerto | { errore: string } {
     data, ora, citta, sala: pulisci(f.get('sala')), indirizzo, rassegna: pulisci(f.get('rassegna')),
     opere, organico: pulisci(f.get('organico')), brani: pulisci(f.get('brani')),
     evidenza: pulisci(f.get('evidenza')), organizza: pulisci(f.get('organizza')), ingresso: pulisci(f.get('ingresso')),
-    video, interpreti, rigaFoto: pulisci(f.get('rigaFoto')), rigaLocandina: pulisci(f.get('rigaLocandina')),
+    video, interpreti, rigaFoto: pulisci(f.get('rigaFoto')), rigaLocandina: pulisci(f.get('rigaLocandina')), rigaHome: pulisci(f.get('rigaHome')),
   };
 }
 
@@ -87,7 +89,7 @@ export function corpoEvento(d: DatiConcerto) {
   // Descrizione secondo la convenzione: opere, poi organico e brani (dell'ultima), poi le etichette
   const righe = [
     ...d.opere.map((o) => (o.autore ? `${o.autore} · ${o.opera}` : o.opera)),
-    ...[['Organico', d.organico], ['Brani', d.brani], ['Evidenza', d.evidenza], ['Organizza', d.organizza], ['Ingresso', d.ingresso], ['Video', d.video], ['Foto', d.rigaFoto], ['Locandina', d.rigaLocandina]]
+    ...[['Organico', d.organico], ['Brani', d.brani], ['Evidenza', d.evidenza], ['Organizza', d.organizza], ['Ingresso', d.ingresso], ['Video', d.video], ['Foto', d.rigaFoto], ['Locandina', d.rigaLocandina], ['Home', d.rigaHome]]
       .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`),
     ...d.interpreti.map((x) => `${x.ruolo}: ${x.nome}`.trim()),
   ];
@@ -143,6 +145,7 @@ export function datiDaEvento(e: EventoApi): DatiConcerto {
     interpreti: (c.interpreti ?? []).map((i) => ({ ruolo: i.ruolo, nome: [i.nome, i.nota && `(${i.nota})`].filter(Boolean).join(' ') })),
     rigaFoto: riga('foto'),
     rigaLocandina: riga('locandina'),
+    rigaHome: riga('home'),
   };
 }
 

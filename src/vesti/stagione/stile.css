@@ -140,6 +140,20 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 
 /* ——— Schede concerto ——— */
 .schede { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+/* Carosello della home: una riga che scorre in orizzontale, 4 schede per volta sugli schermi larghi,
+   poi 3 e 2, una e un pezzo della successiva sul telefono; con aggancio alle schede */
+.schede.carosello { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: calc((100% - 3 * 24px) / 4); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; }
+@media (max-width: 1200px) { .schede.carosello { grid-auto-columns: calc((100% - 2 * 24px) / 3); } }
+.schede.carosello::-webkit-scrollbar { display: none; }
+.schede.carosello > * { scroll-snap-align: start; }
+@media (max-width: 860px) { .schede.carosello { grid-auto-columns: calc((100% - 24px) / 2); } }
+@media (max-width: 560px) { .schede.carosello { grid-auto-columns: 85%; } }
+.frecce-carosello { display: inline-flex; gap: 8px; }
+.frecce-carosello[hidden] { display: none; }
+.freccia-carosello { width: 44px; height: 44px; display: grid; place-items: center; border: 2px solid var(--primario); border-radius: 50%; background: var(--bianco); color: var(--primario); cursor: pointer; }
+.freccia-carosello:first-child svg { transform: rotate(180deg); }
+.freccia-carosello:hover:not(:disabled) { background: var(--primario); color: #fff; }
+.freccia-carosello:disabled { opacity: .3; cursor: default; }
 .sc { border: 1px solid var(--linea); display: flex; flex-direction: column; transition: box-shadow .2s; background: var(--bianco); min-width: 0; }
 a.sc:hover { box-shadow: var(--ombra); }
 .sc .top { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 20px 20px 16px; }

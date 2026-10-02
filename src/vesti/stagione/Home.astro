@@ -19,10 +19,15 @@ const l = (p: string) => link(veste, p);
 const prossimi = await prossimiConcerti();
 const prossimo = prossimi[0];
 const d = prossimo && parti(prossimo);
+// Schede della home: i concerti in programma (tranne quelli con "Home: no") e i passati con
+// "Home: sì", scelti dall'area Amministrazione; se nessun passato è scelto, i più recenti fino a 4
+const prossimiInHome = prossimi.filter((c) => c.home !== false);
+const passatiScelti = archivio.filter((c) => c.home);
+const passatiInHome = passatiScelti.length ? passatiScelti : archivio.slice(0, Math.max(0, 4 - prossimiInHome.length));
 const schede = [
-  ...prossimi.slice(0, 2).map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 ? 'Prossimo' : 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
-  ...archivio.slice(0, 4).map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? "Nell'archivio" : 'Dettagli' })),
-].slice(0, 4);
+  ...prossimiInHome.map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 && c === prossimo ? 'Prossimo' : 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
+  ...passatiInHome.map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? "Nell'archivio" : 'Dettagli' })),
+];
 
 const evidenza = coro.funzioni.ascolta ? await videoInEvidenza() : undefined;
 const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3);
@@ -59,9 +64,18 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 
 <section>
   <div class="w">
-    <div class="testa"><h2>Prossimi e recenti</h2><a class="btn o" href={l('/concerti#archivio')}>Archivio completo</a></div>
-    <!-- Dati: calendario "Concerti" + archivio in coro/concerti.ts -->
-    <div class="schede">
+    <div class="testa">
+      <h2>Prossimi e recenti</h2>
+      <div class="bottoni" style="align-items:center">
+        <span class="frecce-carosello" data-frecce hidden>
+          <button class="freccia-carosello" type="button" data-verso="-1" aria-label="Concerti precedenti"><Icona nome="freccia" /></button>
+          <button class="freccia-carosello" type="button" data-verso="1" aria-label="Concerti successivi"><Icona nome="freccia" /></button>
+        </span>
+        <a class="btn o" href={l('/concerti#archivio')}>Archivio completo</a>
+      </div>
+    </div>
+    <!-- Dati: calendario "Concerti" (con "Home: sì/no") + archivio in coro/concerti.ts -->
+    <div class="schede carosello" data-carosello tabindex="0" aria-label="Concerti: scorri per vederne altri">
       {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}
     </div>
   </div>
@@ -135,3 +149,25 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
     </div>
   </div>
 </section>
+
+<script>
+  // Carosello delle schede: le frecce compaiono solo se le schede non entrano, e scorrono di una
+  // pagina; ai bordi si disattivano. Senza JavaScript resta lo scorrimento orizzontale.
+  for (const carosello of document.querySelectorAll<HTMLElement>('[data-carosello]')) {
+    const frecce = carosello.closest('section')!.querySelector<HTMLElement>('[data-frecce]')!;
+    const [indietro, avanti] = frecce.querySelectorAll<HTMLButtonElement>('button');
+    const aggiorna = () => {
+      const max = carosello.scrollWidth - carosello.clientWidth;
+      frecce.hidden = max <= 4;
+      indietro.disabled = carosello.scrollLeft <= 4;
+      avanti.disabled = carosello.scrollLeft >= max - 4;
+    };
+    const lento = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    for (const b of [indietro, avanti]) {
+      b.addEventListener('click', () => carosello.scrollBy({ left: Number(b.dataset.verso) * carosello.clientWidth, behavior: lento ? 'smooth' : 'auto' }));
+    }
+    carosello.addEventListener('scroll', aggiorna, { passive: true });
+    new ResizeObserver(aggiorna).observe(carosello);
+    aggiorna();
+  }
+</script>

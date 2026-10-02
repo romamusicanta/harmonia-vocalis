@@ -27,6 +27,7 @@ export type Concerto = {
   foto?: string;         // nome del file in coro/immagini
   locandina?: string;    // locandina ufficiale (file in coro/immagini), al posto di quella generata
   evidenza?: string;     // etichetta speciale: "Il primo concerto del coro"
+  home?: boolean;        // in home page (riga "Home: sì/no" dell'evento); senza, solo se è in programma
 };
 
 export type Video = {

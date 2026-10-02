@@ -72,6 +72,8 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
   <p id="esito-pubblicazione" role="status" aria-live="polite" hidden></p>
 
   <style>
+    .in-home { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primario); cursor: pointer; }
+    .in-home input { width: 18px; height: 18px; accent-color: var(--primario); }
     #pubblicazione .in-corso { display: flex; align-items: center; gap: 14px; color: var(--primario); }
     #pubblicazione .in-corso[hidden] { display: none; }
     #pubblicazione .in-corso div { display: grid; gap: 2px; }
@@ -163,6 +165,28 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
       }
     });
 
+    // Casella "In home": si salva subito nell'evento del calendario
+    for (const casella of document.querySelectorAll<HTMLInputElement>('.in-home input')) {
+      casella.addEventListener('change', async () => {
+        casella.disabled = true;
+        const dati = new FormData();
+        dati.set('evento', casella.dataset.evento!);
+        dati.set('home', casella.checked ? '1' : '0');
+        try {
+          const r = await fetch('/admin/concerti/home', { method: 'POST', body: dati });
+          const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
+          if (!j.ok) throw new Error(j.errore);
+          const scheda = casella.closest('.scheda-admin')!;
+          if (!scheda.querySelector('.tag')) casella.closest('label')!.insertAdjacentHTML('beforebegin', '<span class="tag">Da pubblicare</span>');
+        } catch (e) {
+          casella.checked = !casella.checked;
+          messaggio(`Non salvato: ${(e as Error).message}`, 'errore');
+        } finally {
+          casella.disabled = false;
+        }
+      });
+    }
+
     // Il messaggio "completata" si vede una volta: ricaricando non torna
     if (location.search.includes('completata')) history.replaceState(null, '', '/admin');
 
@@ -181,12 +205,13 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
     <>
       <h2 style="font-size:20px">{titolo}</h2>
       <div style="display:grid;gap:10px">
-        {elenco.map(({ e, c, avvisi, daPubblicare }) => (
+        {elenco.map(({ e, c, avvisi, daPubblicare, futuro }) => (
           <div class="scheda-admin" style={`padding:16px 18px;${avvisi.length ? 'border-left:4px solid #b3261e' : ''}`}>
             <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between">
               <div><b style="color:var(--primario)">{dataBreve(c)}</b> · {[c.autore, c.titolo].filter(Boolean).join(', ')}{c.luogo && <span class="tenue"> · {c.luogo}</span>}</div>
               <div style="display:flex;gap:14px;font-size:14px;flex-wrap:wrap">
                 {daPubblicare && <span class="tag">Da pubblicare</span>}
+                <label class="in-home" title="Mostra il concerto tra le schede della home page"><input type="checkbox" data-evento={e.id} checked={c.home ?? futuro} /> In home</label>
                 <a href={`/admin/concerti/modifica?id=${encodeURIComponent(e.id)}`} style="text-decoration:underline;font-weight:700">Modifica</a>
                 <a href={e.htmlLink} target="_blank" rel="noopener" style="text-decoration:underline">Apri nel calendario</a>
                 {!daPubblicare && <a href={`/concerti/${slug(c)}`} target="_blank" rel="noopener" style="text-decoration:underline">Pagina sul sito</a>}

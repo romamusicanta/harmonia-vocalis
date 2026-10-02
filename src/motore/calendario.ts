@@ -25,7 +25,7 @@ const etichettaRiga = /^([\p{L}' ]{2,30}):\s*(.*)$/u;
 function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
   const righe = senzaHtml(descrizione).split('\n').map((r) => r.trim()).filter(Boolean);
   const programma: Brano[] = [];
-  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza'> = {};
+  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza' | 'home'> = {};
   const interpreti: NonNullable<Concerto['interpreti']> = [];
   for (const riga of righe) {
     // Le opere vengono prima di tutte le etichette; la prima riga è sempre un'opera, anche con i due punti
@@ -43,6 +43,11 @@ function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
     const chiave = nome.trim().toLowerCase();
     const ultima = programma.at(-1);
     if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
+    else if (chiave === 'home') {
+      if (/^(s[iì]|yes)$/i.test(valore)) dati.home = true;
+      else if (/^no$/i.test(valore)) dati.home = false;
+      else avviso(`"Home: ${valore}" non riconosciuto: si scrive "Home: sì" o "Home: no"`);
+    }
     else if (chiave === 'foto' || chiave === 'locandina') {
       if (esisteImmagine(valore)) dati[chiave] = valore;
       else avviso(`${chiave} "${valore}" non trovata in coro/immagini`);
