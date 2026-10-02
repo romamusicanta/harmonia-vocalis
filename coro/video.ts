@@ -16,7 +16,8 @@ export const video: Video[] = [
   { id: 'ptvL9ydrbIM', titolo: 'Hallelujah, dal Messiah', autore: 'G. F. Händel', sottotitolo: 'Estratto', pubblicato: '2025-07-13' },
   { id: 'ESqOQh6mrDo', titolo: 'Carmina Burana', autore: 'C. Orff', sottotitolo: 'Racconto della cantata scenica · Velletri, 22 giugno 2024', pubblicato: '2024-08-25' },
   { id: 'ox_zFSGyXZo', titolo: 'Qui tollis, dalla Grande Messa K 427', autore: 'W. A. Mozart', sottotitolo: 'Estratto con immagini', pubblicato: '2024-03-17' },
-  { id: 'EfSxLDcj97I', titolo: 'Grande Messa in do minore K 427', autore: 'W. A. Mozart', sottotitolo: 'Concerto · Marino, 21 dicembre 2023', pubblicato: '2024-01-01' },
+  // DA VERIFICARE: la Grande Messa è stata eseguita il 13/12/2023 a Marino e il 21/12 a Velletri; la data del 21 viene dal mockup
+  { id: 'EfSxLDcj97I', titolo: 'Grande Messa in do minore K 427', autore: 'W. A. Mozart', sottotitolo: 'Concerto · Velletri, 21 dicembre 2023', pubblicato: '2024-01-01' },
   { id: 'vPuK-b7jOiA', titolo: 'Requiem K 626', autore: 'W. A. Mozart', sottotitolo: 'Concerto · Roma, 29 ottobre 2023', pubblicato: '2023-11-23' },
   { id: 'mArCEamDJZ4', titolo: 'Requiem K 626: Introitus, Kyrie, Dies irae', autore: 'W. A. Mozart', sottotitolo: 'Estratto', pubblicato: '2023-11-06' },
   { id: 'pJvyedPkzlI', titolo: 'Petite Messe Solennelle', autore: 'G. Rossini', sottotitolo: 'Versione orchestrale · Santa Marinella, 6 maggio 2023', pubblicato: '2023-05-25' },

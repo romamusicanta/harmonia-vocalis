@@ -42,16 +42,12 @@ export const prossimi: Concerto[] = [
 ];
 
 export const archivio: Concerto[] = [
-  // Dal marzo 2024 i concerti di cui abbiamo la locandina sono nel calendario "Concerti" (eventi
+  // Dall'ottobre 2023 i concerti di cui abbiamo la locandina sono nel calendario "Concerti" (eventi
   // passati, con la locandina allegata): qui restano solo gli altri.
 
   // Stagione 2024/25
-  // DA VERIFICARE: non c'è la locandina (le altre Messe di Gloria di dicembre 2024 sono l'8 a Velletri e il 21 a Segni)
+  // Il concerto c'è stato (conferma di Mario, 2/10/2026): quando arriva la locandina passa nel calendario come gli altri
   { data: '2024-11-30', autore: 'G. Puccini', titolo: 'Messa di Gloria', luogo: 'Albano Laziale' },
-
-  // Stagione 2023/24
-  { data: '2023-12-21', autore: 'W. A. Mozart', titolo: 'Grande Messa in do minore K 427', luogo: 'Marino', video: 'EfSxLDcj97I' },
-  { data: '2023-10-29', autore: 'W. A. Mozart', titolo: 'Requiem K 626', luogo: 'Roma', video: 'vPuK-b7jOiA' },
 
   // Stagione 2022/23
   { data: '2023-05-06', autore: 'G. Rossini', titolo: 'Petite Messe Solennelle', luogo: 'Santa Marinella', video: 'pJvyedPkzlI' },
