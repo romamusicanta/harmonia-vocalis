@@ -4,7 +4,7 @@ import Base from '../../layouts/Base.astro';
 import Icona from '../../componenti/Icona.astro';
 import Video from '../../componenti/Video.astro';
 import NotaVideo from '../../componenti/NotaVideo.astro';
-import { coro, DEMO } from '../../motore/coro';
+import { coro, DEMO, elencoSezioni } from '../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../motore/url';
 import { archivio, parti, semplifica } from '../../motore/concerti';
 import { elencoVideo, titoloCompleto } from '../../motore/video';
@@ -49,7 +49,7 @@ const rassegne = distinti(archivio.map((c) => c.rassegna));
 
 // ——— Numeri ———
 const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
-const elencoSezioni = coro.organico.map((s) => s.sezione.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' e $1');
+const sezioni = elencoSezioni(coro.organico);
 const primo = archivio.at(-1);
 
 // ——— Video: registrazioni legate ai concerti dell'archivio ———
@@ -94,7 +94,7 @@ const oggetto = `?subject=${encodeURIComponent('Proposta di concerto')}`;
   <section class="sezione stretta" style="background:var(--primario);padding-top:0">
     <div class="w">
       <div class="numeri" style="background:var(--primario-2);border-color:var(--primario-2)">
-        <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{voci}</b><span style="color:var(--primario-chiaro)">Voci: {elencoSezioni}</span></div>
+        <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{voci}</b><span style="color:var(--primario-chiaro)">Voci: {sezioni}</span></div>
         {repertorio.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{repertorio.length}</b><span style="color:var(--primario-chiaro)">Opere in repertorio, già eseguite in concerto</span></div>}
         {luoghi.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{luoghi.length}</b><span style="color:var(--primario-chiaro)">Località in cui abbiamo cantato</span></div>}
         {primo && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{parti(primo).anno}</b><span style="color:var(--primario-chiaro)">Primo concerto: <em>{primo.titolo}</em>{primo.autore && ` di ${cognome(primo.autore)}`}</span></div>}

@@ -5,7 +5,7 @@ import Icona from '../../componenti/Icona.astro';
 import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
 import NotaVideo from '../../componenti/NotaVideo.astro';
-import { AREA_CORISTI, coro, DEMO } from '../../motore/coro';
+import { AREA_CORISTI, coro, DEMO, elencoSezioni, sezioneAlSingolare } from '../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../motore/url';
 import { linkMappa } from '../../motore/concerti';
 import { elencoVideo } from '../../motore/video';
@@ -23,13 +23,12 @@ type Testi = {
 const { dati } = testo<Testi>('canta-con-noi');
 
 // Sezioni vocali: "Soprani" → "Soprano", "Tenori" → "Tenore"
-const singolare = (s: string) => s.replace(/ori$/, 'ore').replace(/i$/, 'o');
 // Sigla dell'organico: Soprani, Contralti, Tenori, Bassi → "SATB"
 const sigla = coro.organico.map((s) => (/^(contr|alt)/i.test(s.sezione) ? 'A' : s.sezione.charAt(0).toUpperCase())).join('');
 const inLettere = ['Nessuna', 'Una', 'Due', 'Tre', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Otto'];
 const n = coro.organico.length;
 const sezioni = `${inLettere[n] ?? n} ${n === 1 ? 'sezione' : 'sezioni'}`;
-const elencoSezioni = coro.organico.map((s) => s.sezione.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' e $1');
+const elencoVoci = elencoSezioni(coro.organico);
 const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 const indirizzoProve = `${coro.prove.indirizzo}, ${coro.prove.cap} ${coro.prove.citta}`;
@@ -101,7 +100,7 @@ const videoInvito = coro.funzioni.ascolta ? (await elencoVideo()).find((v) => v.
                 <div class="campo"><span class="lab">La tua voce</span>
                   {/* Dati: coro.organico in coro.config.ts, più "Non so" */}
                   <div class="voci" role="radiogroup" aria-label="La tua voce">
-                    {coro.organico.map((s) => <label><input type="radio" name="voce" value={singolare(s.sezione).toLowerCase()} /><span>{singolare(s.sezione)}</span></label>)}
+                    {coro.organico.map((s) => <label><input type="radio" name="voce" value={sezioneAlSingolare(s.sezione).toLowerCase()} /><span>{sezioneAlSingolare(s.sezione)}</span></label>)}
                     <label><input type="radio" name="voce" value="non so" checked /><span>Non so</span></label>
                   </div>
                 </div>
@@ -114,7 +113,7 @@ const videoInvito = coro.funzioni.ascolta ? (await elencoVideo()).find((v) => v.
             </form>
           ) : (
             <div>
-              <p class="tenue" style="font-size:19px;margin:0 0 24px;max-width:48ch">Scrivici due righe su di te: la voce che pensi di avere ({elencoSezioni}, o «non so»), le tue esperienze corali, un recapito. Ti risponderemo per fissare l'audizione.</p>
+              <p class="tenue" style="font-size:19px;margin:0 0 24px;max-width:48ch">Scrivici due righe su di te: la voce che pensi di avere ({elencoVoci}, o «non so»), le tue esperienze corali, un recapito. Ti risponderemo per fissare l'audizione.</p>
               <a class="btn" href={`mailto:${coro.email}?subject=${encodeURIComponent('Candidatura al coro')}`}><Icona nome="email" />{coro.email}</a>
             </div>
           )}

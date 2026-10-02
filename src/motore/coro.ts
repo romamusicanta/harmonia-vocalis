@@ -35,6 +35,19 @@ export function immagine(nome: string) {
 
 export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in immagini;
 
+// Sezioni dell'organico. Al singolare parola per parola, per le voci del modulo di candidatura:
+// "Tenori" → "Tenore", "Baritoni e bassi" → "Baritono e basso".
+export const sezioneAlSingolare = (sezione: string) => sezione.replace(/\p{L}+/gu, (p) => (p === 'e' ? p : p.replace(/ori$/, 'ore').replace(/i$/, 'o')));
+
+// In elenco, in minuscolo: "soprani, contralti, tenori e bassi"; se l'ultima sezione ha già una
+// "e" ("baritoni e bassi") la si attacca con la virgola, per non scrivere "tenori e baritoni e bassi"
+export function elencoSezioni(organico: { sezione: string }[]) {
+  const nomi = organico.map((s) => s.sezione.toLowerCase());
+  const ultima = nomi.pop();
+  if (!nomi.length || !ultima) return ultima ?? '';
+  return `${nomi.join(', ')}${/ e /.test(ultima) ? ', ' : ' e '}${ultima}`;
+}
+
 export const indirizzo = (l: { indirizzo: string; cap: string; citta: string }) => `${l.indirizzo}, ${l.cap} ${l.citta}`;
 
 // L'area coristi vera (accesso con Google) è ancora da fare: per ora esiste nella demo e, se

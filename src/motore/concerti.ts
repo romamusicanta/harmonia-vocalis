@@ -28,7 +28,8 @@
 //                    Soprano: Maria Rossi
 //                    Solisti: (soprano, contralto, tenore, basso)   → "Da annunciare", con la nota
 //   Allegati     → (graffetta, file della cartella Concerti del Drive condiviso) un'immagine con
-//                  "locandina" nel nome è la locandina, le altre immagini la foto delle schede;
+//                  "locandina" nel nome è la locandina, le altre la foto delle schede (prima quella
+//                  con "copertina" nel nome); vedi il documento LEGGIMI nella cartella Concerti;
 //                  le righe Locandina:/Foto: della descrizione, se ci sono, hanno la precedenza.
 //                  Le scarica scripts/scarica-allegati.mjs prima della build.
 import ical from 'node-ical';
@@ -107,7 +108,11 @@ type Allegato = string | { params?: { FILENAME?: string; FMTTYPE?: string }; val
 const estensioni: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
 
 function leggiAllegati(e: ical.VEvent, dati: { foto?: string; locandina?: string }, avviso: (m: string) => void) {
-  for (const a of [(e as { attach?: Allegato | Allegato[] }).attach ?? []].flat()) {
+  // Prima quelle con "copertina" nel nome: tra più foto allegate, è quella delle schede
+  const elenco = [(e as { attach?: Allegato | Allegato[] }).attach ?? []].flat();
+  const nomeDi = (a: Allegato) => (typeof a === 'string' ? '' : (a.params?.FILENAME ?? ''));
+  elenco.sort((a, b) => Number(/copertina/i.test(nomeDi(b))) - Number(/copertina/i.test(nomeDi(a))));
+  for (const a of elenco) {
     if (typeof a === 'string') continue;
     const id = a.val?.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/)?.[1];
     const estensione = estensioni[a.params?.FMTTYPE ?? ''];
