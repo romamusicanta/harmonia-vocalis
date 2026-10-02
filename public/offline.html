@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0f1b23">
+<title>Senza connessione — Coro Harmonia Vocalis</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- Pagina mostrata dal service worker (public/sw.js) quando manca la connessione e la pagina
+     chiesta non è tra quelle salvate. Colori del sito (coro.config.ts), da aggiornare a mano. -->
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f4f0; color: #16181f; font: 17px/1.5 system-ui, -apple-system, sans-serif; padding: 24px 16px; box-sizing: border-box; }
+  main { max-width: 34rem; }
+  img { width: 64px; height: 64px; }
+  h1 { font-size: 28px; line-height: 1.15; color: #0f1b23; margin: 20px 0 10px; }
+  p { margin: 0 0 12px; color: #4a4d57; }
+  button { margin-top: 12px; font: inherit; font-weight: 700; padding: 12px 20px; border: 0; border-radius: 2px; background: #f2b41b; color: #16181f; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/favicon.svg" alt="">
+  <h1>Sei senza connessione</h1>
+  <p>Questa pagina non è tra quelle salvate sul telefono. Le pagine del sito già aperte restano consultabili anche offline; l'area coristi, quella del Maestro e l'Amministrazione richiedono la connessione.</p>
+  <p lang="en"><b>You're offline.</b> This page hasn't been saved on this device yet.</p>
+  <button type="button" onclick="location.reload()">Riprova · Retry</button>
+</main>
+</body>
+</html>

@@ -4,9 +4,24 @@
     {
       "name": "sito",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:sito"],
+      "runtimeArgs": [
+        "run",
+        "dev:sito"
+      ],
       "port": 4321,
       "autoPort": true
+    },
+    {
+      "name": "sito-costruito",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4890",
+        "--directory",
+        ".vercel/output/static"
+      ],
+      "port": 4890
     }
   ]
 }

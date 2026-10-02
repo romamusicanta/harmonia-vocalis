@@ -10,6 +10,7 @@ import { urlCaratteri } from '../motore/aspetto';
 import { aspettoDi } from '../motore/url';
 import { vesti } from '../vesti';
 import TestataArea from '../vesti/stagione/TestataArea.astro';
+import TestaApp from '../componenti/TestaApp.astro';
 
 interface Props {
   titolo: string;
@@ -30,6 +31,7 @@ const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k
     <meta name="robots" content="noindex, nofollow" />
     <title>{titolo} — Amministrazione {coro.nome}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <TestaApp app="admin" />
     <link rel="stylesheet" href={urlCaratteri([aspetto.carattere], coro.aspetto.caratteriLogo)} />
     {vesti[veste].stili.map((s) => <link rel="stylesheet" href={s} />)}
     <style is:global>

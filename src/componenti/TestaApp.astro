@@ -1,0 +1,17 @@
+---
+// PWA: manifest (src/pages/app/), colore della barra del telefono, icona per la schermata Home di
+// iPhone e registrazione del service worker (public/sw.js, solo nel sito costruito). Nella <head>
+// di Base.astro e del layout dell'area Amministrazione; non nella demo.
+import { coro } from '../motore/coro';
+import type { App } from '../pages/app/[app].webmanifest';
+
+interface Props { app: App }
+const { app } = Astro.props;
+const titolo = { sito: coro.sigla, coristi: `${coro.sigla} Coristi`, maestro: `${coro.sigla} Maestro`, admin: `${coro.sigla} Admin` }[app];
+---
+
+<link rel="manifest" href={`/app/${app}.webmanifest`} />
+<meta name="theme-color" content={coro.aspetto.colori?.primario ?? '#000000'} />
+<link rel="apple-touch-icon" href="/icone/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content={titolo} />
+{import.meta.env.PROD && <script is:inline>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));</script>}

@@ -14,6 +14,7 @@ import PannelloProva from '../componenti/PannelloProva.astro';
 import PannelloProvaIniziale from '../componenti/PannelloProvaIniziale.astro';
 import { aspettoDi } from '../motore/url';
 import { vesti } from '../vesti';
+import TestaApp from '../componenti/TestaApp.astro';
 import type { Pagina } from '../motore/navigazione';
 
 interface Props {
@@ -82,6 +83,7 @@ const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorg
       </>
     )}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {!DEMO && <TestaApp app={area?.maestro ? 'maestro' : area ? 'coristi' : 'sito'} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href={urlCaratteri(caratteri, coro.aspetto.caratteriLogo)} />
