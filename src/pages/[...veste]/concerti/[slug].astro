@@ -65,7 +65,7 @@ const altri = [
 ].slice(0, 3);
 ---
 
-<Base veste={veste} titolo={titoloBreve} pagina="concerti" descrizione={`${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`}>
+<Base veste={veste} titolo={titoloBreve} pagina="concerti" anteprima={c.locandina ?? c.foto} descrizione={`${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`}>
   <header class="intesta" style="padding-bottom:0;border:0">
     <div class="w">
       <nav class="briciole" aria-label="Percorso"><a href={l('/')}>Home</a><span>/</span><a href={l('/concerti')}>Stagione {stagione(c).sigla}</a><span>/</span><span>{c.titolo}</span></nav>

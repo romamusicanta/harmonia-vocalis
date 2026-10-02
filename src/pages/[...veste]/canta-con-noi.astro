@@ -36,7 +36,7 @@ const indirizzoProve = `${coro.prove.indirizzo}, ${coro.prove.cap} ${coro.prove.
 const videoInvito = coro.funzioni.ascolta ? (await elencoVideo()).find((v) => v.autore === 'Il coro') : undefined;
 ---
 
-<Base veste={veste} titolo="Canta con noi" descrizione={`Audizioni aperte: il ${coro.nome} cerca nuove voci a ${coro.citta}.`} pagina="canta-con-noi">
+<Base veste={veste} titolo="Canta con noi" anteprima={coro.foto.prove ?? coro.foto.coro} descrizione={`Audizioni aperte: il ${coro.nome} cerca nuove voci a ${coro.citta}.`} pagina="canta-con-noi">
   {/* Dati: stagione e presentazione da coro.config.ts e coro/testi/canta-con-noi.md; organico e prove da coro.config.ts */}
   <section class="apertura" style="border-bottom:1px solid var(--linea)">
     <div class="w" style="padding-top:0">
@@ -49,7 +49,7 @@ const videoInvito = coro.funzioni.ascolta ? (await elencoVideo()).find((v) => v.
         </div>
       </div>
       <div class="blocco-foto" style="min-height:480px;background:var(--accento)">
-        <Foto nome={coro.foto.coro} alt={`Il ${coro.nome} durante una prova`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="mix-blend-mode:multiply;opacity:.55" />
+        <Foto nome={coro.foto.prove ?? coro.foto.coro} alt={coro.foto.prove ? `Il ${coro.nome} durante una prova` : `Il ${coro.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="mix-blend-mode:multiply;opacity:.55" />
         <div class="scheda" style="background:var(--primario);color:#fff;max-width:340px"><div class="n" style="color:var(--accento)">{sigla}</div><p>{sezioni}, un solo suono<span style="color:var(--primario-chiaro)">Prove a {coro.prove.citta}, {minuscola(coro.prove.orari)}</span></p></div>
       </div>
     </div>

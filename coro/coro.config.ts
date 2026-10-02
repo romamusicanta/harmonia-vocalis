@@ -75,7 +75,9 @@ export default {
     presentazione: 'Si apre con il Requiem di Mozart. Messe, oratori e grandi pagine corali con orchestra, a Roma e nel Lazio.',
   },
 
-  // Foto della scheda italiacori del coro, come nel mockup (vedi immagini/CREDITI.md)
+  // Foto di riserva, dalla scheda italiacori del coro (vedi immagini/CREDITI.md). Quelle vere si
+  // cambiano su Drive, nella cartella Sito/Foto del Drive condiviso: apertura, coro, prove,
+  // maestro (questa al posto di maestro.foto) e accesso, con questi nomi (.jpg o .png).
   foto: {
     apertura: 'terme.jpg',
     coro: 'palco.jpg',

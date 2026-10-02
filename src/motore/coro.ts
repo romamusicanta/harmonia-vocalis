@@ -14,10 +14,18 @@ export const coro = esito.data;
 // Si attiva con DEMO=1 (npm run dev, npm run build:demo).
 export const DEMO = process.env.DEMO === '1';
 
-// Le immagini del coro stanno in coro/immagini e si indicano per nome di file; quelle allegate
-// agli eventi del calendario arrivano da Drive prima della build in coro/immagini/drive/
-// (scripts/scarica-allegati.mjs) e si indicano come "drive/<id>.<ext>".
-const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
+// Le immagini del coro stanno in coro/immagini e si indicano per nome di file. Prima della build
+// scripts/scarica-allegati.mjs porta da Drive in coro/immagini/drive/ quelle allegate agli eventi
+// del calendario ("drive/<id>.<ext>") e le foto del sito della cartella Sito/Foto ("drive/sito/…").
+const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*,drive/sito/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
+
+// Foto del sito: quelle della cartella Sito/Foto di Drive, se ci sono, al posto di coro.config.ts
+const fotoDrive = (nome: string) => !DEMO ? Object.keys(immagini).find((k) => k.startsWith(`/coro/immagini/drive/sito/${nome}.`))?.slice('/coro/immagini/'.length) : undefined;
+coro.foto.apertura = fotoDrive('apertura') ?? coro.foto.apertura;
+coro.foto.coro = fotoDrive('coro') ?? coro.foto.coro;
+coro.foto.prove = fotoDrive('prove') ?? coro.foto.prove;
+coro.foto.accesso = fotoDrive('accesso') ?? fotoDrive('apertura') ?? coro.foto.accesso;
+coro.maestro.foto = fotoDrive('maestro') ?? coro.maestro.foto;
 
 export function immagine(nome: string) {
   const trovata = immagini[`/coro/immagini/${nome}`];

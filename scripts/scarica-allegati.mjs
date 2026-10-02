@@ -1,19 +1,25 @@
-// Prima della build: scarica da Google Drive le immagini allegate agli eventi del calendario
-// "Concerti" (locandine e foto, allegate con la graffetta) in coro/immagini/drive/<id>.<ext>,
-// così Astro le ottimizza come le altre foto. src/motore/concerti.ts le collega ai concerti.
+// Prima della build: scarica da Google Drive
+// - le immagini allegate agli eventi del calendario "Concerti" (locandine e foto, allegate con la
+//   graffetta) in coro/immagini/drive/<id>.<ext>: src/motore/concerti.ts le collega ai concerti;
+// - le foto del sito dalla cartella Sito/Foto del Drive condiviso (DRIVE_CARTELLA_FOTO), con i nomi
+//   fissi apertura, coro, prove, maestro, accesso (.jpg, .png…), in coro/immagini/drive/sito/:
+//   src/motore/coro.ts le usa al posto di quelle di coro.config.ts.
+// Astro poi le ottimizza come le altre foto.
 //
 // Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
 // (VERCEL_OIDC_TOKEN), che la federazione delle identità del progetto Google Cloud
 // harmonia-vocalis-510406 scambia con un accesso temporaneo dell'account di servizio
-// sito-harmonia-vocalis, lettore della cartella Concerti del Drive condiviso.
+// sito-harmonia-vocalis, lettore delle cartelle Concerti e Sito del Drive condiviso.
 // In locale il token si scarica con `vercel env pull .env.local` (dura qualche ora).
 //
 // Non blocca mai la build: se qualcosa manca o non risponde lo scrive con [drive] e il sito
 // usa la locandina generata.
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import ical from 'node-ical';
 
 const cartella = new URL('../coro/immagini/drive/', import.meta.url);
+const cartellaSito = new URL('sito/', cartella);
+const nomiFotoSito = ['apertura', 'coro', 'prove', 'maestro', 'accesso'];
 const estensioni = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
 const avviso = (m) => console.warn(`[drive] ${m}`);
 
@@ -62,24 +68,52 @@ async function accessoDrive() {
   return (await sa.json()).accessToken;
 }
 
-async function main() {
+async function scarica(token, id, nome, destinazione) {
+  const risposta = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!risposta.ok) {
+    avviso(`${nome}: non scaricato (${risposta.status}); è nelle cartelle Concerti o Sito del Drive condiviso?`);
+    return;
+  }
+  writeFileSync(destinazione, Buffer.from(await risposta.arrayBuffer()));
+  console.log(`[drive] ${nome} → ${destinazione.pathname.replace(/.*\/coro\//, 'coro/')}`);
+}
+
+// Allegati: un file allegato non cambia (cambia l'ID se lo si sostituisce), quindi si scarica una volta
+async function allegatiCalendario(token) {
   const ics = process.env.CALENDARIO_CONCERTI_ICS;
   if (!ics) return;
   const eventi = Object.values(await ical.async.fromURL(ics)).filter((c) => c?.type === 'VEVENT' && c.status !== 'CANCELLED');
   const daScaricare = eventi.flatMap(allegati).filter((a) => !existsSync(new URL(a.file, cartella)));
-  if (!daScaricare.length) return;
-  const token = await accessoDrive();
-  if (!token) return;
-  mkdirSync(cartella, { recursive: true });
-  for (const a of daScaricare) {
-    const risposta = await fetch(`https://www.googleapis.com/drive/v3/files/${a.id}?alt=media&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } });
-    if (!risposta.ok) {
-      avviso(`${a.nome}: non scaricato (${risposta.status}); è nella cartella Concerti del Drive condiviso?`);
+  if (daScaricare.length) mkdirSync(cartella, { recursive: true });
+  for (const a of daScaricare) await scarica(token, a.id, a.nome, new URL(a.file, cartella));
+}
+
+// Foto del sito: si possono sostituire tenendo lo stesso nome, quindi si riscaricano sempre
+async function fotoSito(token) {
+  const id = process.env.DRIVE_CARTELLA_FOTO;
+  if (!id) return;
+  const parametri = new URLSearchParams({ q: `'${id}' in parents and trashed = false`, fields: 'files(id,name,mimeType)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '100' });
+  const risposta = await fetch(`https://www.googleapis.com/drive/v3/files?${parametri}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!risposta.ok) throw new Error(`cartella Sito/Foto non leggibile (${risposta.status})`);
+  rmSync(cartellaSito, { recursive: true, force: true });
+  mkdirSync(cartellaSito, { recursive: true });
+  for (const f of (await risposta.json()).files) {
+    const nome = f.name.replace(/\.[^.]+$/, '').trim().toLowerCase();
+    if (!nomiFotoSito.includes(nome)) continue;
+    if (!estensioni[f.mimeType]) {
+      avviso(`Sito/Foto/${f.name}: solo immagini JPEG, PNG, WebP o AVIF`);
       continue;
     }
-    writeFileSync(new URL(a.file, cartella), Buffer.from(await risposta.arrayBuffer()));
-    console.log(`[drive] ${a.nome} → coro/immagini/drive/${a.file}`);
+    await scarica(token, f.id, `Sito/Foto/${f.name}`, new URL(`${nome}.${estensioni[f.mimeType]}`, cartellaSito));
   }
+}
+
+async function main() {
+  if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO) return;
+  const token = await accessoDrive();
+  if (!token) return;
+  await allegatiCalendario(token).catch((err) => avviso(`allegati: ${err.message ?? err}`));
+  await fotoSito(token).catch((err) => avviso(`foto del sito: ${err.message ?? err}`));
 }
 
 await main().catch((err) => avviso(`${err.message ?? err}`));

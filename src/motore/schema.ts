@@ -69,6 +69,8 @@ export const schemaCoro = z.object({
     apertura: z.string(),
     coro: z.string(),
     accesso: z.string(),
+    // Una prova del coro, per "Canta con noi"; senza, la foto del coro
+    prove: z.string().optional(),
   }),
 
   link: z.object({
