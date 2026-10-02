@@ -2,8 +2,10 @@
 // Veste Stagione: barra di servizio, testata con marchio e menu, menu mobile.
 import Icona from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
+import MenuRiservato from './MenuRiservato.astro';
+import { areeRiservate } from './aree';
 import { DEMO } from '../../motore/coro';
-import { contesto, linkArea } from '../../motore/url';
+import { contesto } from '../../motore/url';
 import { alternativa } from '../../motore/lingua';
 import { vociMenu, type Pagina } from '../../motore/navigazione';
 import type { Veste } from '../../motore/aspetto';
@@ -16,20 +18,17 @@ const f = coro.funzioni;
 const calendario = l('/concerti#in-programma');
 // Selettore della lingua: porta alla stessa pagina nell'altra lingua (solo nel sito vero)
 const altra = !DEMO ? alternativa(Astro.url) : undefined;
-// Area Amministrazione (/admin, accesso con Google per il gruppo admin@): solo nel sito vero
-const amministrazione = !DEMO && coro.amministrazione ? '/admin' : undefined;
-// Area del Maestro (/maestro, accesso con Google per il gruppo della direzione): solo nel sito vero
-const areaMaestro = !DEMO && coro.coristi?.direzione ? '/maestro' : undefined;
+// Aree riservate (coristi, Amministrazione, Maestro): una tendina "Area riservata" nella barra in
+// alto; sul telefono, nel menu
+const aree = areeRiservate(veste, en);
 ---
 
 <div class="servizio">
   <div class="w">
     <span class="info">{[coro.associazione && (en ? `Choir of the ${coro.associazione}` : `Coro dell'${coro.associazione}`), coro.affiliazioni].filter(Boolean).join(' · ')}</span>
     <span class="dx">
-      {f.organizzatori && <a href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
-      {linkArea(veste) && <a href={linkArea(veste)}><Icona nome="lucchetto" />{en ? 'Members' : 'Area coristi'}</a>}
-      {areaMaestro && <a href={areaMaestro}><Icona nome="lucchetto" />{en ? 'Conductor' : 'Maestro'}</a>}
-      {amministrazione && <a href={amministrazione}><Icona nome="persona" />{en ? 'Admin' : 'Amministrazione'}</a>}
+      {f.organizzatori && <a class="solo-largo" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
+      <span class="solo-largo"><MenuRiservato veste={veste} en={en} /></span>
       {altra && <span class="lingue" aria-label={en ? 'Language' : 'Lingua'}>{en ? <a href={altra.href} hreflang="it" lang="it">IT</a> : <b aria-current="true">IT</b>}<span aria-hidden="true">|</span>{en ? <b aria-current="true">EN</b> : <a href={altra.href} hreflang="en" lang="en">EN</a>}</span>}
     </span>
   </div>
@@ -51,11 +50,14 @@ const areaMaestro = !DEMO && coro.coristi?.direzione ? '/maestro' : undefined;
       <div class="extra">
         <a class="btn g" href={calendario}><Icona nome="calendario" />{en ? 'Concert calendar' : 'Calendario concerti'}</a>
         {f.organizzatori && <a class="btn o" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
-        {linkArea(veste) && <a class="btn o" href={linkArea(veste)}><Icona nome="lucchetto" />{en ? 'Members' : 'Area coristi'}</a>}
-        {areaMaestro && <a class="btn o" href={areaMaestro}><Icona nome="lucchetto" />{en ? 'Conductor' : 'Area del Maestro'}</a>}
-        {amministrazione && <a class="btn o" href={amministrazione}><Icona nome="persona" />{en ? 'Admin' : 'Amministrazione'}</a>}
         {altra && <a class="btn o" href={altra.href} hreflang={altra.lingua} lang={altra.lingua}>{en ? 'Italiano' : 'English'}</a>}
       </div>
+      {aree.length > 0 && (
+        <div class="riservate-mobile">
+          <span class="eti"><Icona nome="lucchetto" />{en ? 'Members’ area' : 'Area riservata'}</span>
+          {aree.map((a) => <a href={a.href}><Icona nome={a.icona} />{a.testo}</a>)}
+        </div>
+      )}
     </div>
   </div>
 </header>

@@ -38,6 +38,25 @@ svg { flex-shrink: 0; }
 .servizio .lingue span { opacity: .5; }
 @media (min-width: 760px) { .servizio .info { display: inline; } }
 
+/* Tendina "Area riservata" (MenuRiservato.astro) */
+.riservata { position: relative; }
+.riservata summary { list-style: none; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; padding: 6px 0; }
+.riservata summary::-webkit-details-marker { display: none; }
+.riservata summary:hover, .riservata[open] summary { color: #fff; }
+.riservata .freccina { transition: transform .15s; }
+.riservata[open] .freccina { transform: rotate(180deg); }
+.riservata .tendina { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 220px; margin: 0; padding: 6px 0; list-style: none; background: var(--bianco); color: var(--testo); border: 1px solid var(--linea); border-radius: var(--raggio); box-shadow: 0 12px 32px rgba(0,0,0,.14); font-size: 15px; }
+.riservata .tendina a { display: flex; gap: 10px; align-items: center; padding: 11px 18px; font-weight: 600; color: var(--primario); }
+.riservata .tendina a:hover { background: var(--fondo); color: var(--primario); }
+.riservata .tendina a.on { box-shadow: inset 4px 0 0 var(--accento); }
+.servizio .dx .solo-largo { display: none; }
+@media (min-width: 1000px) { .servizio .dx .solo-largo { display: inline-flex; } }
+/* Le aree riservate nel menu del telefono */
+.riservate-mobile { margin-top: 26px; display: grid; gap: 2px; }
+.riservate-mobile .eti { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.riservate-mobile a { display: flex; gap: 12px; align-items: center; padding: 12px 0; font-weight: 600; font-size: 17px; color: var(--primario); }
+.riservate-mobile a.on { box-shadow: inset 4px 0 0 var(--accento); padding-left: 14px; }
+
 /* ——— Header ——— */
 .testata { border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: color-mix(in srgb, var(--bianco) 96%, transparent); backdrop-filter: blur(8px); z-index: 30; }
 .testata > .w { display: flex; align-items: center; justify-content: space-between; height: 80px; gap: 24px; }
@@ -396,12 +415,16 @@ a.sc:hover { box-shadow: var(--ombra); }
 .area body, body.area { background: var(--fondo); }
 .servizio.area-s { background: var(--piede); }
 /* Barra in alto delle aree riservate: si passa da un'area all'altra; quella in cui si è in evidenza */
-.servizio.area-s .dx { gap: 14px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; min-width: 0; }
-.servizio .area-qui { display: inline-flex; gap: 6px; align-items: center; color: #fff; box-shadow: inset 0 -2px 0 var(--accento); padding: 2px 0; }
+.servizio.area-s .dx { white-space: nowrap; }
 .servizio.area-s .info { display: none; }
-.servizio.area-s .lungo { display: none; }
 @media (min-width: 1100px) { .servizio.area-s .info { display: inline; } }
-@media (min-width: 760px) { .servizio.area-s .lungo { display: inline; } .servizio.area-s .breve { display: none; } }
+/* Sul telefono barra scura e sezioni delle aree stanno nel menu dell'hamburger */
+.hamb-area { display: grid; }
+@media (max-width: 999.98px) {
+  .servizio.area-s.con-menu { display: none; }
+  .barra-area { display: none; }
+}
+@media (min-width: 1000px) { .hamb-area { display: none; } }
 #prossimi, #assiduita-stagione, #storico { scroll-margin-top: 150px; }
 .utente { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.2; }
 .utente .av { width: 38px; height: 38px; border-radius: 50%; background: var(--accento); color: var(--primario); display: grid; place-items: center; font-weight: 800; font-size: 16px; flex-shrink: 0; }

@@ -1,0 +1,31 @@
+---
+// Veste Stagione: "Area riservata" con il lucchetto nella barra in alto, che apre una tendina con le
+// aree riservate (Coristi, Amministratori, Maestro), al posto di un link per ciascuna. Nel sito
+// pubblico e nelle aree riservate (TestataArea.astro), dove l'area corrente è in evidenza. Si apre
+// anche senza JavaScript (<details>); lo script la chiude al clic fuori e con Esc.
+import Icona from '../../componenti/Icona.astro';
+import { areeRiservate, type AreaRiservata } from './aree';
+import type { Veste } from '../../motore/aspetto';
+
+interface Props { veste: Veste; en?: boolean; corrente?: AreaRiservata }
+const { veste, en = false, corrente } = Astro.props;
+const aree = areeRiservate(veste, en);
+---
+
+{aree.length > 0 && (
+  <details class="riservata">
+    <summary><Icona nome="lucchetto" />{en ? 'Members’ area' : 'Area riservata'}<Icona nome="giu" classe="p freccina" /></summary>
+    <ul class="tendina">
+      {aree.map((a) => (
+        <li><a href={a.href} class:list={{ on: a.id === corrente }} aria-current={a.id === corrente ? 'page' : undefined}><Icona nome={a.icona} />{a.testo}</a></li>
+      ))}
+    </ul>
+  </details>
+)}
+
+<script>
+  document.querySelectorAll<HTMLDetailsElement>('details.riservata').forEach((d) => {
+    document.addEventListener('click', (e) => { if (d.open && !d.contains(e.target as Node)) d.open = false; });
+    d.addEventListener('keydown', (e) => { if (e.key === 'Escape' && d.open) { d.open = false; d.querySelector('summary')?.focus(); } });
+  });
+</script>

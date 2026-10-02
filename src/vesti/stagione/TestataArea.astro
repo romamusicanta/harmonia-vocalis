@@ -1,13 +1,17 @@
 ---
 // Veste Stagione: testata comune delle aree riservate (area coristi, area del Maestro, area
-// Amministrazione), sempre in tre fasce: barra scura per passare da un'area all'altra e al sito
-// pubblico; testata chiara con logo, nome dell'area, utente collegato e uscita; barra delle sezioni.
-// Con conBarra = false (pagine di accesso) niente utente né sezioni, solo "Torna al sito".
+// Amministrazione), sempre in tre fasce: barra scura con il sito pubblico e la tendina "Area
+// riservata" per passare da un'area all'altra; testata chiara con logo, nome dell'area, utente
+// collegato e uscita; barra delle sezioni. Sul telefono (sotto 1000px) barra scura e sezioni stanno
+// nel menu dell'hamburger. Con conBarra = false (pagine di accesso) niente utente, sezioni né
+// menu, solo "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
+import MenuRiservato from './MenuRiservato.astro';
+import { areeRiservate } from './aree';
 import InvitoApp from '../../area/InvitoApp.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
-import { link, linkArea } from '../../motore/url';
+import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
 import type { Veste } from '../../motore/aspetto';
 
@@ -24,11 +28,7 @@ const utente = admin
     : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}` };
 const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : '/area/esci';
 
-const aree = [
-  { id: 'coristi', testo: 'Area coristi', breve: 'Coristi', href: linkArea(veste), icona: 'lucchetto' as NomeIcona },
-  { id: 'maestro', testo: 'Area del Maestro', breve: 'Maestro', href: !DEMO && coro.coristi?.direzione ? '/maestro' : undefined, icona: 'lucchetto' as NomeIcona },
-  { id: 'admin', testo: 'Amministrazione', breve: 'Admin', href: !DEMO && coro.amministrazione ? '/admin' : undefined, icona: 'persona' as NomeIcona },
-].filter((a): a is typeof a & { href: string } => Boolean(a.href));
+const aree = areeRiservate(veste);
 const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', admin: 'Amministrazione' }[tipo];
 const info = {
   coristi: `Area coristi · accesso riservato ai coristi del ${coro.nome}`,
@@ -61,15 +61,13 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
 }[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string }[];
 ---
 
-<div class="servizio area-s">
+<div class:list={['servizio area-s', { 'con-menu': conBarra }]}>
   <div class="w">
     <span class="info">{info}</span>
-    <nav class="dx" aria-label="Aree">
-      <a href={link(veste, '/')}><Icona nome="indietro" /><span class="lungo">Sito pubblico</span><span class="breve">Sito</span></a>
-      {aree.length > 1 && aree.map((a) => a.id === tipo
-        ? <b class="area-qui" aria-current="page"><Icona nome={a.icona} /><span class="lungo">{a.testo}</span><span class="breve">{a.breve}</span></b>
-        : <a href={a.href}><Icona nome={a.icona} /><span class="lungo">{a.testo}</span><span class="breve">{a.breve}</span></a>)}
-    </nav>
+    <span class="dx">
+      <a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a>
+      {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} />}
+    </span>
   </div>
 </div>
 <header class="testata">
@@ -80,12 +78,27 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
         <div class="azioni">
           <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0).toUpperCase()}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
           <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
+          <button class="hamb hamb-area" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-area"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
         </div>
       )
     ) : (
       <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
     )}
   </div>
+  {conBarra && (
+    <div class="menu-mobile" id="menu-area">
+      <div class="w">
+        {sezioni.map((s) => <a class:list={['voce', { on: s.id === sezione }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a>)}
+        {aree.length > 1 && (
+          <div class="riservate-mobile">
+            <span class="eti"><Icona nome="lucchetto" />Area riservata</span>
+            {aree.map((a) => <a href={a.href} class:list={{ on: a.id === tipo }} aria-current={a.id === tipo ? 'page' : undefined}><Icona nome={a.icona} />{a.testo}</a>)}
+          </div>
+        )}
+        <div class="extra"><a class="btn o" href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></div>
+      </div>
+    </div>
+  )}
 </header>
 {DEMO && tipo === 'coristi' && (
   <div class="avviso-anteprima" role="note">
@@ -105,3 +118,13 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
   </nav>
 )}
 {conBarra && !DEMO && <InvitoApp area={tipo} />}
+
+<script>
+  // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che
+  // l'area Amministrazione non carica)
+  const hamb = document.querySelector<HTMLButtonElement>('.hamb-area');
+  hamb?.addEventListener('click', () => {
+    const aperto = document.body.classList.toggle('menu-aperto');
+    hamb.setAttribute('aria-expanded', aperto ? 'true' : 'false');
+  });
+</script>

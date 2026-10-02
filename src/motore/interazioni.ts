@@ -3,8 +3,8 @@
 
 const $$ = <T extends Element = HTMLElement>(sel: string, el: ParentNode = document) => Array.from(el.querySelectorAll<T>(sel));
 
-// Menu mobile
-const hamb = document.querySelector('.hamb');
+// Menu mobile (quello delle aree riservate, .hamb-area, lo gestisce TestataArea della veste Stagione)
+const hamb = document.querySelector('.hamb:not(.hamb-area)');
 hamb?.addEventListener('click', () => {
   const aperto = document.body.classList.toggle('menu-aperto');
   hamb.setAttribute('aria-expanded', aperto ? 'true' : 'false');
