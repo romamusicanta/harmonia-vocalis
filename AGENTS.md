@@ -39,6 +39,8 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: per questo o
 
 ## Convenzioni
 
+- Foto: mai deformate. Ogni foto si adatta al suo riquadro ritagliandosi (`object-fit: cover`, con `object-position` se serve tenere un volto); solo le locandine si mostrano intere (`contain`). La regola base `img` in `src/vesti/stagione/stile.css` lo garantisce come predefinito: un nuovo riquadro con altezza fissa deve comunque dichiarare il suo adattamento.
+
 - Codice, nomi e testi in italiano.
 - I dati incerti sono marcati con commento `DA VERIFICARE`: non presentarli come certi e non inventarne di nuovi (date, luoghi, biografie).
 - Niente elenchi nominativi dei coristi nel sito pubblico (privacy): solo direttivo e Maestro.

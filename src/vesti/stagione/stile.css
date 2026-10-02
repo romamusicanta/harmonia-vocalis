@@ -7,7 +7,9 @@
 html, body { overscroll-behavior: none; }  /* niente rimbalzo elastico in cima e in fondo alla pagina */
 body { background: var(--bianco); color: var(--testo); font: 400 17px/1.55 var(--f-testo); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 a { color: inherit; text-decoration: none; }
-img { display: block; max-width: 100%; }
+/* Mai foto deformate: l'altezza segue la larghezza, e in un riquadro con proporzioni diverse la
+   foto si ritaglia (cover); le locandine, da vedere intere, hanno contain esplicito */
+img { display: block; max-width: 100%; height: auto; object-fit: cover; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 svg { flex-shrink: 0; }
