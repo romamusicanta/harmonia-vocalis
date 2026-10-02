@@ -27,8 +27,9 @@ else {
     if (p) prossimo = riepilogo(p, tutti, tutte);
     storico = passati.filter((x) => x.tipo === 'prova').slice(-8).reverse().map((x) => riepilogo(x, tutti, tutte));
     const scelto = Astro.url.searchParams.get('evento');
-    // Senza scelta: l'ultima prova o concerto già iniziati, altrimenti il primo in programma
-    const e = elenco.find((x) => x.id === scelto) ?? elenco.filter((x) => x.inizioMs <= Date.now()).at(-1) ?? elenco[0];
+    // Senza scelta: la prima prova o concerto in programma (anche in corso da meno di tre ore, come
+    // nel report in testa), altrimenti l'ultimo passato
+    const e = elenco.find((x) => x.id === scelto) ?? elenco.find((x) => x.inizioMs > Date.now() - 3 * 3600 * 1000) ?? elenco.at(-1);
     if (e) r = riepilogo(e, tutti, tutte);
   } catch (e) {
     errore = `Google non ha risposto: ${(e as Error).message}`;
