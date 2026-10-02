@@ -66,7 +66,7 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
   <h2>Controllo dei concerti</h2>
   {erroreCalendario
     ? <p class="messaggio errore">Non riesco a leggere il calendario: {erroreCalendario}</p>
-    : <p class="tenue">{righe.length} eventi nel calendario "Concerti". {conAvvisi ? `${conAvvisi} con qualcosa da sistemare: apri l'evento nel calendario, correggi e poi pubblica.` : 'Nessun problema trovato.'}</p>}
+    : <p class="tenue">{righe.length === 1 ? '1 evento' : `${righe.length} eventi`} nel calendario "Concerti". {conAvvisi ? `${conAvvisi} con qualcosa da sistemare: apri l'evento nel calendario, correggi e poi pubblica.` : 'Nessun problema trovato.'}</p>}
 
   {[{ titolo: 'In programma', elenco: futuri }, { titolo: 'Passati', elenco: passati }].map(({ titolo, elenco }) => elenco.length > 0 && (
     <>

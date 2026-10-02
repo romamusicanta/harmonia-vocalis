@@ -27,7 +27,7 @@ export interface EventoApi {
 }
 
 export async function eventiConcerti(s: Sessione): Promise<EventoApi[]> {
-  const p = new URLSearchParams({ singleEvents: 'true', orderBy: 'startTime', maxResults: '500', timeMin: '2019-01-01T00:00:00Z' });
+  const p = new URLSearchParams({ singleEvents: 'true', orderBy: 'startTime', maxResults: '500' });
   const { items = [] } = await api<{ items?: EventoApi[] }>(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events?${p}`);
   return items.filter((e) => e.status !== 'cancelled');
 }

@@ -37,13 +37,13 @@ const voci = [
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href={urlCaratteri([aspetto.carattere], coro.aspetto.caratteriLogo)} />
     {vesti[veste].stili.map((s) => <link rel="stylesheet" href={s} />)}
-    <style>
+    <style is:global>
       .barra-admin { background: var(--primario); color: #fff; }
       .barra-admin .w { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 14px; padding-bottom: 14px; }
       .barra-admin .marchio { display: flex; align-items: center; gap: 14px; color: #fff; font-weight: 700; }
-      .barra-admin .marchio :global(svg) { height: 30px; width: auto; }
+      .barra-admin .marchio svg { height: 30px; width: auto; }
       .barra-admin nav { display: flex; flex-wrap: wrap; gap: 4px 18px; flex: 1; }
-      .barra-admin nav a { color: var(--primario-chiaro, #cfd6dc); font-weight: 600; font-size: 15px; padding: 4px 0; border-bottom: 2px solid transparent; }
+      .barra-admin nav a { color: var(--primario-chiaro, #cfd6dc); font-weight: 600; font-size: 15px; padding: 4px 0; border-bottom: 2px solid transparent; white-space: nowrap; }
       .barra-admin nav a.attiva, .barra-admin nav a:hover { color: #fff; border-color: var(--accento); }
       .barra-admin .chi { font-size: 14px; color: var(--primario-chiaro, #cfd6dc); }
       .barra-admin .chi a { color: #fff; text-decoration: underline; margin-left: 8px; }
