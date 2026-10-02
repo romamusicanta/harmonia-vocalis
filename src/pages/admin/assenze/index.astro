@@ -28,9 +28,9 @@ const etichetta = (e: Evento) => { const d = parti({ data: e.data }); return `${
 const assenti = new Map(r?.assenti.map((c) => [c.email, c]) ?? []);
 ---
 
-<LayoutAdmin titolo="Assenze" sezione="assenze">
-  <h1>Assenze</h1>
-  <p class="tenue" style="max-width:64ch">Chi non ha un'assenza è contato presente. I coristi segnalano le loro dall'area coristi fino all'inizio della prova; qui si correggono, anche dopo. Un tocco su un nome lo segna assente o presente e si salva subito nel foglio "Coristi e assenze" del Drive.</p>
+<LayoutAdmin titolo="Assenze dei coristi" sezione="assenze">
+  <h1>Assenze dei coristi</h1>
+  <p class="tenue" style="max-width:64ch">Qui i redattori segnano le assenze degli altri: chi ha avvisato a voce o per messaggio, chi non è venuto senza avvisare. Scegli la prova o il concerto e tocca il nome. Chi non ha un'assenza è contato presente. I coristi segnalano le loro dall'area coristi fino all'inizio della prova; qui si correggono, anche dopo. Un tocco su un nome lo segna assente o presente e si salva subito nel foglio "Coristi e assenze" del Drive.</p>
   {errore && <p class="messaggio errore">{errore}</p>}
 
   {elenco.length > 0 && (

@@ -71,6 +71,14 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
   </div>
   <p id="esito-pubblicazione" role="status" aria-live="polite" hidden></p>
 
+  <div class="scheda-admin" style="display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;justify-content:space-between;margin-top:16px">
+    <div>
+      <span class="eti">Coristi</span>
+      <p style="margin-top:4px">Assenze a prove e concerti: segna chi ha avvisato a voce o chi non è venuto.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px"><a class="btn g" href="/admin/assenze">Assenze dei coristi</a><a class="btn o" href="/area/direzione">Area del Maestro</a></div>
+  </div>
+
   <style>
     .in-home { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primario); cursor: pointer; }
     .in-home input { width: 18px; height: 18px; accent-color: var(--primario); }

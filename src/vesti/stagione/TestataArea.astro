@@ -18,7 +18,7 @@ const esci = DEMO ? link(veste, '/area/accesso') : '/area/esci';
 
 const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] = [
   { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
-  { id: 'prove', testo: 'Prove', icona: 'nota', href: link(veste, '/area/prove') },
+  { id: 'prove', testo: 'Prove e concerti', icona: 'nota', href: link(veste, '/area/prove') },
   { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio') },
   { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
   { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
@@ -57,7 +57,7 @@ else if (io?.direzione) sezioni.push(direzione);
 )}
 {ANTEPRIMA_AREA && sezione !== 'direzione' && (
   <div class="avviso-anteprima" role="note">
-    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Prove</b> e <b>Presenze</b> sono vere; bacheca, repertorio, registrazioni e concerti sono ancora dati di esempio.</span></div>
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Prove e concerti</b> e <b>Presenze</b> sono vere; bacheca, repertorio, registrazioni e concerti sono ancora dati di esempio.</span></div>
   </div>
 )}
 {conBarra && (
