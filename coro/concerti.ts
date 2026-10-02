@@ -42,25 +42,14 @@ export const prossimi: Concerto[] = [
 ];
 
 export const archivio: Concerto[] = [
-  // Dalla stagione 2024/25 i concerti di cui abbiamo la locandina sono nel calendario "Concerti"
-  // (eventi passati, con la locandina allegata): qui restano solo gli altri.
+  // Dal marzo 2024 i concerti di cui abbiamo la locandina sono nel calendario "Concerti" (eventi
+  // passati, con la locandina allegata): qui restano solo gli altri.
 
   // Stagione 2024/25
-  // DA VERIFICARE: la locandina del Festival Sacro del Lazio 2025 (17/5, Campagnano) non nomina il coro
-  { data: '2025-05-17', titolo: 'Festival Sacro', luogo: 'Campagnano di Roma' },
-  { data: '2024-12-21', autore: 'G. Puccini', titolo: 'Messa di Gloria', luogo: 'Segni' },
-  { data: '2024-12-13', titolo: 'Concerto di Santa Lucia', luogo: 'Marino' },
+  // DA VERIFICARE: non c'è la locandina (le altre Messe di Gloria di dicembre 2024 sono l'8 a Velletri e il 21 a Segni)
   { data: '2024-11-30', autore: 'G. Puccini', titolo: 'Messa di Gloria', luogo: 'Albano Laziale' },
-  { data: '2024-11-24', autore: 'G. Fauré · G. Puccini', titolo: 'Fauré e Puccini', luogo: 'Roma' },
 
   // Stagione 2023/24
-  { data: '2024-08-31', autore: 'C. Orff', titolo: 'Carmina Burana', luogo: 'Anagni', rassegna: 'Festival Medievale' },
-  { data: '2024-06-22', autore: 'C. Orff', titolo: 'Carmina Burana', luogo: 'Velletri', video: 'ESqOQh6mrDo' },
-  { data: '2024-06-21', autore: 'C. Orff', titolo: 'Carmina Burana', luogo: 'Roma' },
-  { data: '2024-05-19', autore: 'G. Puccini', titolo: 'Messa di Gloria', luogo: 'Roma' },
-  // DA VERIFICARE: data da precisare (nel mockup è nella stagione 2023/24; con il solo anno
-  // il modello la mette nella 2024/25)
-  { data: '2024', dataIncerta: true, autore: 'W. A. Mozart', titolo: 'Grande Messa in do minore K 427', luogo: 'Roma' },
   { data: '2023-12-21', autore: 'W. A. Mozart', titolo: 'Grande Messa in do minore K 427', luogo: 'Marino', video: 'EfSxLDcj97I' },
   { data: '2023-10-29', autore: 'W. A. Mozart', titolo: 'Requiem K 626', luogo: 'Roma', video: 'vPuK-b7jOiA' },
 

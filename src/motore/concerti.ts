@@ -5,7 +5,8 @@
 //
 // Convenzione per chi inserisce gli eventi nel calendario:
 //   Data         → "Tutto il giorno" finché l'orario non è deciso (il sito scrive "Orario da definire")
-//   Titolo       → nome dell'evento o della rassegna: "Autunno Musicale 2026"
+//   Titolo       → nome dell'evento o della rassegna: "Autunno Musicale 2026"; se non c'è, l'opera
+//                  della prima riga ("Grande Messa in do minore K 427")
 //   Luogo        → "Città, sala" scritto a mano ("Rignano Flaminio (RM), Chiesa di San Vincenzo"),
 //                  oppure un indirizzo scelto da Google Maps
 //   Descrizione  → prima riga: programma ("W. A. Mozart · Requiem K 626"),
@@ -131,7 +132,8 @@ function daEvento(e: ical.VEvent): Concerto {
     data,
     autore: principale?.autore,
     titolo: principale?.opera || titoloEvento,
-    rassegna: principale ? titoloEvento || undefined : undefined,
+    // Senza rassegna il titolo dell'evento è l'opera stessa: non si ripete come rassegna
+    rassegna: principale && titoloEvento !== principale.opera ? titoloEvento || undefined : undefined,
     ...leggiLuogo(testo(e.location)),
     ...dati,
     // Il programma dettagliato serve solo se c'è più di un'opera o qualche dettaglio in più
