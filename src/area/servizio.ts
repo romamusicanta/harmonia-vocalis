@@ -48,15 +48,40 @@ async function ci<T>(url: string): Promise<T> {
 
 // Il nome del gruppo per le API (groups/…), cercato una volta dall'indirizzo
 const nomiGruppi = new Map<string, string>();
+// Gli indirizzi dei membri, anche attraverso gruppi contenuti, letti al più ogni 5 minuti
+const membri = new Map<string, { indirizzi: Set<string>; letti: number }>();
+const DURATA_ELENCO = 5 * 60 * 1000;
 
-// true se l'indirizzo fa parte del gruppo, anche attraverso un gruppo contenuto
+// Gli indirizzi Gmail valgono anche con i punti spostati e in maiuscolo: mario.rossi@gmail.com e
+// MarioRossi@gmail.com sono lo stesso account
+function normalizza(email: string) {
+  const [utente, dominio] = email.toLowerCase().split('@');
+  return ['gmail.com', 'googlemail.com'].includes(dominio) ? `${utente.replace(/\./g, '')}@gmail.com` : `${utente}@${dominio}`;
+}
+
+interface Pagina { memberships?: { preferredMemberKey?: { id: string }[] }[]; nextPageToken?: string }
+
+// true se l'indirizzo fa parte del gruppo. Si legge l'elenco intero: il controllo del singolo
+// indirizzo (checkTransitiveMembership, memberships:lookup) per chi non è membro risponde con un
+// errore di permesso invece che con un no, e non si distinguerebbe da un guasto
 export async function nelGruppo(email: string, gruppo: string): Promise<boolean> {
-  let nome = nomiGruppi.get(gruppo);
-  if (!nome) {
-    ({ name: nome } = await ci<{ name: string }>(`${CI}/groups:lookup?${new URLSearchParams({ 'groupKey.id': gruppo })}`));
-    nomiGruppi.set(gruppo, nome);
+  let elenco = membri.get(gruppo);
+  if (!elenco || Date.now() - elenco.letti > DURATA_ELENCO) {
+    let nome = nomiGruppi.get(gruppo);
+    if (!nome) {
+      ({ name: nome } = await ci<{ name: string }>(`${CI}/groups:lookup?${new URLSearchParams({ 'groupKey.id': gruppo })}`));
+      nomiGruppi.set(gruppo, nome);
+    }
+    const indirizzi = new Set<string>();
+    let pagina: string | undefined;
+    do {
+      const p = new URLSearchParams({ pageSize: '1000', ...(pagina ? { pageToken: pagina } : {}) });
+      const r = await ci<Pagina>(`${CI}/${nome}/memberships:searchTransitiveMemberships?${p}`);
+      for (const m of r.memberships ?? []) for (const k of m.preferredMemberKey ?? []) indirizzi.add(normalizza(k.id));
+      pagina = r.nextPageToken;
+    } while (pagina);
+    elenco = { indirizzi, letti: Date.now() };
+    membri.set(gruppo, elenco);
   }
-  const query = `member_key_id == '${email.toLowerCase().replace(/'/g, '')}'`;
-  const { hasMembership } = await ci<{ hasMembership?: boolean }>(`${CI}/${nome}/memberships:checkTransitiveMembership?${new URLSearchParams({ query })}`);
-  return Boolean(hasMembership);
+  return elenco.indirizzi.has(normalizza(email));
 }
