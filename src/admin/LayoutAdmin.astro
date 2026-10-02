@@ -40,7 +40,8 @@ const voci = [
     <style is:global>
       .barra-admin { background: var(--primario); color: #fff; }
       .barra-admin .w { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 14px; padding-bottom: 14px; }
-      .barra-admin .marchio { display: flex; align-items: center; gap: 14px; color: #fff; font-weight: 700; }
+      .barra-admin .marchio { display: flex; align-items: center; gap: 14px; font-weight: 700; }
+      .barra-admin .marchio a { color: #fff; display: flex; align-items: center; }
       .barra-admin .marchio svg { height: 30px; width: auto; }
       .barra-admin nav { display: flex; flex-wrap: wrap; gap: 4px 18px; flex: 1; }
       .barra-admin nav a { color: var(--primario-chiaro, #cfd6dc); font-weight: 600; font-size: 15px; padding: 4px 0; border-bottom: 2px solid transparent; white-space: nowrap; }
@@ -59,7 +60,10 @@ const voci = [
   <body>
     <header class="barra-admin">
       <div class="w">
-        <a class="marchio" href="/admin">{Logo ? <span style="color:#fff"><Logo /></span> : coro.nome}<span>Amministrazione</span></a>
+        <span class="marchio">
+          <a href="/" title="Vai al sito" aria-label={`${coro.nome}: vai al sito`}>{Logo ? <span style="color:#fff"><Logo /></span> : coro.nome}</a>
+          <a href="/admin">Amministrazione</a>
+        </span>
         <nav aria-label="Sezioni">{voci.map((v) => <a href={v.href} class:list={{ attiva: v.id === sezione }}>{v.testo}</a>)}</nav>
         {sessione && <span class="chi">{sessione.email}<a href="/admin/esci">Esci</a></span>}
       </div>
