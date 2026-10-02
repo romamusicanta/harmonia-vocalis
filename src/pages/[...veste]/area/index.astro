@@ -1,6 +1,6 @@
 ---
 // Area coristi: bacheca. Prossima prova (con segnalazione di assenza), prossimo concerto
-// (con conferma), avvisi del direttivo, scorciatoie della sezione, ultima registrazione, presenze.
+// (con conferma), avvisi del direttivo, scorciatoie della sezione, ultima registrazione, presenze attese.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
@@ -138,7 +138,7 @@ const intro = [
             </article>
           )}
 
-          <a class="carta" href={l('/area/presenze')} style="display:block">
+          <a class="carta" href={l('/area/prove')} style="display:block">
             <div class="cc" style="display:flex;justify-content:space-between;align-items:center;gap:16px">
               <div><span class="eti" style="margin-bottom:6px">Presenze {gp.giornoSettimana.toLowerCase()} {Number(gp.giorno)}</span><b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:40px;color:var(--primario);letter-spacing:-0.012em;line-height:1">{attesi}<span class="tenue" style="font-size:18px;letter-spacing:0;font-stretch:100%;font-weight:600"> su {totaleVoci} attesi</span></b></div>
               <Icona nome="freccia" classe="" />

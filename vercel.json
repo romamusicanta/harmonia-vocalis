@@ -101,6 +101,11 @@
       "permanent": true
     },
     {
+      "source": "/area/presenze",
+      "destination": "/area/prove",
+      "permanent": true
+    },
+    {
       "source": "/mockup/sito/area.html",
       "destination": "/area",
       "permanent": true

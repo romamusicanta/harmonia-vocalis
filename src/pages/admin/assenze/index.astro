@@ -2,8 +2,10 @@
 // Assenze: i redattori scelgono una prova o un concerto (ultimi due mesi e prossimo mese) e
 // correggono chi c'era, partendo da quanto dichiarato dai coristi. Un tocco su un nome lo segna
 // assente o presente (/admin/assenze/cambia). Stessi dati dell'area coristi (src/area/dati.ts).
+// In testa i report: chi è atteso al prossimo appuntamento, per sezione e con gli assenti, e
+// i presenti per sezione alle ultime prove della stagione.
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
-import { assenze, configurati, coristi, eventi, oggi, piuGiorni, riepilogo, sezioniDi, type Evento, type Riepilogo } from '../../../area/dati';
+import { assenze, configurati, coristi, eventi, inizioStagione, oggi, piuGiorni, riepilogo, sezioniDi, type Evento, type Riepilogo } from '../../../area/dati';
 import { parti } from '../../../motore/concerti';
 
 export const prerender = false;
@@ -11,11 +13,19 @@ export const prerender = false;
 let errore: string | undefined;
 let elenco: Evento[] = [];
 let r: Riepilogo | undefined;
+let prossimo: Riepilogo | undefined;
+let storico: Riepilogo[] = [];
 if (!configurati()) errore = 'Mancano le variabili FOGLIO_CORISTI_ID e CALENDARIO_PROVE_ID sul server.';
 else {
   try {
-    const [tutti, tutte, ev] = await Promise.all([coristi(), assenze(), eventi(piuGiorni(oggi(), -62), piuGiorni(oggi(), 31))]);
+    const [tutti, tutte, ev, futuri, passati] = await Promise.all([
+      coristi(), assenze(), eventi(piuGiorni(oggi(), -62), piuGiorni(oggi(), 31)),
+      eventi(oggi(), piuGiorni(oggi(), 60)), eventi(inizioStagione(oggi()), piuGiorni(oggi(), -1)),
+    ]);
     elenco = ev;
+    const p = futuri.find((x) => x.inizioMs > Date.now() - 3 * 3600 * 1000);
+    if (p) prossimo = riepilogo(p, tutti, tutte);
+    storico = passati.filter((x) => x.tipo === 'prova').slice(-8).reverse().map((x) => riepilogo(x, tutti, tutte));
     const scelto = Astro.url.searchParams.get('evento');
     // Senza scelta: l'ultima prova o concerto già iniziati, altrimenti il primo in programma
     const e = elenco.find((x) => x.id === scelto) ?? elenco.filter((x) => x.inizioMs <= Date.now()).at(-1) ?? elenco[0];
@@ -26,13 +36,65 @@ else {
 }
 const etichetta = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana.slice(0, 3)} ${Number(d.giorno)} ${d.meseBreve.toLowerCase()}${e.inizio ? ` ${e.inizio}` : ''} · ${e.tipo === 'concerto' ? 'Concerto: ' : ''}${e.titolo}`; };
 const assenti = new Map(r?.assenti.map((c) => [c.email, c]) ?? []);
+const percento = (parte: number, totale: number) => `${totale ? Math.round((parte / totale) * 1000) / 10 : 0}%`;
+const quando = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
+const breve = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana.slice(0, 3)} ${Number(d.giorno)} ${d.meseBreve.toLowerCase()}`; };
+const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) => s.sezione)))];
 ---
 
 <LayoutAdmin titolo="Assenze dei coristi" sezione="assenze">
   <h1>Assenze dei coristi</h1>
-  <p class="tenue" style="max-width:64ch">Qui i redattori segnano le assenze degli altri: chi ha avvisato a voce o per messaggio, chi non è venuto senza avvisare. Scegli la prova o il concerto e tocca il nome. Chi non ha un'assenza è contato presente. I coristi segnalano le loro dall'area coristi fino all'inizio della prova; qui si correggono, anche dopo. Un tocco su un nome lo segna assente o presente e si salva subito nel foglio "Coristi e assenze" del Drive.</p>
   {errore && <p class="messaggio errore">{errore}</p>}
 
+  {(prossimo || storico.length > 0) && (
+    <div class="cruscotto" style="margin:28px 0 8px">
+      {prossimo && (
+        <article class="carta c-7 su">
+          <div class="ct"><h2>{quando(prossimo.evento.data)}{prossimo.evento.inizio && ` · ${prossimo.evento.inizio}`} · {prossimo.evento.titolo}</h2><span class="tag">{prossimo.evento.tipo === 'concerto' ? 'Prossimo concerto' : 'Prossima prova'}</span></div>
+          <div class="cc" style="display:flex;gap:28px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--linea)">
+            <div><b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:56px;line-height:.8;letter-spacing:-0.012em;color:var(--primario)">{prossimo.attesi.length - prossimo.assenti.length}</b><span class="tenue" style="font-size:18px;font-weight:600;margin-left:10px">attesi su {prossimo.attesi.length}</span></div>
+            <div class="legenda"><span><i style="background:var(--primario)"></i>Attesi</span><span><i style="background:var(--rosso)"></i>Assenti</span></div>
+          </div>
+          <div class="sezioni-presenze">
+            {prossimo.perSezione.map((s) => <div class="sp"><span class="nome">{s.sezione}</span><span class="cifre"><b>{s.presenti}</b> / {s.totale} · {s.assenti === 1 ? '1 assente' : `${s.assenti} assenti`}</span><span class="barra"><i style={`width:${percento(s.presenti, s.totale)};background:var(--primario)`}></i><i style={`width:${percento(s.assenti, s.totale)};background:var(--rosso)`}></i></span></div>)}
+          </div>
+        </article>
+      )}
+
+      {prossimo && (
+        <article class="carta c-5 su">
+          <div class="ct"><h2>Assenti segnalati</h2><span class="tag rosso">{prossimo.assenti.length}</span></div>
+          {prossimo.assenti.length ? (
+            <ul class="assenti">
+              {prossimo.assenti.map((c) => <li><span class="av">{c.nome.charAt(0)}{c.cognome.charAt(0)}</span><b>{c.nome} {c.cognome}<small>{c.sezione}{c.daRedattore && ' · segnata dai redattori'}</small></b>{c.nota ? <span>{c.nota}</span> : <span class="tenue" style="font-style:italic">Nessuna nota</span>}</li>)}
+            </ul>
+          ) : <div class="cc tenue">Nessuna assenza segnalata.</div>}
+        </article>
+      )}
+
+      {storico.length > 0 && (
+        <article class="carta c-12">
+          <div class="ct"><h2>Ultime prove</h2><span class="tenue" style="font-size:14px">Presenti per sezione</span></div>
+          <div class="tabella-wrap">
+            <table class="tabella">
+              <thead><tr><th>Prova</th>{sezioniStorico.map((s) => <th class="num">{s}</th>)}<th class="num">Totale</th></tr></thead>
+              <tbody>
+                {storico.map((x) => {
+                  const tot = x.attesi.length - x.assenti.length;
+                  return (
+                    <tr><td>{elenco.some((e) => e.id === x.evento.id) ? <a href={`?evento=${encodeURIComponent(x.evento.id)}#correggi`} style="text-decoration:underline">{breve(x.evento.data)}</a> : breve(x.evento.data)}</td>{sezioniStorico.map((s) => { const y = x.perSezione.find((p) => p.sezione === s); return <td class="num">{y ? `${y.presenti}/${y.totale}` : '—'}</td>; })}<td class="num"><span class="cella-barra"><b>{tot}</b><span class="barra"><i style={`width:${percento(tot, x.attesi.length)}`}></i></span></span></td></tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+    </div>
+  )}
+
+  <h2 id="correggi">Segna le assenze</h2>
+  <p class="tenue" style="max-width:64ch">Qui i redattori segnano le assenze degli altri: chi ha avvisato a voce o per messaggio, chi non è venuto senza avvisare. Scegli la prova o il concerto e tocca il nome. Chi non ha un'assenza è contato presente. I coristi segnalano le loro dall'area coristi fino all'inizio della prova; qui si correggono, anche dopo. Un tocco su un nome lo segna assente o presente e si salva subito nel foglio "Coristi e assenze" del Drive.</p>
   {elenco.length > 0 && (
     <form method="get" style="margin:20px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
       <select name="evento" onchange="this.form.submit()" style="padding:10px 12px;border:2px solid var(--linea);border-radius:var(--raggio);background:var(--bianco);font:inherit;max-width:100%">

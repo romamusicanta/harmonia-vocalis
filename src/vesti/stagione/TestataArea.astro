@@ -1,66 +1,105 @@
 ---
-// Veste Stagione: testata dell'area coristi, con utente collegato e barra delle sezioni; con
-// maestro, testata dell'area del Maestro (/maestro), senza barra.
+// Veste Stagione: testata comune delle aree riservate (area coristi, area del Maestro, area
+// Amministrazione), sempre in tre fasce: barra scura per passare da un'area all'altra e al sito
+// pubblico; testata chiara con logo, nome dell'area, utente collegato e uscita; barra delle sezioni.
+// Con conBarra = false (pagine di accesso) niente utente né sezioni, solo "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
-import { link } from '../../motore/url';
+import { link, linkArea } from '../../motore/url';
 import { corista } from '../../demo/area';
 import type { Veste } from '../../motore/aspetto';
 
-interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean }
-const { veste, sezione, conBarra = true, maestro = false } = Astro.props;
-// Chi è entrato (src/middleware.ts); nella demo il corista di esempio
-const utente = Astro.locals.corista
-  ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email }
-  : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}` };
-const esci = DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : '/area/esci';
-const nomeArea = maestro ? 'Area del Maestro' : 'Area coristi';
-const casa = !conBarra ? link(veste, '/') : maestro ? '/maestro' : link(veste, '/area');
+interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; admin?: boolean }
+const { veste, sezione, conBarra = true, maestro = false, admin = false } = Astro.props;
+const tipo = admin ? 'admin' : maestro ? 'maestro' : 'coristi';
 
-const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] = [
-  { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
-  { id: 'prove', testo: 'Prove e concerti', icona: 'nota', href: link(veste, '/area/prove') },
-  { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio') },
-  { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
-  { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
-  { id: 'presenze', testo: 'Presenze', icona: 'presenze', href: link(veste, '/area/presenze') },
-];
+// Chi è entrato (src/middleware.ts); nella demo il corista di esempio
+const sessione = Astro.locals.sessione;
+const utente = admin
+  ? sessione && { nome: sessione.nome || sessione.email, dettaglio: sessione.email }
+  : Astro.locals.corista
+    ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email }
+    : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}` };
+const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : '/area/esci';
+
+const aree = [
+  { id: 'coristi', testo: 'Area coristi', breve: 'Coristi', href: linkArea(veste), icona: 'lucchetto' as NomeIcona },
+  { id: 'maestro', testo: 'Area del Maestro', breve: 'Maestro', href: !DEMO && coro.coristi?.direzione ? '/maestro' : undefined, icona: 'lucchetto' as NomeIcona },
+  { id: 'admin', testo: 'Amministrazione', breve: 'Admin', href: !DEMO && coro.amministrazione ? '/admin' : undefined, icona: 'persona' as NomeIcona },
+].filter((a): a is typeof a & { href: string } => Boolean(a.href));
+const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', admin: 'Amministrazione' }[tipo];
+const info = {
+  coristi: `Area coristi · accesso riservato ai coristi del ${coro.nome}`,
+  maestro: `Area del Maestro · accesso riservato alla direzione del ${coro.nome}`,
+  admin: `Amministrazione · accesso riservato ai redattori del sito del ${coro.nome}`,
+}[tipo];
+const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
+
+// Sezioni di ogni area; nell'area del Maestro, che è una pagina sola, le sue parti
+const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] = {
+  coristi: [
+    { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
+    { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove') },
+    { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
+    { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio') },
+    { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
+  ],
+  maestro: [
+    { id: 'prossimi', testo: 'Prossimi appuntamenti', icona: 'calendario', href: '/maestro#prossimi' },
+    { id: 'assiduita', testo: 'Assiduità', icona: 'presenze', href: '/maestro#assiduita-stagione' },
+    { id: 'storico', testo: 'Storico', icona: 'nota', href: '/maestro#storico' },
+  ],
+  admin: [
+    { id: 'pubblicazione', testo: 'Pubblicazione e controlli', href: '/admin' },
+    { id: 'concerto', testo: 'Nuovo concerto', href: '/admin/concerti/nuovo' },
+    { id: 'foto', testo: 'Foto del sito', href: '/admin/foto' },
+    { id: 'prove', testo: 'Prove', href: '/admin/prove' },
+    { id: 'assenze', testo: 'Assenze dei coristi', href: '/admin/assenze' },
+  ],
+}[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string }[];
 ---
 
 <div class="servizio area-s">
   <div class="w">
-    <span class="info">{maestro ? `Area del Maestro · accesso riservato alla direzione del ${coro.nome}` : `Area coristi · accesso riservato ai coristi del ${coro.nome}`}</span>
-    <span class="dx"><a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></span>
+    <span class="info">{info}</span>
+    <nav class="dx" aria-label="Aree">
+      <a href={link(veste, '/')}><Icona nome="indietro" /><span class="lungo">Sito pubblico</span><span class="breve">Sito</span></a>
+      {aree.length > 1 && aree.map((a) => a.id === tipo
+        ? <b class="area-qui" aria-current="page"><Icona nome={a.icona} /><span class="lungo">{a.testo}</span><span class="breve">{a.breve}</span></b>
+        : <a href={a.href}><Icona nome={a.icona} /><span class="lungo">{a.testo}</span><span class="breve">{a.breve}</span></a>)}
+    </nav>
   </div>
 </div>
 <header class="testata">
   <div class="w">
     <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
     {conBarra ? (
-      <div class="azioni">
-        <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0)}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
-        <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
-      </div>
+      utente && (
+        <div class="azioni">
+          <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0).toUpperCase()}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
+          <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
+        </div>
+      )
     ) : (
       <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
     )}
   </div>
 </header>
-{DEMO && !maestro && (
+{DEMO && tipo === 'coristi' && (
   <div class="avviso-anteprima" role="note">
     <div class="w"><Icona nome="info" classe="" /><span><b>Demo:</b> qui l'area coristi è aperta a tutti. Nel sito vero si entra con l'account Google, solo se l'indirizzo è nell'elenco dei coristi. Nomi e dati sono di esempio.</span></div>
   </div>
 )}
-{ANTEPRIMA_AREA && !maestro && (
+{ANTEPRIMA_AREA && tipo === 'coristi' && (
   <div class="avviso-anteprima" role="note">
-    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Prove e concerti</b> e <b>Presenze</b> sono vere; bacheca, repertorio, registrazioni e concerti sono ancora dati di esempio.</span></div>
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. Il <b>Calendario</b> è vero; bacheca, concerti, repertorio e registrazioni sono ancora dati di esempio.</span></div>
   </div>
 )}
-{conBarra && !maestro && (
-  <nav class="barra-area" aria-label="Area coristi">
+{conBarra && (
+  <nav class="barra-area" aria-label={nomeArea}>
     <div class="w">
-      {sezioni.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona} />{s.testo}</a>)}
+      {sezioni.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}>{s.icona && <Icona nome={s.icona} />}{s.testo}</a>)}
     </div>
   </nav>
 )}

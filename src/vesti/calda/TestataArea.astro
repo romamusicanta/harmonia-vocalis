@@ -13,11 +13,10 @@ const { veste, sezione, conBarra = true } = Astro.props;
 
 const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] = [
   { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
-  { id: 'prove', testo: 'Prove', icona: 'nota', href: link(veste, '/area/prove') },
+  { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove') },
+  { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
   { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio') },
   { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
-  { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
-  { id: 'presenze', testo: 'Presenze', icona: 'presenze', href: link(veste, '/area/presenze') },
 ];
 ---
 

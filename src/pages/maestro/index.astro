@@ -60,7 +60,7 @@ const sezioniAssiduita = sezioniDi(assiduita);
     </div>
   </div>
 
-  <div class="area-main">
+  <div class="area-main" id="prossimi">
     <div class="w">
       {errore && <p class="carta" style="padding:20px">{errore}</p>}
       <div class="cruscotto">
@@ -85,7 +85,7 @@ const sezioniAssiduita = sezioniDi(assiduita);
         ))}
 
         {assiduita.length > 0 && (
-          <article class="carta c-12">
+          <article class="carta c-12" id="assiduita-stagione">
             <div class="ct"><h2>Assiduità della stagione</h2><span class="tenue" style="font-size:14px">Prove dal 1 settembre, chi manca di più in alto</span></div>
             {assiduita.every((a) => !a.prove) && <div class="cc tenue" style="border-bottom:1px solid var(--linea)">Nessuna prova ancora fatta in questa stagione: i numeri compaiono dopo la prima.</div>}
             <div class="cc filtri-sezione" style="display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--linea)">
@@ -106,7 +106,7 @@ const sezioniAssiduita = sezioniDi(assiduita);
         )}
 
         {storico.length > 0 && (
-          <article class="carta c-12">
+          <article class="carta c-12" id="storico">
             <div class="ct"><h2>Storico</h2><span class="tenue" style="font-size:14px">Ultime prove e concerti della stagione</span></div>
             <ul class="storico">
               {storico.map((r) => (
