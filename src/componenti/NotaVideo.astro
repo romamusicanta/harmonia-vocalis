@@ -1,6 +1,9 @@
 ---
 interface Props { breve?: boolean; stile?: string }
 const { breve, stile } = Astro.props;
+const en = Astro.url.pathname.startsWith('/en');
 ---
 
-<p class="nota-privacy" style={stile}>{breve ? 'Il video si carica da YouTube (senza cookie) solo al clic.' : 'Il video si carica da YouTube (senza cookie) solo quando premi play.'}</p>
+<p class="nota-privacy" style={stile}>{en
+  ? (breve ? 'The video loads from YouTube (without cookies) only when clicked.' : 'The video loads from YouTube (without cookies) only when you press play.')
+  : (breve ? 'Il video si carica da YouTube (senza cookie) solo al clic.' : 'Il video si carica da YouTube (senza cookie) solo quando premi play.')}</p>

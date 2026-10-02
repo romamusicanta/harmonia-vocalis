@@ -7,7 +7,8 @@ import '../stile/comune.css';
 import Pannello from '../demo/Pannello.astro';
 import PannelloIniziale from '../demo/PannelloIniziale.astro';
 import { getImage } from 'astro:assets';
-import { coro, DEMO, immagine } from '../motore/coro';
+import { coroIn, DEMO, immagine } from '../motore/coro';
+import { alternativa, linguaDi } from '../motore/lingua';
 import { CARATTERI, urlCaratteri, type Carattere, type Veste } from '../motore/aspetto';
 import PannelloProva from '../componenti/PannelloProva.astro';
 import PannelloProvaIniziale from '../componenti/PannelloProvaIniziale.astro';
@@ -25,9 +26,15 @@ interface Props {
   // Immagine dell'anteprima nei link condivisi (WhatsApp, social), da coro/immagini; senza, la foto di apertura
   anteprima?: string;
 }
+// Lingua dall'indirizzo (/en/… è inglese); l'altra versione della pagina, se c'è, per hreflang
+const lingua = linguaDi(Astro.url);
+const coro = coroIn(lingua);
 const { veste, titolo, descrizione = coro.descrizione, pagina, area, anteprima } = Astro.props;
+const altra = !area && !DEMO ? alternativa(Astro.url) : undefined;
+// Gli indirizzi per hreflang nella stessa forma del canonical (con la barra finale)
+const conBarra = (h: string) => (h.endsWith('/') ? h : `${h}/`);
 const { Testata, Piede, TestataArea, PiedeArea, stili } = vesti[veste];
-const titoloCompleto = titolo ? `${titolo} — ${coro.nome}` : `${coro.nome} — ${coro.tipo} a ${coro.citta}`;
+const titoloCompleto = titolo ? `${titolo} — ${coro.nome}` : `${coro.nome} — ${coro.tipo} ${lingua === 'en' ? 'in' : 'a'} ${coro.citta === 'Roma' && lingua === 'en' ? 'Rome' : coro.citta}`;
 const aspetto = aspettoDi(veste);
 // Pannello di prova (sito vero): veste, palette, colori e caratteri a scelta di chi guarda
 const prova = !DEMO && (coro.aspetto.pannelloProva || coro.aspetto.inProva.length > 0);
@@ -44,7 +51,7 @@ const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorg
 ---
 
 <!doctype html>
-<html lang="it" data-veste={veste} data-palette={colori ? 'personalizzata' : aspetto.palette} data-carattere={aspetto.carattere} style={stileColori}>
+<html lang={lingua} data-veste={veste} data-palette={colori ? 'personalizzata' : aspetto.palette} data-carattere={aspetto.carattere} style={stileColori}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -52,10 +59,18 @@ const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorg
     <meta name="description" content={descrizione} />
     {!indicizzata && <meta name="robots" content="noindex, nofollow" />}
     {indicizzata && Astro.site && <link rel="canonical" href={indirizzo} />}
+    {indicizzata && altra && (
+      <>
+        <link rel="alternate" hreflang={lingua} href={indirizzo} />
+        <link rel="alternate" hreflang={altra.lingua} href={new URL(conBarra(altra.href), indirizzo).href} />
+        <link rel="alternate" hreflang="x-default" href={new URL(lingua === 'it' ? Astro.url.pathname : conBarra(altra.href), indirizzo).href} />
+      </>
+    )}
     {indicizzata && (
       <>
         <meta property="og:type" content="website" />
-        <meta property="og:locale" content="it_IT" />
+        <meta property="og:locale" content={lingua === 'en' ? 'en_GB' : 'it_IT'} />
+        {altra && <meta property="og:locale:alternate" content={altra.lingua === 'en' ? 'en_GB' : 'it_IT'} />}
         <meta property="og:site_name" content={coro.nome} />
         <meta property="og:title" content={titolo ?? titoloCompleto} />
         <meta property="og:description" content={descrizione} />

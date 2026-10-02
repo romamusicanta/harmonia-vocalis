@@ -23,6 +23,9 @@
 //                                                               quella generata dal sito)
 //                    Video: 43p4ArVIS_Q                        (ID YouTube, dopo il concerto)
 //                    Evidenza: Il primo concerto del coro
+//                    Evidenza EN: For the 800th anniversary…    (traduzione inglese scritta a mano; anche
+//                                                               Titolo EN, Organico EN, Ingresso EN; senza,
+//                                                               traduce src/motore/inglese.ts)
 //                    Home: sì                                  (in home page anche se è passato;
 //                                                               "Home: no" lo toglie anche se è in programma;
 //                                                               si cambia dall'area Amministrazione)
@@ -39,6 +42,7 @@ import ical from 'node-ical';
 import { coro } from './coro';
 import { daEvento, giornoIso, semplifica } from './calendario';
 import type { Concerto } from './tipi';
+import { localeDi, type Lingua } from './lingua';
 import { archivio as archivioCoro, prossimi as prossimiCoro } from '../../coro/concerti';
 
 async function carica(): Promise<Concerto[] | undefined> {
@@ -86,9 +90,9 @@ const conOra = (iso: string) => iso.length > 10;
 // Le date sono già in ora di Roma: si formattano come UTC per non spostarle.
 const comeData = (iso: string) => new Date(iso.length === 4 ? `${iso}-06-15T12:00:00Z` : conOra(iso) ? `${iso}:00Z` : `${iso}T12:00:00Z`);
 
-export function parti(c: Pick<Concerto, 'data' | 'dataIncerta'>) {
+export function parti(c: Pick<Concerto, 'data' | 'dataIncerta'>, lingua: Lingua = 'it') {
   const d = comeData(c.data);
-  const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('it-IT', { timeZone: 'UTC', ...o }).format(d);
+  const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(localeDi(lingua), { timeZone: 'UTC', ...o }).format(d);
   const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   return {
     giornoSettimana: maiuscola(f({ weekday: 'long' })),
@@ -96,27 +100,27 @@ export function parti(c: Pick<Concerto, 'data' | 'dataIncerta'>) {
     mese: maiuscola(f({ month: 'long' })),
     meseBreve: maiuscola(f({ month: 'short' }).replace('.', '')),
     anno: f({ year: 'numeric' }),
-    ora: conOra(c.data) ? f({ hour: '2-digit', minute: '2-digit' }) : undefined,
-    // "Domenica 18 ottobre 2026"
-    esteso: maiuscola(f({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })),
+    ora: conOra(c.data) ? f({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : undefined,
+    // "Domenica 18 ottobre 2026", "Sunday 18 October 2026"
+    esteso: maiuscola(f({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '')),
     incerta: c.dataIncerta === true,
   };
 }
 
 // Stagione concertistica, da settembre ad agosto: "25/26"
-export function stagione(c: Pick<Concerto, 'data'>) {
+export function stagione(c: Pick<Concerto, 'data'>, lingua: Lingua = 'it') {
   const anno = Number(c.data.slice(0, 4));
   const mese = c.data.length >= 7 ? Number(c.data.slice(5, 7)) : 9;
   const inizio = mese >= 9 ? anno : anno - 1;
   const due = (n: number) => String(n % 100).padStart(2, '0');
-  return { sigla: `${due(inizio)}/${due(inizio + 1)}`, nome: `Stagione ${inizio}/${String(inizio + 1).slice(2)}`, id: `s-${due(inizio)}${due(inizio + 1)}` };
+  return { sigla: `${due(inizio)}/${due(inizio + 1)}`, nome: `${lingua === 'en' ? 'Season' : 'Stagione'} ${inizio}/${String(inizio + 1).slice(2)}`, id: `s-${due(inizio)}${due(inizio + 1)}` };
 }
 
 // Archivio raggruppato per stagione, dalla più recente
-export function perStagione(elenco: Concerto[]) {
+export function perStagione(elenco: Concerto[], lingua: Lingua = 'it') {
   const gruppi = new Map<string, { stagione: ReturnType<typeof stagione>; concerti: Concerto[] }>();
   for (const c of elenco) {
-    const s = stagione(c);
+    const s = stagione(c, lingua);
     if (!gruppi.has(s.id)) gruppi.set(s.id, { stagione: s, concerti: [] });
     gruppi.get(s.id)!.concerti.push(c);
   }

@@ -25,7 +25,7 @@ const etichettaRiga = /^([\p{L}' ]{2,30}):\s*(.*)$/u;
 function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
   const righe = senzaHtml(descrizione).split('\n').map((r) => r.trim()).filter(Boolean);
   const programma: Brano[] = [];
-  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza' | 'home'> = {};
+  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza' | 'home' | 'en'> = {};
   const interpreti: NonNullable<Concerto['interpreti']> = [];
   for (const riga of righe) {
     // Le opere vengono prima di tutte le etichette; la prima riga è sempre un'opera, anche con i due punti
@@ -43,7 +43,12 @@ function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
     const chiave = nome.trim().toLowerCase();
     const ultima = programma.at(-1);
     if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
-    else if (chiave === 'home') {
+    else if (/ en$/.test(chiave)) {
+      // Traduzione inglese scritta a mano: "Titolo EN", "Evidenza EN", "Organico EN", "Ingresso EN"
+      const campo = chiave.slice(0, -3);
+      if (campo === 'titolo' || campo === 'evidenza' || campo === 'organico' || campo === 'ingresso') (dati.en ??= {})[campo] = valore;
+      else avviso(`"${nome.trim()}" non riconosciuto: in inglese si scrivono Titolo EN, Evidenza EN, Organico EN, Ingresso EN`);
+    } else if (chiave === 'home') {
       if (/^(s[iì]|yes)$/i.test(valore)) dati.home = true;
       else if (/^no$/i.test(valore)) dati.home = false;
       else avviso(`"Home: ${valore}" non riconosciuto: si scrive "Home: sì" o "Home: no"`);

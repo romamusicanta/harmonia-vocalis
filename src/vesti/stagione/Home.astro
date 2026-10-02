@@ -6,31 +6,31 @@ import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
 import NotaVideo from '../../componenti/NotaVideo.astro';
 import SchedaConcerto from './SchedaConcerto.astro';
-import { coro } from '../../motore/coro';
-import { link } from '../../motore/url';
+import { contesto } from '../../motore/url';
+import { concertoIn, videoIn } from '../../motore/inglese';
 import { archivio, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
 import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
-const l = (p: string) => link(veste, p);
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
 
 const prossimi = await prossimiConcerti();
-const prossimo = prossimi[0];
-const d = prossimo && parti(prossimo);
+const prossimo = prossimi[0] && concertoIn(prossimi[0], lingua);
+const d = prossimo && parti(prossimo, lingua);
 // Schede della home: i concerti in programma (tranne quelli con "Home: no") e i passati con
 // "Home: sì", scelti dall'area Amministrazione; se nessun passato è scelto, i più recenti fino a 4
 const prossimiInHome = prossimi.filter((c) => c.home !== false);
 const passatiScelti = archivio.filter((c) => c.home);
 const passatiInHome = passatiScelti.length ? passatiScelti : archivio.slice(0, Math.max(0, 4 - prossimiInHome.length));
 const schede = [
-  ...prossimiInHome.map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 && c === prossimo ? 'Prossimo' : 'In programma', grigia: false, azione: 'Dettagli e calendario' })),
-  ...passatiInHome.map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `Stagione ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? "Nell'archivio" : 'Dettagli' })),
+  ...prossimiInHome.map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 && c === prossimi[0] ? (en ? 'Next' : 'Prossimo') : (en ? 'Upcoming' : 'In programma'), grigia: false, azione: en ? 'Details and calendar' : 'Dettagli e calendario' })),
+  ...passatiInHome.map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `${en ? 'Season' : 'Stagione'} ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? (en ? 'In the archive' : "Nell'archivio") : (en ? 'Details' : 'Dettagli') })),
 ];
 
-const evidenza = coro.funzioni.ascolta ? await videoInEvidenza() : undefined;
-const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3);
+const evidenza = videoIn(coro.funzioni.ascolta ? await videoInEvidenza() : undefined, lingua);
+const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3).map((v) => videoIn(v, lingua));
 const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
 const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 ---
@@ -39,23 +39,23 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 <section class="apertura">
   <div class="w">
     <div class="stagione">
-      <span class="eti">Stagione concertistica</span>
+      <span class="eti">{en ? 'Concert season' : 'Stagione concertistica'}</span>
       <h1>{sigla1}{sigla2 && <><span>/</span>{sigla2}</>}<span>.</span></h1>
       <div>
         <p>{coro.stagione.presentazione}</p>
         <div class="bottoni" style="margin-top:24px">
-          <a class="btn" href={l('/concerti')}>Tutti i concerti</a>
-          <a class="btn o" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />Segui il calendario</a>
+          <a class="btn" href={l('/concerti')}>{en ? 'All concerts' : 'Tutti i concerti'}</a>
+          <a class="btn o" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />{en ? 'Follow the calendar' : 'Segui il calendario'}</a>
         </div>
       </div>
     </div>
     <div class="blocco-foto">
-      <Foto nome={coro.foto.apertura} alt={`Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" />
+      <Foto nome={coro.foto.apertura} alt={en ? `The ${coro.nome} in concert` : `Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" />
       {prossimo && d && (
         <a class="scheda" href={l(`/concerti/${slug(prossimo)}`)}>
           <div class="n">{d.giorno}<small>{d.mese} · {d.giornoSettimana}</small></div>
           <p>{[prossimo.autore?.split(' ').at(-1), prossimo.titolo].filter(Boolean).join(', ')}<span>{[prossimo.rassegna, prossimo.luogo].filter(Boolean).join(' · ')}</span></p>
-          <span class="vai">Dettagli del concerto <Icona nome="freccia" /></span>
+          <span class="vai">{en ? 'Concert details' : 'Dettagli del concerto'} <Icona nome="freccia" /></span>
         </a>
       )}
     </div>
@@ -64,14 +64,14 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 
 <section>
   <div class="w">
-    <div class="testa"><h2>Prossimi e recenti</h2><a class="btn o" href={l('/concerti#archivio')}>Archivio completo</a></div>
+    <div class="testa"><h2>{en ? 'Upcoming and recent' : 'Prossimi e recenti'}</h2><a class="btn o" href={l('/concerti#archivio')}>{en ? 'Full archive' : 'Archivio completo'}</a></div>
     <!-- Dati: calendario "Concerti" (con "Home: sì/no") + archivio in coro/concerti.ts -->
     <div class="carosello-cont" data-carosello-cont>
-      <div class="schede carosello" data-carosello tabindex="0" aria-label="Concerti: scorri per vederne altri">
+      <div class="schede carosello" data-carosello tabindex="0" aria-label={en ? 'Concerts: scroll to see more' : 'Concerti: scorri per vederne altri'}>
         {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}
       </div>
-      <button class="freccia-carosello sx" type="button" data-verso="-1" aria-label="Concerti precedenti" hidden><Icona nome="freccia" /></button>
-      <button class="freccia-carosello dx" type="button" data-verso="1" aria-label="Concerti successivi" hidden><Icona nome="freccia" /></button>
+      <button class="freccia-carosello sx" type="button" data-verso="-1" aria-label={en ? 'Previous concerts' : 'Concerti precedenti'} hidden><Icona nome="freccia" /></button>
+      <button class="freccia-carosello dx" type="button" data-verso="1" aria-label={en ? 'Next concerts' : 'Concerti successivi'} hidden><Icona nome="freccia" /></button>
     </div>
   </div>
 </section>
@@ -81,9 +81,9 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
     {/* Dati: canale YouTube (feed RSS letto in fase di build) */}
     <div class="w due">
       <div>
-        <h2>Ascolta i nostri concerti</h2>
-        <p>Registrazioni dal vivo, con orchestra e solisti. Un archivio che cresce a ogni stagione.</p>
-        <a class="btn g" href={l('/ascolta')}>Tutte le registrazioni</a>
+        <h2>{en ? 'Listen to our concerts' : 'Ascolta i nostri concerti'}</h2>
+        <p>{en ? 'Live recordings, with orchestra and soloists. An archive that grows every season.' : 'Registrazioni dal vivo, con orchestra e solisti. Un archivio che cresce a ogni stagione.'}</p>
+        <a class="btn g" href={l('/ascolta')}>{en ? 'All recordings' : 'Tutte le registrazioni'}</a>
       </div>
       <div>
         <Video video={evidenza} />
@@ -98,20 +98,22 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 
 <section>
   <div class="w">
-    <div class="testa"><h2>Il coro</h2></div>
+    <div class="testa"><h2>{en ? 'The choir' : 'Il coro'}</h2></div>
     <div class="porte">
       <a class="porta" href={l('/il-coro')}>
         <div class="img"><Foto nome={coro.foto.coro} sizes="(min-width: 1000px) 33vw, 100vw" /></div>
-        <div class="c"><h3>La nostra storia</h3><p>Nato nel {coro.fondazione}{coro.associazione && ` dall'${coro.associazione}`}: {voci} voci per la musica corale, sacra e profana.</p><span class="btn o">Scopri</span></div>
+        <div class="c">{en
+          ? <><h3>Our story</h3><p>Founded in {coro.fondazione}{coro.associazione && ` by the ${coro.associazione}`}: {voci} voices for choral music, sacred and secular.</p><span class="btn o">Discover</span></>
+          : <><h3>La nostra storia</h3><p>Nato nel {coro.fondazione}{coro.associazione && ` dall'${coro.associazione}`}: {voci} voci per la musica corale, sacra e profana.</p><span class="btn o">Scopri</span></>}</div>
       </a>
       <a class="porta" href={l('/il-maestro')}>
-        <div class="img"><Foto nome={coro.maestro.foto} alt={`Il M° ${coro.maestro.nome}`} sizes="(min-width: 1000px) 33vw, 100vw" style="object-position:center 20%" /></div>
-        <div class="c"><h3>Il Maestro</h3><p>{coro.maestro.nome}: {coro.maestro.presentazione.charAt(0).toLowerCase()}{coro.maestro.presentazione.slice(1)}</p><span class="btn o">Biografia</span></div>
+        <div class="img"><Foto nome={coro.maestro.foto} alt={en ? `Maestro ${coro.maestro.nome}` : `Il M° ${coro.maestro.nome}`} sizes="(min-width: 1000px) 33vw, 100vw" style="object-position:center 20%" /></div>
+        <div class="c"><h3>{en ? 'The conductor' : 'Il Maestro'}</h3><p>{coro.maestro.nome}: {coro.maestro.presentazione.charAt(0).toLowerCase()}{coro.maestro.presentazione.slice(1)}</p><span class="btn o">{en ? 'Biography' : 'Biografia'}</span></div>
       </a>
       {coro.funzioni.cantaConNoi && (
         <a class="porta" href={l('/canta-con-noi')}>
           <div class="img gialla"><b>SATB</b></div>
-          <div class="c"><h3>Canta con noi</h3><p>Cerchiamo nuove voci. {coro.prove.orari}, a {coro.prove.citta}.</p><span class="btn">Audizioni</span></div>
+          <div class="c"><h3>{en ? 'Sing with us' : 'Canta con noi'}</h3><p>{en ? `We are looking for new voices. ${coro.prove.orari}, in Rome.` : `Cerchiamo nuove voci. ${coro.prove.orari}, a ${coro.prove.citta}.`}</p><span class="btn">{en ? 'Auditions' : 'Audizioni'}</span></div>
         </a>
       )}
     </div>
@@ -124,11 +126,11 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
       <div class="riquadro" style="display:grid;gap:24px;padding:clamp(28px,4vw,48px)">
         <div style="display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:end">
           <div style="max-width:60ch">
-            <span class="eti" style="margin-bottom:12px">Per gli organizzatori</span>
-            <h3 class="h-media">Una rassegna, una festa patronale, un concerto di Natale?</h3>
-            <p class="tenue" style="margin-top:12px">Portiamo in concerto messe, oratori e polifonia, anche con orchestra: {voci} voci con un repertorio già pronto.</p>
+            <span class="eti" style="margin-bottom:12px">{en ? 'For organisers' : 'Per gli organizzatori'}</span>
+            <h3 class="h-media">{en ? 'A concert series, a patronal feast, a Christmas concert?' : 'Una rassegna, una festa patronale, un concerto di Natale?'}</h3>
+            <p class="tenue" style="margin-top:12px">{en ? `We perform masses, oratorios and polyphony, also with orchestra: ${voci} voices with a ready repertoire.` : `Portiamo in concerto messe, oratori e polifonia, anche con orchestra: ${voci} voci con un repertorio già pronto.`}</p>
           </div>
-          <a class="btn" href={l('/organizzatori')}>Repertorio e contatti <Icona nome="freccia" /></a>
+          <a class="btn" href={l('/organizzatori')}>{en ? 'Repertoire and contacts' : 'Repertorio e contatti'} <Icona nome="freccia" /></a>
         </div>
       </div>
     </div>
@@ -137,10 +139,10 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 
 <section class="segui">
   <div class="w">
-    <h2>Non perdere il prossimo concerto</h2>
+    <h2>{en ? 'Don’t miss the next concert' : 'Non perdere il prossimo concerto'}</h2>
     <div class="bottoni">
-      <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />Aggiungi il calendario</a>
-      {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />Iscriviti al canale</a>}
+      <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />{en ? 'Add the calendar' : 'Aggiungi il calendario'}</a>
+      {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />{en ? 'Subscribe to the channel' : 'Iscriviti al canale'}</a>}
     </div>
   </div>
 </section>

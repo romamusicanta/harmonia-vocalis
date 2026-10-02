@@ -1,0 +1,16 @@
+---
+import PaginaConcerto from '../../../pagine/PaginaConcerto.astro';
+import { archivio, prossimiConcerti, slug } from '../../../motore/concerti';
+import { coro } from '../../../motore/coro';
+import type { Concerto } from '../../../motore/tipi';
+
+// Le stesse pagine dei concerti, in inglese, con lo stesso identificativo
+export async function getStaticPaths() {
+  const concerti = [...(await prossimiConcerti()), ...archivio.filter((c) => !c.dataIncerta)];
+  return concerti.map((concerto) => ({ params: { slug: slug(concerto) }, props: { concerto } }));
+}
+
+interface Props { concerto: Concerto }
+---
+
+<PaginaConcerto concerto={Astro.props.concerto} veste={coro.aspetto.veste} />

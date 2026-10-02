@@ -1,10 +1,12 @@
 ---
 // Marchio del coro: quadrato con la sigla, nome e tipo di coro; oppure il logo del coro, se c'è.
-import { coro } from '../../motore/coro';
+import { coroIn } from '../../motore/coro';
+import { linguaDi } from '../../motore/lingua';
 import { Logo } from '../../motore/logo';
 
 interface Props { href: string; chiaro?: boolean }
 const { href } = Astro.props;
+const coro = coroIn(linguaDi(Astro.url));
 ---
 
 {Logo ? (

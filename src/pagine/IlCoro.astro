@@ -1,0 +1,118 @@
+---
+// Pagina "Il coro": storia, organico, numeri, direttivo, associazioni.
+import type { Veste } from '../motore/aspetto';
+import Base from '../layouts/Base.astro';
+import Icona from '../componenti/Icona.astro';
+import Foto from '../componenti/Foto.astro';
+
+import { contesto } from '../motore/url';
+import { testo } from '../motore/testi';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+
+const { dati, Contenuto } = testo<{ titolo: string; lead?: string; attacco?: string }>('storia', lingua);
+// Il punto finale del titolo si colora con l'accento
+const titolo = dati.titolo.replace(/\.$/, '');
+
+const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+const massimo = Math.max(...coro.organico.map((s) => s.voci), 1);
+const iconeAssociazioni = ['persone', 'nota'] as const;
+---
+
+<Base veste={veste} titolo={en ? 'The choir' : 'Il coro'} pagina="il-coro" anteprima={coro.foto.coro}>
+  {/* Dati: coro/testi/storia.md (intestazione) */}
+  <header class="intesta">
+    <div class="w due">
+      <div>
+        <span class="eti" style="margin-bottom:20px">{en ? 'The choir' : 'Il coro'}</span>
+        <h1>{titolo}<span>.</span></h1>
+      </div>
+      {dati.lead && <p class="lead">{dati.lead}</p>}
+    </div>
+  </header>
+
+  {/* Dati: coro.config.ts → foto.coro */}
+  <div class="blocco-foto" style="min-height:clamp(260px,38vw,560px)">
+    <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="100vw" />
+  </div>
+
+  <section>
+    <div class="w">
+      <div class="due-col">
+        {/* Dati: coro/testi/storia.md (attacco + corpo) */}
+        <div class="testo-lungo">
+          {dati.attacco && <p class="apertura-testo">{dati.attacco}</p>}
+          <Contenuto />
+        </div>
+        {/* Dati: coro.config.ts → organico */}
+        <aside class="appiccicoso">
+          <div class="riquadro giallo">
+            <span class="eti" style="color:var(--primario)">{en ? 'The voices' : 'L\'organico'}</span>
+            <p style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:56px;line-height:.8;letter-spacing:-0.012em;margin:8px 0 24px">{voci}<span style="font-size:20px;letter-spacing:0;font-stretch:100%;font-weight:800;margin-left:10px">{en ? 'voices' : 'voci'}</span></p>
+            <ul class="organico">
+              {coro.organico.map((s) => (
+                <li>{s.sezione}<span class="barra" style="background:color-mix(in srgb, var(--primario) 15%, transparent)"><i style={`width:${Math.round((s.voci / massimo) * 1000) / 10}%`}></i></span><span class="n">{s.voci}</span></li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  {coro.numeri.length > 0 && (
+    <section style="background:var(--fondo)">
+      {/* Dati: coro.config.ts → numeri */}
+      <div class="w">
+        <div class="numeri">
+          {coro.numeri.map((n) => <div class="numero"><b>{n.valore}</b><span>{n.testo}</span></div>)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {coro.direttivo.length > 0 && (
+    <section>
+      {/* Dati: coro.config.ts → direttivo (il Maestro rimanda alla sua pagina) */}
+      <div class="w">
+        <div class="testa"><h2>{en ? 'The board' : 'Il direttivo'}</h2><p>{en ? 'The association is run by a board elected by its members.' : 'L\'associazione è guidata da un direttivo eletto dai soci.'}</p></div>
+        <div class="persone">
+          {coro.direttivo.map((p) => (
+            <div class="persona">
+              <span class="ruolo">{p.ruolo}</span><b>{p.nome}</b>
+              {p.nome === coro.maestro.nome && <a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>{en ? 'The conductor' : 'Il Maestro'} <Icona nome="freccia" /></a>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {coro.associatoA.length > 0 && (
+    <section style="padding-top:0">
+      {/* Dati: coro.config.ts → associatoA */}
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Member of' : 'Associati a'}</h2></div>
+        <div class="porte">
+          {coro.associatoA.map((a, i) => (
+            <div class="riquadro bordo" style={`display:flex;gap:20px;align-items:flex-start${i > 0 ? ';margin-top:0' : ''}`}>
+              <span class="icona-q g"><Icona nome={iconeAssociazioni[i % iconeAssociazioni.length]} classe="" /></span>
+              <div>
+                <h3>{a.url ? <a href={a.url} rel="noopener">{a.nome}</a> : a.nome}</h3>
+                <p class="tenue">{a.descrizione}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="segui">
+    {coro.funzioni.cantaConNoi
+      ? <div class="w"><h2>{en ? 'Would you like to sing with us?' : 'Ti piacerebbe cantare con noi?'}</h2><div class="bottoni"><a class="btn" href={l('/canta-con-noi')}>{en ? 'Auditions' : 'Audizioni'}</a><a class="btn o" href={l('/concerti')}>{en ? 'Our concerts' : 'I nostri concerti'}</a></div></div>
+      : <div class="w"><h2>{en ? 'Come and hear us' : 'Vieni ad ascoltarci'}</h2><div class="bottoni"><a class="btn" href={l('/concerti')}>{en ? 'Our concerts' : 'I nostri concerti'}</a><a class="btn o" href={l('/contatti')}>{en ? 'Contact' : 'Contatti'}</a></div></div>}
+  </section>
+</Base>

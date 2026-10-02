@@ -1,7 +1,8 @@
 // Indirizzi delle pagine.
 // Il sito di un coro ha una sola veste, servita dalla radice. Nella demo le altre vesti pronte
 // hanno una copia di ogni pagina sotto /<veste>/, così il pannello può passare dall'una all'altra.
-import { AREA_CORISTI, coro, DEMO } from './coro';
+import { AREA_CORISTI, coro, coroIn, DEMO } from './coro';
+import { linguaDi, percorsoInLingua, type Lingua } from './lingua';
 import { vestiPronte, type Veste } from './aspetto';
 
 // Da esportare in ogni pagina: export const getStaticPaths = percorsiVesti;
@@ -38,10 +39,18 @@ export function vesteCorrente(param: string | undefined): Veste {
   return (param as Veste | undefined) ?? coro.aspetto.veste;
 }
 
-// Collegamento a una pagina interna nella stessa veste: link(veste, '/concerti')
-export function link(veste: Veste, percorso: string) {
-  const p = prefisso(veste);
-  return p ? `/${p}${percorso === '/' ? '/' : percorso}` : percorso;
+// Collegamento a una pagina interna nella stessa veste (e lingua): link(veste, '/concerti')
+export function link(veste: Veste, percorso: string, lingua: Lingua = 'it') {
+  return percorsoInLingua(lingua, percorso, (q) => {
+    const p = prefisso(veste);
+    return p ? `/${p}${q === '/' ? '/' : q}` : q;
+  });
+}
+
+// Tutto quello che serve a un componente per la lingua della sua pagina (vedi src/motore/lingua.ts)
+export function contesto(url: URL, veste: Veste) {
+  const lingua = linguaDi(url);
+  return { lingua, en: lingua === 'en', l: (percorso: string) => link(veste, percorso, lingua), coro: coroIn(lingua) };
 }
 
 // Collegamento all'area coristi: quella del sito (demo o anteprima, sotto /area) oppure un

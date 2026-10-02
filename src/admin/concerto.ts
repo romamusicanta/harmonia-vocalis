@@ -27,10 +27,13 @@ export interface DatiConcerto {
   rigaLocandina: string;
   // "Home: sì/no": si cambia dall'elenco dei concerti, il modulo la conserva
   rigaHome: string;
+  // Righe di traduzione scritte a mano ("Evidenza EN: …"): il modulo le conserva così come sono
+  righeEN: string[];
 }
 
 // Etichette che il sito legge come dati, non come interpreti
 const riservate = ['organizza', 'ingresso', 'organico', 'brani', 'foto', 'locandina', 'video', 'evidenza', 'home'];
+// e ogni ruolo che finisce con " EN" (traduzioni scritte a mano)
 const pulisci = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '');
 const tutti = (f: FormData, nome: string) => f.getAll(nome).map(pulisci);
 
@@ -68,6 +71,7 @@ export function datiDalModulo(f: FormData): DatiConcerto | { errore: string } {
     opere, organico: pulisci(f.get('organico')), brani: pulisci(f.get('brani')),
     evidenza: pulisci(f.get('evidenza')), organizza: pulisci(f.get('organizza')), ingresso: pulisci(f.get('ingresso')),
     video, interpreti, rigaFoto: pulisci(f.get('rigaFoto')), rigaLocandina: pulisci(f.get('rigaLocandina')), rigaHome: pulisci(f.get('rigaHome')),
+    righeEN: (() => { try { return (JSON.parse(String(f.get('righeEN') ?? '[]')) as string[]).filter((r) => typeof r === 'string'); } catch { return []; } })(),
   };
 }
 
@@ -92,6 +96,7 @@ export function corpoEvento(d: DatiConcerto) {
     ...[['Organico', d.organico], ['Brani', d.brani], ['Evidenza', d.evidenza], ['Organizza', d.organizza], ['Ingresso', d.ingresso], ['Video', d.video], ['Foto', d.rigaFoto], ['Locandina', d.rigaLocandina], ['Home', d.rigaHome]]
       .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`),
     ...d.interpreti.map((x) => `${x.ruolo}: ${x.nome}`.trim()),
+    ...d.righeEN,
   ];
   // Con il CAP nell'indirizzo il luogo è "Sala, indirizzo" (come quelli scelti da Google Maps) e la
   // città si ricava da lì; altrimenti "Città, sala, indirizzo"
@@ -118,6 +123,8 @@ export const nomeCartella = (d: DatiConcerto) =>
 // Dall'evento ai valori del modulo (Modifica)
 export function datiDaEvento(e: EventoApi): DatiConcerto {
   const c = daEvento(comeIcal(e), () => {});
+  // Le righe EN non sono interpreti: si tolgono dall'elenco e si conservano a parte
+  c.interpreti = c.interpreti?.filter((i) => !/ EN$/i.test(i.ruolo));
   const righe = (e.description ?? '').split(/\n|<br\s*\/?>/i).map((r) => r.replace(/<[^>]+>/g, '').trim());
   const riga = (etichetta: string) => righe.find((r) => r.toLowerCase().startsWith(`${etichetta}:`))?.slice(etichetta.length + 1).trim() ?? '';
   const programma = c.programma ?? [{ autore: c.autore, opera: c.titolo }];
@@ -146,6 +153,7 @@ export function datiDaEvento(e: EventoApi): DatiConcerto {
     rigaFoto: riga('foto'),
     rigaLocandina: riga('locandina'),
     rigaHome: riga('home'),
+    righeEN: righe.filter((r) => /^[\p{L}' ]{2,30} EN\s*:/iu.test(r)),
   };
 }
 

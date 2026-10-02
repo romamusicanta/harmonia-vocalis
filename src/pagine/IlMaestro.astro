@@ -1,0 +1,103 @@
+---
+// Pagina "Il Maestro": presentazione, biografia, lavori, un video "sul podio".
+import type { Veste } from '../motore/aspetto';
+import Base from '../layouts/Base.astro';
+import Foto from '../componenti/Foto.astro';
+import Video from '../componenti/Video.astro';
+import NotaVideo from '../componenti/NotaVideo.astro';
+
+import { contesto } from '../motore/url';
+import { videoIn } from '../motore/inglese';
+import { testo } from '../motore/testi';
+import { elencoVideo } from '../motore/video';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+
+type Lavoro = { anno: string | number; autore?: string; titolo: string; nota?: string; video?: string };
+const { dati, Contenuto } = testo<{ titolo?: string; etichetta?: string; attacco?: string; titoloLavori?: string; lavori?: Lavoro[] }>('maestro', lingua);
+const m = coro.maestro;
+const nome = (dati.titolo ?? m.nome).replace(/\.$/, '');
+const lavori = dati.lavori ?? [];
+
+// "Livia Serafini" → "L. Serafini"
+const parole = m.nome.split(/\s+/);
+const nomeBreve = [...parole.slice(0, -1).map((p) => `${p[0]}.`), parole.at(-1)].join(' ');
+
+// Sul podio: il video più recente di un concerto (non quelli di presentazione del coro)
+const sulPodio = videoIn((await elencoVideo()).find((v) => v.autore !== 'Il coro'), lingua);
+const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(1).replace(/\.$/, '');
+---
+
+<Base veste={veste} titolo={en ? 'The conductor' : 'Il Maestro'} pagina="il-maestro" anteprima={m.foto} descrizione={en ? `Maestro ${m.nome}: ${attacco}.` : `Il M° ${m.nome}, ${attacco}.`}>
+  {/* Dati: coro.config.ts → maestro; etichetta da coro/testi/maestro.md */}
+  <section class="apertura" style="border-bottom:1px solid var(--linea)">
+    <div class="w" style="padding-top:0">
+      <div class="stagione" style="padding-top:72px">
+        <span class="eti">{dati.etichetta ?? (en ? 'The conductor of the choir' : 'Il Maestro del coro')}</span>
+        <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{nome}<span>.</span></h1>
+        <p>{m.presentazione}</p>
+      </div>
+      <div class="blocco-foto" style="min-height:520px">
+        <Foto nome={m.foto} alt={en ? `Maestro ${m.nome}` : `Il M° ${m.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="object-position:center 20%;mix-blend-mode:normal;opacity:1" />
+        {m.anniPodio ? (
+          <div class="scheda" style="max-width:300px"><div class="n" style="font-size:44px">{m.anniPodio}<small>{en ? 'years on the podium' : 'anni sul podio'}</small></div><p style="font-size:16px;font-weight:600">{en ? `Leading the ${coro.nome}.` : `Alla guida del ${coro.nome}.`}</p></div>
+        ) : null}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="w">
+      <div class="due-col">
+        {/* Dati: coro/testi/maestro.md (attacco, corpo, lavori) */}
+        <div class="testo-lungo">
+          {dati.attacco && <p class="apertura-testo">{dati.attacco}</p>}
+          <Contenuto />
+
+          {lavori.length > 0 && (
+            <>
+              <h3>{dati.titoloLavori ?? (en ? 'Arrangements and editions' : 'Arrangiamenti e revisioni')}</h3>
+              <div style="border-top:3px solid var(--primario)">
+                {lavori.map((lv) => (
+                  <div class="riga" style="grid-template-columns:80px minmax(0,1fr)">
+                    <span class="quando anno">{lv.anno}</span>
+                    <div class="cosa">
+                      {lv.autore && <span class="aut">{lv.autore}</span>}
+                      <b>{lv.titolo}</b>
+                      {(lv.nota || lv.video) && (
+                        <span class="tenue" style="font-size:15px">
+                          {lv.nota}{lv.nota && lv.video && ' · '}{lv.video && coro.funzioni.ascolta && <a href={l(`/ascolta#${lv.video}`)} style="text-decoration:underline">{en ? 'listen' : 'ascolta'}</a>}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <aside class="appiccicoso">
+          {sulPodio && (
+            <>
+              {/* Dati: canale YouTube (video più recente di un concerto) */}
+              <span class="eti" style="margin-bottom:14px">{en ? 'On the podium' : 'Sul podio'}</span>
+              <Video video={sulPodio} piccolo sottotitolo={[`${en ? 'Cond.' : 'Dir.'} ${nomeBreve}`, sulPodio.sottotitolo].filter(Boolean).join(' · ')} />
+              <NotaVideo breve />
+            </>
+          )}
+          {coro.funzioni.cantaConNoi && (
+            <div class="riquadro" style={sulPodio ? 'margin-top:28px' : undefined}>
+              {/* Dati: coro.config.ts → prove.orari */}
+              <h3>{en ? 'Study with the Maestro' : 'Studiare con il Maestro'}</h3>
+              <p class="tenue" style="margin-bottom:16px">{en ? 'The choir is looking for new voices in every section. Rehearsals' : 'Il coro cerca nuove voci in tutte le sezioni. Le prove'}: {coro.prove.orari.charAt(0).toLowerCase()}{coro.prove.orari.slice(1)}.</p>
+              <a class="btn" href={l('/canta-con-noi')}>{en ? 'Sing with us' : 'Canta con noi'}</a>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  </section>
+</Base>

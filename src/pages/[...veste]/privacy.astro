@@ -1,40 +1,8 @@
 ---
-// Informativa privacy: testo in coro/testi/privacy.md, che il coro adatta e fa verificare.
-import Base from '../../layouts/Base.astro';
-import { coro } from '../../motore/coro';
+import Privacy from '../../pagine/Privacy.astro';
 import { percorsiVesti, vesteCorrente } from '../../motore/url';
-import { testo } from '../../motore/testi';
 
 export const getStaticPaths = percorsiVesti;
-const veste = vesteCorrente(Astro.params.veste);
-
-const { dati, Contenuto } = testo<{ titolo?: string; lead?: string }>('privacy');
-const titolo = (dati.titolo ?? 'Privacy').replace(/\.$/, '');
 ---
 
-<Base veste={veste} titolo="Privacy" pagina="privacy" descrizione={`Informativa privacy del sito del ${coro.nome}.`}>
-  {/* Dati: coro/testi/privacy.md (intestazione) */}
-  <header class="intesta">
-    <div class="w due">
-      <div>
-        <span class="eti" style="margin-bottom:20px">Informativa</span>
-        <h1>{titolo}<span>.</span></h1>
-      </div>
-      <p class="lead">{dati.lead ?? `Come il sito del ${coro.nome} tratta i dati di chi lo visita e di chi ci scrive.`}</p>
-    </div>
-  </header>
-
-  <section>
-    {/* Dati: coro/testi/privacy.md (corpo) */}
-    <div class="w stretta">
-      <div class="testo-lungo">
-        <Contenuto />
-      </div>
-    </div>
-  </section>
-</Base>
-
-<style>
-  /* Il primo titolo del Markdown non ha spazio sopra */
-  .testo-lungo :global(h2:first-child) { margin-top: 0; }
-</style>
+<Privacy veste={vesteCorrente(Astro.params.veste)} />
