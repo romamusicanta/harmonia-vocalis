@@ -81,6 +81,12 @@ export default {
     gruppo: 'admin@romamusicanta.org',
   },
 
+  // Area coristi (romamusicanta.org/area): entrano i membri del gruppo coro@, anche con l'account
+  // Google personale (membri esterni del gruppo)
+  coristi: {
+    gruppo: 'coro@romamusicanta.org',
+  },
+
   // Foto di riserva, dalla scheda italiacori del coro (vedi immagini/CREDITI.md). Quelle vere si
   // cambiano su Drive, nella cartella Sito/Foto del Drive condiviso: apertura, coro, prove,
   // maestro (questa al posto di maestro.foto) e accesso, con questi nomi (.jpg o .png).

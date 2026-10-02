@@ -9,15 +9,27 @@ import vercel from '@astrojs/vercel';
 const vesti = readdirSync('src/vesti', { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
 const escluse = new RegExp(`^/(area|admin|${vesti.join('|')})(/|$)`);
 
+// Area coristi riservata: fuori dalla demo le sue pagine non si prerenderizzano ma girano come
+// funzione, così src/middleware.ts può lasciarle vedere solo ai coristi entrati con Google
+const areaRiservata = {
+  name: 'area-riservata',
+  hooks: {
+    'astro:route:setup': ({ route }) => {
+      if (process.env.DEMO !== '1' && /\/area\/[^/]+\.astro$/.test(route.component)) route.prerender = false;
+    },
+  },
+};
+
 // https://astro.build/config
 export default defineConfig({
   // Indirizzo ufficiale del sito (lo stesso di coro.url): per canonical e sitemap
   site: 'https://romamusicanta.org',
-  integrations: [sitemap({ filter: (pagina) => !escluse.test(new URL(pagina).pathname) })],
-  // Il sito è statico; solo l'area Amministrazione (src/pages/admin, prerender = false) gira come
-  // funzione su Vercel
+  integrations: [areaRiservata, sitemap({ filter: (pagina) => !escluse.test(new URL(pagina).pathname) })],
+  // Il sito è statico; solo l'area Amministrazione (src/pages/admin, prerender = false) e l'area
+  // coristi girano come funzione su Vercel
   adapter: vercel(),
-  // Variabili dell'area Amministrazione, lette quando la pagina viene richiesta (non nella build)
+  // Variabili dell'area Amministrazione e dell'area coristi, lette quando la pagina viene richiesta
+  // (non nella build)
   env: {
     schema: {
       GOOGLE_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
@@ -27,6 +39,13 @@ export default defineConfig({
       CALENDARIO_CONCERTI_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_CONCERTI: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_FOTO: envField.string({ context: 'server', access: 'secret', optional: true }),
+      CORISTI_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      CORISTI_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Federazione delle identità verso l'account di servizio (anche per la build, vedi scripts/)
+      GCP_PROJECT_NUMBER: envField.string({ context: 'server', access: 'secret', optional: true }),
+      GCP_SERVICE_ACCOUNT_EMAIL: envField.string({ context: 'server', access: 'secret', optional: true }),
+      GCP_WORKLOAD_IDENTITY_POOL_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
     },
   },
   // Quando è stata costruita la versione online, per l'area Amministrazione

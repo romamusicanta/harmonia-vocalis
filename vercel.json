@@ -47,6 +47,28 @@
       "permanent": false
     },
     {
+      "source": "/area/:percorso*",
+      "has": [
+        {
+          "type": "host",
+          "value": "harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://romamusicanta.org/area/:percorso*",
+      "permanent": false
+    },
+    {
+      "source": "/area",
+      "has": [
+        {
+          "type": "host",
+          "value": "harmoniavocalis.com"
+        }
+      ],
+      "destination": "https://romamusicanta.org/area",
+      "permanent": false
+    },
+    {
       "source": "/stagione",
       "destination": "/",
       "permanent": true

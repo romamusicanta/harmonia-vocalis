@@ -9,6 +9,11 @@ import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste; sezione?: string; conBarra?: boolean }
 const { veste, sezione, conBarra = true } = Astro.props;
+// Chi è entrato (src/middleware.ts); nella demo il corista di esempio
+const utente = Astro.locals.corista
+  ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email }
+  : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}` };
+const esci = DEMO ? link(veste, '/area/accesso') : '/area/esci';
 
 const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] = [
   { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
@@ -31,8 +36,8 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
     <span style="display:flex;align-items:center;gap:12px;min-width:0"><Marchio href={link(veste, conBarra ? '/area' : '/')} /><span class="etichetta-area">Area coristi</span></span>
     {conBarra ? (
       <div class="azioni">
-        <span class="utente"><span class="av" aria-hidden="true">{corista.nome.charAt(0)}</span><span class="nome"><b>{corista.nome}</b><small>{corista.sezione} · {corista.email}</small></span></span>
-        <a class="esci-btn" href={link(veste, '/area/accesso')} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
+        <span class="utente"><span class="av" aria-hidden="true">{utente.nome.charAt(0)}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
+        <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
       </div>
     ) : (
       <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
@@ -46,7 +51,7 @@ const sezioni: { id: string; testo: string; icona: NomeIcona; href: string }[] =
 )}
 {ANTEPRIMA_AREA && (
   <div class="avviso-anteprima" role="note">
-    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. Per ora è aperta a tutti e mostra dati di esempio; quando sarà pronta si entrerà con l'account Google dell'associazione.</span></div>
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. Per ora prove, repertorio, presenze e avvisi sono dati di esempio.</span></div>
   </div>
 )}
 {conBarra && (

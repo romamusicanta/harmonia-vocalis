@@ -1,6 +1,7 @@
 ---
 // Area coristi: pagina di accesso. Nella demo il bottone Google porta direttamente alla bacheca;
-// nel sito vero si entra con qualunque account Google il cui indirizzo è nell'elenco dei coristi.
+// nel sito vero si entra con qualunque account Google il cui indirizzo fa parte del gruppo dei
+// coristi (/area/entra, src/area/accesso.ts). Qui tornano anche gli errori dell'accesso e l'uscita.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import Foto from '../../../componenti/Foto.astro';
@@ -10,6 +11,11 @@ import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
 const veste = vesteCorrente(Astro.params.veste);
 const richiesta = `mailto:${coro.email}?subject=${encodeURIComponent('Accesso area coristi')}`;
+// Fuori dalla demo la pagina gira come funzione (astro.config.mjs) e legge l'indirizzo
+const p = DEMO ? undefined : Astro.url.searchParams;
+const errore = p?.get('errore');
+const uscito = p?.has('uscito');
+const entra = DEMO ? link(veste, '/area') : `/area/entra?${new URLSearchParams({ dopo: p?.get('dopo') ?? '/area' })}`;
 ---
 
 <Base veste={veste} titolo="Accedi all'area coristi" area={{ conBarra: false }}>
@@ -22,9 +28,10 @@ const richiesta = `mailto:${coro.email}?subject=${encodeURIComponent('Accesso ar
       <div class="box">
         <span class="eti">Accesso riservato</span>
         <h1>Bentornato nel coro</h1>
-        <p>Riservata ai coristi: entra con il tuo <b>account Google</b>. Si apre solo agli indirizzi presenti nell'elenco dei coristi tenuto dal direttivo.</p>
-        <!-- Nel sito vero: "Accedi con Google" con qualunque account, poi controllo dell'indirizzo sull'elenco dei coristi -->
-        <a class="google" href={link(veste, '/area')}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Accedi con Google</span></a>
+        <p>Riservata ai coristi: entra con il tuo <b>account Google</b>, anche personale. Si apre solo agli indirizzi presenti nell'elenco dei coristi tenuto dal direttivo.</p>
+        {errore && <p class="messaggio-accesso errore" role="alert">{errore}</p>}
+        {uscito && !errore && <p class="messaggio-accesso" role="status">Sei uscito dall'area coristi.</p>}
+        <a class="google" href={entra}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Accedi con Google</span></a>
         <div class="aiuto-accesso">
           <a href={richiesta}><Icona nome="domanda" />Il tuo indirizzo non è nell'elenco? Chiedi al direttivo di aggiungerlo</a>
           <a href="https://support.google.com/accounts/answer/41078" target="_blank" rel="noopener"><Icona nome="lucchetto" />Hai dimenticato la password di Google?</a>
@@ -34,3 +41,8 @@ const richiesta = `mailto:${coro.email}?subject=${encodeURIComponent('Accesso ar
     </div>
   </div>
 </Base>
+
+<style>
+  .messaggio-accesso { padding: 12px 16px; border-radius: var(--raggio); border: 2px solid var(--linea); font-size: 15px; }
+  .messaggio-accesso.errore { border-color: #b3261e; color: #b3261e; }
+</style>

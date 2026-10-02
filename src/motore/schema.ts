@@ -72,6 +72,12 @@ export const schemaCoro = z.object({
     gruppo: z.string(),
   }).optional(),
 
+  // Area coristi (/area): accesso con un account Google qualunque il cui indirizzo fa parte del
+  // gruppo indicato (anche come membro esterno)
+  coristi: z.object({
+    gruppo: z.string(),
+  }).optional(),
+
   foto: z.object({
     apertura: z.string(),
     coro: z.string(),

@@ -84,7 +84,7 @@ const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
             </table>
           </div>
           <div class="cc tenue" style="border-top:1px solid var(--linea);font-size:14px">
-            Tu, {corista.nome}: presente a {mie} prove su {storicoPresenze.length}.{conNota.map((r) => <> {maiuscola(dataGiorno(r.data))}: {r.nota}.</>)}
+            Tu, {Astro.locals.corista?.nome ?? corista.nome}: presente a {mie} prove su {storicoPresenze.length}.{conNota.map((r) => <> {maiuscola(dataGiorno(r.data))}: {r.nota}.</>)}
           </div>
         </article>
       </div>
