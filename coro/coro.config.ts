@@ -113,7 +113,7 @@ export default {
     // Archivo largo, solo per il logo (coro/Logo.astro)
     caratteriLogo: ['Archivo:wdth,wght@125,300;125,900'],
     // Pannello "Prova la grafica" (palette, colori propri, caratteri) per chi guarda il sito
-    pannelloProva: true,
+    pannelloProva: false,
   },
 
   funzioni: {
