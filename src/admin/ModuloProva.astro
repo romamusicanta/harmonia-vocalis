@@ -1,0 +1,61 @@
+---
+// Il modulo di una prova, per crearla (/admin/prove/nuova) o modificarla (/admin/prove/modifica):
+// invia a /admin/prove/salva e torna all'elenco. Convenzione dell'evento in src/admin/prove.ts.
+import { coro } from '../motore/coro';
+import { salaAbituale, type Prova } from './prove';
+
+interface Props { prova?: Prova; data?: string }
+const { prova, data } = Astro.props;
+const r = prova?.righe;
+---
+
+<form class="modulo" id="modulo-prova" style="max-width:820px;margin-top:28px" novalidate>
+  {prova && <input type="hidden" name="id" value={prova.id} />}
+  {prova?.ricorrente && <p class="messaggio">È una data della prova settimanale: le modifiche valgono solo per il {prova.data.split('-').reverse().join('/')}, le altre settimane restano come sono.</p>}
+
+  <h2>Quando e dove</h2>
+  <div class="riga-campi">
+    <div class="campo"><label for="data">Data</label><input id="data" name="data" type="date" required value={prova?.data ?? data} /></div>
+    <div class="campo"><label for="inizio">Inizio</label><input id="inizio" name="inizio" type="time" required value={prova?.inizio ?? '20:00'} /></div>
+    <div class="campo"><label for="fine">Fine</label><input id="fine" name="fine" type="time" required value={prova?.fine ?? '22:00'} /></div>
+  </div>
+  <div class="campo"><label for="titolo">Tipo di prova</label><input id="titolo" name="titolo" list="tipi" placeholder="Prova" value={prova?.titolo ?? 'Prova'} /><span class="aiuto">È il titolo nel calendario dei coristi.</span></div>
+  <datalist id="tipi"><option value="Prova" /><option value="Prova supplementare" /><option value="Prova di sezione" /><option value="Prova generale" /><option value="Prova con orchestra" /></datalist>
+  <div class="campo"><label for="luogo">Luogo</label><input id="luogo" name="luogo" placeholder={salaAbituale()} value={prova?.luogo} /><span class="aiuto">Vuoto = la sala abituale ({coro.prove.nome}).</span></div>
+
+  <h2>Per i coristi</h2>
+  <div class="campo"><label for="sezioni">Sezioni</label><input id="sezioni" name="sezioni" placeholder="Soprani e contralti" value={r?.Sezioni} /><span class="aiuto">Vuoto = tutto il coro.</span></div>
+  <div class="campo"><label for="brani">Brani</label><input id="brani" name="brani" placeholder="Requiem: Lacrimosa, Domine Jesu" value={r?.Brani} /><span class="aiuto">Cosa si prova, se il Maestro l'ha detto.</span></div>
+  <div class="campo"><label for="portare">Portare</label><input id="portare" name="portare" placeholder="Spartito del Requiem, matita" value={r?.Portare} /></div>
+  <div class="campo"><label for="note">Note</label><input id="note" name="note" placeholder="Si inizia puntuali: c'è il pianista" value={r?.Note} /></div>
+  {prova?.altro && <input type="hidden" name="altro" value={prova.altro} />}
+
+  <div class="bottoni" style="margin-top:12px">
+    <button class="btn g" type="submit">{prova ? 'Salva le modifiche' : 'Crea la prova'}</button>
+    <a class="btn o" href="/admin/prove">Annulla</a>
+    {prova && <a class="btn o" href={prova.htmlLink} target="_blank" rel="noopener">Apri nel calendario</a>}
+  </div>
+  <p id="esito" role="status"></p>
+</form>
+
+<script>
+  const modulo = document.getElementById('modulo-prova') as HTMLFormElement;
+  const esito = document.getElementById('esito')!;
+  modulo.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const pulsante = modulo.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    pulsante.disabled = true;
+    esito.className = 'messaggio';
+    esito.textContent = 'Salvo nel calendario…';
+    try {
+      const r = await fetch('/admin/prove/salva', { method: 'POST', body: new FormData(modulo) });
+      const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
+      if (!j.ok) throw new Error(j.errore);
+      location.href = `/admin/prove?salvata=${encodeURIComponent(j.data)}`;
+    } catch (e) {
+      esito.className = 'messaggio errore';
+      esito.textContent = `Non salvata: ${(e as Error).message}`;
+      pulsante.disabled = false;
+    }
+  });
+</script>

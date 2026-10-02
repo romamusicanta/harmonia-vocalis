@@ -154,7 +154,7 @@ const eventiInCache = new Map<string, { elenco: Evento[]; letti: number }>();
 export async function eventi(da: string, a: string): Promise<Evento[]> {
   const chiave = `${da}/${a}`;
   const c = eventiInCache.get(chiave);
-  if (c && Date.now() - c.letti < 5 * 60 * 1000) return c.elenco;
+  if (c && Date.now() - c.letti < 60 * 1000) return c.elenco;
   const [prove, concerti] = await Promise.all([
     eventiDi(CALENDARIO_PROVE_ID!, 'prova', da, a),
     CALENDARIO_CONCERTI_ID ? eventiDi(CALENDARIO_CONCERTI_ID, 'concerto', da, a).catch(() => []) : [],

@@ -1,0 +1,14 @@
+---
+// Nuova prova nel calendario "Prove" (per esempio una supplementare del venerdì)
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import ModuloProva from '../../../admin/ModuloProva.astro';
+
+export const prerender = false;
+const data = Astro.url.searchParams.get('data') ?? undefined;
+---
+
+<LayoutAdmin titolo="Nuova prova" sezione="prove">
+  <h1>Nuova prova</h1>
+  <p class="tenue" style="max-width:62ch">La prova compare subito nel calendario "Prove" dei coristi e, entro qualche minuto, nell'area coristi del sito, dove si possono segnalare le assenze.</p>
+  <ModuloProva data={data} />
+</LayoutAdmin>

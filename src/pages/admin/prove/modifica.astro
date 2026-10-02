@@ -1,0 +1,21 @@
+---
+// Modifica di una prova del calendario "Prove": lo stesso modulo della nuova, riempito dall'evento
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import ModuloProva from '../../../admin/ModuloProva.astro';
+import { leggiProva, type Prova } from '../../../admin/prove';
+
+export const prerender = false;
+let prova: Prova | undefined;
+let errore: string | undefined;
+try {
+  prova = await leggiProva(Astro.locals.sessione!, Astro.url.searchParams.get('id') ?? '');
+} catch (e) {
+  errore = (e as Error).message;
+}
+---
+
+<LayoutAdmin titolo="Modifica prova" sezione="prove">
+  <h1>Modifica prova</h1>
+  {errore && <p class="messaggio errore">Prova non trovata: {errore}</p>}
+  {prova && <ModuloProva prova={prova} />}
+</LayoutAdmin>

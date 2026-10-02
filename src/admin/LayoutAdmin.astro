@@ -12,7 +12,7 @@ import { vesti } from '../vesti';
 
 interface Props {
   titolo: string;
-  sezione?: 'pubblicazione' | 'concerto' | 'foto' | 'assenze';
+  sezione?: 'pubblicazione' | 'concerto' | 'foto' | 'prove' | 'assenze';
 }
 const { titolo, sezione } = Astro.props;
 const veste = coro.aspetto.veste;
@@ -24,6 +24,7 @@ const voci = [
   { id: 'pubblicazione', href: '/admin', testo: 'Pubblicazione e controlli' },
   { id: 'concerto', href: '/admin/concerti/nuovo', testo: 'Nuovo concerto' },
   { id: 'foto', href: '/admin/foto', testo: 'Foto del sito' },
+  { id: 'prove', href: '/admin/prove', testo: 'Prove' },
   { id: 'assenze', href: '/admin/assenze', testo: 'Assenze dei coristi' },
 ];
 ---
