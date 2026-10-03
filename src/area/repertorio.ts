@@ -40,6 +40,15 @@ export interface Pezzo {
 export const sezioniTracce = TRACCE;
 export const nomeCompleto = (p: Pick<Pezzo, 'autore' | 'titolo'>) => [p.autore, p.titolo].filter(Boolean).join(' – ');
 
+// Prove e convocazioni nominano i pezzi con "Autore – Titolo" (il solo titolo non basta: due
+// Magnificat di autori diversi); i nomi scritti prima del 3/10/2026, con il solo titolo, valgono
+// ancora. Si confrontano senza spazi, punteggiatura e accenti ("C.P.E. Bach" = "C. P. E. Bach").
+const confrontabile = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+export function trovaPezzo<T extends Pick<Pezzo, 'autore' | 'titolo'>>(pezzi: T[], nome: string): T | undefined {
+  const n = confrontabile(nome);
+  return pezzi.find((p) => confrontabile(nomeCompleto(p)) === n) ?? pezzi.find((p) => confrontabile(p.titolo) === n);
+}
+
 const aBrani = (v = '') => v.split('\n').map((r) => r.split(' | ')).filter(([, l]) => l).map(([nome, link]) => ({ nome: nome.trim(), link: link.trim() }));
 const daBrani = (b: FileBrano[]) => b.map((x) => `${x.nome} | ${x.link}`).join('\n');
 

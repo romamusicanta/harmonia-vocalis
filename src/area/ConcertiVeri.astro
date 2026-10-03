@@ -8,7 +8,7 @@ import Icona from '../componenti/Icona.astro';
 import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
-import { repertorio, type Pezzo } from './repertorio';
+import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import Errore from './Errore.astro';
 
 let errore: unknown;
@@ -31,7 +31,7 @@ try {
   errore = e;
 }
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
-const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo);
+const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 const percento = (parte: number, totale: number) => `${totale ? Math.round((parte / totale) * 1000) / 10 : 0}%`;
 ---
 

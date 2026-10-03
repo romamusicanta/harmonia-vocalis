@@ -11,7 +11,7 @@ import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nom
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
-import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
+import { nomeCompleto, repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import { comeHtml } from './testo';
@@ -41,7 +41,7 @@ const inStudio = pezzi.filter((p) => p.stato === 'In studio');
 const ultima = regs.find((g) => g.tracce.length || g.link);
 
 const riga = (e: Evento, k: string) => e.righe.find(([x]) => x === k)?.[1];
-const pezzoDi = (t: string) => pezzi.find((p) => p.titolo === t.trim());
+const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const traGiorni = (iso: string) => { const n = Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000); return n === 0 ? 'Oggi' : n === 1 ? 'Domani' : `Tra ${n} giorni`; };
 const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

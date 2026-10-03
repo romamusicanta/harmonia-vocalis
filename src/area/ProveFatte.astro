@@ -7,7 +7,7 @@
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { proveFatte, type GiornoRegistrato } from './registrazioni';
-import { repertorio, type Pezzo } from './repertorio';
+import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import type { Evento } from './dati';
 import Errore from './Errore.astro';
@@ -24,7 +24,7 @@ try {
 }
 const peso = (n?: number) => (n ? (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(n > 100 * 1024 * 1024 ? 0 : 1).replace('.', ',')} MB` : `${Math.round(n / 1024)} KB`) : '');
 const valore = (e: Evento | undefined, k: string) => e?.righe.find(([x]) => x === k)?.[1];
-const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim());
+const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 // Un solo nome per la prova di tutti i giorni
 const nome = (t: string) => (/^prova( settimanale)?$/i.test(t) ? 'Prova' : t);
 const conRegistrazioni = elenco.filter((x) => x.giorno?.tracce.length || x.giorno?.link || valore(x.prova, 'Registrazione')).length;

@@ -2,16 +2,17 @@
 // Scelta dei pezzi del repertorio in un modulo (prova, programma e bis di una convocazione): un campo
 // di ricerca per autore o titolo con l'elenco dei pezzi che corrispondono, e sotto i pezzi scelti,
 // nell'ordine in cui si scelgono, ognuno con "Togli". Al modulo arrivano come tanti campi <nome>
-// con il titolo del pezzo, come le vecchie caselle. I titoli scelti che non sono (più) nel
-// repertorio restano scelti.
-import { nomeCompleto, type Pezzo } from './repertorio';
+// con "Autore – Titolo" (il solo titolo non distingue due Magnificat). I nomi già salvati con il
+// solo titolo si riconoscono (trovaPezzo) e al salvataggio diventano completi; quelli che non sono
+// (più) nel repertorio restano scelti come sono.
+import { nomeCompleto, trovaPezzo, type Pezzo } from './repertorio';
 
 interface Props { nome: string; etichetta: string; pezzi: Pezzo[]; scelti: string[]; aiuto?: string }
 const { nome, etichetta, pezzi, scelti, aiuto } = Astro.props;
 const id = `scelta-${nome}`;
-const voce = (titolo: string) => {
-  const p = pezzi.find((x) => x.titolo === titolo);
-  return { titolo, testo: p ? nomeCompleto(p) : titolo };
+const voce = (nome: string) => {
+  const p = trovaPezzo(pezzi, nome);
+  return { titolo: p ? nomeCompleto(p) : nome, testo: p ? nomeCompleto(p) : nome };
 };
 ---
 
@@ -24,7 +25,7 @@ const voce = (titolo: string) => {
       <div class="cerca-pezzo">
         <input id={id} type="search" role="combobox" aria-expanded="false" aria-controls={`${id}-elenco`} aria-autocomplete="list" autocomplete="off" placeholder="Cerca per autore o titolo…" aria-label={`${etichetta}: cerca un pezzo`} />
         <ul class="risultati" id={`${id}-elenco`} role="listbox" hidden>
-          {pezzi.map((p) => <li role="option" data-titolo={p.titolo} data-testo={nomeCompleto(p)} data-cerca={`${p.autore} ${p.titolo}`.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}><b>{p.titolo}</b>{p.autore && <small>{p.autore}</small>}</li>)}
+          {pezzi.map((p) => <li role="option" data-titolo={nomeCompleto(p)} data-testo={nomeCompleto(p)} data-cerca={`${p.autore} ${p.titolo}`.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}><b>{p.titolo}</b>{p.autore && <small>{p.autore}</small>}</li>)}
           <li class="nessuno" hidden>Nessun pezzo trovato</li>
         </ul>
       </div>

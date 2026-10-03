@@ -7,7 +7,7 @@ import Icona from '../componenti/Icona.astro';
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
 import { aperto, assenze, configurati, coristaDi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
-import { repertorio, type Pezzo } from './repertorio';
+import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import Errore from './Errore.astro';
 import { linkDelSito } from './file';
@@ -42,7 +42,7 @@ const oggiIso = oggi();
 function valore(e: Evento, etichetta: string) { return e.righe.find(([k]) => k === etichetta)?.[1]; }
 // Le righe della prova da mostrare, senza Registrazione (che è un pulsante)
 const righe = (e: Evento) => e.righe.filter(([k]) => k !== 'Registrazione');
-const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim());
+const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 ---
 
 <div class="area-intesta">
