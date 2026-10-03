@@ -79,13 +79,14 @@ export async function proveFatte(): Promise<{ prova?: Evento; giorno?: GiornoReg
 
 // ——— Dai redattori, nel modulo di Modifica della prova (Amministrazione) ———
 
-// Il messaggio per il gruppo WhatsApp dei coristi dopo aver caricato registrazioni di una prova: i
-// link dei file (si ascoltano o si scaricano dal sito) e quello della prova nella pagina Registrazioni
-export function registrazioniPerWhatsapp(prova: { id: string; data: string; titolo: string }, tracce: Pick<Traccia, 'id' | 'titolo'>[], quando: string, sito: string) {
+// Il messaggio per il gruppo WhatsApp dei coristi con le registrazioni di una prova: i link dei file
+// (si ascoltano o si scaricano dal sito) e quello della prova nella pagina Registrazioni. Con nuove,
+// dopo un caricamento ("Nuove registrazioni…"); senza, tutte quelle della prova
+export function registrazioniPerWhatsapp(prova: { id: string; data: string; titolo: string }, tracce: Pick<Traccia, 'id' | 'titolo'>[], quando: string, sito: string, nuove = true) {
   const titolo = /^prova( settimanale)?$/i.test(prova.titolo) ? 'prova' : prova.titolo.toLowerCase();
   const file = tracce.map((t) => `${t.titolo}: ${sito}/area/file/${t.id}`);
   return [
-    `*${tracce.length === 1 ? 'Nuova registrazione' : 'Nuove registrazioni'} della ${titolo} di ${quando}*`,
+    `*${nuove ? (tracce.length === 1 ? 'Nuova registrazione' : 'Nuove registrazioni') : (tracce.length === 1 ? 'Registrazione' : 'Registrazioni')} della ${titolo} di ${quando}*`,
     `Da ascoltare o scaricare:\n${file.join('\n')}`,
     `Tutte le registrazioni della prova: ${sito}/area/registrazioni#p-${prova.id}`,
   ].join('\n\n');
