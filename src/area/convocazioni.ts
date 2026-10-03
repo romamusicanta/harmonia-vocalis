@@ -2,8 +2,7 @@
 // una riga per concerto, legata all'evento del calendario pubblico "Concerti" dal suo ID. Lì stanno
 // solo le informazioni riservate ai coristi: orario di convocazione, prova generale (anche in un
 // altro giorno o luogo), programma della giornata, abito, cosa portare, come arrivare, pezzi del
-// repertorio, note. Le scrivono i redattori (/admin/convocazioni) e il Maestro
-// (/maestro/convocazioni); i coristi le leggono nella pagina Concerti della loro area. La presenza
+// repertorio, note. Le scrivono i redattori (Amministrazione); i coristi le leggono nella pagina Concerti della loro area. La presenza
 // si segna come per le prove, con "Non ci sarò" (scheda Assenze).
 import { adesso, eventi, idScheda, leggiScheda, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
 import { spiegaTesto } from './errori';

@@ -40,7 +40,7 @@ const info = {
 const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
 
 // Sezioni di ogni area
-const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] = {
+const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string; gruppo?: string }[] = {
   coristi: [
     { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
     { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove') },
@@ -49,23 +49,21 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
   ],
   maestro: [
-    { id: 'report', testo: 'Presenze e assenze', icona: 'presenze', href: '/maestro' },
-    { id: 'prove', testo: 'Prove', icona: 'calendario', href: '/maestro/prove' },
-    { id: 'convocazioni', testo: 'Concerti', icona: 'biglietto', href: '/maestro/convocazioni' },
-    { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: '/maestro/repertorio' },
+    { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro' },
+    { id: 'repertorio', testo: 'Note sul repertorio', icona: 'libro', href: '/maestro/repertorio' },
     { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi' },
   ],
   admin: [
-    { id: 'pubblicazione', testo: 'Pubblicazione', href: '/admin' },
-    { id: 'concerto', testo: 'Nuovo concerto', href: '/admin/concerti/nuovo' },
+    // Due gruppi: quello che cambia il sito pubblico (va pubblicato) e quello dell'area coristi (vale subito)
+    { id: 'pubblicazione', testo: 'Pubblicazione', href: '/admin', gruppo: 'Sito pubblico' },
+    { id: 'concerti', testo: 'Concerti', href: '/admin/concerti' },
     { id: 'foto', testo: 'Foto del sito', href: '/admin/foto' },
-    { id: 'prove', testo: 'Prove', href: '/admin/prove' },
+    { id: 'prove', testo: 'Prove', href: '/admin/prove', gruppo: 'Coro' },
     { id: 'assenze', testo: 'Assenze', href: '/admin/assenze' },
-    { id: 'convocazioni', testo: 'Convocazioni', href: '/admin/convocazioni' },
     { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
     { id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' },
   ],
-}[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string }[];
+}[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string; gruppo?: string }[];
 ---
 
 <div class:list={['servizio area-s', { 'con-menu': conBarra }]}>
@@ -103,7 +101,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
         )}
         <div class="extra in-testa"><a class="btn o" href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></div>
         <div class="voci-area">
-          {sezioni.map((s) => <a class:list={['voce', { on: s.id === sezione }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a>)}
+          {sezioni.map((s) => <>{s.gruppo && <span class="eti gruppo-menu">{s.gruppo}</span>}<a class:list={['voce', { on: s.id === sezione }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a></>)}
         </div>
       </div>
     </div>
@@ -122,7 +120,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
 {conBarra && (
   <nav class="barra-area" aria-label={nomeArea}>
     <div class="w">
-      {sezioni.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}>{s.icona && <Icona nome={s.icona} />}{s.testo}</a>)}
+      {sezioni.map((s) => <>{s.gruppo && <span class="gruppo-barra" aria-hidden="true">{s.gruppo}</span>}<a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}>{s.icona && <Icona nome={s.icona} />}{s.testo}</a></>)}
     </div>
   </nav>
 )}

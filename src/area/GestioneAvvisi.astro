@@ -10,8 +10,9 @@ import { comeHtml } from './testo';
 import { parti } from '../motore/concerti';
 import Errore from './Errore.astro';
 
-interface Props { email: string }
-const { email } = Astro.props;
+interface Props { email: string; firma?: string }
+// firma: il ruolo proposto per primo (nell'area del Maestro, "maestro")
+const { email, firma } = Astro.props;
 const q = Astro.url.searchParams;
 
 let errore: unknown;
@@ -54,7 +55,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
       <div class="riga-campi">
         <label>Firma
           <select name="firma">
-            {suoi.map((r) => <option value={r.id} selected={(inModifica?.ruolo?.id ?? suoi[0].id) === r.id}>{r.firma}</option>)}
+            {suoi.map((r) => <option value={r.id} selected={(inModifica?.ruolo?.id ?? (suoi.some((x) => x.id === firma) ? firma : suoi[0].id)) === r.id}>{r.firma}</option>)}
           </select>
         </label>
         <label>Resta in bacheca fino al <small>(facoltativo)</small><input type="date" name="fino" value={valore('fino', inModifica?.finoAl)} /></label>

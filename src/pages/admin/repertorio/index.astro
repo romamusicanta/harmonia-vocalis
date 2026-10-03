@@ -10,6 +10,6 @@ if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(As
 
 <LayoutAdmin titolo="Repertorio" sezione="repertorio">
   <h1>Repertorio</h1>
-  <p class="tenue" style="max-width:64ch">I pezzi che i coristi trovano nella pagina Repertorio della loro area: spartito e brani (caricati su Drive, cartella Spartiti), tracce di studio per sezione, esecuzione di riferimento e note del Maestro. Lo stesso elenco lo gestisce il Maestro dalla sua area.</p>
+  <p class="tenue" style="max-width:64ch">I pezzi che i coristi trovano nella pagina Repertorio della loro area: spartito e brani (caricati su Drive, cartella Spartiti), tracce di studio per sezione, esecuzione di riferimento e note del Maestro. Il Maestro dalla sua area scrive solo le note sull'esecuzione.</p>
   <GestioneRepertorio base="/admin" />
 </LayoutAdmin>

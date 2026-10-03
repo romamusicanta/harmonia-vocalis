@@ -476,6 +476,12 @@ a.sc:hover { box-shadow: var(--ombra); }
 .barra-area a:first-child { padding-left: 0; }
 .barra-area a:hover { color: #fff; }
 .barra-area a.on { color: #fff; border-color: var(--accento); }
+/* Gruppi della barra (Amministrazione: "Sito pubblico", "Coro") */
+.barra-area .gruppo-barra { align-self: center; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--primario-chiaro); opacity: .7; padding: 0 2px 0 14px; white-space: nowrap; }
+.barra-area .gruppo-barra:first-child { padding-left: 0; }
+.barra-area .gruppo-barra + a { padding-left: 8px; }
+.barra-area .gruppo-barra:not(:first-child) { margin-left: 10px; border-left: 1px solid color-mix(in srgb, #fff 25%, transparent); }
+.menu-mobile .gruppo-menu { margin-top: 18px; }
 
 .area-intesta { padding: 48px 0 32px; }
 /* Messaggi dei moduli delle aree riservate (esito di un salvataggio, errori) */

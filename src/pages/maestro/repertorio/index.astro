@@ -1,24 +1,63 @@
 ---
-// Area del Maestro: il repertorio dell'area coristi (src/area/repertorio.ts), come nell'Amministrazione
+// Area del Maestro: le sue note sull'esecuzione di ogni pezzo del repertorio, l'unica cosa che
+// scrive qui (spartiti, brani e tracce li caricano i redattori). Le note compaiono ai coristi nella
+// pagina Repertorio.
 import Base from '../../../layouts/Base.astro';
-import GestioneRepertorio from '../../../area/GestioneRepertorio.astro';
-import { dopoIlModulo } from '../../../area/repertorio';
+import Errore from '../../../area/Errore.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { nomeCompleto, repertorio, salvaNote, type Pezzo } from '../../../area/repertorio';
+import { spiegaTesto } from '../../../area/errori';
 import { vesteCorrente } from '../../../motore/url';
 
 export const prerender = false;
 const veste = vesteCorrente(undefined);
-if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, Astro.locals.corista!.email, '/maestro/repertorio'));
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const r = await salvaNote(f, Astro.locals.corista!.email).catch((e) => ({ ok: false, messaggio: `Note non salvate. ${spiegaTesto(e)}` }));
+  return Astro.redirect(`/maestro/repertorio?${new URLSearchParams({ ok: r.ok ? '1' : '0', esito: r.messaggio })}#p-${f.get('id')}`);
+}
+const q = Astro.url.searchParams;
+let errore: unknown;
+let elenco: Pezzo[] = [];
+try { elenco = await repertorio(); } catch (e) { errore = e; }
 ---
 
-<Base veste={veste} titolo="Repertorio · Area del Maestro" area={{ maestro: true, sezione: 'repertorio' }}>
+<Base veste={veste} titolo="Note sul repertorio · Area del Maestro" area={{ maestro: true, sezione: 'repertorio' }}>
   <div class="area-intesta">
     <div class="w">
       <div>
         <span class="eti" style="margin-bottom:12px">Area del Maestro</span>
-        <h1>Repertorio</h1>
-        <p>Quello che inserisci qui i coristi lo trovano nella pagina Repertorio della loro area: spartito e brani, tracce per sezione, esecuzione di riferimento e le tue note.</p>
+        <h1>Note sul repertorio</h1>
+        <p>Le sue indicazioni sull'esecuzione di ogni pezzo: i coristi le trovano nella pagina Repertorio, accanto a spartito e tracce. Il resto lo inseriscono i redattori.</p>
       </div>
     </div>
   </div>
-  <div class="area-main"><div class="w" style="max-width:960px"><GestioneRepertorio base="/maestro" /></div></div>
+  <div class="area-main">
+    <div class="w" style="max-width:860px">
+      {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} role="status">{q.get('esito')}</p>}
+      {errore && <Errore e={errore} />}
+      {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio è ancora vuoto: i pezzi li aggiungono i redattori.</p>}
+      <div class="note-pezzi">
+        {elenco.map((p) => (
+          <form method="post" class="carta" id={`p-${p.id}`}>
+            <div class="ct"><h2>{nomeCompleto(p)}</h2><span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span></div>
+            <div class="cc">
+              <input type="hidden" name="id" value={p.id} />
+              <label for={`note-${p.id}`}>Note sull'esecuzione</label>
+              <textarea id={`note-${p.id}`} name="note" rows="5" maxlength="4000" placeholder="Tempi, respiri, attacchi, pronuncia… Una riga vuota separa i paragrafi.">{p.note}</textarea>
+              <button class="btn" type="submit"><Icona nome="spunta" />Salva le note</button>
+            </div>
+          </form>
+        ))}
+      </div>
+    </div>
+  </div>
 </Base>
+
+<style>
+  .note-pezzi { display: grid; gap: 20px; }
+  .note-pezzi .cc { display: grid; gap: 10px; }
+  .note-pezzi label { font-weight: 700; font-size: 14px; color: var(--primario); }
+  .note-pezzi textarea { font: inherit; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .note-pezzi button { justify-self: start; }
+</style>

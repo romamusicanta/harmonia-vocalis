@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const allegati = await caricaImmagini(s, f, cartella);
     if ('errore' in allegati) return json({ ok: false, errore: allegati.errore }, 400);
     const evento = await creaEvento(s, { ...corpoEvento(d), attachments: allegati.nuovi });
-    return json({ ok: true, evento: evento.htmlLink, cartella: `https://drive.google.com/drive/folders/${cartella}` });
+    return json({ ok: true, id: evento.id, evento: evento.htmlLink, cartella: `https://drive.google.com/drive/folders/${cartella}` });
   } catch (e) {
     return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }

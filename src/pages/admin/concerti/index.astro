@@ -1,0 +1,97 @@
+---
+// Concerti: l'elenco del calendario "Concerti" (in programma e passati) con, per ognuno, Modifica,
+// Convocazione (le informazioni per i coristi, /admin/convocazioni), In home, il link al calendario e
+// alla pagina sul sito, e i problemi che la build troverebbe adesso (src/admin/controllo.ts). In
+// testa "Nuovo concerto". La pubblicazione sta nella pagina Pubblicazione.
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import Errore from '../../../area/Errore.astro';
+import { controllaConcerti, type Riga } from '../../../admin/controllo';
+import { slug } from '../../../motore/calendario';
+import type { Concerto } from '../../../motore/tipi';
+
+export const prerender = false;
+let righe: Riga[] = [];
+let erroreCalendario: unknown;
+try {
+  righe = await controllaConcerti(Astro.locals.sessione!);
+} catch (err) {
+  erroreCalendario = err;
+}
+const futuri = righe.filter((r) => r.futuro);
+const passati = righe.filter((r) => !r.futuro).reverse();
+const conAvvisi = righe.filter((r) => r.avvisi.length).length;
+const daPubblicare = righe.filter((r) => r.daPubblicare).length;
+const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${c.data.slice(0, 10)}T12:00:00`));
+---
+
+<LayoutAdmin titolo="Concerti" sezione="concerti">
+  <h1>Concerti</h1>
+  <p class="tenue" style="max-width:64ch">I concerti del calendario "Concerti". Le modifiche compaiono sul sito pubblico dopo la pubblicazione; la convocazione è per i coristi e vale subito.</p>
+  <p style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px"><a class="btn g" href="/admin/concerti/nuovo">+ Nuovo concerto</a>{daPubblicare > 0 && <a class="btn o" href="/admin">{daPubblicare === 1 ? '1 da pubblicare' : `${daPubblicare} da pubblicare`}: vai a Pubblicazione</a>}</p>
+  <p id="esito" role="status" hidden></p>
+
+  {erroreCalendario
+    ? <Errore e={erroreCalendario} />
+    : <p class="tenue" style="margin-top:16px">{righe.length === 1 ? '1 evento' : `${righe.length} eventi`} nel calendario "Concerti". {conAvvisi ? `${conAvvisi} con qualcosa da sistemare: apri l'evento nel calendario, correggi e poi pubblica.` : 'Nessun problema trovato.'}</p>}
+
+  {[{ titolo: 'In programma', elenco: futuri }, { titolo: 'Passati', elenco: passati }].map(({ titolo, elenco }) => elenco.length > 0 && (
+    <>
+      <h2 style="font-size:20px">{titolo}</h2>
+      <div style="display:grid;gap:10px">
+        {elenco.map(({ e, c, avvisi, daPubblicare, futuro }) => (
+          <div class="scheda-admin" style={`padding:16px 18px;${avvisi.length ? 'border-left:4px solid #b3261e' : ''}`}>
+            <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between">
+              <div><b style="color:var(--primario)">{dataBreve(c)}</b> · {[c.autore, c.titolo].filter(Boolean).join(', ')}{c.luogo && <span class="tenue"> · {c.luogo}</span>}</div>
+              <div style="display:flex;gap:14px;font-size:14px;flex-wrap:wrap">
+                {daPubblicare && <span class="tag">Da pubblicare</span>}
+                <label class="in-home" title="Mostra il concerto tra le schede della home page"><input type="checkbox" data-evento={e.id} checked={c.home ?? futuro} /> In home</label>
+                <a href={`/admin/concerti/modifica?id=${encodeURIComponent(e.id)}`} style="text-decoration:underline;font-weight:700">Modifica</a>
+                {futuro && <a href={`/admin/convocazioni?modifica=${encodeURIComponent(e.id)}#modulo`} style="text-decoration:underline;font-weight:700">Convocazione</a>}
+                <a href={e.htmlLink} target="_blank" rel="noopener" style="text-decoration:underline">Apri nel calendario</a>
+                {!daPubblicare && <a href={`/concerti/${slug(c)}`} target="_blank" rel="noopener" style="text-decoration:underline">Pagina sul sito</a>}
+              </div>
+            </div>
+            {avvisi.length > 0 && <ul style="margin:10px 0 0 18px;color:#b3261e;font-size:15px">{avvisi.map((a) => <li>{a}</li>)}</ul>}
+            {!(e.attachments ?? []).some((a) => /locandina/i.test(a.title)) && !c.locandina && <p class="tenue" style="font-size:14px;margin-top:6px">Senza locandina: il sito ne genera una con i dati dell'evento.</p>}
+          </div>
+        ))}
+      </div>
+    </>
+  ))}
+
+  <style>
+    .in-home { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primario); cursor: pointer; }
+    .in-home input { width: 18px; height: 18px; accent-color: var(--primario); }
+  </style>
+
+  <script>
+    const esito = document.getElementById('esito')!;
+    function messaggio(testo: string, classe: string) {
+      esito.hidden = false;
+      esito.className = `messaggio ${classe}`;
+      esito.textContent = testo;
+    }
+    // Casella "In home": si salva subito nell'evento del calendario
+    for (const casella of document.querySelectorAll<HTMLInputElement>('.in-home input')) {
+      casella.addEventListener('change', async () => {
+        casella.disabled = true;
+        const dati = new FormData();
+        dati.set('evento', casella.dataset.evento!);
+        dati.set('home', casella.checked ? '1' : '0');
+        try {
+          const r = await fetch('/admin/concerti/home', { method: 'POST', body: dati });
+          const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
+          if (!j.ok) throw new Error(j.errore);
+          const scheda = casella.closest('.scheda-admin')!;
+          if (!scheda.querySelector('.tag')) casella.closest('label')!.insertAdjacentHTML('beforebegin', '<span class="tag">Da pubblicare</span>');
+        } catch (e) {
+          casella.checked = !casella.checked;
+          messaggio(`Non salvato: ${(e as Error).message}`, 'errore');
+        } finally {
+          casella.disabled = false;
+        }
+      });
+    }
+
+  </script>
+</LayoutAdmin>

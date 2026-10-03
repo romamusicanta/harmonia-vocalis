@@ -122,6 +122,15 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
   return { ok: true, messaggio: esistente ? 'Pezzo aggiornato.' : 'Pezzo aggiunto al repertorio: ora carica lo spartito e i brani qui sotto.', id: pezzo.id };
 }
 
+// Il Maestro scrive solo le sue note sull'esecuzione di un pezzo (/maestro/repertorio)
+export async function salvaNote(f: FormData, email: string): Promise<{ ok: boolean; messaggio: string }> {
+  const pezzo = (await repertorio()).find((p) => p.id === String(f.get('id') ?? ''));
+  if (!pezzo) return { ok: false, messaggio: 'Pezzo non trovato: ricarica la pagina.' };
+  const note = String(f.get('note') ?? '').replace(/\r\n/g, '\n').trim().slice(0, 4000);
+  await scrivi({ ...pezzo, note }, pezzo.riga, email);
+  return { ok: true, messaggio: `Note su «${nomeCompleto(pezzo)}» salvate.` };
+}
+
 // Per le pagine: esegue l'azione e restituisce dove tornare
 export async function dopoIlModulo(request: Request, email: string, percorso: string) {
   const f = await request.formData();

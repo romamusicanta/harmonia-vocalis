@@ -4,9 +4,8 @@
 // titolo = tipo di prova; luogo vuoto = sala abituale; descrizione con righe "Sezioni:",
 // "Brani:", "Portare:", "Note:". La prova settimanale è un evento ricorrente: qui si modifica o si
 // cancella una data alla volta (le altre restano come sono).
-// Scrive chi è entrato nell'Amministrazione (con il suo accesso a Google) oppure, per il Maestro
-// dalla sua area, l'account di servizio ('servizio'), che sul calendario Prove può modificare gli
-// eventi. Righe in più dal 3/10/2026: "Repertorio:" (i titoli dei pezzi, separati da " · ", che
+// Scrive chi è entrato nell'Amministrazione, con il suo accesso a Google ('servizio', l'account di
+// servizio, sul calendario Prove può solo leggere). Righe in più dal 3/10/2026: "Repertorio:" (i titoli dei pezzi, separati da " · ", che
 // l'area coristi collega alla pagina Repertorio) e "Registrazione:" (link).
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
