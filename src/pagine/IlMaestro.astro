@@ -1,5 +1,6 @@
 ---
-// Pagina "Il Maestro": presentazione, biografia, lavori, un video "sul podio".
+// Pagina "Il Maestro": presentazione con i ruoli, indice delle sottosezioni, biografia dal curriculum
+// (un capitolo per ogni "## titolo" di coro/testi/maestro.md), repertorio, critica con un video, lavori.
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Foto from '../componenti/Foto.astro';
@@ -16,10 +17,28 @@ const { veste } = Astro.props;
 const { en, l, lingua, coro } = contesto(Astro.url, veste);
 
 type Lavoro = { anno: string | number; autore?: string; titolo: string; nota?: string; video?: string };
-const { dati, Contenuto } = testo<{ titolo?: string; etichetta?: string; attacco?: string; titoloLavori?: string; lavori?: Lavoro[] }>('maestro', lingua);
+type Repertorio = { genere: string; voci?: { autore: string; opere: string }[]; elenco?: string };
+type Dati = {
+  titolo?: string; etichetta?: string; attacco?: string; ruoli?: string[];
+  titoloLavori?: string; lavori?: Lavoro[];
+  repertorio?: Repertorio[]; critica?: { opera: string; testo: string }[];
+  testimonianza?: { titolo: string; video: string };
+};
+const { dati, Contenuto, titoli } = testo<Dati>('maestro', lingua);
 const m = coro.maestro;
 const nome = (dati.titolo ?? m.nome).replace(/\.$/, '');
 const lavori = dati.lavori ?? [];
+const repertorio = dati.repertorio ?? [];
+const critica = dati.critica ?? [];
+const testimonianza = dati.testimonianza && { id: dati.testimonianza.video, titolo: dati.testimonianza.titolo, pubblicato: '' };
+
+// Indice: i capitoli del testo, poi le sezioni impaginate a parte
+const indice = [
+  ...titoli.map((t) => ({ href: `#${t.slug}`, testo: t.text })),
+  ...(repertorio.length ? [{ href: '#repertorio', testo: en ? 'Repertoire' : 'Repertorio' }] : []),
+  ...(critica.length ? [{ href: '#critica', testo: en ? 'Reviews' : 'La critica' }] : []),
+  ...(lavori.length ? [{ href: '#lavori', testo: dati.titoloLavori ?? (en ? 'Arrangements and editions' : 'Arrangiamenti e revisioni') }] : []),
+];
 
 // "Livia Serafini" → "L. Serafini"
 const parole = m.nome.split(/\s+/);
@@ -38,6 +57,7 @@ const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(
         <span class="eti">{dati.etichetta ?? (en ? 'The conductor of the choir' : 'Il Maestro del coro')}</span>
         <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{nome}<span>.</span></h1>
         <p>{m.presentazione}</p>
+        {dati.ruoli && <ul class="ruoli" aria-label={en ? 'Roles' : 'Ruoli'}>{dati.ruoli.map((r) => <li>{r}</li>)}</ul>}
       </div>
       <div class="blocco-foto" style="min-height:520px">
         <Foto nome={m.foto} alt={en ? `Maestro ${m.nome}` : `Il M° ${m.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="object-position:center 20%;mix-blend-mode:normal;opacity:1" />
@@ -52,31 +72,15 @@ const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(
     <div class="w">
       <div class="due-col">
         {/* Dati: coro/testi/maestro.md (attacco, corpo, lavori) */}
-        <div class="testo-lungo">
+        <div class="testo-lungo maestro-testo">
           {dati.attacco && <p class="apertura-testo">{dati.attacco}</p>}
-          <Contenuto />
-
-          {lavori.length > 0 && (
-            <>
-              <h3>{dati.titoloLavori ?? (en ? 'Arrangements and editions' : 'Arrangiamenti e revisioni')}</h3>
-              <div style="border-top:3px solid var(--primario)">
-                {lavori.map((lv) => (
-                  <div class="riga" style="grid-template-columns:80px minmax(0,1fr)">
-                    <span class="quando anno">{lv.anno}</span>
-                    <div class="cosa">
-                      {lv.autore && <span class="aut">{lv.autore}</span>}
-                      <b>{lv.titolo}</b>
-                      {(lv.nota || lv.video) && (
-                        <span class="tenue" style="font-size:15px">
-                          {lv.nota}{lv.nota && lv.video && ' · '}{lv.video && coro.funzioni.ascolta && <a href={l(`/ascolta#${lv.video}`)} style="text-decoration:underline">{en ? 'listen' : 'ascolta'}</a>}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+          {indice.length > 0 && (
+            <nav class="indice" aria-label={en ? 'On this page' : 'In questa pagina'}>
+              <span class="eti">{en ? 'On this page' : 'In questa pagina'}</span>
+              <ul>{indice.map((v) => <li><a href={v.href}>{v.testo}</a></li>)}</ul>
+            </nav>
           )}
+          <Contenuto />
         </div>
 
         <aside class="appiccicoso">
@@ -100,4 +104,108 @@ const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(
       </div>
     </div>
   </section>
+
+  {/* Dati: coro/testi/maestro.md → repertorio */}
+  {repertorio.length > 0 && (
+    <section id="repertorio" class="sezione-maestro" style="background:var(--bianco);border-top:1px solid var(--linea);border-bottom:1px solid var(--linea)">
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Repertoire' : 'Repertorio'}</h2></div>
+        <div class="repertorio">
+          {repertorio.map((g) => (
+            <div class="genere">
+              <span class="eti">{g.genere}</span>
+              {g.voci && (
+                <dl>
+                  {g.voci.map((v) => <div><dt>{v.autore}</dt><dd>{v.opere}</dd></div>)}
+                </dl>
+              )}
+              {g.elenco && <p>{g.elenco}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* Dati: coro/testi/maestro.md → critica, testimonianza */}
+  {critica.length > 0 && (
+    <section id="critica" class="sezione-maestro">
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Reviews' : 'La critica'}</h2>{<p>{en ? 'Excerpts from reviews of his concerts and operas, collected in his CV.' : 'Dalle recensioni di concerti e opere, raccolte nel suo curriculum.'}</p>}</div>
+        <div class="critica">
+          {testimonianza && (
+            <div class="testimonianza">
+              <span class="eti" style="margin-bottom:14px">{en ? 'Listen' : 'Ascolta'}</span>
+              <Video video={testimonianza} piccolo sottotitolo={`${en ? 'Cond.' : 'Dir.'} ${nomeBreve}`} />
+              <NotaVideo breve />
+            </div>
+          )}
+          {critica.map((c) => (
+            <figure class="citazione">
+              <blockquote><p>{c.testo}</p></blockquote>
+              <figcaption>{c.opera}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* Dati: coro/testi/maestro.md → lavori */}
+  {lavori.length > 0 && (
+    <section id="lavori" class="sezione-maestro" style="padding-top:0">
+      <div class="w">
+        <div class="testa"><h2>{dati.titoloLavori ?? (en ? 'Arrangements and editions' : 'Arrangiamenti e revisioni')}</h2></div>
+        <div class="lavori">
+          {lavori.map((lv) => (
+            <div class="riga" style="grid-template-columns:80px minmax(0,1fr)">
+              <span class="quando anno">{lv.anno}</span>
+              <div class="cosa">
+                {lv.autore && <span class="aut">{lv.autore}</span>}
+                <b>{lv.titolo}</b>
+                {(lv.nota || lv.video) && (
+                  <span class="tenue" style="font-size:15px">
+                    {lv.nota}{lv.nota && lv.video && ' · '}{lv.video && coro.funzioni.ascolta && <a href={l(`/ascolta#${lv.video}`)} style="text-decoration:underline">{en ? 'listen' : 'ascolta'}</a>}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
 </Base>
+
+<style>
+  .ruoli { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .ruoli li { padding: 6px 12px; background: var(--fondo); border: 1px solid var(--linea); border-radius: var(--raggio); font-size: 14px; font-weight: 600; color: var(--primario); }
+  .indice { margin: 8px 0 40px; padding: 20px 22px; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); }
+  .indice .eti { margin-bottom: 10px; }
+  .indice ul { list-style: none; margin: 0; padding: 0; columns: 2 220px; column-gap: 28px; }
+  .indice li { break-inside: avoid; padding: 4px 0; }
+  .indice a { font-weight: 600; color: var(--primario); text-decoration: underline; text-decoration-color: var(--accento); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .maestro-testo :global(h2) { scroll-margin-top: 110px; padding-top: 24px; border-top: 3px solid var(--primario); }
+  .sezione-maestro { scroll-margin-top: 80px; }
+  .repertorio { display: grid; gap: 40px 56px; align-items: start; }
+  /* L'opera, la più lunga, a sinistra su due colonne; gli altri generi uno sotto l'altro a destra */
+  @media (min-width: 900px) {
+    .repertorio { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    .repertorio .genere:first-child { grid-row: span 9; }
+    .repertorio .genere:first-child dl { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+  }
+  .repertorio .eti { margin-bottom: 14px; }
+  .repertorio dl { margin: 0; }
+  .repertorio dl > div { padding: 12px 0; border-bottom: 1px solid var(--linea); }
+  .repertorio dt { font-family: var(--f-titoli); font-weight: var(--peso-titoli); color: var(--primario); font-size: 17px; }
+  .repertorio dd { margin: 2px 0 0; color: var(--tenue); font-style: italic; font-size: 16px; }
+  .repertorio p { color: var(--tenue); font-size: 16px; line-height: 1.7; }
+  .critica { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
+  .citazione { margin: 0; padding: 24px; background: var(--bianco); border: 1px solid var(--linea); border-left: 4px solid var(--accento); }
+  .citazione blockquote { margin: 0; }
+  .citazione p { font-size: 17px; line-height: 1.55; }
+  .citazione p::before { content: '«'; } .citazione p::after { content: '»'; }
+  :global(html[lang='en']) .citazione p::before { content: '“'; } :global(html[lang='en']) .citazione p::after { content: '”'; }
+  .citazione figcaption { margin-top: 12px; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); }
+  .lavori { max-width: 760px; }
+</style>

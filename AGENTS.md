@@ -21,7 +21,7 @@ Il sito è nato il 30/09/2026 come copia del modello Dimora Choir (`~/projects/d
   - `Logo.astro` — logo 3 "Diapason orizzontale" in SVG, disegnato con `currentColor` e il punto in `var(--accento)`. Il carattere Archivo largo è in `aspetto.caratteriLogo`.
   - `concerti.ts` — archivio storico curato a mano (con gli ID dei video YouTube) e prossimi di riserva, usati solo se il calendario non c'è o non risponde.
   - `video.ts` — ID del canale, video in evidenza, istantanea di riserva con l'autore per il raggruppamento.
-  - `testi/*.md` — storia, Maestro, canta con noi, organizzatori, privacy.
+  - `testi/*.md` — storia, Maestro, canta con noi, organizzatori, privacy. La pagina del Maestro (`src/pagine/IlMaestro.astro`, dal 3/10/2026) viene dal suo curriculum 2023: ruoli, introduzione, un capitolo per ogni `## titolo` del corpo di `maestro.md` (con l'indice in testa, da `testo().titoli`), poi repertorio, critica (con il video "testimonianza") e arrangiamenti dall'intestazione. Contatti personali del curriculum (telefono, email) non pubblicati.
   - `immagini/` — foto, con i crediti in `CREDITI.md`. Le foto generali del sito (apertura, coro, prove, maestro, accesso) si cambiano su Drive nella cartella `Sito/Foto` (vedi sotto): quelle di `coro.config.ts` restano di riserva.
 - **Dati letti in fase di build**:
   - **Video**: feed RSS del canale `@romamusicanta`.

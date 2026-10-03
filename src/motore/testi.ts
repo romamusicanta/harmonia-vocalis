@@ -9,5 +9,6 @@ const testi = import.meta.glob<MarkdownInstance<Record<string, any>>>('/coro/tes
 export function testo<T extends Record<string, any> = Record<string, any>>(nome: string, lingua: Lingua = 'it') {
   const t = (lingua === 'en' && testi[`/coro/testi/en/${nome}.md`]) || testi[`/coro/testi/${nome}.md`];
   if (!t) throw new Error(`Testo non trovato: coro/testi/${nome}.md`);
-  return { dati: t.frontmatter as T, Contenuto: t.Content };
+  // titoli: le sottosezioni del corpo ("## titolo"), con l'identificativo per i link
+  return { dati: t.frontmatter as T, Contenuto: t.Content, titoli: t.getHeadings().filter((h) => h.depth === 2) };
 }
