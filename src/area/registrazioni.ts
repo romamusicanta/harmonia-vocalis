@@ -87,3 +87,37 @@ export async function togli(id: string, email: string) {
   if (normalizza(f.appProperties?.caricatoDa ?? '') !== normalizza(email)) throw new Error('Puoi togliere solo le registrazioni che hai caricato tu.');
   await cestina(id);
 }
+
+// ——— Dai redattori, nel modulo di Modifica della prova (Amministrazione) ———
+
+// I file registrati di una prova: nella cartella della sua data, quelli legati a quella prova
+export async function fileDellaProva(e: Pick<Evento, 'id' | 'data'>): Promise<Traccia[]> {
+  if (!configurato()) return [];
+  const elenco = await coristi().catch(() => []);
+  const cartelle = (await fileIn(DRIVE_CARTELLA_REGISTRAZIONI!, true)).filter((c) => c.name.startsWith(e.data));
+  const file = (await Promise.all(cartelle.map((c) => fileIn(c.id)))).flat().filter((f) => f.mimeType !== 'application/vnd.google-apps.folder' && (!f.appProperties?.evento || f.appProperties.evento === e.id));
+  return file.map((f) => {
+    const email = f.appProperties?.caricatoDa ?? '';
+    const c = elenco.find((x) => x.email === normalizza(email));
+    return { id: f.id, titolo: f.appProperties?.titolo || senzaEstensione(f.name), caricatoDa: email, chi: c ? nomeBreve(c) : email, sezione: c?.sezione, link: linkFile(f.id), dimensione: f.size ? Number(f.size) : undefined, tipo: f.mimeType };
+  });
+}
+
+// Caricamento dai redattori (/admin/prove/registrazione): qualunque prova già fatta
+export const rispondiFileRedattore = (request: Request, email: string) => rispondiCaricamento(request, async (d) => {
+  if (!configurato()) throw new Error('manca la variabile DRIVE_CARTELLA_REGISTRAZIONI sul server');
+  if (!/^(audio|video)\//.test(String(d.tipo)) && !/\.(m4a|mp3|wav|aac|ogg|opus|amr|3gp|mp4|mov|webm|flac)$/i.test(d.nome)) throw new Error(`«${d.nome}» non sembra una registrazione audio o video.`);
+  const prova = (await eventi(piuGiorni(oggi(), -400), oggi())).find((e) => e.tipo === 'prova' && e.id === String(d.evento));
+  if (!prova) throw new Error('Prova non trovata nel calendario (le registrazioni si caricano per le prove già fatte).');
+  const cartella = await cartellaIn(DRIVE_CARTELLA_REGISTRAZIONI!, `${prova.data} ${prova.titolo}`);
+  const titolo = String(d.titolo ?? '').trim().slice(0, 120);
+  return { cartella, nome: d.nome, appProperties: { caricatoDa: email, evento: prova.id, ...(titolo ? { titolo } : {}) } };
+});
+
+// I redattori tolgono qualunque registrazione (purché stia nella cartella Registrazioni prove)
+export async function togliComeRedattore(id: string) {
+  const f = await leggiFile(id);
+  const cartella = f.parents?.[0] && (await leggiFile(f.parents[0]));
+  if (!cartella?.parents?.includes(DRIVE_CARTELLA_REGISTRAZIONI!)) throw new Error('Non è una registrazione delle prove.');
+  await cestina(id);
+}
