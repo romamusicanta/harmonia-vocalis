@@ -66,8 +66,8 @@ export default {
     { valore: '26', testo: 'Concerti in archivio dal 2019 a oggi' },
   ],
   associatoA: [
-    { nome: 'ARCL Lazio', descrizione: 'Associazione Regionale Cori del Lazio APS: la rete dei cori della regione.' },
-    { nome: 'Feniarco', descrizione: 'Federazione Nazionale Italiana delle Associazioni Regionali Corali.' },
+    { nome: 'ARCL Lazio', url: 'https://www.lazioincoro.it/', descrizione: 'Associazione Regionale Cori del Lazio APS: la rete dei cori della regione.' },
+    { nome: 'Feniarco', url: 'https://www.italiacori.it/coro-harmonia-vocalis-roma', descrizione: 'Federazione Nazionale Italiana delle Associazioni Regionali Corali.' },
   ],
 
   stagione: {

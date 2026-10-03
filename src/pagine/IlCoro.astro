@@ -100,7 +100,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
             <div class="riquadro bordo" style={`display:flex;gap:20px;align-items:flex-start${i > 0 ? ';margin-top:0' : ''}`}>
               <span class="icona-q g"><Icona nome={iconeAssociazioni[i % iconeAssociazioni.length]} classe="" /></span>
               <div>
-                <h3>{a.url ? <a href={a.url} rel="noopener">{a.nome}</a> : a.nome}</h3>
+                <h3>{a.url ? <a href={a.url} target="_blank" rel="noopener" style="text-decoration:underline;text-decoration-color:var(--accento);text-underline-offset:4px">{a.nome}</a> : a.nome}</h3>
                 <p class="tenue">{a.descrizione}</p>
               </div>
             </div>
