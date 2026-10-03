@@ -57,7 +57,7 @@ export default {
     { sezione: 'Soprani', voci: 11 },
     { sezione: 'Contralti', voci: 12 },
     { sezione: 'Tenori', voci: 10 },
-    { sezione: 'Baritoni e bassi', voci: 11 },
+    { sezione: 'Bassi', voci: 11 },
   ],
   numeri: [
     { valore: '2019', testo: 'Anno di nascita, con la Missa in Angustiis di Haydn' },

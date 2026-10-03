@@ -17,7 +17,7 @@ export default {
     presentazione: 'On the podium of Roman choirs for over thirty years, a collaborator of Ennio Morricone, arranger and singing teacher.',
   },
   direttivo: [{ ruolo: 'President' }, { ruolo: 'Vice-president' }, { ruolo: 'Conductor' }, { ruolo: 'Treasurer' }],
-  organico: [{ sezione: 'Sopranos' }, { sezione: 'Altos' }, { sezione: 'Tenors' }, { sezione: 'Baritones and basses' }],
+  organico: [{ sezione: 'Sopranos' }, { sezione: 'Altos' }, { sezione: 'Tenors' }, { sezione: 'Basses' }],
   numeri: [
     { testo: 'Year of foundation, with Haydn’s Missa in Angustiis' },
     { testo: 'Voices, in four sections' },
