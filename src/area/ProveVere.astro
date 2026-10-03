@@ -1,6 +1,6 @@
 ---
 // Area coristi, pagina Calendario nel sito vero: prove (calendario "Prove") e concerti (calendario
-// "Concerti") dei prossimi tre mesi, con "Non ci sarò" che scrive nel foglio delle assenze
+// "Concerti", con il link alla convocazione nella pagina Concerti) dei prossimi tre mesi, con "Non ci sarò" che scrive nel foglio delle assenze
 // (/area/assenze). Chi tace è presente. Nelle prove i pezzi della riga "Repertorio:" portano alla
 // pagina Repertorio, "Registrazione:" diventa un pulsante; in fondo il link alla pagina Registrazioni.
 import Icona from '../componenti/Icona.astro';
@@ -102,6 +102,7 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
                   )}
                   {valore(e, 'Registrazione') && <a class="btn o piccolo" style="margin-top:10px" href={linkDelSito(valore(e, 'Registrazione'))} target="_blank" rel="noopener"><Icona nome="microfono" />Registrazione della prova</a>}
                   {luogoBreveDi(e) && <div class="meta"><span><Icona nome="luogo" />{luogoBreveDi(e)}</span></div>}
+                  {e.tipo === 'concerto' && <a class="link-freccia" style="margin-top:10px" href={`/area/concerti#c-${e.id}`}>Convocazione <Icona nome="freccia" /></a>}
                 </div>
                 <div class="az">
                   {modificabile ? (
