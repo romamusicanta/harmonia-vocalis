@@ -4,7 +4,8 @@
 // modulo. I concerti nuovi si aggiungono al calendario (Amministrazione → Nuovo concerto).
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
-import { concertiInArrivo, convocazioni, proveVicine, vuota, type Convocazione } from './convocazioni';
+import { concertiInArrivo, convocazionePerWhatsapp, convocazioni, proveVicine, vuota, type Convocazione } from './convocazioni';
+import { linkWhatsapp } from './bacheca';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
 import { eventi, luogoBreveDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
 import Errore from './Errore.astro';
@@ -29,9 +30,22 @@ const scelti = new Set(c?.repertorio ?? []);
 const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
 const etichettaProva = (p: Evento) => { const d = parti({ data: p.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}${p.inizio ? `, ${p.inizio}` : ''} · ${p.titolo}`; };
 const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+// Dopo il salvataggio: il messaggio per il gruppo WhatsApp dei coristi
+const giornoMese = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
+const appena = concerti.find((e) => e.id === q.get('salvata'));
+const convAppena = appena && tutte.get(appena.id);
+const whatsapp = appena && convAppena && !vuota(convAppena)
+  ? convocazionePerWhatsapp(appena, convAppena, prove.find((p) => p.id === convAppena.generale), giornoMese, Astro.url.origin)
+  : undefined;
 ---
 
 {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+{whatsapp && (
+  <div class="invio-whatsapp">
+    <span>Avvisa i coristi: il messaggio è già scritto, scegli la chat del coro.</span>
+    <a class="btn g piccolo" href={linkWhatsapp(whatsapp)} target="_blank" rel="noopener"><Icona nome="whatsapp" />Invia su WhatsApp</a>
+  </div>
+)}
 {errore && <Errore e={errore} />}
 
 {scelto && (

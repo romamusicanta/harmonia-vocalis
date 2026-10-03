@@ -60,6 +60,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
     <button class="btn g" type="submit">{prova ? 'Salva le modifiche' : 'Crea la prova'}</button>
     <a class="btn o" href={`${base}/prove`}>Annulla</a>
     {prova && base === '/admin' && <a class="btn o" href={prova.htmlLink} target="_blank" rel="noopener">Apri nel calendario</a>}
+    {prova && <button class="btn o cancella-prova" type="button" style="margin-left:auto;color:var(--rosso);border-color:currentColor" data-quando={`${prova.data.split('-').reverse().join('/')}`} data-dopo={`${base}/prove?${new URLSearchParams({ cancellata: prova.data, ora: prova.inizio, titolo: prova.titolo })}`}>Cancella la prova</button>}
   </div>
   <p id="esito" role="status"></p>
 </form>
@@ -84,6 +85,26 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 <script>
   const modulo = document.getElementById('modulo-prova') as HTMLFormElement;
   const esito = document.getElementById('esito')!;
+  // Cancella (per la prova settimanale solo questa data), poi torna all'elenco con il messaggio per WhatsApp
+  const cancella = modulo.querySelector<HTMLButtonElement>('.cancella-prova');
+  cancella?.addEventListener('click', async () => {
+    if (!confirm(`Cancellare la prova del ${cancella.dataset.quando}? Sparisce dal calendario dei coristi.`)) return;
+    cancella.disabled = true;
+    esito.className = 'messaggio';
+    esito.textContent = 'Cancello dal calendario…';
+    const f = new FormData();
+    f.set('id', String(new FormData(modulo).get('id')));
+    try {
+      const r = await fetch(`${modulo.dataset.base}/prove/cancella`, { method: 'POST', body: f });
+      const j = await r.json().catch(() => ({ ok: false, errore: `errore ${r.status}` }));
+      if (!j.ok) throw new Error(j.errore);
+      location.href = cancella.dataset.dopo!;
+    } catch (e) {
+      esito.className = 'messaggio errore';
+      esito.textContent = `Non cancellata: ${(e as Error).message}`;
+      cancella.disabled = false;
+    }
+  });
   modulo.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const pulsante = modulo.querySelector<HTMLButtonElement>('button[type=submit]')!;
@@ -94,7 +115,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
       const r = await fetch(`${modulo.dataset.base}/prove/salva`, { method: 'POST', body: new FormData(modulo) });
       const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
       if (!j.ok) throw new Error(j.errore);
-      location.href = modulo.dataset.dopo ?? `${modulo.dataset.base}/prove?salvata=${encodeURIComponent(j.data)}`;
+      location.href = modulo.dataset.dopo ?? `${modulo.dataset.base}/prove?${new URLSearchParams({ salvata: j.data, id: j.id, come: j.come })}`;
     } catch (e) {
       esito.className = 'messaggio errore';
       esito.textContent = `Non salvata: ${(e as Error).message}`;

@@ -127,5 +127,29 @@ export const creaProva = (s: Chi, corpo: object) =>
 export const aggiornaProva = (s: Chi, id: string, corpo: object) =>
   chiama<EventoApi>(s, url(`/${encodeURIComponent(id)}`), { method: 'PATCH', body: JSON.stringify(corpo) });
 
+// Il messaggio per il gruppo WhatsApp dei coristi, dopo aver creato, cambiato o cancellato una prova
+const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+export const giornoEsteso = (data: string) => {
+  const d = new Date(`${data}T12:00:00Z`);
+  return `${GIORNI[d.getUTCDay()]} ${d.getUTCDate()} ${MESI[d.getUTCMonth()]}`;
+};
+export function provaPerWhatsapp(p: Pick<Prova, 'data' | 'inizio' | 'fine' | 'titolo' | 'luogo' | 'righe'>, come: 'nuova' | 'cambiata' | 'cancellata', sito: string) {
+  const titolo = p.titolo && !/^prova( settimanale)?$/i.test(p.titolo) ? p.titolo : 'Prova';
+  const quando = giornoEsteso(p.data);
+  const testa = { nuova: `*Nuova ${titolo.toLowerCase()}: ${quando}*`, cambiata: `*${titolo} di ${quando}: aggiornata*`, cancellata: `*${titolo} di ${quando}: annullata*` }[come];
+  if (come === 'cancellata') return [testa, `Era alle ${p.inizio}. Le altre prove restano confermate.`, `${sito}/area/prove`].join('\n\n');
+  const r = p.righe;
+  const righe = [
+    `Ore ${p.inizio}–${p.fine} · ${p.luogo || coro.prove.nome}`,
+    r.Sezioni && `Sezioni: ${r.Sezioni}`,
+    r.Repertorio && `Pezzi: ${r.Repertorio}`,
+    r.Brani && `Brani: ${r.Brani}`,
+    r.Portare && `Portare: ${r.Portare}`,
+    r.Note,
+  ].filter(Boolean);
+  return [testa, righe.join('\n'), `${sito}/area/prove`].join('\n\n');
+}
+
 // Per una data della prova settimanale cancella solo quella data
 export const cancellaProva = (s: Chi, id: string) => chiama<void>(s, url(`/${encodeURIComponent(id)}`), { method: 'DELETE' });

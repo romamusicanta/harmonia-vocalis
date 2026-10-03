@@ -4,7 +4,7 @@
 // prova del calendario "Prove", di cui si tiene l'ID: così ha presenze e promemoria), programma della giornata, abito, cosa portare, come arrivare, pezzi del
 // repertorio, note. Le scrivono i redattori (Amministrazione); i coristi le leggono nella pagina Concerti della loro area. La presenza
 // si segna come per le prove, con "Non ci sarò" (scheda Assenze).
-import { adesso, eventi, idScheda, leggiScheda, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
+import { adesso, eventi, idScheda, leggiScheda, luogoBreveDi, nomeEvento, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
 import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Convocazioni';
@@ -57,6 +57,20 @@ export const proveVicine = (e: Evento, tutte: Evento[]) => tutte.filter((x) => x
 // I concerti da oggi a un anno, dal calendario Concerti
 export const concertiInArrivo = async (): Promise<Evento[]> => (await eventi(oggi(), piuGiorni(oggi(), 366))).filter((e) => e.tipo === 'concerto');
 
+// Il messaggio per il gruppo WhatsApp dei coristi, dopo aver salvato una convocazione
+export function convocazionePerWhatsapp(e: Evento, c: Convocazione, generale: Evento | undefined, quando: (data: string) => string, sito: string) {
+  const righe = [
+    `*Convocazione: ${nomeEvento(e)}*`,
+    [`${quando(e.data)}${e.inizio ? `, concerto alle ${e.inizio}` : ''}`, luogoBreveDi(e)].filter(Boolean).join(' · '),
+    c.convocazione && `Convocazione alle ${c.convocazione}${c.ritrovo ? ` · ${c.ritrovo}` : ''}`,
+    generale && `Prova generale: ${quando(generale.data)}${generale.inizio ? `, ${generale.inizio}` : ''}`,
+    c.abito && `Abito: ${c.abito}`,
+    c.portare.length > 0 && `Portare: ${c.portare.join(', ')}`,
+    c.note,
+  ].filter(Boolean);
+  return [righe.join('\n'), `Tutti i dettagli e "Non ci sarò": ${sito}/area/concerti#c-${e.id}`].join('\n\n');
+}
+
 // C'è qualcosa da mostrare?
 export const vuota = (c?: Convocazione) => !c || !(c.convocazione || c.generale || c.programma.length || c.abito || c.portare.length || c.arrivare || c.repertorio.length || c.note);
 
@@ -88,5 +102,6 @@ export async function dopoIlModulo(request: Request, email: string, percorso: st
   const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, evento: String(f.get('evento') ?? '') }));
   const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
   if (!r.ok && r.evento) p.set('modifica', r.evento);
+  if (r.ok && r.evento) p.set('salvata', r.evento);
   return `${percorso}?${p}${r.ok && r.evento ? `#c-${r.evento}` : ''}`;
 }

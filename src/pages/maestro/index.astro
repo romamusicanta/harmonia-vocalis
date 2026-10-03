@@ -48,6 +48,8 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
 const quando = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const breve = (data: string) => { const d = parti({ data }); return `${d.giornoSettimana.slice(0, 3)} ${Number(d.giorno)} ${d.meseBreve.toLowerCase()}`; };
 const sezioniAssiduita = sezioniDi(assiduita);
+// Quanti hanno almeno un'assenza: di base la tabella mostra solo loro
+const conAssenze = assiduita.filter((a) => a.assenze > 0).length;
 ---
 
 <Base veste={veste} titolo="Area del Maestro" area={{ maestro: true, sezione: 'report' }}>
@@ -85,27 +87,6 @@ const sezioniAssiduita = sezioniDi(assiduita);
           </article>
         ))}
 
-        {assiduita.length > 0 && (
-          <article class="carta c-12" id="assiduita-stagione">
-            <div class="ct"><h2>Assiduità della stagione</h2><span class="tenue" style="font-size:14px">Prove dal 1 settembre, chi manca di più in alto</span></div>
-            {assiduita.every((a) => !a.prove) && <div class="cc tenue" style="border-bottom:1px solid var(--linea)">Nessuna prova ancora fatta in questa stagione: i numeri compaiono dopo la prima.</div>}
-            <div class="cc filtri-sezione" style="display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--linea)">
-              <button type="button" class="btn piccolo o on" data-sezione="">Tutte</button>
-              {sezioniAssiduita.filter((s) => assiduita.some((a) => a.sezione === s)).map((s) => <button type="button" class="btn piccolo o" data-sezione={s}>{s}</button>)}
-            </div>
-            <div class="tabella-wrap">
-              <table class="tabella" id="assiduita">
-                <thead><tr><th>Corista</th><th>Sezione</th><th class="num">Presenze</th><th class="num">Assenze</th><th class="num">Ultime 4 prove</th></tr></thead>
-                <tbody>
-                  {assiduita.map((a) => (
-                    <tr data-sezione={a.sezione}><td>{a.nome}</td><td>{a.sezione}</td><td class="num">{a.prove ? <span class="cella-barra"><b>{percento(a.prove - a.assenze, a.prove)}</b><span class="barra"><i style={`width:${percento(a.prove - a.assenze, a.prove)}`}></i></span></span> : '—'}</td><td class="num">{a.prove ? `${a.assenze} su ${a.prove}` : '—'}</td><td class="num">{a.ultimeProve ? (a.ultime ? <b style="color:var(--rosso)">{a.ultime} {a.ultime === 1 ? 'assenza' : 'assenze'}</b> : 'sempre presente') : '—'}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
-        )}
-
         {storico.length > 0 && (
           <article class="carta c-12" id="storico">
             <div class="ct"><h2>Storico</h2><span class="tenue" style="font-size:14px">Ultime prove e concerti della stagione</span></div>
@@ -121,6 +102,28 @@ const sezioniAssiduita = sezioniDi(assiduita);
             </ul>
           </article>
         )}
+        {assiduita.length > 0 && (
+          <article class="carta c-12" id="assiduita-stagione">
+            <div class="ct"><h2>Assiduità della stagione</h2><span class="tenue" style="font-size:14px">Prove dal 1 settembre, chi manca di più in alto{conAssenze > 0 && conAssenze < assiduita.length && "; all'inizio solo chi ha almeno un'assenza"}</span></div>
+            {assiduita.every((a) => !a.prove) && <div class="cc tenue" style="border-bottom:1px solid var(--linea)">Nessuna prova ancora fatta in questa stagione: i numeri compaiono dopo la prima.</div>}
+            <div class="cc filtri-sezione" style="display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--linea)">
+              <button type="button" class="btn piccolo o on" data-sezione="">Tutte</button>
+              {sezioniAssiduita.filter((s) => assiduita.some((a) => a.sezione === s)).map((s) => <button type="button" class="btn piccolo o" data-sezione={s}>{s}</button>)}
+              {conAssenze > 0 && conAssenze < assiduita.length && <button type="button" class="btn piccolo tutti-assiduita" aria-pressed="false" style="margin-left:auto">Mostra tutti ({assiduita.length})</button>}
+            </div>
+            <div class="tabella-wrap">
+              <table class="tabella" id="assiduita">
+                <thead><tr><th>Corista</th><th>Sezione</th><th class="num">Presenze</th><th class="num">Assenze</th><th class="num">Ultime 4 prove</th></tr></thead>
+                <tbody>
+                  {assiduita.map((a) => (
+                    <tr data-sezione={a.sezione} data-zero={conAssenze > 0 && !a.assenze ? '' : undefined} hidden={conAssenze > 0 && !a.assenze}><td>{a.nome}</td><td>{a.sezione}</td><td class="num">{a.prove ? <span class="cella-barra"><b>{percento(a.prove - a.assenze, a.prove)}</b><span class="barra"><i style={`width:${percento(a.prove - a.assenze, a.prove)}`}></i></span></span> : '—'}</td><td class="num">{a.prove ? `${a.assenze} su ${a.prove}` : '—'}</td><td class="num">{a.ultimeProve ? (a.ultime ? <b style="color:var(--rosso)">{a.ultime} {a.ultime === 1 ? 'assenza' : 'assenze'}</b> : 'sempre presente') : '—'}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        )}
+
       </div>
     </div>
   </div>
@@ -135,9 +138,25 @@ const sezioniAssiduita = sezioniDi(assiduita);
 </style>
 
 <script>
-  const filtri = document.querySelectorAll<HTMLButtonElement>('.filtri-sezione button');
+  // Filtro per sezione; di base solo chi ha almeno un'assenza, con "Mostra tutti"
+  const filtri = document.querySelectorAll<HTMLButtonElement>('.filtri-sezione button[data-sezione]');
+  const tutti = document.querySelector<HTMLButtonElement>('.tutti-assiduita');
+  let sezione = '';
+  const aggiorna = () => {
+    const anche = tutti?.getAttribute('aria-pressed') === 'true';
+    document.querySelectorAll<HTMLElement>('#assiduita tbody tr').forEach((r) => {
+      r.hidden = (Boolean(sezione) && r.dataset.sezione !== sezione) || (!anche && r.dataset.zero !== undefined);
+    });
+  };
   filtri.forEach((b) => b.addEventListener('click', () => {
     filtri.forEach((x) => x.classList.toggle('on', x === b));
-    document.querySelectorAll<HTMLElement>('#assiduita tbody tr').forEach((r) => { r.hidden = Boolean(b.dataset.sezione) && r.dataset.sezione !== b.dataset.sezione; });
+    sezione = b.dataset.sezione ?? '';
+    aggiorna();
   }));
+  tutti?.addEventListener('click', () => {
+    const anche = tutti.getAttribute('aria-pressed') !== 'true';
+    tutti.setAttribute('aria-pressed', String(anche));
+    tutti.textContent = anche ? "Solo chi ha assenze" : `Mostra tutti (${document.querySelectorAll('#assiduita tbody tr').length})`;
+    aggiorna();
+  });
 </script>

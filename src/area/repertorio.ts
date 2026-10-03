@@ -97,6 +97,11 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
     await scrivi({ ...esistente, brani }, esistente.riga, email);
     return { ok: true, messaggio: 'Brano tolto dal pezzo (il file resta su Drive).', id: esistente.id };
   }
+  if (azione === 'togli-traccia' && esistente) {
+    const sezione = String(f.get('sezione') ?? '');
+    await scrivi({ ...esistente, tracce: esistente.tracce.filter((t) => t.sezione !== sezione) }, esistente.riga, email);
+    return { ok: true, messaggio: `Traccia «${sezione}» tolta dal pezzo (il file resta su Drive).`, id: esistente.id };
+  }
   if (azione === 'togli-spartito' && esistente) {
     await scrivi({ ...esistente, spartito: undefined }, esistente.riga, email);
     return { ok: true, messaggio: 'Spartito tolto dal pezzo (il file resta su Drive).', id: esistente.id };
@@ -145,17 +150,27 @@ export async function dopoIlModulo(request: Request, email: string, percorso: st
 
 // Endpoint dei file (/admin/repertorio/file, /maestro/repertorio/file): il file va nella cartella
 // del pezzo in Spartiti ("Autore – Titolo", creata se manca) e poi diventa lo spartito del pezzo
-// (al posto del precedente, che resta su Drive) o un brano in più, con il nome del file.
+// (al posto del precedente, che resta su Drive), un brano in più, con il nome del file, o la traccia
+// di studio di una sezione (al posto del link o del file di prima).
+const nomeTraccia = (sezione: string, nome: string) => `Traccia ${sezione} – ${nome}`;
 export const rispondiFile = (request: Request, email: string) => rispondiCaricamento(request, async (d) => {
   if (!configurato()) throw new Error('manca la variabile DRIVE_CARTELLA_SPARTITI sul server');
   const pezzo = (await repertorio()).find((p) => p.id === String(d.pezzo));
   if (!pezzo) throw new Error('pezzo non trovato');
   const cartella = pezzo.cartella ?? (await cartellaIn(DRIVE_CARTELLA_SPARTITI!, nomeCompleto(pezzo)));
   if (cartella !== pezzo.cartella) await scrivi({ ...pezzo, cartella }, pezzo.riga, email);
+  if (d.uso === 'traccia') {
+    const sezione = TRACCE.find((s) => s === d.sezione);
+    if (!sezione) throw new Error('sezione della traccia non valida');
+    return { cartella, nome: nomeTraccia(sezione, String(d.nome)), dopo: { pezzo: pezzo.id, uso: 'traccia', sezione } };
+  }
   return { cartella, nome: d.nome, dopo: { pezzo: pezzo.id, uso: d.uso === 'spartito' ? 'spartito' : 'brano' } };
 }, async (idFile, nome, dopo) => {
   const pezzo = (await repertorio()).find((p) => p.id === dopo.pezzo);
   if (!pezzo) throw new Error('pezzo non trovato');
-  if (dopo.uso === 'spartito') await scrivi({ ...pezzo, spartito: linkFile(idFile) }, pezzo.riga, email);
+  if (dopo.uso === 'traccia') {
+    const tracce = TRACCE.map((sezione) => ({ sezione, link: sezione === dopo.sezione ? linkFile(idFile) : pezzo.tracce.find((t) => t.sezione === sezione)?.link ?? '' })).filter((t) => t.link);
+    await scrivi({ ...pezzo, tracce }, pezzo.riga, email);
+  } else if (dopo.uso === 'spartito') await scrivi({ ...pezzo, spartito: linkFile(idFile) }, pezzo.riga, email);
   else await scrivi({ ...pezzo, brani: [...pezzo.brani, { nome: nome.replace(/\.[a-z0-9]{2,4}$/i, '').replace(/ \| /g, ' - '), link: linkFile(idFile) }] }, pezzo.riga, email);
 });

@@ -43,7 +43,7 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
       </div>
 
       <fieldset>
-        <legend>Tracce per lo studio <small>(link a Drive, YouTube o altro: uno per sezione)</small></legend>
+        <legend>Tracce per lo studio <small>(link a YouTube o altro sito, uno per sezione; i file audio si caricano qui sotto, in «File del pezzo»)</small></legend>
         <div class="riga-campi">
           {sezioniTracce.map((s) => <label>{s}<input name={`tracce-${s}`} type="url" value={traccia(inModifica, s)} placeholder="https://…" /></label>)}
         </div>
@@ -60,7 +60,7 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
 
 {inModifica && (
   <section class="carta modulo-pezzo" id="file" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`}>
-    <div class="ct"><h2>Spartito e brani</h2><span class="tenue" style="font-size:14px">Su Drive, nella cartella Spartiti</span></div>
+    <div class="ct"><h2>File del pezzo</h2><span class="tenue" style="font-size:14px">Su Drive, nella cartella Spartiti; i coristi li aprono dal sito</span></div>
     <div class="cc">
       <div class="file-gruppo">
         <h3>Spartito</h3>
@@ -77,6 +77,21 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
             <form method="post" onsubmit="return confirm('Togliere questo brano dal pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
         )) : <p class="tenue">Nessun brano. Il nome del file diventa il nome del brano.</p>}
         <label class="carica">Aggiungi brani <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
+      </div>
+      <div class="file-gruppo">
+        <h3>Tracce per lo studio</h3>
+        <p class="tenue" style="margin:0 0 4px">Un file audio per sezione: prende il posto del link o del file di prima. I coristi lo ascoltano nella pagina Repertorio.</p>
+        {sezioniTracce.map((s) => {
+          const t = traccia(inModifica, s);
+          return (
+            <div class="file-riga traccia-riga">
+              <b>{s}</b>
+              {t ? <a href={t} target="_blank" rel="noopener"><Icona nome="cuffie" />{/^https:\/\/drive\.google\.com\/file\//.test(t) ? 'File audio' : 'Link'}</a> : <span class="tenue">Nessuna traccia</span>}
+              {t && <form method="post" onsubmit={`return confirm('Togliere la traccia ${s} da questo pezzo? Se è un file, resta su Drive.')`}><input type="hidden" name="azione" value="togli-traccia" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="sezione" value={s} /><button class="btn o piccolo" type="submit">Togli</button></form>}
+              <label class="btn o piccolo carica-traccia">{t ? 'Sostituisci' : 'Carica'}<input type="file" data-uso="traccia" data-sezione={s} accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" class="sr" /></label>
+            </div>
+          );
+        })}
       </div>
       <p class="stato-caricamento" role="status" aria-live="polite"></p>
     </div>
@@ -124,7 +139,7 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
         if (!r.ok) throw new Error('Le modifiche al pezzo non si sono salvate: premi «Salva le modifiche» e riprova.');
         modificato = false;
       }
-      for (const f of file) await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso! }, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
+      for (const f of file) await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso!, ...(input.dataset.sezione ? { sezione: input.dataset.sezione } : {}) }, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
       location.href = `${box.dataset.ritorno}&ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato su Drive.` : `${file.length} file caricati su Drive.`)}`;
     } catch (e) {
       stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
@@ -148,6 +163,11 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
   .file-riga { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--fondo); border-radius: var(--raggio); }
   .file-riga a { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; color: var(--primario); text-decoration: underline; min-width: 0; overflow-wrap: anywhere; }
   .carica { padding: 12px; border: 2px dashed var(--linea); border-radius: var(--raggio); }
+  .traccia-riga { flex-wrap: wrap; justify-content: flex-start; }
+  .traccia-riga a { flex: 1 1 auto; }
+  .traccia-riga b { min-width: 110px; color: var(--primario); }
+  .carica-traccia { cursor: pointer; position: relative; margin-left: auto; }
+  .carica-traccia:focus-within { outline: 3px solid var(--primario); outline-offset: 2px; }
   .stato-caricamento { font-weight: 600; color: var(--primario); min-height: 1.4em; margin: 0; }
   .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
   .elenco-pezzi { list-style: none; margin: 0; padding: 0; }

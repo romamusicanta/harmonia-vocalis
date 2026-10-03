@@ -13,9 +13,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const corpo = corpoDalModulo(f);
     if ('errore' in corpo) return json({ ok: false, errore: corpo.errore }, 400);
     const id = String(f.get('id') ?? '');
-    if (id) await aggiornaProva(locals.sessione!, id, corpo);
-    else await creaProva(locals.sessione!, corpo);
-    return json({ ok: true, data: String(f.get('data')) });
+    const evento = id ? await aggiornaProva(locals.sessione!, id, corpo) : await creaProva(locals.sessione!, corpo);
+    return json({ ok: true, data: String(f.get('data')), id: evento.id, come: id ? 'cambiata' : 'nuova' });
   } catch (e) {
     return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }

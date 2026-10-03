@@ -59,7 +59,9 @@ const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), 
                 {tracce(p).map((t) => (
                   <div class:list={['base', { tua: t.sezione === sezione }]}>
                     <div><b>{t.sezione}{t.sezione === sezione && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
-                    <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>
+                    {t.link.startsWith('/area/file/')
+                      ? <audio controls preload="none" src={t.link} aria-label={`Traccia: ${t.sezione}`}></audio>
+                      : <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>}
                   </div>
                 ))}
               </div>
@@ -97,3 +99,9 @@ const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), 
     {elenco.length > 0 && <p class="tenue" style="margin-top:24px;font-size:14px">{elenco.length} {elenco.length === 1 ? 'pezzo' : 'pezzi'}: {elenco.map(nomeCompleto).join(' · ')}</p>}
   </div>
 </div>
+
+<style>
+  /* Tracce caricate come file: lettore audio nella riga della sezione */
+  .base:has(audio) { grid-template-columns: minmax(0, 1fr); }
+  .base audio { width: 100%; height: 40px; }
+</style>
