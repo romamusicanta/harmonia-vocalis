@@ -154,6 +154,8 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
     };
     box?.querySelectorAll<HTMLButtonElement>('.corista').forEach((b) => b.addEventListener('click', async () => {
       const assente = !b.classList.contains('assente');
+      // L'assenza dichiarata dal corista (con la sua nota) non si toglie con un tocco involontario
+      if (!assente && /dichiarata/.test(b.querySelector('.stato')!.textContent ?? '') && !confirm(`${b.querySelector('.nome')!.textContent} aveva segnalato l'assenza${b.parentElement?.querySelector('small') ? ', con una nota' : ''}. Segnarlo presente cancella la sua dichiarazione. Procedere?`)) return;
       const f = new FormData();
       f.set('evento', box.dataset.evento!);
       f.set('email', b.dataset.email!);

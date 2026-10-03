@@ -62,7 +62,23 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
 
 <div class="area-main">
   <div class="w">
+    {Astro.url.searchParams.get('esito') && <p class:list={['messaggio', Astro.url.searchParams.get('ok') === '1' ? 'ok' : 'errore']} role="status">{Astro.url.searchParams.get('esito')}</p>}
     {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {io && !errore && (
+      <details class="carta periodo-box">
+        <summary><Icona nome="calendario" />Sarò via per un periodo</summary>
+        <form class="periodo">
+          <p class="tenue" style="font-size:15px">Segna in una volta tutte le prove e i concerti tra due date.</p>
+          <div class="campi-periodo">
+            <label>Dal<input type="date" name="dal" required min={oggiIso} /></label>
+            <label>Al<input type="date" name="al" required min={oggiIso} /></label>
+            <label style="flex:1 1 220px">Nota (facoltativa)<input name="nota" maxlength="300" placeholder="Es. viaggio di lavoro" /></label>
+          </div>
+          <p class="anteprima-periodo" aria-live="polite"></p>
+          <button class="btn g" type="submit">Segna le assenze</button>
+        </form>
+      </details>
+    )}
     {!errore && !io && <p class="carta" style="padding:20px">Il tuo indirizzo ({Astro.locals.corista!.email}) non è nella scheda dei coristi, quindi non puoi segnalare assenze. Scrivi ai redattori.</p>}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Nessuna prova in calendario nei prossimi tre mesi.</p>}
 
@@ -89,7 +105,7 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
                 </div>
                 <div class="az">
                   {modificabile ? (
-                    <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id}>
+                    <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id} data-data={e.data} data-etichetta={`${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()} · ${e.titolo}`}>
                       <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button" style="width:100%"><Icona nome="chiudi" />Non ci sarò</button></div>
                       <div class="fatto">
                         <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata · <button class="togli" type="button">Ritira</button></div>
@@ -107,18 +123,6 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
       ))}
     </div>
 
-    {io && !errore && (
-      <form class="carta periodo" style="margin-top:28px;padding:22px;display:grid;gap:12px">
-        <b style="color:var(--primario);font-size:18px">Assente per un periodo</b>
-        <span class="tenue" style="font-size:15px">Segna in una volta tutte le prove e i concerti tra due date.</span>
-        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
-          <label style="display:grid;gap:4px;font-size:14px">Dal<input type="date" name="dal" required min={oggiIso} /></label>
-          <label style="display:grid;gap:4px;font-size:14px">Al<input type="date" name="al" required min={oggiIso} /></label>
-          <label style="display:grid;gap:4px;font-size:14px;flex:1 1 220px">Nota (facoltativa)<input name="nota" maxlength="300" placeholder="Es. viaggio di lavoro" /></label>
-          <button class="btn g piccolo" type="submit">Segna le assenze</button>
-        </div>
-      </form>
-    )}
     {registrate.length > 0 && (
       <section class="carta" style="margin-top:28px">
         <div class="ct"><h2>Registrazioni delle ultime prove</h2></div>
@@ -134,6 +138,15 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
 </div>
 
 <style>
+  .periodo-box { margin-bottom: 24px; }
+  .periodo-box summary { cursor: pointer; padding: 16px 22px; font-weight: 700; color: var(--primario); display: flex; gap: 10px; align-items: center; min-height: 44px; }
+  .periodo-box .periodo { display: grid; gap: 12px; padding: 0 22px 22px; }
+  .campi-periodo { display: flex; flex-wrap: wrap; gap: 12px; }
+  .campi-periodo label { display: grid; gap: 4px; font-size: 14px; font-weight: 600; }
+  .campi-periodo input { padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); font: inherit; min-height: 44px; }
+  .anteprima-periodo { font-size: 15px; margin: 0; }
+  .anteprima-periodo:empty { display: none; }
+  .periodo button { justify-self: start; }
   .registrate { list-style: none; margin: 0; padding: 0; }
   .registrate li { display: flex; gap: 12px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 14px 24px; border-bottom: 1px solid var(--linea); }
   .registrate li:last-child { border-bottom: 0; }

@@ -102,7 +102,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
               <div class="legenda" style="margin-top:14px"><span><i style="background:var(--primario)"></i>Attesi</span><span><i style="background:var(--rosso)"></i>Assenti</span></div>
               <div style="margin-top:20px">
                 {io && aperto(e) ? (
-                  <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id}>
+                  <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id} data-data={e.data} data-etichetta={`${quando(e.data)} · concerto ${e.titolo}`}>
                     <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button" style="width:100%"><Icona nome="chiudi" />Non ci sarò</button></div>
                     <div class="fatto">
                       <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata · <button class="togli" type="button">Ritira</button></div>

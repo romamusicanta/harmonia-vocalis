@@ -527,6 +527,12 @@ a.sc:hover { box-shadow: var(--ombra); }
 .carta:not(.blu) .stato-assenza, .prova .stato-assenza { background: var(--accento-chiaro); color: var(--primario); }
 .stato-assenza button { background: none; border: 0; text-decoration: underline; font-weight: 700; padding: 0; color: inherit; text-underline-offset: 3px; }
 .nota-assenza { margin-top: 12px; display: grid; gap: 8px; }
+/* Stato di salvataggio, "Salva nota", errori e "Ritira" (src/area/assenze-client.ts) */
+.assenza[aria-busy] { opacity: .75; cursor: progress; }
+.salva-nota { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 14px; font-weight: 600; }
+.errore-assenza { margin: 10px 0 0; padding: 10px 12px; border-radius: var(--raggio); background: #fbe4e2; color: #8c1d18; font-size: 14px; font-weight: 600; }
+.errore-assenza button { font: inherit; text-decoration: underline; background: none; border: 0; color: inherit; cursor: pointer; padding: 8px 4px; }
+.stato-assenza button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; margin: -10px 0; }
 .nota-assenza label { font-size: 13px; font-weight: 600; opacity: .85; }
 .nota-assenza textarea, .nota-assenza input { width: 100%; padding: 11px 12px; border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: inherit; border-radius: var(--raggio); min-height: 44px; }
 .carta:not(.blu) .nota-assenza textarea, .prova .nota-assenza input { border-color: var(--linea); background: var(--bianco); }
@@ -769,3 +775,4 @@ a.sc:hover { box-shadow: var(--ombra); }
 :root[data-veste="stagione"] :is(.btn.g, .btn.o, .btn.b) { color: var(--testo); }
 :root[data-veste="stagione"] .btn.o:hover { color: #fff; }
 main:focus { outline: none; box-shadow: none; }
+.carta.blu .salva-nota .btn.o { color: #fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,.55); }

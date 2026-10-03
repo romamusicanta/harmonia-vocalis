@@ -95,7 +95,7 @@ const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== 
                 </div>
               </div>
               {io && aperto(prova) && (
-                <div class:list={['assenza', { segnalata: assente }]} data-evento={prova.id}>
+                <div class:list={['assenza', { segnalata: assente }]} data-evento={prova.id} data-etichetta={`${quando(prova.data)} · ${prova.titolo}`}>
                   <div class="da-fare"><button class="btn btn-assenza segna" type="button"><Icona nome="chiudi" />Non ci sarò</button></div>
                   <div class="fatto">
                     <div class="stato-assenza"><Icona nome="spunta" />Hai segnalato l'assenza · <button class="togli" type="button">Ritira</button></div>
@@ -128,10 +128,15 @@ const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== 
                   {cv.abito && <li><b><Icona nome="campanella" /></b><span>{cv.abito}</span></li>}
                 </ul>
               ) : <p class="tenue" style="margin-top:16px;font-size:15px">Convocazione e prova generale in arrivo.</p>}
-              <div class="riga-conferma">
-                <div><b>{assente ? 'Hai segnalato che non ci sarai' : 'Ci sei?'}</b><div class="tenue" style="font-size:14px">{assente ? 'Puoi ritirarla dalla pagina Concerti.' : 'Sei atteso: se non puoi, segnalalo nella pagina Concerti.'}</div></div>
-                <a class="btn o piccolo" href={`/area/concerti#c-${concerto.id}`}>Concerti</a>
-              </div>
+              {io && aperto(concerto) ? (
+                <div class:list={['assenza', { segnalata: assente }]} data-evento={concerto.id} data-etichetta={`${quando(concerto.data)} · concerto ${concerto.titolo}`} style="margin-top:20px">
+                  <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button"><Icona nome="chiudi" />Non ci sarò</button></div>
+                  <div class="fatto">
+                    <div class="stato-assenza"><Icona nome="spunta" />Hai segnalato l'assenza · <button class="togli" type="button">Ritira</button></div>
+                    <div class="nota-assenza"><label for={`n-${concerto.id}`}>Nota (facoltativa)</label><input id={`n-${concerto.id}`} class="nota" maxlength="300" value={mie.get(concerto.id) ?? ''} placeholder="Es. sono fuori Roma" /></div>
+                  </div>
+                </div>
+              ) : assente ? <div class="stato-assenza" style="margin-top:20px"><Icona nome="spunta" />Assenza segnalata</div> : null}
             </div>
           </article>
         );
