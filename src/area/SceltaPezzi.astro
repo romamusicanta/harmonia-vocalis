@@ -104,10 +104,15 @@ const voce = (nome: string) => {
       li.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
       input.value = '';
       apri(false);
-      input.focus();
+      rimettiFuoco();
     };
+    // Il cursore torna nel campo dopo "Togli" senza aprire l'elenco: si apre solo scrivendo o
+    // entrando nel campo da sé
+    let silenzioso = false;
+    const rimettiFuoco = () => { silenzioso = true; input.focus(); silenzioso = false; };
     input.addEventListener('input', filtra);
-    input.addEventListener('focus', filtra);
+    input.addEventListener('focus', () => { if (!silenzioso) filtra(); });
+    input.addEventListener('click', () => { if (elenco.hidden) filtra(); });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') { e.preventDefault(); if (elenco.hidden) filtra(); else evidenzia(attiva + 1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); evidenzia(attiva - 1); }
@@ -122,7 +127,7 @@ const voce = (nome: string) => {
       if (!b) return;
       b.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
       b.closest('li')!.remove();
-      input.focus();
+      rimettiFuoco();
     });
   });
 </script>
