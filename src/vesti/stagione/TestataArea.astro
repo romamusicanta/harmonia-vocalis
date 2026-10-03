@@ -55,9 +55,10 @@ const sezioni = ({
   coristi: [
     { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area'), tab: true },
     { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove'), tab: true },
+    // Le prove già fatte, con le registrazioni (nella demo la pagina Registrazioni di esempio)
+    { id: 'prove-fatte', testo: 'Prove', icona: 'microfono', href: DEMO ? link(veste, '/area/registrazioni') : '/area/prove-fatte', tab: true },
     { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti'), tab: true },
     { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio'), tab: true },
-    { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni'), tab: true },
     // Solo per chi scrive gli avvisi della bacheca (presidente, tesoriere…: src/area/bacheca.ts)
     ...(scriveAvvisi ? [{ id: 'avvisi', testo: 'Avvisi', icona: 'campanella' as const, href: '/area/avvisi' }] : []),
   ],

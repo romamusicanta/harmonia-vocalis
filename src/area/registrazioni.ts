@@ -1,10 +1,10 @@
-// Registrazioni delle prove: file audio (o video) caricati dai coristi dall'area coristi
-// (/area/registrazioni) nella cartella "Registrazioni prove" del Drive condiviso
-// (DRIVE_CARTELLA_REGISTRAZIONI), una sottocartella per prova ("AAAA-MM-GG Titolo"). Chi ha
+// Registrazioni delle prove: file audio (o video) caricati dai redattori dal modulo di Modifica
+// della prova (Amministrazione) nella cartella "Registrazioni prove" del Drive condiviso
+// (DRIVE_CARTELLA_REGISTRAZIONI), una sottocartella per prova ("AAAA-MM-GG Titolo"). I coristi le
+// ascoltano nella pagina Prove della loro area (/area/prove-fatte), sotto ogni prova. Chi ha
 // caricato e il titolo stanno nelle proprietà del file su Drive (appProperties: caricatoDa,
 // titolo, evento): niente foglio. Si aggiungono i link "Registrazione:" scritti nelle prove del
-// calendario. Si ascoltano nel lettore di Drive (coro@ e maestro@ leggono la cartella); ognuno
-// può togliere i file che ha caricato (vanno nel cestino del Drive condiviso).
+// calendario. Si ascoltano dal sito (src/area/file.ts); i redattori le tolgono (cestino del Drive condiviso).
 import { DRIVE_CARTELLA_REGISTRAZIONI } from 'astro:env/server';
 import { cartellaIn, cestina, fileIn, leggiFile, linkFile, rispondiCaricamento } from './drive';
 import { coristi, eventi, inizioStagione, nomeBreve, oggi, piuGiorni, type Evento } from './dati';
@@ -33,8 +33,6 @@ export interface GiornoRegistrato {
 const senzaEstensione = (n: string) => n.replace(/\.[a-z0-9]{2,4}$/i, '');
 const riga = (e: Evento, k: string) => e.righe.find(([x]) => x === k)?.[1];
 
-// Le prove per cui si può caricare: dagli ultimi 60 giorni a oggi
-export const proveRecenti = async () => (await eventi(piuGiorni(oggi(), -60), oggi())).filter((e) => e.tipo === 'prova' && e.inizioMs <= Date.now() + 3 * 3600 * 1000).reverse();
 
 // Le registrazioni della stagione, la prova più recente prima
 export async function registrazioni(): Promise<GiornoRegistrato[]> {
@@ -69,23 +67,14 @@ export async function registrazioni(): Promise<GiornoRegistrato[]> {
   return [...giorni.values()].sort((a, b) => b.data.localeCompare(a.data));
 }
 
-// Endpoint del caricamento (/area/registrazioni/file): il file va nella cartella della prova
-export const rispondiFile = (request: Request, email: string) => rispondiCaricamento(request, async (d) => {
-  if (!configurato()) throw new Error('manca la variabile DRIVE_CARTELLA_REGISTRAZIONI sul server');
-  if (!/^(audio|video)\//.test(String(d.tipo)) && !/\.(m4a|mp3|wav|aac|ogg|opus|amr|3gp|mp4|mov|webm|flac)$/i.test(d.nome)) throw new Error(`«${d.nome}» non sembra una registrazione audio o video.`);
-  const prova = (await proveRecenti()).find((e) => e.id === String(d.evento));
-  if (!prova) throw new Error('Scegli la prova a cui si riferisce la registrazione.');
-  const cartella = await cartellaIn(DRIVE_CARTELLA_REGISTRAZIONI!, `${prova.data} ${prova.titolo}`);
-  const titolo = String(d.titolo ?? '').trim().slice(0, 120);
-  return { cartella, nome: d.nome, appProperties: { caricatoDa: email, evento: prova.id, ...(titolo ? { titolo } : {}) } };
-});
-
-// Toglie un file caricato da chi lo chiede (nel cestino del Drive condiviso)
-export async function togli(id: string, email: string) {
-  const f = await leggiFile(id);
-  if (!f.parents?.length) throw new Error('registrazione non trovata');
-  if (normalizza(f.appProperties?.caricatoDa ?? '') !== normalizza(email)) throw new Error('Puoi togliere solo le registrazioni che hai caricato tu.');
-  await cestina(id);
+// Le prove già fatte della stagione, la più recente prima, ognuna con le sue registrazioni (pagina
+// Prove dell'area coristi). In fondo le registrazioni la cui prova non è più nel calendario.
+export async function proveFatte(): Promise<{ prova?: Evento; giorno?: GiornoRegistrato }[]> {
+  const [giorni, prove] = await Promise.all([registrazioni(), eventi(inizioStagione(oggi()), oggi())]);
+  const fatte = prove.filter((e) => e.tipo === 'prova' && e.inizioMs <= Date.now()).reverse();
+  const conProva = fatte.map((prova) => ({ prova, giorno: giorni.find((g) => g.evento === prova.id) }));
+  const orfani = giorni.filter((g) => !fatte.some((e) => e.id === g.evento)).map((giorno) => ({ giorno }));
+  return [...conProva, ...orfani];
 }
 
 // ——— Dai redattori, nel modulo di Modifica della prova (Amministrazione) ———

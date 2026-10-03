@@ -1,0 +1,103 @@
+---
+// Area coristi, pagina Prove nel sito vero: le prove già fatte della stagione, la più recente
+// prima, ognuna con i pezzi provati e le sue registrazioni da riascoltare (lettore audio del
+// browser, file serviti dal sito: src/area/file.ts). Le registrazioni le caricano i redattori dal
+// modulo di Modifica della prova (Amministrazione); qui si ascoltano soltanto. Le prossime prove,
+// con "Non ci sarò", stanno nel Calendario.
+import Icona from '../componenti/Icona.astro';
+import { parti } from '../motore/concerti';
+import { proveFatte, type GiornoRegistrato } from './registrazioni';
+import { repertorio, type Pezzo } from './repertorio';
+import { SEPARATORE_PEZZI } from '../admin/prove';
+import type { Evento } from './dati';
+import Errore from './Errore.astro';
+import AiutoDrive from './AiutoDrive.astro';
+import { linkDelSito, suDrive } from './file';
+
+let errore: unknown;
+let elenco: { prova?: Evento; giorno?: GiornoRegistrato }[] = [];
+let pezzi: Pezzo[] = [];
+try {
+  [elenco, pezzi] = await Promise.all([proveFatte(), repertorio().catch(() => [])]);
+} catch (e) {
+  errore = e;
+}
+const peso = (n?: number) => (n ? (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(n > 100 * 1024 * 1024 ? 0 : 1).replace('.', ',')} MB` : `${Math.round(n / 1024)} KB`) : '');
+const valore = (e: Evento | undefined, k: string) => e?.righe.find(([x]) => x === k)?.[1];
+const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim());
+// Un solo nome per la prova di tutti i giorni
+const nome = (t: string) => (/^prova( settimanale)?$/i.test(t) ? 'Prova' : t);
+const conRegistrazioni = elenco.filter((x) => x.giorno?.tracce.length || x.giorno?.link || valore(x.prova, 'Registrazione')).length;
+---
+
+<div class="area-intesta">
+  <div class="w">
+    <div>
+      <span class="eti" style="margin-bottom:12px">Prove della stagione</span>
+      <h1>Prove</h1>
+      <p>Le prove già fatte, dalla più recente, con i pezzi provati e le registrazioni da riascoltare a casa. Le prossime prove, e come segnalare un'assenza, sono nel <a href="/area/prove" style="text-decoration:underline">Calendario</a>.</p>
+    </div>
+    <span class="tag bordo" style="display:inline-flex;gap:6px;align-items:center"><Icona nome="lucchetto" />Riservate ai coristi</span>
+  </div>
+</div>
+
+<div class="area-main">
+  <div class="w">
+    {errore && <Errore e={errore} />}
+    {elenco.some((x) => suDrive(linkDelSito(x.giorno?.link ?? valore(x.prova, 'Registrazione')))) && <AiutoDrive />}
+    {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Nessuna prova ancora fatta in questa stagione.</p>}
+    {!errore && elenco.length > 0 && <p class="tenue" style="margin:0 0 20px;font-size:15px">{elenco.length === 1 ? '1 prova' : `${elenco.length} prove`} dal 1 settembre · {conRegistrazioni === 1 ? '1 con registrazioni' : `${conRegistrazioni} con registrazioni`}</p>}
+
+    {elenco.map(({ prova, giorno }) => {
+      const data = prova?.data ?? giorno!.data;
+      const d = parti({ data });
+      const link = giorno?.link ?? valore(prova, 'Registrazione');
+      const tracce = giorno?.tracce ?? [];
+      const rep = valore(prova, 'Repertorio');
+      const brani = valore(prova, 'Brani');
+      return (
+        <div class="giorno-reg" id={prova ? `p-${prova.id}` : undefined}>
+          <div class="gg"><b>{d.giorno}</b><span>{d.giornoSettimana} · {d.meseBreve.toLowerCase()}</span>{prova?.inizio && <small>{prova.inizio}–{prova.fine}</small>}</div>
+          <div>
+            <h3 class="titolo-prova">{nome(prova?.titolo ?? giorno!.titolo)}</h3>
+            {(rep || brani) && (
+              <p class="provati">
+                {rep && <><b>Pezzi:</b> {rep.split(SEPARATORE_PEZZI).map((t, j) => { const p = pezzoDi(t); return <>{j > 0 && ', '}{p ? <a href={`/area/repertorio#${p.id}`}>{t}</a> : t}</>; })}</>}
+                {rep && brani && <br />}
+                {brani && <><b>Brani:</b> {brani}</>}
+              </p>
+            )}
+            {tracce.length || link ? (
+              <ul class="tracce-reg">
+                {link && <li><a href={linkDelSito(link)} target="_blank" rel="noopener"><Icona nome="play" />Registrazione della prova</a></li>}
+                {tracce.map((t) => (
+                  <li>
+                    <span class="titolo-traccia"><Icona nome={t.tipo.startsWith('audio/') ? 'cuffie' : 'play'} />{t.titolo}</span>
+                    <span class="tenue">{peso(t.dimensione)}</span>
+                    {t.tipo.startsWith('audio/')
+                      ? <audio controls preload="none" src={linkDelSito(t.link)} aria-label={`Ascolta: ${t.titolo}`}></audio>
+                      : <a class="link-freccia" href={linkDelSito(t.link)} target="_blank" rel="noopener">Guarda il video <Icona nome="freccia" /></a>}
+                  </li>
+                ))}
+              </ul>
+            ) : <p class="tenue senza-reg">Nessuna registrazione.</p>}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+<style>
+  .titolo-prova { font-size: 18px; margin-bottom: 8px; }
+  .provati { margin: 0 0 12px; font-size: 15px; line-height: 1.5; }
+  .provati b { color: var(--primario); }
+  .provati a { text-decoration: underline; }
+  .senza-reg { margin: 0; font-size: 15px; }
+  .tracce-reg { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .tracce-reg li { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 12px 16px; background: var(--bianco); border: 1px solid var(--linea); }
+  .tracce-reg li > a:first-child, .titolo-traccia { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; color: var(--primario); flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+  .tracce-reg :global(svg) { flex-shrink: 0; color: var(--accento); }
+  .tracce-reg .tenue { font-size: 14px; }
+  .tracce-reg audio { flex: 1 1 100%; width: 100%; height: 40px; margin-top: 4px; }
+</style>

@@ -1,22 +1,16 @@
 ---
-// Area coristi: registrazioni delle prove, raggruppate per giorno. Nel sito vero i dati veri
-// (src/area/RegistrazioniVere.astro), nella demo quelli di esempio.
+// Area coristi, solo nella demo: registrazioni di esempio, raggruppate per giorno. Nel sito vero
+// reindirizza alla pagina Prove (/area/prove-fatte), dove le registrazioni stanno sotto ogni prova.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { registrazioni, giorno, dataEstesa } from '../../../demo/area';
-import RegistrazioniVere from '../../../area/RegistrazioniVere.astro';
-import { togli } from '../../../area/registrazioni';
 
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
 const veste = vesteCorrente(Astro.params.veste);
-// Nel sito vero: "Togli" su una registrazione caricata da chi è entrato
-if (!DEMO && Astro.request.method === 'POST') {
-  const f = await Astro.request.formData();
-  const esito = await togli(String(f.get('id') ?? ''), Astro.locals.corista!.email).then(() => ({ ok: '1', esito: 'Registrazione tolta.' }), (e) => ({ ok: '0', esito: (e as Error).message }));
-  return Astro.redirect(`/area/registrazioni?${new URLSearchParams(esito)}`);
-}
+// Nel sito vero le registrazioni stanno sotto ogni prova, nella pagina Prove
+if (!DEMO) return Astro.redirect('/area/prove-fatte', 301);
 ---
 
 <Base veste={veste} titolo="Registrazioni · Area coristi" area={{ sezione: 'registrazioni' }}>
@@ -56,5 +50,5 @@ if (!DEMO && Astro.request.method === 'POST') {
       <p class="tenue" style="margin-top:32px;font-size:15px;border-top:1px solid var(--linea);padding-top:24px">Le registrazioni più vecchie di tre mesi restano nel Drive, nella cartella «Archivio».</p>
     </div>
   </div>
-  </>) : <RegistrazioniVere />}
+  </>) : null}
 </Base>

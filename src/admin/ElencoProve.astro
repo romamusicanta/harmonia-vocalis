@@ -76,7 +76,7 @@ for (const p of prossime) {
 {!errore && prove.length > 0 && prossime.length === 0 && <p class="tenue">Nessuna prova in programma nei prossimi quattro mesi.</p>}
 {passate.length > 0 && (
   <details class="passate">
-    <summary>Prove passate dell'ultimo mese ({passate.length})</summary>
+    <summary>Prove già fatte dell'ultimo mese ({passate.length}): per caricare le registrazioni, Modifica sulla prova</summary>
     <ul class="elenco-prove">
       {passate.map((p) => <RigaProva p={p} base={base} passata />)}
     </ul>

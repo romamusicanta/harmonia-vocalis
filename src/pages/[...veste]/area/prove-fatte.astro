@@ -1,0 +1,16 @@
+---
+// Area coristi: le prove già fatte della stagione con le loro registrazioni (src/area/ProveFatte.astro).
+// Nella demo c'è ancora la pagina Registrazioni di esempio.
+import Base from '../../../layouts/Base.astro';
+import ProveFatte from '../../../area/ProveFatte.astro';
+import { AREA_CORISTI, DEMO } from '../../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+if (DEMO) return Astro.redirect(link(veste, '/area/registrazioni'));
+---
+
+<Base veste={veste} titolo="Prove · Area coristi" area={{ sezione: 'prove-fatte' }}>
+  <ProveFatte />
+</Base>
