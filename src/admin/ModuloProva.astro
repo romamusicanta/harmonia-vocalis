@@ -66,9 +66,9 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 </form>
 
 {conRegistrazioni && (
-  <section class="scheda-admin registrazioni-prova" style="max-width:820px;margin-top:28px" data-evento={prova!.id}>
+  <section class="scheda-admin registrazioni-prova" id="registrazioni" style="max-width:820px;margin-top:28px;scroll-margin-top:140px" data-evento={prova!.id}>
     <h2 style="margin-top:0">Registrazioni della prova</h2>
-    <p class="tenue" style="font-size:15px">I coristi le trovano nella pagina Registrazioni. Si possono togliere anche quelle caricate dai coristi.</p>
+    <p class="tenue" style="font-size:15px">I coristi le ascoltano nella pagina Registrazioni della loro area, sotto questa prova. Con «Togli» il file va nel cestino del Drive del coro.</p>
     {registrate.length ? (
       <ul class="elenco-reg">
         {registrate.map((t) => <li><a href={t.link} target="_blank" rel="noopener">{t.titolo}</a><span class="tenue">{[t.chi, peso(t.dimensione)].filter(Boolean).join(' · ')}</span><button class="btn o piccolo togli-reg" type="button" data-id={t.id}>Togli</button></li>)}

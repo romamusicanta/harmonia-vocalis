@@ -151,7 +151,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
       })() : null}
 
       <article class="carta c-7 su">
-        <div class="ct"><h2>Avvisi</h2>{bacheca.filter(nuovo).length > 0 && <span class="tag grigio">{bacheca.filter(nuovo).length === 1 ? '1 nuovo' : `${bacheca.filter(nuovo).length} nuovi`}</span>}{ruoli.length > 0 && <a class="link-freccia" href="/area/avvisi">Scrivi un avviso <Icona nome="freccia" /></a>}</div>
+        <div class="ct"><h2>Avvisi</h2>{bacheca.filter(nuovo).length > 0 && <span class="tag grigio">{bacheca.filter(nuovo).length === 1 ? '1 nuovo' : `${bacheca.filter(nuovo).length} nuovi`}</span>}{ruoli.length > 0 && <a class="link-freccia" href="/admin/avvisi">Scrivi un avviso <Icona nome="freccia" /></a>}</div>
         {bacheca.length === 0 && <div class="cc tenue">Nessun avviso in bacheca.</div>}
         <ul class="avvisi">
           {bacheca.map((a) => {
@@ -188,7 +188,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
 
         {ultima && (
           <article class="carta">
-            <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href="/area/prove-fatte">Tutte <Icona nome="freccia" /></a></div>
+            <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href="/area/registrazioni">Tutte <Icona nome="freccia" /></a></div>
             <div class="cc" style="display:grid;gap:10px">
               <span class="tenue" style="font-size:14px">{maiuscola(quando(ultima.data))} · {ultima.titolo}{ultima.tracce[0] && ` · caricata da ${ultima.tracce[0].chi}`}</span>
               <a class="btn o piccolo" style="justify-self:start" href={linkDelSito(ultima.tracce[0]?.link ?? ultima.link)} target="_blank" rel="noopener"><Icona nome="play" />{ultima.tracce[0]?.titolo ?? 'Registrazione della prova'}</a>

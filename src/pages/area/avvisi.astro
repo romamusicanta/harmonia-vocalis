@@ -1,26 +1,6 @@
 ---
-// Area coristi: scrivere, modificare e cancellare gli avvisi della bacheca, per chi ha un ruolo
-// (presidente, tesoriere, Maestro, amministratori; vedi src/area/bacheca.ts).
-import Base from '../../layouts/Base.astro';
-import GestioneAvvisi from '../../area/GestioneAvvisi.astro';
-import { dopoIlModulo } from '../../area/bacheca';
-import { vesteCorrente } from '../../motore/url';
-
+// Gli avvisi della bacheca si scrivono dall'Amministrazione (/admin/avvisi), dove entrano anche
+// presidente e tesoriere con il solo menu Avvisi; questo indirizzo resta per i link vecchi.
 export const prerender = false;
-const veste = vesteCorrente(undefined);
-const email = Astro.locals.corista!.email;
-if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, email, '/area/avvisi'));
+return Astro.redirect('/admin/avvisi', 301);
 ---
-
-<Base veste={veste} titolo="Avvisi · Area coristi" area={{ sezione: 'avvisi' }}>
-  <div class="area-intesta">
-    <div class="w">
-      <div>
-        <span class="eti" style="margin-bottom:12px">Bacheca</span>
-        <h1>Avvisi</h1>
-        <p>Gli avvisi compaiono nella bacheca dell'area coristi, con la firma scelta. Dopo averlo pubblicato puoi mandarlo anche su WhatsApp.</p>
-      </div>
-    </div>
-  </div>
-  <div class="area-main"><div class="w" style="max-width:860px"><GestioneAvvisi email={email} /></div></div>
-</Base>

@@ -42,12 +42,12 @@ const info = {
 }[tipo];
 const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
 
-// Solo chi ha un ruolo nella bacheca vede la voce Avvisi, nell'area coristi e nell'Amministrazione
-// (i gruppi sono letti al più ogni 5 minuti)
-const emailRuoli = tipo === 'coristi' ? Astro.locals.corista?.email : tipo === 'admin' ? sessione?.email : undefined;
-const scriveAvvisi = conBarra && !DEMO && emailRuoli
-  ? (await ruoliDi(emailRuoli).catch(() => [])).length > 0
-  : false;
+// Nell'Amministrazione solo chi ha un ruolo nella bacheca vede la voce Avvisi (i gruppi sono letti al
+// più ogni 5 minuti); chi entra solo per gli avvisi (redattore = false) vede soltanto quella
+const soloAvvisi = tipo === 'admin' && sessione?.redattore === false;
+const scriveAvvisi = soloAvvisi || (tipo === 'admin' && conBarra && sessione
+  ? (await ruoliDi(sessione.email).catch(() => [])).length > 0
+  : false);
 
 // Sezioni di ogni area; quelle con tab stanno, sul telefono, nella barra in basso (al più cinque)
 type Sezione = { id: string; testo: string; breve?: string; icona?: NomeIcona; href: string; gruppo?: string; tab?: boolean };
@@ -55,12 +55,10 @@ const sezioni = ({
   coristi: [
     { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area'), tab: true },
     { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove'), tab: true },
-    // Le prove già fatte, con le registrazioni (nella demo la pagina Registrazioni di esempio)
-    { id: 'prove-fatte', testo: 'Prove', icona: 'microfono', href: DEMO ? link(veste, '/area/registrazioni') : '/area/prove-fatte', tab: true },
+    // Le prove già fatte della stagione, ognuna con le sue registrazioni
+    { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni'), tab: true },
     { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti'), tab: true },
     { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio'), tab: true },
-    // Solo per chi scrive gli avvisi della bacheca (presidente, tesoriere…: src/area/bacheca.ts)
-    ...(scriveAvvisi ? [{ id: 'avvisi', testo: 'Avvisi', icona: 'campanella' as const, href: '/area/avvisi' }] : []),
   ],
   maestro: [
     { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro', tab: true },
@@ -77,7 +75,7 @@ const sezioni = ({
     { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
     ...(scriveAvvisi ? [{ id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' }] : []),
   ],
-} as Record<typeof tipo, Sezione[]>)[tipo];
+} as Record<typeof tipo, Sezione[]>)[tipo].filter((s) => !soloAvvisi || s.id === 'avvisi');
 const tab = sezioni.filter((s) => s.tab && s.icona);
 // L'invito a installare l'app solo nella prima pagina dell'area
 const primaPagina = sezione === sezioni[0]?.id;

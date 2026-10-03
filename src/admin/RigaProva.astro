@@ -1,10 +1,12 @@
 ---
-// Una prova nell'elenco dell'Amministrazione (src/admin/ElencoProve.astro), con Modifica
+// Una prova nell'elenco dell'Amministrazione (src/admin/ElencoProve.astro), con Modifica; per le prove
+// già fatte anche quante registrazioni ha e il pulsante per caricarle
 import { SEPARATORE_PEZZI, type Prova } from './prove';
 import { parti } from '../motore/concerti';
 
-interface Props { p: Prova; base: string; etichetta?: string; passata?: boolean }
-const { p, base, etichetta, passata } = Astro.props;
+interface Props { p: Prova; base: string; etichetta?: string; passata?: boolean; registrazioni?: number }
+const { p, base, etichetta, passata, registrazioni } = Astro.props;
+const modifica = `${base}/prove/modifica?${new URLSearchParams({ id: p.id })}`;
 const d = parti({ data: p.data });
 const quando = `${d.giornoSettimana} ${Number(d.giorno)}${passata ? ` ${d.mese.toLowerCase()}` : ''}`;
 // Un solo nome per la prova di tutti i giorni: "Prova settimanale" e "Prova" sono la stessa cosa
@@ -13,13 +15,14 @@ const nome = /^prova( settimanale)?$/i.test(p.titolo) ? 'Prova' : p.titolo;
 
 <li class:list={['riga-prova', { passata, evidenza: etichetta }]}>
   <span class="quando"><b>{quando}</b><small>{p.inizio}–{p.fine}</small></span>
-  <span class="cosa"><b>{nome}</b>{etichetta && <span class="tag">{etichetta}</span>}{p.ricorrente && <span class="tag grigio">settimanale</span>}<small>{[p.luogo || 'Sala abituale', p.righe.Sezioni, p.righe.Repertorio.split(SEPARATORE_PEZZI).join(', '), p.righe.Brani, p.righe.Registrazione && 'registrazione'].filter(Boolean).join(' · ')}</small></span>
-  <span class="azioni"><a class="btn o piccolo" href={`${base}/prove/modifica?${new URLSearchParams({ id: p.id })}`}>Modifica</a></span>
+  <span class="cosa"><b>{nome}</b>{etichetta && <span class="tag">{etichetta}</span>}{p.ricorrente && <span class="tag grigio">settimanale</span>}<small>{[p.luogo || 'Sala abituale', p.righe.Sezioni, p.righe.Repertorio.split(SEPARATORE_PEZZI).join(', '), p.righe.Brani].filter(Boolean).join(' · ')}</small>{passata && <small class:list={['n-reg', { zero: !registrazioni }]}>{registrazioni ? (registrazioni === 1 ? '1 registrazione' : `${registrazioni} registrazioni`) : 'Nessuna registrazione'}</small>}</span>
+  <span class="azioni">{passata && <a class="btn g piccolo" href={`${modifica}#registrazioni`}>{registrazioni ? 'Registrazioni' : 'Carica registrazioni'}</a>}<a class="btn o piccolo" href={modifica}>Modifica</a></span>
 </li>
 
 <style>
   .riga-prova { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); padding: 12px 16px; }
-  .riga-prova.passata { opacity: .7; }
+  .n-reg { margin-top: 4px; font-weight: 600; color: var(--primario) !important; }
+  .n-reg.zero { font-weight: 400; color: var(--tenue) !important; }
   .riga-prova.evidenza { border-color: var(--primario); box-shadow: inset 4px 0 0 var(--accento); }
   .quando b, .cosa b { display: block; color: var(--primario); }
   .quando b::first-letter { text-transform: uppercase; }

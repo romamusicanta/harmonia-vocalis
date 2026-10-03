@@ -1,16 +1,15 @@
 ---
-// Area coristi, solo nella demo: registrazioni di esempio, raggruppate per giorno. Nel sito vero
-// reindirizza alla pagina Prove (/area/prove-fatte), dove le registrazioni stanno sotto ogni prova.
+// Area coristi: registrazioni delle prove. Nel sito vero l'elenco delle prove già fatte della
+// stagione, ognuna con le sue registrazioni (src/area/ProveFatte.astro); nella demo quelle di esempio.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { registrazioni, giorno, dataEstesa } from '../../../demo/area';
+import ProveFatte from '../../../area/ProveFatte.astro';
 
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
 const veste = vesteCorrente(Astro.params.veste);
-// Nel sito vero le registrazioni stanno sotto ogni prova, nella pagina Prove
-if (!DEMO) return Astro.redirect('/area/prove-fatte', 301);
 ---
 
 <Base veste={veste} titolo="Registrazioni · Area coristi" area={{ sezione: 'registrazioni' }}>
@@ -50,5 +49,5 @@ if (!DEMO) return Astro.redirect('/area/prove-fatte', 301);
       <p class="tenue" style="margin-top:32px;font-size:15px;border-top:1px solid var(--linea);padding-top:24px">Le registrazioni più vecchie di tre mesi restano nel Drive, nella cartella «Archivio».</p>
     </div>
   </div>
-  </>) : null}
+  </>) : <ProveFatte />}
 </Base>

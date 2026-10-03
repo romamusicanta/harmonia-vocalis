@@ -66,5 +66,7 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   const completa = sessione.foto === undefined ? await conFoto(sessione) : sessione;
   if (completa !== letta) salvaSessione(ctx.cookies, completa, ctx.url.protocol === 'https:');
   ctx.locals.sessione = completa;
+  // Chi ha solo un ruolo nella bacheca (tesoriere, presidente…) vede solo gli avvisi
+  if (completa.redattore === false && !/^\/admin\/avvisi\/?$/.test(pathname)) return ctx.redirect('/admin/avvisi');
   return riservata(await avanti());
 });

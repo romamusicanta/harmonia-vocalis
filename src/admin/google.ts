@@ -1,6 +1,8 @@
 // Accesso con Google all'area Amministrazione e chiamate alle API di Google a nome di chi è entrato.
 // Il client OAuth "web" sta nel progetto Google Cloud harmonia-vocalis-510406 (consenso Interno:
-// solo account del dominio). Entra solo chi fa parte del gruppo di coro.amministrazione.gruppo.
+// solo account del dominio). Entrano i redattori (gruppo coro.amministrazione.gruppo) e, per i soli
+// avvisi della bacheca, chi ha un ruolo in coro.coristi.bacheca (presidente, tesoriere…): per loro
+// la sessione ha redattore = false e il middleware apre solo /admin/avvisi.
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import type { Sessione } from './sessione';
@@ -52,21 +54,24 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } })).json();
   const { dominio, gruppo } = coro.amministrazione!;
   if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
-  if (!(await nelGruppo(t.access_token, io.email, gruppo))) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };
+  const suoi = await gruppiDi(t.access_token, io.email);
+  const redattore = suoi.has(gruppo.toLowerCase());
+  const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
+  if (!redattore && !conRuolo) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };
   return {
-    sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000 },
+    sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000, redattore },
   };
 }
 
 // I gruppi di cui l'utente fa parte (anche indirettamente): ognuno può sempre vedere i propri
-async function nelGruppo(accesso: string, email: string, gruppo: string) {
+async function gruppiDi(accesso: string, email: string) {
   const query = `member_key_id == '${email}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels`;
   const r = await fetch(`https://cloudidentity.googleapis.com/v1/groups/-/memberships:searchTransitiveGroups?${new URLSearchParams({ query })}`, {
     headers: { Authorization: `Bearer ${accesso}` },
   });
   if (!r.ok) throw new Error(`Non riesco a leggere i gruppi di ${email} (${r.status}): ${await r.text()}`);
   const { memberships = [] } = (await r.json()) as { memberships?: { groupKey?: { id?: string } }[] };
-  return memberships.some((m) => m.groupKey?.id?.toLowerCase() === gruppo.toLowerCase());
+  return new Set(memberships.map((m) => m.groupKey?.id?.toLowerCase()).filter((g): g is string => Boolean(g)));
 }
 
 // La foto dell'account Google ('' se non c'è); se Google non risponde, si riprova la volta dopo

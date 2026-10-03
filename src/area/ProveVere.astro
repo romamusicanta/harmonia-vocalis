@@ -2,7 +2,7 @@
 // Area coristi, pagina Calendario nel sito vero: prove (calendario "Prove") e concerti (calendario
 // "Concerti") dei prossimi tre mesi, con "Non ci sarò" che scrive nel foglio delle assenze
 // (/area/assenze). Chi tace è presente. Nelle prove i pezzi della riga "Repertorio:" portano alla
-// pagina Repertorio, "Registrazione:" diventa un pulsante; in fondo il link alla pagina Prove (prove fatte e registrazioni).
+// pagina Repertorio, "Registrazione:" diventa un pulsante; in fondo il link alla pagina Registrazioni.
 import Icona from '../componenti/Icona.astro';
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
@@ -123,7 +123,7 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
       ))}
     </div>
 
-    <p style="margin-top:28px"><a class="link-freccia" href="/area/prove-fatte"><Icona nome="microfono" />Prove già fatte e registrazioni <Icona nome="freccia" /></a></p>
+    <p style="margin-top:28px"><a class="link-freccia" href="/area/registrazioni"><Icona nome="microfono" />Registrazioni delle prove <Icona nome="freccia" /></a></p>
     <p class="tenue" style="margin-top:28px;font-size:15px;display:flex;gap:10px"><Icona nome="aggiorna" /><span>Il calendario si aggiorna da solo: se una prova viene spostata o annullata, lo vedi qui e sul telefono.</span></p>
   </div>
 </div>

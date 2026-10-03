@@ -1,7 +1,8 @@
 ---
-// Elenco delle prove del calendario "Prove" (ultimo mese e prossimi quattro) nell'Amministrazione
-// (/admin/prove, scrive chi è entrato): si apre sulle prossime, con "Oggi" o "Prossima" sulla prima;
-// le passate sono raccolte in fondo. Modifica per ogni data (Cancella sta dentro la modifica) e il
+// Elenco delle prove del calendario "Prove" (dall'inizio della stagione ai prossimi quattro mesi)
+// nell'Amministrazione (/admin/prove, scrive chi è entrato): si apre sulle prossime, con "Oggi" o
+// "Prossima" sulla prima; sotto le prove già fatte della stagione, ognuna con quante registrazioni ha
+// e il pulsante per caricarle (porta al riquadro Registrazioni del modulo di Modifica). Modifica per ogni data (Cancella sta dentro la modifica) e il
 // pulsante per una prova nuova. Dopo un salvataggio o una cancellazione, "Invia su WhatsApp" con il
 // messaggio già scritto per il gruppo dei coristi.
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
@@ -9,6 +10,8 @@ import { elencoProve, giornoEsteso, leggiProva, provaPerWhatsapp, type Chi, type
 import { linkWhatsapp } from '../area/bacheca';
 import Icona from '../componenti/Icona.astro';
 import RigaProva from './RigaProva.astro';
+import { inizioStagione } from '../area/dati';
+import { registrazioni } from '../area/registrazioni';
 import { parti } from '../motore/concerti';
 import Errore from '../area/Errore.astro';
 
@@ -23,7 +26,7 @@ let errore: unknown;
 if (!CALENDARIO_PROVE_ID) errore = 'Manca la variabile CALENDARIO_PROVE_ID sul server.';
 else {
   try {
-    prove = await elencoProve(chi, tra(-31), tra(122));
+    prove = await elencoProve(chi, inizioStagione(oggi), tra(122));
   } catch (e) {
     errore = e;
   }
@@ -44,6 +47,11 @@ if (cancellata) whatsapp = provaPerWhatsapp({ data: cancellata, inizio: q.get('o
 // Prossime per mese; le passate a parte, la più recente prima
 const prossime = prove.filter((p) => p.data >= oggi);
 const passate = prove.filter((p) => p.data < oggi).reverse();
+// Quante registrazioni ha ogni prova già fatta (file caricati più il link "Registrazione:")
+const quante = new Map<string, number>();
+if (passate.length) {
+  for (const g of await registrazioni().catch(() => [])) if (g.evento) quante.set(g.evento, g.tracce.length + (g.link ? 1 : 0));
+}
 const mesi = new Map<string, Prova[]>();
 for (const p of prossime) {
   const d = parti({ data: p.data });
@@ -75,18 +83,17 @@ for (const p of prossime) {
 ))}
 {!errore && prove.length > 0 && prossime.length === 0 && <p class="tenue">Nessuna prova in programma nei prossimi quattro mesi.</p>}
 {passate.length > 0 && (
-  <details class="passate">
-    <summary>Prove già fatte dell'ultimo mese ({passate.length}): per caricare le registrazioni, Modifica sulla prova</summary>
+  <section class="passate" id="fatte">
+    <h2>Prove già fatte della stagione</h2>
+    <p class="tenue" style="margin:0 0 12px;font-size:15px">Da qui si caricano le registrazioni: i coristi le trovano nella pagina Registrazioni della loro area, sotto la prova.</p>
     <ul class="elenco-prove">
-      {passate.map((p) => <RigaProva p={p} base={base} passata />)}
+      {passate.map((p) => <RigaProva p={p} base={base} passata registrazioni={quante.get(p.id) ?? 0} />)}
     </ul>
-  </details>
+  </section>
 )}
 {!errore && prove.length === 0 && <p class="tenue">Nessuna prova in calendario.</p>}
 
 <style>
   .elenco-prove { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-  .passate { margin-top: 32px; }
-  .passate summary { cursor: pointer; font-weight: 700; color: var(--primario); padding: 10px 0; }
-  .passate .elenco-prove { margin-top: 8px; }
+  .passate { margin-top: 40px; padding-top: 8px; border-top: 2px solid var(--linea); }
 </style>

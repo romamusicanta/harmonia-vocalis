@@ -1,7 +1,7 @@
 // Registrazioni delle prove: file audio (o video) caricati dai redattori dal modulo di Modifica
 // della prova (Amministrazione) nella cartella "Registrazioni prove" del Drive condiviso
 // (DRIVE_CARTELLA_REGISTRAZIONI), una sottocartella per prova ("AAAA-MM-GG Titolo"). I coristi le
-// ascoltano nella pagina Prove della loro area (/area/prove-fatte), sotto ogni prova. Chi ha
+// ascoltano nella pagina Registrazioni della loro area, sotto ogni prova della stagione. Chi ha
 // caricato e il titolo stanno nelle proprietà del file su Drive (appProperties: caricatoDa,
 // titolo, evento): niente foglio. Si aggiungono i link "Registrazione:" scritti nelle prove del
 // calendario. Si ascoltano dal sito (src/area/file.ts); i redattori le tolgono (cestino del Drive condiviso).

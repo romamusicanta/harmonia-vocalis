@@ -12,6 +12,7 @@ export interface Sessione {
   accesso: string; // token di accesso di Google
   rinnovo?: string; // token per rinnovarlo, se Google l'ha dato
   scade: number; // scadenza del token di accesso (ms)
+  redattore?: boolean; // false = entra solo per gli avvisi (presidente, tesoriere); mancante = redattore (sessioni di prima)
 }
 
 const NOME = 'hv-admin';
