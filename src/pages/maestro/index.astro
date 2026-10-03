@@ -6,7 +6,7 @@
 import Base from '../../layouts/Base.astro';
 import { vesteCorrente } from '../../motore/url';
 import { parti } from '../../motore/concerti';
-import { assenze, attivi, configurati, coristi, eventi, inizioStagione, oggi, piuGiorni, riepilogo, sezioniDi, type Riepilogo } from '../../area/dati';
+import { assenze, attivi, configurati, coristi, eventi, inizioStagione, nomeEvento, oggi, piuGiorni, riepilogo, sezioniDi, type Riepilogo } from '../../area/dati';
 import Errore from '../../area/Errore.astro';
 
 export const prerender = false;
@@ -69,7 +69,7 @@ const sezioniAssiduita = sezioniDi(assiduita);
           <article class="carta c-6 su">
             <div class="ct"><h2>{quando(r.evento.data)}{r.evento.inizio && ` · ${r.evento.inizio}`}</h2><span class:list={['tag', { blu: r.evento.tipo === 'concerto' }]}>{r.evento.tipo === 'concerto' ? 'Prossimo concerto' : 'Prossima prova'}</span></div>
             <div class="cc" style="border-bottom:1px solid var(--linea)">
-              <div class="tenue" style="font-size:15px;margin-bottom:8px">{r.evento.titolo}</div>
+              <div class="tenue" style="font-size:15px;margin-bottom:8px">{nomeEvento(r.evento)}</div>
               <b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:48px;line-height:.8;color:var(--primario)">{r.attesi.length - r.assenti.length}</b><span class="tenue" style="font-size:17px;font-weight:600;margin-left:10px">attesi su {r.attesi.length}</span>
             </div>
             <div class="sezioni-presenze">
@@ -113,7 +113,7 @@ const sezioniAssiduita = sezioniDi(assiduita);
               {storico.map((r) => (
                 <li>
                   <details>
-                    <summary><span class="dt">{breve(r.evento.data)}</span><span class="ti">{r.evento.titolo}</span><span class="nm"><b>{r.attesi.length - r.assenti.length}</b>/{r.attesi.length}</span></summary>
+                    <summary><span class="dt">{breve(r.evento.data)}</span><span class="ti">{nomeEvento(r.evento)}</span><span class="nm"><b>{r.attesi.length - r.assenti.length}</b>/{r.attesi.length}</span></summary>
                     <div class="tenue" style="padding:4px 0 12px">{r.assenti.length ? r.assenti.map((c) => `${c.nome} ${c.cognome} (${c.sezione}${c.nota ? `: ${c.nota}` : ''})`).join(' · ') : 'Nessun assente.'}</div>
                   </details>
                 </li>

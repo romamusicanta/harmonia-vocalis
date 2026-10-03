@@ -6,7 +6,7 @@
 // è chi è atteso meno chi ha segnalato l'assenza.
 import Icona from '../componenti/Icona.astro';
 import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, luogoDi, riepilogo, type Evento, type Riepilogo } from './dati';
+import { aperto, assenze, coristaDi, coristi, luogoBreveDi, luogoDi, nomeEvento, riepilogo, type Evento, type Riepilogo } from './dati';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
 import { repertorio, type Pezzo } from './repertorio';
 import Errore from './Errore.astro';
@@ -51,6 +51,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
       const d = parti({ data: e.data });
       const assente = mie.has(e.id);
       const luogo = luogoDi(e);
+      const luogoBreve = luogoBreveDi(e);
       const generale = c && c.generale.ora ? { quando: c.generale.data && c.generale.data !== e.data ? quando(c.generale.data) : 'lo stesso giorno', ora: c.generale.ora, dove: c.generale.luogo || luogo } : undefined;
       return (
         <article class="convocazione" id={`c-${e.id}`}>
@@ -58,8 +59,8 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
             <div class="data"><b>{d.giorno}</b><span>{d.giornoSettimana}<br />{d.mese} {d.anno}</span></div>
             <div class="titolo">
               <div style="display:flex;gap:8px;flex-wrap:wrap">{vuota(c) && <span class="tag grigio">Convocazione in arrivo</span>}{assente && <span class="tag rosso">Non ci sarai</span>}</div>
-              <h2>{e.titolo}</h2>
-              <span class="tenue">{[e.inizio && `ore ${e.inizio}`, luogo].filter(Boolean).join(' · ')}{pubblica && <> · <a class="link-freccia" href={pubblica}>Pagina pubblica <Icona nome="freccia" /></a></>}</span>
+              {e.rassegna && <span class="aut">{e.rassegna}</span>}<h2>{nomeEvento(e)}</h2>
+              <span class="tenue">{[e.inizio && `ore ${e.inizio}`, luogoBreve].filter(Boolean).join(' · ')}{pubblica && <> · <a class="link-freccia" href={pubblica}>Pagina pubblica <Icona nome="freccia" /></a></>}</span>
             </div>
           </div>
           <div class="corpo-c">
@@ -103,7 +104,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
               <div class="legenda" style="margin-top:14px"><span><i style="background:var(--primario)"></i>Attesi</span><span><i style="background:var(--rosso)"></i>Assenti</span></div>
               <div style="margin-top:20px">
                 {io && aperto(e) ? (
-                  <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id} data-data={e.data} data-etichetta={`${quando(e.data)} · concerto ${e.titolo}`}>
+                  <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id} data-data={e.data} data-etichetta={`${quando(e.data)} · concerto ${nomeEvento(e)}`}>
                     <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button" style="width:100%"><Icona nome="chiudi" />Non ci sarò</button></div>
                     <div class="fatto">
                       <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata · <button class="togli" type="button">Ritira</button></div>

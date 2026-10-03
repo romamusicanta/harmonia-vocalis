@@ -106,6 +106,20 @@ function leggiAllegati(e: ical.VEvent, dati: { foto?: string; locandina?: string
 }
 
 // avvisa riceve i problemi dell'evento (righe ignorate, foto inesistenti…); senza, vanno a console
+// Per le aree riservate, che leggono il calendario con l'API di Google (src/area/dati.ts): opera,
+// autore, rassegna e luogo breve di un evento, con le stesse regole del sito pubblico
+export function sommario(titoloEvento: string, descrizione = '', luogo = '') {
+  const { programma } = leggiDescrizione(descrizione, () => {});
+  const [principale] = programma;
+  const l = leggiLuogo(luogo);
+  return {
+    autore: principale?.autore,
+    opera: principale?.opera || titoloEvento,
+    rassegna: principale && titoloEvento !== principale.opera ? titoloEvento || undefined : undefined,
+    luogoBreve: [l.luogo, l.sala].filter(Boolean).join(' · ') || undefined,
+  };
+}
+
 export function daEvento(e: ical.VEvent, avvisa?: (m: string) => void): Concerto {
   const soloGiorno = (e.start as { dateOnly?: boolean }).dateOnly === true;
   const data = soloGiorno ? giornoIso(e.start) : oraRoma(e.start);

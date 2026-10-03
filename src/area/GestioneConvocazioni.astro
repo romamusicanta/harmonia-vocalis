@@ -7,7 +7,7 @@ import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
-import type { Evento } from './dati';
+import { luogoBreveDi, nomeEvento, type Evento } from './dati';
 import Errore from './Errore.astro';
 
 interface Props { base: '/admin' | '/maestro' }
@@ -35,9 +35,9 @@ const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.g
 
 {scelto && (
   <form method="post" class="carta modulo-conv" id="modulo">
-    <div class="ct"><h2>{scelto.titolo}</h2><a class="link-freccia" href={`${base}/convocazioni`}>Chiudi</a></div>
+    <div class="ct"><h2>{nomeEvento(scelto)}</h2><a class="link-freccia" href={`${base}/convocazioni`}>Chiudi</a></div>
     <div class="cc">
-      <p class="tenue" style="margin:0">{quando(scelto)}{scelto.inizio && `, ore ${scelto.inizio}`}{scelto.luogo && ` · ${scelto.luogo}`}</p>
+      <p class="tenue" style="margin:0">{quando(scelto)}{scelto.inizio && `, ore ${scelto.inizio}`}{luogoBreveDi(scelto) && ` · ${luogoBreveDi(scelto)}`}{scelto.rassegna && ` · ${scelto.rassegna}`}</p>
       <input type="hidden" name="evento" value={scelto.id} />
 
       <fieldset>
@@ -89,7 +89,7 @@ const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.g
       <li id={`c-${e.id}`} class:list={{ attivo: e.id === scelto?.id }}>
         <div>
           <span class="aut">{quando(e)}</span>
-          <b>{e.titolo}</b>
+          <b>{nomeEvento(e)}</b>{e.rassegna && <span class="tenue dettagli">{e.rassegna}</span>}
           <span class="tenue dettagli">{vuota(cv) ? 'Convocazione da scrivere' : [cv!.convocazione && `convocazione ${cv!.convocazione}`, cv!.generale.ora && `generale ${cv!.generale.data && cv!.generale.data !== e.data ? `${cv!.generale.data.split('-').reverse().slice(0, 2).join('/')} ` : ''}${cv!.generale.ora}`, cv!.repertorio.length && `${cv!.repertorio.length} ${cv!.repertorio.length === 1 ? 'pezzo' : 'pezzi'}`].filter(Boolean).join(' · ') || 'Convocazione scritta'}</span>
         </div>
         <a class:list={['btn', 'piccolo', vuota(cv) ? 'g' : 'o']} href={`${base}/convocazioni?modifica=${encodeURIComponent(e.id)}#modulo`}>{vuota(cv) ? 'Scrivi la convocazione' : 'Modifica'}</a>

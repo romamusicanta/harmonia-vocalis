@@ -9,6 +9,7 @@
 import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, FOGLIO_CORISTI_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import { google, normalizza } from './servizio';
+import { sommario } from '../motore/calendario';
 
 const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
 const CAL = 'https://www.googleapis.com/calendar/v3';
@@ -108,7 +109,16 @@ export interface Evento {
   titolo: string;
   luogo?: string;
   righe: [string, string][]; // righe "Etichetta: valore" della descrizione (Brani, Portare, Note…)
+  // Solo per i concerti: come nel sito pubblico, l'opera (con l'autore) al posto del titolo
+  // dell'evento, che di solito è la rassegna, e il luogo breve ("Rignano Flaminio (RM) · Chiesa…")
+  opera?: string;
+  autore?: string;
+  rassegna?: string;
+  luogoBreve?: string;
 }
+
+// "Mozart · Requiem in re minore K 626" per i concerti, il titolo per le prove
+export const nomeEvento = (e: Evento) => (e.tipo === 'concerto' && e.opera ? [e.autore?.split(/\s+/).at(-1), e.opera].filter(Boolean).join(' · ') : e.titolo);
 
 interface EventoApi {
   id: string;
@@ -136,6 +146,7 @@ function evento(e: EventoApi, tipo: Evento['tipo']): Evento {
     titolo: e.summary?.trim() || (tipo === 'prova' ? 'Prova' : 'Concerto'),
     luogo: e.location?.trim() || undefined,
     righe,
+    ...(tipo === 'concerto' ? sommario(e.summary?.trim() ?? '', testo(e.description), e.location ?? '') : {}),
   };
 }
 
@@ -173,6 +184,8 @@ export async function eventoDa(id: string) {
 export const aperto = (e: Evento) => e.inizioMs > Date.now();
 
 export const luogoDi = (e: Evento) => e.luogo ?? (e.tipo === 'prova' ? `${coro.prove.nome}, ${coro.prove.indirizzo}` : undefined);
+// Per le schede: il luogo breve dei concerti (l'indirizzo completo resta per la mappa)
+export const luogoBreveDi = (e: Evento) => (e.tipo === 'concerto' ? e.luogoBreve ?? e.luogo : luogoDi(e));
 
 // ——— Assenze ———
 

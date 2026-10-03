@@ -7,7 +7,7 @@
 import Icona from '../componenti/Icona.astro';
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, eventi, luogoDi, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { convocazioni, type Convocazione } from './convocazioni';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
@@ -44,7 +44,13 @@ const pezzoDi = (t: string) => pezzi.find((p) => p.titolo === t.trim());
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const traGiorni = (iso: string) => { const n = Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000); return n === 0 ? 'Oggi' : n === 1 ? 'Domani' : `Tra ${n} giorni`; };
 const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const intro = [prova && `${maiuscola(quando(prova.data))} la prossima prova`, concerto && `${quando(concerto.data)} il concerto`].filter(Boolean).join(', ');
+// Prima l'appuntamento più vicino: se il concerto viene prima della prova, la sua scheda passa in
+// testa e diventa grande; entro una settimana porta anche "Tra N giorni"
+const concertoPrima = Boolean(concerto && (!prova || concerto.inizioMs < prova.inizioMs));
+const intro = (concertoPrima
+  ? [concerto && `${maiuscola(quando(concerto.data))} il concerto`, prova && `${quando(prova.data)} la prossima prova`]
+  : [prova && `${maiuscola(quando(prova.data))} la prossima prova`, concerto && `${quando(concerto.data)} il concerto`]).filter(Boolean).join(', ');
+const giorniAl = (iso: string) => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000);
 const iscrizione = CALENDARIO_PROVE_ID && `https://calendar.google.com/calendar/u/0/r?${new URLSearchParams({ cid: CALENDARIO_PROVE_ID })}`;
 const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== concerto!.data ? `${quando(cv.generale.data)}, ` : ''}ore ${cv.generale.ora}` : undefined;
 ---
@@ -70,7 +76,7 @@ const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== 
         const brani = riga(prova, 'Brani');
         const assente = mie.has(prova.id);
         return (
-          <article class="carta blu c-7">
+          <article class:list={['carta blu', concertoPrima ? 'c-5' : 'c-7']} style={concertoPrima ? 'order:1' : undefined}>
             <div class="ct"><h2>Prossima prova{prova.titolo !== 'Prova' && ` · ${prova.titolo.toLowerCase()}`}</h2><span class="tag">{traGiorni(prova.data)}</span></div>
             <div class="cc">
               <div class="prova-evidenza">
@@ -107,19 +113,19 @@ const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== 
           </article>
         );
       })() : (
-        <article class="carta c-7"><div class="ct"><h2>Prossima prova</h2></div><div class="cc tenue">Nessuna prova in calendario nei prossimi mesi.</div></article>
+        <article class:list={['carta', concertoPrima ? 'c-5' : 'c-7']} style={concertoPrima ? 'order:1' : undefined}><div class="ct"><h2>Prossima prova</h2></div><div class="cc tenue">Nessuna prova in calendario nei prossimi mesi.</div></article>
       )}
 
       {concerto ? (() => {
         const d = parti({ data: concerto.data });
         const assente = mie.has(concerto.id);
         return (
-          <article class="carta c-5">
-            <div class="ct"><h2>Prossimo concerto</h2><a class="link-freccia" href={`/area/concerti#c-${concerto.id}`}>Convocazione <Icona nome="freccia" /></a></div>
+          <article class:list={['carta', concertoPrima ? 'c-7 concerto-in-testa' : 'c-5']}>
+            <div class="ct"><h2>Prossimo concerto</h2>{concertoPrima && giorniAl(concerto.data) <= 7 && <span class="tag">{traGiorni(concerto.data)}</span>}<a class="link-freccia" href={`/area/concerti#c-${concerto.id}`}>Convocazione <Icona nome="freccia" /></a></div>
             <div class="cc">
               <div style="display:flex;gap:20px;align-items:flex-start">
                 <span class="data-grande">{d.giorno}<small>{d.meseBreve} · {d.giornoSettimana}</small></span>
-                <div style="min-width:0"><h3 style="font-size:22px">{concerto.titolo}</h3><span class="tenue" style="font-size:15px">{[concerto.inizio && `ore ${concerto.inizio}`, luogoDi(concerto)].filter(Boolean).join(' · ')}</span></div>
+                <div style="min-width:0">{concerto.rassegna && <span class="aut">{concerto.rassegna}</span>}<h3 style="font-size:22px">{nomeEvento(concerto)}</h3><span class="tenue" style="font-size:15px">{[concerto.inizio && `ore ${concerto.inizio}`, luogoBreveDi(concerto)].filter(Boolean).join(' · ')}</span></div>
               </div>
               {cv && (cv.convocazione || generale) ? (
                 <ul class="orari" style="margin-top:20px">
@@ -129,7 +135,7 @@ const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== 
                 </ul>
               ) : <p class="tenue" style="margin-top:16px;font-size:15px">Convocazione e prova generale in arrivo.</p>}
               {io && aperto(concerto) ? (
-                <div class:list={['assenza', { segnalata: assente }]} data-evento={concerto.id} data-etichetta={`${quando(concerto.data)} · concerto ${concerto.titolo}`} style="margin-top:20px">
+                <div class:list={['assenza', { segnalata: assente }]} data-evento={concerto.id} data-etichetta={`${quando(concerto.data)} · concerto ${nomeEvento(concerto)}`} style="margin-top:20px">
                   <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button"><Icona nome="chiudi" />Non ci sarò</button></div>
                   <div class="fatto">
                     <div class="stato-assenza"><Icona nome="spunta" />Hai segnalato l'assenza · <button class="togli" type="button">Ritira</button></div>
@@ -205,3 +211,10 @@ const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== 
 <script>
   import './assenze-client';
 </script>
+
+<style>
+  /* Il concerto in testa: bordo giallo per farlo notare */
+  .concerto-in-testa { border: 2px solid var(--accento); }
+  .cruscotto > :not([style*="order"]) { order: 2; }
+  .cruscotto > .concerto-in-testa { order: 0; }
+</style>
