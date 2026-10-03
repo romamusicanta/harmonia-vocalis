@@ -2,13 +2,14 @@
 // una riga per concerto, legata all'evento del calendario pubblico "Concerti" dal suo ID. Lì stanno
 // solo le informazioni riservate ai coristi: orario di convocazione, prova generale (sempre una
 // prova del calendario "Prove", di cui si tiene l'ID: così ha presenze e promemoria), programma della giornata, abito, cosa portare, come arrivare, pezzi del
-// repertorio, note. Le scrivono i redattori (Amministrazione); i coristi le leggono nella pagina Concerti della loro area. La presenza
+// repertorio in programma, bis (anch'essi dal repertorio: non compaiono mai nel sito pubblico), note. Le scrivono i redattori (Amministrazione); i coristi le leggono nella pagina Concerti della loro area. La presenza
 // si segna come per le prove, con "Non ci sarò" (scheda Assenze).
 import { adesso, eventi, idScheda, leggiScheda, luogoBreveDi, nomeEvento, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
 import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Convocazioni';
-const COLONNE = ['ID evento', 'Data', 'Concerto', 'Convocazione', 'Ritrovo', 'Prova generale', 'Programma', 'Abito', 'Portare', 'Come arrivare', 'Repertorio', 'Note', 'Aggiornato il', 'Aggiornato da'];
+const COLONNE = ['ID evento', 'Data', 'Concerto', 'Convocazione', 'Ritrovo', 'Prova generale', 'Programma', 'Abito', 'Portare', 'Come arrivare', 'Repertorio', 'Note', 'Aggiornato il', 'Aggiornato da', 'Bis'];
+// Le colonne nuove vanno sempre in fondo: idScheda le aggiunge all'intestazione delle schede già create
 export const SEPARATORE_PEZZI = ' · ';
 
 export interface Convocazione {
@@ -21,7 +22,8 @@ export interface Convocazione {
   abito: string;
   portare: string[];         // una riga per cosa
   arrivare: string;
-  repertorio: string[];      // titoli dei pezzi del repertorio
+  repertorio: string[];      // titoli dei pezzi del repertorio in programma, nell'ordine
+  bis: string[];             // titoli dei pezzi del repertorio per i bis, nell'ordine (riservati ai coristi)
   note: string;
 }
 
@@ -46,6 +48,7 @@ export async function convocazioni(): Promise<Map<string, Convocazione>> {
     portare: righe(r['Portare']),
     arrivare: r['Come arrivare'],
     repertorio: (r['Repertorio'] ?? '').split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean),
+    bis: (r['Bis'] ?? '').split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean),
     note: r['Note'],
   }));
   return new Map(elenco.map((c) => [c.idEvento, c]));
@@ -72,7 +75,7 @@ export function convocazionePerWhatsapp(e: Evento, c: Convocazione, generale: Ev
 }
 
 // C'è qualcosa da mostrare?
-export const vuota = (c?: Convocazione) => !c || !(c.convocazione || c.generale || c.programma.length || c.abito || c.portare.length || c.arrivare || c.repertorio.length || c.note);
+export const vuota = (c?: Convocazione) => !c || !(c.convocazione || c.generale || c.programma.length || c.abito || c.portare.length || c.arrivare || c.repertorio.length || c.bis.length || c.note);
 
 const t = (v?: string) => (v ? `'${v}` : '');
 const perFoglio = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '');
@@ -92,6 +95,7 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
     t(v('programma')), t(v('abito')), t(v('portare')), t(v('arrivare')),
     t(f.getAll('repertorio').map(String).filter(Boolean).join(SEPARATORE_PEZZI)),
     t(v('note')), adesso(), email,
+    t(f.getAll('bis').map(String).filter(Boolean).join(SEPARATORE_PEZZI)),
   ];
   await scriviRiga(SCHEDA, valori, esistente?.riga);
   return { ok: true, messaggio: `Convocazione del ${e.data.split('-').reverse().join('/')} salvata.`, evento: idEvento };

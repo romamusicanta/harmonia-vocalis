@@ -91,7 +91,13 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
               {c && c.repertorio.length > 0 && (
                 <>
                   <h3 style="margin-top:20px">In programma</h3>
-                  <ul class="elenco-puntato" style="font-size:15px">{c.repertorio.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</li>; })}</ul>
+                  <ol class="elenco-puntato" style="font-size:15px">{c.repertorio.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</li>; })}</ol>
+                </>
+              )}
+              {c && c.bis.length > 0 && (
+                <>
+                  <h3 style="margin-top:20px">Bis</h3>
+                  <ol class="elenco-puntato" style="font-size:15px">{c.bis.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</li>; })}</ol>
                 </>
               )}
               {(c?.arrivare || luogo) && <h3 style="margin-top:20px">Come arrivare</h3>}

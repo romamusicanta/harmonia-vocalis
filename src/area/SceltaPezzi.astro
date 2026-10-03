@@ -1,0 +1,127 @@
+---
+// Scelta dei pezzi del repertorio in un modulo (prova, programma e bis di una convocazione): un campo
+// di ricerca per autore o titolo con l'elenco dei pezzi che corrispondono, e sotto i pezzi scelti,
+// nell'ordine in cui si scelgono, ognuno con "Togli". Al modulo arrivano come tanti campi <nome>
+// con il titolo del pezzo, come le vecchie caselle. I titoli scelti che non sono (più) nel
+// repertorio restano scelti.
+import { nomeCompleto, type Pezzo } from './repertorio';
+
+interface Props { nome: string; etichetta: string; pezzi: Pezzo[]; scelti: string[]; aiuto?: string }
+const { nome, etichetta, pezzi, scelti, aiuto } = Astro.props;
+const id = `scelta-${nome}`;
+const voce = (titolo: string) => {
+  const p = pezzi.find((x) => x.titolo === titolo);
+  return { titolo, testo: p ? nomeCompleto(p) : titolo };
+};
+---
+
+<fieldset class="scelta-pezzi" data-nome={nome}>
+  <legend>{etichetta}</legend>
+  {pezzi.length === 0 && scelti.length === 0 ? (
+    <small class="aiuto">Il repertorio è vuoto: i pezzi si aggiungono dalla pagina Repertorio.</small>
+  ) : (
+    <>
+      <div class="cerca-pezzo">
+        <input id={id} type="search" role="combobox" aria-expanded="false" aria-controls={`${id}-elenco`} aria-autocomplete="list" autocomplete="off" placeholder="Cerca per autore o titolo…" aria-label={`${etichetta}: cerca un pezzo`} />
+        <ul class="risultati" id={`${id}-elenco`} role="listbox" hidden>
+          {pezzi.map((p) => <li role="option" data-titolo={p.titolo} data-testo={nomeCompleto(p)} data-cerca={`${p.autore} ${p.titolo}`.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}><b>{p.titolo}</b>{p.autore && <small>{p.autore}</small>}</li>)}
+          <li class="nessuno" hidden>Nessun pezzo trovato</li>
+        </ul>
+      </div>
+      <ol class="scelti">
+        {scelti.map(voce).map((v) => <li><input type="hidden" name={nome} value={v.titolo} /><span>{v.testo}</span><button type="button" class="togli-pezzo" aria-label={`Togli ${v.testo}`}>Togli</button></li>)}
+      </ol>
+      <small class="aiuto vuoto-scelti">Nessun pezzo scelto.</small>
+    </>
+  )}
+  {aiuto && <small class="aiuto">{aiuto}</small>}
+</fieldset>
+
+<style is:global>
+  /* Globale: le righe dei pezzi scelti le crea anche lo script, senza l'attributo degli stili di Astro */
+  .scelta-pezzi { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .scelta-pezzi legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 8px; }
+  .scelta-pezzi .cerca-pezzo { position: relative; }
+  .scelta-pezzi .cerca-pezzo input { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
+  .scelta-pezzi .risultati { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); list-style: none; margin: 0; padding: 4px; max-height: 280px; overflow-y: auto; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); box-shadow: var(--ombra); }
+  .scelta-pezzi .risultati[hidden], .scelta-pezzi .risultati li[hidden] { display: none; }
+  .scelta-pezzi .risultati li { padding: 9px 10px; cursor: pointer; border-radius: var(--raggio); display: grid; }
+  .scelta-pezzi .risultati li small { color: var(--tenue); font-size: 13px; }
+  .scelta-pezzi .risultati li[aria-selected="true"], .scelta-pezzi .risultati li:hover { background: var(--fondo); }
+  .scelta-pezzi .risultati li.gia { opacity: .45; }
+  .scelta-pezzi .risultati .nessuno { cursor: default; color: var(--tenue); }
+  .scelta-pezzi .scelti { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; counter-reset: pezzo; }
+  .scelta-pezzi .scelti li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); counter-increment: pezzo; }
+  .scelta-pezzi .scelti li::before { content: counter(pezzo) "."; color: var(--tenue); font-size: 14px; min-width: 1.4em; }
+  .scelta-pezzi .scelti li span { flex: 1; min-width: 0; font-weight: 500; color: var(--testo); }
+  .scelta-pezzi .togli-pezzo { background: none; border: 0; color: var(--rosso); font: inherit; font-size: 14px; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 4px; }
+  .scelta-pezzi .aiuto { color: var(--tenue); font-size: 13px; font-weight: 400; }
+  .scelta-pezzi .scelti:has(li) + .vuoto-scelti { display: none; }
+</style>
+
+<script>
+  // Ricerca nel repertorio: si scrive, si sceglie con un tocco (o frecce e Invio) e il pezzo va in fondo all'elenco
+  const semplice = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  document.querySelectorAll<HTMLFieldSetElement>('.scelta-pezzi').forEach((box) => {
+    const input = box.querySelector<HTMLInputElement>('input[type=search]');
+    const elenco = box.querySelector<HTMLUListElement>('.risultati');
+    const scelti = box.querySelector<HTMLOListElement>('.scelti');
+    if (!input || !elenco || !scelti) return;
+    const nome = box.dataset.nome!;
+    const opzioni = [...elenco.querySelectorAll<HTMLLIElement>('li[data-titolo]')];
+    const nessuno = elenco.querySelector<HTMLLIElement>('.nessuno')!;
+    let attiva = -1;
+    const giaScelti = () => new Set([...scelti.querySelectorAll<HTMLInputElement>('input')].map((i) => i.value));
+    const visibili = () => opzioni.filter((o) => !o.hidden);
+    const evidenzia = (i: number) => {
+      const v = visibili();
+      attiva = v.length ? (i + v.length) % v.length : -1;
+      v.forEach((o, j) => o.setAttribute('aria-selected', String(j === attiva)));
+      v[attiva]?.scrollIntoView({ block: 'nearest' });
+    };
+    const apri = (si: boolean) => { elenco.hidden = !si; input.setAttribute('aria-expanded', String(si)); };
+    const filtra = () => {
+      const parole = semplice(input.value).split(/\s+/).filter(Boolean);
+      const gia = giaScelti();
+      opzioni.forEach((o) => {
+        o.hidden = !parole.every((p) => o.dataset.cerca!.includes(p));
+        o.classList.toggle('gia', gia.has(o.dataset.titolo!));
+      });
+      nessuno.hidden = visibili().length > 0;
+      apri(true);
+      evidenzia(0);
+    };
+    const aggiungi = (o: HTMLLIElement) => {
+      if (giaScelti().has(o.dataset.titolo!)) return;
+      const li = document.createElement('li');
+      const nascosto = Object.assign(document.createElement('input'), { type: 'hidden', name: nome, value: o.dataset.titolo! });
+      const testo = Object.assign(document.createElement('span'), { textContent: o.dataset.testo! });
+      const togli = Object.assign(document.createElement('button'), { type: 'button', className: 'togli-pezzo', textContent: 'Togli' });
+      togli.setAttribute('aria-label', `Togli ${o.dataset.testo}`);
+      li.append(nascosto, testo, togli);
+      scelti.append(li);
+      li.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
+      input.value = '';
+      apri(false);
+      input.focus();
+    };
+    input.addEventListener('input', filtra);
+    input.addEventListener('focus', filtra);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (elenco.hidden) filtra(); else evidenzia(attiva + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); evidenzia(attiva - 1); }
+      else if (e.key === 'Enter') { e.preventDefault(); const o = visibili()[attiva]; if (o && !elenco.hidden) aggiungi(o); }
+      else if (e.key === 'Escape') apri(false);
+    });
+    elenco.addEventListener('mousedown', (e) => e.preventDefault());
+    elenco.addEventListener('click', (e) => { const o = (e.target as HTMLElement).closest<HTMLLIElement>('li[data-titolo]'); if (o) aggiungi(o); });
+    input.addEventListener('blur', () => apri(false));
+    scelti.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('.togli-pezzo');
+      if (!b) return;
+      b.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
+      b.closest('li')!.remove();
+      input.focus();
+    });
+  });
+</script>

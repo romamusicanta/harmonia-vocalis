@@ -124,7 +124,7 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
     cartella: esistente?.cartella,
   };
   await scrivi(pezzo, esistente?.riga, email);
-  return { ok: true, messaggio: esistente ? 'Pezzo aggiornato.' : 'Pezzo aggiunto al repertorio: ora carica lo spartito e i brani qui sotto.', id: pezzo.id };
+  return { ok: true, messaggio: esistente ? `«${nomeCompleto(pezzo)}» aggiornato.` : `«${nomeCompleto(pezzo)}» aggiunto al repertorio.`, id: pezzo.id };
 }
 
 // Il Maestro scrive solo le sue note sull'esecuzione di un pezzo (/maestro/repertorio)
@@ -142,8 +142,14 @@ export async function dopoIlModulo(request: Request, email: string, percorso: st
   const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, id: undefined }));
   const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
   const id = r.id ?? (f.get('azione') !== 'cancella' ? String(f.get('id') ?? '') : '');
+  // Dopo "Salva" si torna all'elenco (a un pezzo nuovo si propone di caricare i file); dopo "Togli"
+  // di un file, o se il salvataggio non è riuscito, si resta nel modulo
+  if (f.get('azione') === 'salva' && r.ok) {
+    if (!f.get('id') && id) p.set('file', id);
+    return `${percorso}?${p}${id ? `#p-${id}` : ''}`;
+  }
   if (id) p.set('modifica', id);
-  return `${percorso}?${p}${r.ok && f.get('azione') === 'salva' && !f.get('id') ? '#file' : ''}`;
+  return `${percorso}?${p}`;
 }
 
 // ——— File su Drive ———

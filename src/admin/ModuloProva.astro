@@ -4,7 +4,8 @@
 // Convenzione dell'evento in src/admin/prove.ts; i pezzi da scegliere vengono dal repertorio.
 import { coro } from '../motore/coro';
 import { salaAbituale, SEPARATORE_PEZZI, type Prova } from './prove';
-import { nomeCompleto, repertorio, type Pezzo } from '../area/repertorio';
+import { repertorio, type Pezzo } from '../area/repertorio';
+import SceltaPezzi from '../area/SceltaPezzi.astro';
 import { fileDellaProva, type Traccia } from '../area/registrazioni';
 
 // titolo e dopo: per una prova nuova creata da un'altra pagina (la prova generale dalla convocazione)
@@ -13,9 +14,7 @@ const { prova, data, base, titolo, dopo } = Astro.props;
 const r = prova?.righe;
 let pezzi: Pezzo[] = [];
 try { pezzi = await repertorio(); } catch { /* senza repertorio resta il campo Brani */ }
-const scelti = new Set((r?.Repertorio ?? '').split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean));
-// I pezzi scritti nella prova che non sono (più) nel repertorio restano scelti
-const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
+const scelti = (r?.Repertorio ?? '').split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean);
 // Registrazioni: per le prove già fatte, nel modulo di Modifica dell'Amministrazione
 const oggi = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
 const conRegistrazioni = Boolean(prova && base === '/admin' && prova.data <= oggi);
@@ -40,16 +39,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 
   <h2>Per i coristi</h2>
   <div class="campo"><label for="sezioni">Sezioni</label><input id="sezioni" name="sezioni" placeholder="Soprani e contralti" value={r?.Sezioni} /><span class="aiuto">Vuoto = tutto il coro.</span></div>
-  <fieldset class="campo pezzi-prova">
-    <legend>Pezzi del repertorio</legend>
-    {pezzi.length || altri.length ? (
-      <div class="scelte">
-        {pezzi.map((p) => <label><input type="checkbox" name="repertorio" value={p.titolo} checked={scelti.has(p.titolo)} />{nomeCompleto(p)}</label>)}
-        {altri.map((x) => <label><input type="checkbox" name="repertorio" value={x} checked />{x}</label>)}
-      </div>
-    ) : <span class="aiuto">Il repertorio è vuoto: i pezzi si aggiungono dalla pagina Repertorio.</span>}
-    <span class="aiuto">Nell'area coristi diventano link a spartiti, tracce e note del pezzo.</span>
-  </fieldset>
+  <div class="campo"><SceltaPezzi nome="repertorio" etichetta="Pezzi del repertorio" pezzi={pezzi} scelti={scelti} aiuto="Nell'area coristi diventano link a spartiti, tracce e note del pezzo." /></div>
   <div class="campo"><label for="brani">Brani e passi</label><input id="brani" name="brani" placeholder="Lacrimosa, Domine Jesu: dalla battuta 20" value={r?.Brani} /><span class="aiuto">Cosa si prova in dettaglio, se il Maestro l'ha detto.</span></div>
   <div class="campo"><label for="portare">Portare</label><input id="portare" name="portare" placeholder="Spartito del Requiem, matita" value={r?.Portare} /></div>
   <div class="campo"><label for="note">Note</label><input id="note" name="note" placeholder="Si inizia puntuali: c'è il pianista" value={r?.Note} /></div>
@@ -172,8 +162,4 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
   .registrazioni-prova progress { width: 100%; height: 14px; accent-color: var(--primario); }
   .stato-reg:empty { display: none; }
   .registrazioni-prova #carica-reg { justify-self: start; }
-  .pezzi-prova { border: 0; padding: 0; margin: 0; }
-  .pezzi-prova legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 8px; }
-  .pezzi-prova .scelte { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
-  .pezzi-prova .scelte label { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); font-weight: 500; }
 </style>

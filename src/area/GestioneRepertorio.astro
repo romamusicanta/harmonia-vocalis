@@ -7,6 +7,7 @@
 import Icona from '../componenti/Icona.astro';
 import { configurato, nomeCompleto, repertorio, sezioniTracce, STATI, type Pezzo } from './repertorio';
 import Errore from './Errore.astro';
+import { comeHtml } from './testo';
 
 interface Props { base: '/admin' | '/maestro' }
 const { base } = Astro.props;
@@ -22,9 +23,12 @@ try {
 const inModifica = elenco.find((p) => p.id === q.get('modifica'));
 const nuovo = q.has('nuovo') || (!inModifica && elenco.length === 0);
 const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sezione === s)?.link ?? '';
+// Pezzo appena aggiunto: si propone di caricare spartito, brani e tracce
+const appena = elenco.find((p) => p.id === q.get('file'));
+const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 ---
 
-{q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+{q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Carica spartito, brani e tracce</a></>}</p>}
 {errore && <Errore e={errore} />}
 {!configurato() && <p class="messaggio errore">Il caricamento dei file non è ancora attivo: manca la cartella Spartiti (variabile DRIVE_CARTELLA_SPARTITI) sul server.</p>}
 
@@ -98,26 +102,49 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
   </section>
 )}
 
-<h2 class="titolo-elenco">Repertorio</h2>
+<h2 class="titolo-elenco">Repertorio{elenco.length > 0 && <small> · {elenco.length} {elenco.length === 1 ? 'pezzo' : 'pezzi'}</small>}</h2>
 {elenco.length === 0 && !errore && <p class="tenue">Ancora nessun pezzo.</p>}
+{elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca nel repertorio per autore o titolo…" aria-label="Cerca nel repertorio" />}
 <ul class="carta elenco-pezzi">
   {elenco.map((p) => (
-    <li class:list={{ attivo: p.id === inModifica?.id }}>
-      <div>
-        <span class="aut">{p.autore}</span>
-        <b>{p.titolo}</b>
-        <span class="tenue dettagli">{[p.stato, p.spartito && 'spartito', p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano' : 'brani'}`, p.tracce.length && `tracce: ${p.tracce.map((t) => t.sezione.toLowerCase()).join(', ')}`, p.esecuzione && 'esecuzione', p.note && 'note del Maestro'].filter(Boolean).join(' · ')}</span>
-      </div>
-      <div class="azioni-pezzo">
-        <a class="btn o piccolo" href={`${base}/repertorio?modifica=${p.id}#modulo`}>Modifica</a>
-        <form method="post" onsubmit="return confirm('Togliere questo pezzo dal repertorio? I file restano su Drive.')">
-          <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={p.id} />
-          <button class="btn o piccolo cancella" type="submit">Togli</button>
-        </form>
-      </div>
+    <li id={`p-${p.id}`} class:list={{ attivo: p.id === inModifica?.id }} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
+      <details>
+        <summary>
+          <span class="testa-pezzo"><span class="aut">{p.autore}</span><b>{p.titolo}</b></span>
+          <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
+          <span class="tenue dettagli">{[p.spartito && 'spartito', p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano' : 'brani'}`, p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
+        </summary>
+        <div class="corpo-pezzo">
+          <dl>
+            <dt>Spartito</dt><dd>{p.spartito ? <a href={p.spartito} target="_blank" rel="noopener">Apri lo spartito</a> : <span class="tenue">—</span>}</dd>
+            <dt>Brani</dt><dd>{p.brani.length ? p.brani.map((b, i) => <>{i > 0 && ' · '}<a href={b.link} target="_blank" rel="noopener">{b.nome}</a></>) : <span class="tenue">—</span>}</dd>
+            <dt>Tracce</dt><dd>{p.tracce.length ? p.tracce.map((t, i) => <>{i > 0 && ' · '}<a href={t.link} target="_blank" rel="noopener">{t.sezione}</a></>) : <span class="tenue">—</span>}</dd>
+            <dt>Esecuzione</dt><dd>{p.esecuzione ? <a href={p.esecuzione} target="_blank" rel="noopener">Ascolta</a> : <span class="tenue">—</span>}</dd>
+            <dt>Note del Maestro</dt><dd>{p.note ? <div set:html={comeHtml(p.note)} /> : <span class="tenue">—</span>}</dd>
+          </dl>
+          <div class="azioni-pezzo">
+            <a class="btn o piccolo" href={`${base}/repertorio?modifica=${p.id}#modulo`}>Modifica</a>
+            <form method="post" onsubmit="return confirm('Togliere questo pezzo dal repertorio? I file restano su Drive.')">
+              <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={p.id} />
+              <button class="btn o piccolo cancella" type="submit">Togli dal repertorio</button>
+            </form>
+          </div>
+        </div>
+      </details>
     </li>
   ))}
 </ul>
+
+<script>
+  // Elenco: si apre il pezzo indicato nell'indirizzo (#p-<id>); ricerca per autore o titolo
+  const daAprire = location.hash.startsWith('#p-') && document.querySelector<HTMLElement>(location.hash);
+  if (daAprire) daAprire.querySelector('details')?.setAttribute('open', '');
+  const filtro = document.querySelector<HTMLInputElement>('.filtra-pezzi');
+  filtro?.addEventListener('input', () => {
+    const parole = filtro.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
+    document.querySelectorAll<HTMLElement>('.elenco-pezzi > li').forEach((li) => { li.hidden = !parole.every((p) => li.dataset.cerca!.includes(p)); });
+  });
+</script>
 
 <script>
   // Caricamento a pezzi (src/area/caricamento-client.ts): uno dopo l'altro, poi si ricarica la pagina
@@ -171,7 +198,21 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
   .stato-caricamento { font-weight: 600; color: var(--primario); min-height: 1.4em; margin: 0; }
   .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
   .elenco-pezzi { list-style: none; margin: 0; padding: 0; }
-  .elenco-pezzi li { display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--linea); }
+  .elenco-pezzi li { border-bottom: 1px solid var(--linea); scroll-margin-top: 140px; }
+  .elenco-pezzi summary { display: flex; gap: 6px 14px; align-items: center; flex-wrap: wrap; padding: 14px 20px; cursor: pointer; list-style: none; }
+  .elenco-pezzi summary::-webkit-details-marker { display: none; }
+  .elenco-pezzi summary::before { content: '▸'; color: var(--tenue); transition: transform .15s; }
+  .elenco-pezzi details[open] summary::before { transform: rotate(90deg); }
+  .elenco-pezzi .testa-pezzo { flex: 1 1 260px; min-width: 0; }
+  .elenco-pezzi .dettagli { flex-basis: 100%; padding-left: 22px; }
+  .corpo-pezzo { padding: 0 20px 18px 42px; display: grid; gap: 14px; }
+  .corpo-pezzo dl { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 15px; }
+  .corpo-pezzo dt { font-weight: 700; color: var(--primario); }
+  .corpo-pezzo dd { margin: 0; overflow-wrap: anywhere; }
+  .corpo-pezzo a { text-decoration: underline; }
+  @media (max-width: 560px) { .corpo-pezzo { padding-left: 20px; } .corpo-pezzo dl { grid-template-columns: 1fr; gap: 2px; } .corpo-pezzo dd { margin-bottom: 8px; } }
+  .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 12px; }
+  .titolo-elenco small { font-size: 15px; font-family: var(--f-testo); color: var(--tenue); font-weight: 400; }
   .elenco-pezzi li:last-child { border-bottom: 0; }
   .elenco-pezzi li.attivo { box-shadow: inset 4px 0 0 var(--accento); }
   .elenco-pezzi b { display: block; font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }

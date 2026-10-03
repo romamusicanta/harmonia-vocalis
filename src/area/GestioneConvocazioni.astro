@@ -6,7 +6,8 @@ import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { concertiInArrivo, convocazionePerWhatsapp, convocazioni, proveVicine, vuota, type Convocazione } from './convocazioni';
 import { linkWhatsapp } from './bacheca';
-import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
+import { repertorio, type Pezzo } from './repertorio';
+import SceltaPezzi from './SceltaPezzi.astro';
 import { eventi, luogoBreveDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
 import Errore from './Errore.astro';
 
@@ -26,8 +27,6 @@ try {
 }
 const scelto = concerti.find((e) => e.id === q.get('modifica'));
 const c = scelto && tutte.get(scelto.id);
-const scelti = new Set(c?.repertorio ?? []);
-const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
 const etichettaProva = (p: Evento) => { const d = parti({ data: p.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}${p.inizio ? `, ${p.inizio}` : ''} · ${p.titolo}`; };
 const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
 // Dopo il salvataggio: il messaggio per il gruppo WhatsApp dei coristi
@@ -83,15 +82,8 @@ const whatsapp = appena && convAppena && !vuota(convAppena)
       <label>Cosa portare <small>(una riga per cosa)</small><textarea name="portare" rows="3" placeholder={'Spartito con le note del Maestro\nBottiglietta d’acqua'}>{c?.portare.join('\n')}</textarea></label>
       <label>Come arrivare<textarea name="arrivare" rows="2" placeholder="Parcheggi, mezzi pubblici, ZTL…">{c?.arrivare}</textarea></label>
 
-      <fieldset>
-        <legend>Pezzi del repertorio in programma</legend>
-        {pezzi.length || altri.length ? (
-          <div class="scelte">
-            {pezzi.map((p) => <label class="scelta"><input type="checkbox" name="repertorio" value={p.titolo} checked={scelti.has(p.titolo)} />{nomeCompleto(p)}</label>)}
-            {altri.map((x) => <label class="scelta"><input type="checkbox" name="repertorio" value={x} checked />{x}</label>)}
-          </div>
-        ) : <small>Il repertorio è vuoto: i pezzi si aggiungono dalla pagina Repertorio.</small>}
-      </fieldset>
+      <SceltaPezzi nome="repertorio" etichetta="Pezzi del repertorio in programma" pezzi={pezzi} scelti={c?.repertorio ?? []} aiuto="Nell'ordine del concerto: si aggiungono in fondo." />
+      <SceltaPezzi nome="bis" etichetta="Bis" pezzi={pezzi} scelti={c?.bis ?? []} aiuto="Solo per i coristi: i bis non compaiono mai nel sito pubblico." />
 
       <label>Note per i coristi<textarea name="note" rows="3">{c?.note}</textarea></label>
       <button class="btn" type="submit"><Icona nome="spunta" />Salva la convocazione</button>
@@ -109,7 +101,7 @@ const whatsapp = appena && convAppena && !vuota(convAppena)
         <div>
           <span class="aut">{quando(e)}</span>
           <b>{nomeEvento(e)}</b>{e.rassegna && <span class="tenue dettagli">{e.rassegna}</span>}
-          <span class="tenue dettagli">{vuota(cv) ? 'Convocazione da scrivere' : [cv!.convocazione && `convocazione ${cv!.convocazione}`, cv!.generale && 'prova generale', cv!.repertorio.length && `${cv!.repertorio.length} ${cv!.repertorio.length === 1 ? 'pezzo' : 'pezzi'}`].filter(Boolean).join(' · ') || 'Convocazione scritta'}</span>
+          <span class="tenue dettagli">{vuota(cv) ? 'Convocazione da scrivere' : [cv!.convocazione && `convocazione ${cv!.convocazione}`, cv!.generale && 'prova generale', cv!.repertorio.length && `${cv!.repertorio.length} ${cv!.repertorio.length === 1 ? 'pezzo' : 'pezzi'}`, cv!.bis.length && `${cv!.bis.length} bis`].filter(Boolean).join(' · ') || 'Convocazione scritta'}</span>
         </div>
         <a class:list={['btn', 'piccolo', vuota(cv) ? 'g' : 'o']} href={`${base}/convocazioni?modifica=${encodeURIComponent(e.id)}#modulo`}>{vuota(cv) ? 'Scrivi la convocazione' : 'Modifica'}</a>
       </li>

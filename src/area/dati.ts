@@ -244,6 +244,14 @@ export async function idScheda(nome: string, intestazioni?: string[]) {
     id = r.replies[0].addSheet.properties.sheetId;
     await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [intestazioni] }) });
   }
+  else if (intestazioni) {
+    // Colonne aggiunte dopo la creazione della scheda: si scrivono in fondo all'intestazione (le
+    // colonne nuove si aggiungono sempre alla fine dell'elenco, mai in mezzo)
+    const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!1:1`)}`);
+    const presenti = (values[0] ?? []).map((t) => t.trim());
+    const mancanti = intestazioni.filter((t) => !presenti.includes(t));
+    if (mancanti.length) await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [[...presenti, ...mancanti]] }) });
+  }
   idSchede.set(nome, id);
   return id;
 }
