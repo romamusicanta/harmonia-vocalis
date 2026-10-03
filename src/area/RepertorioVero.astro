@@ -45,61 +45,74 @@ const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), 
     {suGoogle && <AiutoDrive />}
     {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca nel repertorio per autore o titolo…" aria-label="Cerca nel repertorio" />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
-    {elenco.map((p) => (
-      <details class="opera-studio" id={p.id} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
-        <summary class="intest">
-          <div>
-            {p.autore && <span class="aut">{p.autore}</span>}
-            <h2 style="margin-top:6px">{p.titolo}</h2>
-            <span class="tenue indicatori">{[p.tracce.some((t) => t.sezione === sezione) && 'la tua traccia', p.spartito && 'spartito', p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano' : 'brani'}`, p.note && 'note del Maestro'].filter(Boolean).join(' · ') || 'materiali in arrivo'}</span>
-          </div>
-          <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
-        </summary>
-        <div class="corpo-o">
-          <div class="colonna">
-            <h3>Tracce per lo studio</h3>
-            {p.tracce.length ? (
-              <div class="basi">
-                {tracce(p).map((t) => (
-                  <div class:list={['base', { tua: t.sezione === sezione }]}>
-                    <div><b>{t.sezione}{t.sezione === sezione && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
-                    {t.link.startsWith('/area/file/')
-                      ? <audio controls preload="none" src={t.link} aria-label={`Traccia: ${t.sezione}`}></audio>
-                      : <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>}
-                  </div>
-                ))}
-              </div>
-            ) : <p class="tenue">Tracce non ancora disponibili.</p>}
-            {p.esecuzione && (
-              <>
-                <h3 style="margin-top:28px">Esecuzione di riferimento</h3>
-                <a class="btn o piccolo" href={p.esecuzione} target="_blank" rel="noopener"><Icona nome="cuffie" />Ascolta</a>
-              </>
-            )}
-          </div>
-          <div class="colonna">
-            <h3>Spartito</h3>
-            {p.spartito
-              ? <a class="btn piccolo" href={p.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Apri lo spartito</a>
-              : <p class="tenue">Spartito non ancora disponibile.</p>}
-            {p.brani.length > 0 && (
-              <>
-                <h3 style="margin-top:28px">Brani cantati separatamente</h3>
-                <div class="scorciatoie" style="border:1px solid var(--linea)">
-                  {p.brani.map((b) => <a href={b.link} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>{b.nome}</b></span><Icona nome="esterno" /></a>)}
+    {elenco.map((p) => {
+      // Si apre solo se sotto c'è qualcosa: tracce, brani separati, esecuzione, note del Maestro
+      const espandibile = Boolean(p.tracce.length || p.brani.length || p.esecuzione || p.note);
+      const Riga = espandibile ? 'details' : 'div';
+      const Testa = espandibile ? 'summary' : 'div';
+      return (
+        <Riga class:list={['opera-studio', { fisso: !espandibile }]} id={p.id} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
+          <Testa class="intest">
+            <div class="testo-pezzo">
+              {p.autore && <span class="aut">{p.autore}</span>}
+              <h2 style="margin-top:6px">{p.titolo}</h2>
+              <span class="tenue indicatori">{[p.tracce.some((t) => t.sezione === sezione) && 'la tua traccia', p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano separato' : 'brani separati'}`, p.note && 'note del Maestro'].filter(Boolean).join(' · ') || (p.spartito ? '' : 'materiali in arrivo')}</span>
+            </div>
+            <div class="lato-pezzo">
+              <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
+              {p.spartito && <a class="btn piccolo" href={p.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Apri lo spartito</a>}
+            </div>
+          </Testa>
+          {espandibile && (
+            <div class="corpo-o">
+              {(p.tracce.length > 0 || p.esecuzione) && (
+                <div class="colonna">
+                  {p.tracce.length > 0 && (
+                    <>
+                      <h3>Tracce per lo studio</h3>
+                      <div class="basi">
+                        {tracce(p).map((t) => (
+                          <div class:list={['base', { tua: t.sezione === sezione }]}>
+                            <div><b>{t.sezione}{t.sezione === sezione && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
+                            {t.link.startsWith('/area/file/')
+                              ? <audio controls preload="none" src={t.link} aria-label={`Traccia: ${t.sezione}`}></audio>
+                              : <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {p.esecuzione && (
+                    <>
+                      <h3 style={p.tracce.length ? 'margin-top:28px' : undefined}>Esecuzione di riferimento</h3>
+                      <a class="btn o piccolo" href={p.esecuzione} target="_blank" rel="noopener"><Icona nome="cuffie" />Ascolta</a>
+                    </>
+                  )}
                 </div>
-              </>
-            )}
-            {p.note && (
-              <div class="nota-maestro">
-                <span class="eti">Note del Maestro</span>
-                <div set:html={comeHtml(p.note)} />
-              </div>
-            )}
-          </div>
-        </div>
-      </details>
-    ))}
+              )}
+              {(p.brani.length > 0 || p.note) && (
+                <div class="colonna">
+                  {p.brani.length > 0 && (
+                    <>
+                      <h3>Brani cantati separatamente</h3>
+                      <div class="scorciatoie" style="border:1px solid var(--linea)">
+                        {p.brani.map((b) => <a href={b.link} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>{b.nome}</b></span><Icona nome="esterno" /></a>)}
+                      </div>
+                    </>
+                  )}
+                  {p.note && (
+                    <div class="nota-maestro" style={p.brani.length ? undefined : 'margin-top:0'}>
+                      <span class="eti">Note del Maestro</span>
+                      <div set:html={comeHtml(p.note)} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Riga>
+      );
+    })}
     {elenco.length > 0 && <p class="tenue" style="margin-top:24px;font-size:14px">{elenco.length} {elenco.length === 1 ? 'pezzo' : 'pezzi'}: {elenco.map(nomeCompleto).join(' · ')}</p>}
   </div>
 </div>
@@ -108,24 +121,36 @@ const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), 
   // Si apre il pezzo indicato nell'indirizzo (#<id>), anche quando cambia; ricerca per autore o titolo
   const apri = () => {
     const el = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    if (el instanceof HTMLDetailsElement) { el.open = true; el.scrollIntoView({ block: 'start' }); }
+    if (el instanceof HTMLDetailsElement) el.open = true;
+    if (el instanceof HTMLElement && el.classList.contains('opera-studio')) el.scrollIntoView({ block: 'start' });
   };
   apri();
   addEventListener('hashchange', apri);
   const filtro = document.querySelector<HTMLInputElement>('.filtra-pezzi');
   filtro?.addEventListener('input', () => {
     const parole = filtro.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
-    document.querySelectorAll<HTMLElement>('details.opera-studio').forEach((d) => { d.hidden = !parole.every((p) => d.dataset.cerca!.includes(p)); });
+    document.querySelectorAll<HTMLElement>('.opera-studio').forEach((d) => { d.hidden = !parole.every((p) => d.dataset.cerca!.includes(p)); });
   });
 </script>
 
 <style>
   /* Una riga per pezzo, che si apre */
   .opera-studio + .opera-studio { margin-top: 10px; }
-  .opera-studio > summary { cursor: pointer; list-style: none; padding: 18px 22px; border-bottom: 0; scroll-margin-top: 150px; }
+  .opera-studio > .intest { padding: 18px 22px; border-bottom: 0; scroll-margin-top: 150px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; align-items: stretch; }
+  .opera-studio > summary { cursor: pointer; list-style: none; }
+  .opera-studio.fisso { scroll-margin-top: 150px; }
+  .lato-pezzo { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .lato-pezzo .btn { white-space: nowrap; }
+  /* Telefono: stato sempre in alto a destra, pulsante dello spartito sotto il titolo */
+  @media (max-width: 560px) {
+    .opera-studio > .intest { grid-template-columns: 1fr; position: relative; }
+    .lato-pezzo { display: block; }
+    .lato-pezzo .tag { position: absolute; top: 18px; right: 22px; }
+    .testo-pezzo .aut { display: block; padding-right: 130px; min-height: 1.4em; }
+  }
   .opera-studio > summary::-webkit-details-marker { display: none; }
   .opera-studio[open] > summary { border-bottom: 1px solid var(--linea); }
-  .opera-studio > summary h2 { font-size: clamp(22px, 2.4vw, 28px); }
+  .opera-studio > .intest h2 { font-size: clamp(22px, 2.4vw, 28px); }
   .opera-studio > summary h2::after { content: ' ▸'; color: var(--tenue); font-size: .7em; }
   .opera-studio[open] > summary h2::after { content: ' ▾'; }
   .indicatori { display: block; font-size: 14px; margin-top: 4px; }
