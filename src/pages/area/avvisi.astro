@@ -12,7 +12,7 @@ const email = Astro.locals.corista!.email;
 if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, email, '/area/avvisi'));
 ---
 
-<Base veste={veste} titolo="Avvisi · Area coristi" area={{ sezione: 'bacheca' }}>
+<Base veste={veste} titolo="Avvisi · Area coristi" area={{ sezione: 'avvisi' }}>
   <div class="area-intesta">
     <div class="w">
       <div>
