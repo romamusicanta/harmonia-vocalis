@@ -99,10 +99,11 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
   <p class="tenue" style="max-width:64ch">Qui i redattori segnano le assenze degli altri: chi ha avvisato a voce o per messaggio, chi non è venuto senza avvisare. Scegli la prova o il concerto e tocca il nome. Chi non ha un'assenza è contato presente. I coristi segnalano le loro dall'area coristi fino all'inizio della prova; qui si correggono, anche dopo. Un tocco su un nome lo segna assente o presente e si salva subito nel foglio "Coristi e assenze" del Drive.</p>
   {elenco.length > 0 && (
     <form method="get" style="margin:20px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-      <select name="evento" onchange="this.form.submit()" style="padding:10px 12px;border:2px solid var(--linea);border-radius:var(--raggio);background:var(--bianco);font:inherit;max-width:100%">
+      <label for="evento" style="font-weight:700;color:var(--primario);width:100%">Prova o concerto</label>
+      <select id="evento" name="evento" style="padding:10px 12px;border:2px solid var(--linea);border-radius:var(--raggio);background:var(--bianco);font:inherit;max-width:100%">
         {elenco.map((e) => <option value={e.id} selected={e.id === r?.evento.id}>{etichetta(e)}</option>)}
       </select>
-      <noscript><button class="btn g piccolo">Mostra</button></noscript>
+      <button class="btn g piccolo">Mostra</button>
     </form>
   )}
 
@@ -112,7 +113,7 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
       <div class="sezioni-assenze" data-evento={r.evento.id}>
         {sezioniDi(r.attesi).filter((s) => r!.attesi.some((c) => c.sezione === s)).map((s) => (
           <section class="scheda-admin">
-            <h2 style="margin:0 0 10px;font-size:20px">{s}</h2>
+            <h3 style="margin:0 0 10px;font-size:20px">{s}</h3>
             <ul>
               {r!.attesi.filter((c) => c.sezione === s).map((c) => {
                 const a = assenti.get(c.email);

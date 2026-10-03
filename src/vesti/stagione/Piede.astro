@@ -19,7 +19,7 @@ const l = coro.link;
         <p>{coro.descrizione}</p>
       </div>
       <div>
-        <h4>{en ? 'The Choir' : 'Il Coro'}</h4>
+        <h2 class="titolo-piede">{en ? 'The Choir' : 'Il Coro'}</h2>
         <ul>
           <li><a href={link('/il-coro')}>{en ? 'History and board' : 'Storia e direttivo'}</a></li>
           <li><a href={link('/il-maestro')}>{en ? 'The conductor' : 'Il Maestro'}</a></li>
@@ -28,7 +28,7 @@ const l = coro.link;
         </ul>
       </div>
       <div>
-        <h4>{en ? 'Concerts and music' : 'Concerti e musica'}</h4>
+        <h2 class="titolo-piede">{en ? 'Concerts and music' : 'Concerti e musica'}</h2>
         <ul>
           <li><a href={link('/concerti')}>{en ? 'Season and archive' : 'Stagione e archivio'}</a></li>
           {f.ascolta && <li><a href={link('/ascolta')}>{en ? 'Recordings' : 'Registrazioni'}</a></li>}
@@ -38,7 +38,7 @@ const l = coro.link;
         </ul>
       </div>
       <div>
-        <h4>{en ? 'Contact' : 'Contatti'}</h4>
+        <h2 class="titolo-piede">{en ? 'Contact' : 'Contatti'}</h2>
         <ul>
           <li><a href={`mailto:${coro.email}`}>{coro.email}</a></li>
           {coro.sede && <li>{coro.sede.indirizzo}<br />{coro.sede.cap} {coro.sede.citta}</li>}

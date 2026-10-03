@@ -131,9 +131,6 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
 <script>
   // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che
   // l'area Amministrazione non carica)
-  const hamb = document.querySelector<HTMLButtonElement>('.hamb-area');
-  hamb?.addEventListener('click', () => {
-    const aperto = document.body.classList.toggle('menu-aperto');
-    hamb.setAttribute('aria-expanded', aperto ? 'true' : 'false');
-  });
+  import { attivaMenu } from '../../motore/menu-mobile';
+  attivaMenu(document.querySelector<HTMLButtonElement>('.hamb-area'));
 </script>

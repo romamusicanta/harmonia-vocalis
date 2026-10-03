@@ -13,7 +13,18 @@ img { display: block; max-width: 100%; height: auto; object-fit: cover; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 svg { flex-shrink: 0; }
-:focus-visible { outline: 3px solid var(--accento); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; box-shadow: 0 0 0 5px var(--accento); }
+/* Sulle parti scure il contorno giallo basta e si vede */
+:is(.servizio, .fascia, .barra-area, .carta.blu, .piede-sito, .stagione-scura) :focus-visible { outline-color: var(--accento); box-shadow: none; }
+/* Testo per i lettori di schermo, invisibile a vista */
+.sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* "Vai al contenuto": compare con il tasto Tab */
+.salta { position: absolute; left: -9999px; top: 8px; z-index: 100; background: var(--primario); color: #fff; padding: 12px 16px; font-weight: 700; border-radius: var(--raggio); }
+.salta:focus { left: 16px; }
+/* Bordi dei campi almeno 3:1 sul bianco (WCAG 1.4.11); --linea resta per i separatori */
+:root { --bordo-campo: color-mix(in srgb, var(--testo) 50%, var(--bianco)); }
+:is(input, select, textarea):not([type=checkbox], [type=radio], [type=file], [type=hidden], [type=submit], [type=button]):not(.carta.blu *) { border-color: var(--bordo-campo) !important; }
+:is(input, select, textarea):not([type=checkbox], [type=radio], [type=file], [type=hidden]):not(.carta.blu *):focus { border-color: var(--primario) !important; }
 
 .w { max-width: 1320px; margin: 0 auto; padding: 0 16px; }
 .w.stretta { max-width: 1040px; }
@@ -234,8 +245,10 @@ a.sc:hover { box-shadow: var(--ombra); }
 .stag { margin-top: 56px; }
 .stag:first-of-type { margin-top: 0; }
 .stag-testa { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 3px solid var(--primario); }
-.stag-testa b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(26px, 2.6vw, 36px); line-height: .9; letter-spacing: -0.012em; color: var(--primario); }
-.stag-testa b span { color: var(--accento); }
+.stag-testa :is(b, h3) { margin: 0; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(26px, 2.6vw, 36px); line-height: .9; letter-spacing: -0.012em; color: var(--primario); }
+.stag-testa :is(b, h3) span { color: var(--accento); }
+/* Titoli dei concerti dell'archivio: sottolineati, perché sono link */
+.riga .cosa b a { text-decoration: underline; text-decoration-color: var(--accento); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .stag-testa small { color: var(--tenue); font-size: 14px; font-weight: 600; }
 .riga { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 4px 20px; padding: 20px 0; border-bottom: 1px solid var(--linea); align-items: center; }
 .riga .quando { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 24px; line-height: .9; letter-spacing: -0.012em; color: var(--primario); grid-row: span 2; align-self: start; }
@@ -248,7 +261,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 .riga .azione { grid-column: 2; }
 .riga .azione a { font-weight: 700; font-size: 14px; color: var(--primario); display: inline-flex; gap: 8px; align-items: center; }
 .riga .azione a:hover { text-decoration: underline; }
-.riga .azione .senza { font-size: 13px; color: #a3a6b0; }
+.riga .azione .senza { font-size: 13px; color: var(--tenue); }
 @media (min-width: 860px) {
   .riga { grid-template-columns: 110px minmax(0, 1.4fr) minmax(0, 1fr) 190px; }
   .riga .quando { grid-row: auto; align-self: center; }
@@ -361,7 +374,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 /* Passi numerati (canta con noi) */
 .passi { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); counter-reset: passo; }
 .passo { padding-top: 4px; }
-.passo::before { font-family: var(--f-titoli); counter-increment: passo; content: '0' counter(passo); display: block; font-weight: var(--peso-titoli); font-size: 34px; line-height: .9; letter-spacing: -0.012em; color: var(--accento); margin-bottom: 14px; }
+.passo::before { font-family: var(--f-titoli); counter-increment: passo; content: '0' counter(passo); display: block; font-weight: var(--peso-titoli); font-size: 34px; line-height: .9; letter-spacing: -0.012em; color: var(--primario); margin-bottom: 14px; padding-bottom: 6px; border-bottom: 3px solid var(--accento); width: fit-content; }
 .passo h3 { font-size: 22px; margin-bottom: 8px; }
 .passo p { color: var(--tenue); font-size: 16px; }
 
@@ -371,6 +384,9 @@ a.sc:hover { box-shadow: var(--ombra); }
 @media (min-width: 700px) { .modulo .riga-campi { grid-template-columns: 1fr 1fr; } }
 .campo { display: grid; gap: 8px; min-width: 0; }
 .campo > label, .campo > .lab { font-weight: 700; font-size: 14px; color: var(--primario); }
+/* Etichetta che contiene il suo campo (righe che si duplicano, come opere e interpreti) */
+.campo > label:has(input, select, textarea) { display: grid; gap: 8px; }
+.campo > label small { font-weight: 400; color: var(--tenue); }
 .campo .aiuto { font-size: 13px; color: var(--tenue); }
 .campo input, .campo select, .campo textarea { width: 100%; padding: 13px 14px; border: 2px solid var(--linea); background: var(--bianco); border-radius: var(--raggio); font-size: 16px; }
 .campo input:focus, .campo select:focus, .campo textarea:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accento) 50%, transparent); }
@@ -380,7 +396,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 .voci input { position: absolute; opacity: 0; pointer-events: none; }
 .voci span { display: inline-block; padding: 11px 16px; border: 2px solid var(--linea); font-weight: 700; font-size: 15px; color: var(--primario); cursor: pointer; border-radius: var(--raggio); }
 .voci input:checked + span { background: var(--primario); border-color: var(--primario); color: #fff; }
-.voci input:focus-visible + span { outline: 3px solid var(--accento); outline-offset: 2px; }
+.voci input:focus-visible + span { outline: 3px solid var(--primario); outline-offset: 2px; box-shadow: 0 0 0 5px var(--accento); }
 .consenso { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: var(--tenue); }
 .consenso input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primario); flex-shrink: 0; }
 .consenso a { color: var(--primario); text-decoration: underline; }
@@ -409,7 +425,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 .piede-sito .marchio b { color: #fff; }
 .piede-sito .marchio small { color: #8a8e9b; }
 .piede-sito .marchio .q { background: var(--accento); color: var(--primario); }
-.piede-sito h4 { color: #fff; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 14px; font-weight: 800; }
+.piede-sito h4, .piede-sito .titolo-piede { color: #fff; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 14px; font-weight: 800; }
 .piede-sito ul { list-style: none; padding: 0; display: grid; gap: 8px; }
 .piede-sito a:hover { color: #fff; }
 .piede-sito .fondo-piede { margin-top: 56px; padding-top: 24px; border-top: 1px solid #2c2f3a; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; }
@@ -752,3 +768,4 @@ a.sc:hover { box-shadow: var(--ombra); }
    I pulsanti pieni nel colore principale restano con la scritta bianca, per leggibilità. */
 :root[data-veste="stagione"] :is(.btn.g, .btn.o, .btn.b) { color: var(--testo); }
 :root[data-veste="stagione"] .btn.o:hover { color: #fff; }
+main:focus { outline: none; box-shadow: none; }

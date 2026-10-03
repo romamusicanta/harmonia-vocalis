@@ -28,7 +28,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     ? 'Carica la locandina: diventa la locandina del concerto e il sito la legge per riempire i campi ancora vuoti (quelli già scritti restano). Controlla prima di salvare.'
     : 'Carica la locandina: il sito la legge e riempie i campi qui sotto. Controllali sempre prima di creare il concerto, soprattutto data e nomi.'}</p>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-    <input type="file" id="leggi-file" accept="image/jpeg,image/png,image/webp" />
+    <label for="leggi-file" class="sr">Locandina da leggere</label><input type="file" id="leggi-file" accept="image/jpeg,image/png,image/webp" />
     <button class="btn g" type="button" id="leggi">Leggi la locandina</button>
   </div>
   <div id="letto" role="status"></div>
@@ -57,8 +57,8 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <div id="opere" style="display:grid;gap:14px">
     {opere.map((o, i) => (
       <div class="riga-campi opera">
-        <div class="campo"><label>Autore</label><input name="autore" placeholder="W. A. Mozart" value={o.autore} /></div>
-        <div class="campo"><label>Opera</label><input name="opera" required={i === 0} placeholder="Requiem in re minore K 626" value={o.opera} /></div>
+        <div class="campo"><label>Autore<input name="autore" placeholder="W. A. Mozart" value={o.autore} /></label></div>
+        <div class="campo"><label><span>Opera{i === 0 && <small> (obbligatoria)</small>}</span><input name="opera" required={i === 0} placeholder="Requiem in re minore K 626" value={o.opera} /></label></div>
       </div>
     ))}
   </div>
@@ -79,8 +79,8 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <div id="interpreti" style="display:grid;gap:14px">
     {interpreti.map((x) => (
       <div class="riga-campi interprete">
-        <div class="campo"><label>Ruolo</label><input name="ruolo" list="ruoli" placeholder="Soprano" value={x.ruolo} /></div>
-        <div class="campo"><label>Nome</label><input name="nome" placeholder="Maria Rossi" value={x.nome} /></div>
+        <div class="campo"><label>Ruolo<input name="ruolo" list="ruoli" placeholder="Soprano" value={x.ruolo} /></label></div>
+        <div class="campo"><label>Nome<input name="nome" placeholder="Maria Rossi" value={x.nome} /></label></div>
       </div>
     ))}
   </div>

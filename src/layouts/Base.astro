@@ -92,8 +92,9 @@ const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorg
     {prova && <PannelloProvaIniziale />}
   </head>
   <body class:list={{ area: Boolean(area) }}>
+    <a class="salta" href="#contenuto">{lingua === 'en' ? 'Skip to content' : 'Vai al contenuto'}</a>
     {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} maestro={area.maestro} /> : <Testata veste={veste} pagina={pagina} />}
-    <main id="contenuto">
+    <main id="contenuto" tabindex="-1">
       <slot />
     </main>
     {area ? <PiedeArea veste={veste} maestro={area.maestro} /> : <Piede veste={veste} />}

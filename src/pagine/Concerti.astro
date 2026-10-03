@@ -89,7 +89,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
             </div>
           </div>
           {/* Senza "Foto:" nell'evento, la locandina intera; senza nemmeno quella, la foto di apertura del coro */}
-          <div class:list={['foto', { locandina: !prossimo.foto && prossimo.locandina }]}><Foto nome={prossimo.foto ?? prossimo.locandina ?? coro.foto.apertura} sizes="(min-width: 900px) 40vw, 100vw" /></div>
+          <div class:list={['foto', { locandina: !prossimo.foto && prossimo.locandina }]}><Foto nome={prossimo.foto ?? prossimo.locandina ?? coro.foto.apertura} alt={!prossimo.foto && prossimo.locandina ? `${en ? 'Poster' : 'Locandina'}: ${prossimo.titolo}, ${d!.giorno} ${d!.mese} ${d!.anno}${luogoCompleto(prossimo) ? `, ${luogoCompleto(prossimo)}` : ''}` : undefined} sizes="(min-width: 900px) 40vw, 100vw" /></div>
         </article>
       ) : (
         <p class="tenue" style="font-size:19px;padding:24px 0">{en ? 'No concerts scheduled yet: the new season is being prepared.' : 'Nessun concerto in calendario per ora: la nuova stagione è in preparazione.'}</p>
@@ -125,7 +125,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
       <div id="elenco-archivio">
         {stagioni.map(({ stagione: s, concerti }) => (
           <div class="stag" data-gruppo id={s.id}>
-            <div class="stag-testa"><b>{s.sigla.split('/')[0]}<span>/</span>{s.sigla.split('/')[1]}</b><small>{s.nome}</small></div>
+            <div class="stag-testa"><h3>{s.sigla.split('/')[0]}<span aria-hidden="true">/</span><span class="sr"> </span>{s.sigla.split('/')[1]}</h3><small>{s.nome}</small></div>
             {concerti.map((c) => {
               const p = parti(c, lingua);
               const dove = [c.luogo, c.rassegna].filter(Boolean).join(' · ');

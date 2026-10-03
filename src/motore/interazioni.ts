@@ -3,28 +3,28 @@
 
 const $$ = <T extends Element = HTMLElement>(sel: string, el: ParentNode = document) => Array.from(el.querySelectorAll<T>(sel));
 
-// Menu mobile (quello delle aree riservate, .hamb-area, lo gestisce TestataArea della veste Stagione)
-const hamb = document.querySelector('.hamb:not(.hamb-area)');
-hamb?.addEventListener('click', () => {
-  const aperto = document.body.classList.toggle('menu-aperto');
-  hamb.setAttribute('aria-expanded', aperto ? 'true' : 'false');
-});
+import { attivaMenu } from './menu-mobile';
 
-// Avviso temporaneo in basso a destra
-let toast: HTMLDivElement | undefined;
+// Menu mobile (quello delle aree riservate, .hamb-area, lo attiva TestataArea della veste Stagione)
+attivaMenu(document.querySelector<HTMLButtonElement>('.hamb:not(.hamb-area)'));
+
+// Avviso temporaneo in basso a destra. Il contenitore (role=status) esiste già al caricamento,
+// perché i lettori di schermo annunciano solo le regioni che c'erano prima del messaggio; resta 5
+// secondi, e non sparisce finché ci si passa sopra con il mouse.
+const toast = document.createElement('div');
+toast.className = 'avviso-toast';
+toast.setAttribute('role', 'status');
+document.body.append(toast);
 let timer: ReturnType<typeof setTimeout>;
+const nascondi = () => { timer = setTimeout(() => toast.classList.remove('visto'), 5000); };
+toast.addEventListener('mouseenter', () => clearTimeout(timer));
+toast.addEventListener('mouseleave', nascondi);
 export function avvisa(testo: string) {
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.className = 'avviso-toast';
-    toast.setAttribute('role', 'status');
-    document.body.append(toast);
-  }
-  toast.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  toast.innerHTML = '<svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   toast.append(testo);
   toast.classList.add('visto');
   clearTimeout(timer);
-  timer = setTimeout(() => toast?.classList.remove('visto'), 2600);
+  nascondi();
 }
 (window as unknown as { avvisa: typeof avvisa }).avvisa = avvisa;
 
@@ -39,7 +39,13 @@ export function attivaVideo(v: HTMLElement) {
     f.src = `https://www.youtube-nocookie.com/embed/${v.dataset.id}?autoplay=1&rel=0`;
     f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
     f.title = v.getAttribute('aria-label') || 'Video';
-    v.replaceChildren(f);
+    // Il lettore prende il posto del pulsante (un iframe dentro un pulsante non è valido)
+    const contenitore = document.createElement('div');
+    contenitore.className = v.className;
+    if (v.id) contenitore.id = v.id;
+    contenitore.append(f);
+    v.replaceWith(contenitore);
+    f.focus();
   }, { once: v.dataset.finto === undefined });
 }
 $$('.video[data-id]').forEach(attivaVideo);

@@ -41,8 +41,9 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 <section class="apertura">
   <div class="w">
     <div class="stagione">
-      <span class="eti">{en ? 'Concert season' : 'Stagione concertistica'}</span>
-      <h1>{sigla1}{sigla2 && <><span>/</span>{sigla2}</>}<span>.</span></h1>
+      <span class="eti" aria-hidden="true">{en ? 'Concert season' : 'Stagione concertistica'}</span>
+      {/* Il titolo si legge "Stagione concertistica 26/27": l'etichetta sopra è solo a vista */}
+      <h1><span class="sr">{en ? 'Concert season ' : 'Stagione concertistica '}</span>{sigla1}{sigla2 && <><span aria-hidden="true">/</span><span class="sr"> </span>{sigla2}</>}<span aria-hidden="true">.</span></h1>
       <div>
         <p>{coro.stagione.presentazione}</p>
         <div class="bottoni" style="margin-top:24px">
@@ -132,7 +133,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
         <div style="display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:end">
           <div style="max-width:60ch">
             <span class="eti" style="margin-bottom:12px">{en ? 'For organisers' : 'Per gli organizzatori'}</span>
-            <h3 class="h-media">{en ? 'A concert series, a patronal feast, a Christmas concert?' : 'Una rassegna, una festa patronale, un concerto di Natale?'}</h3>
+            <h2 class="h-media">{en ? 'A concert series, a patronal feast, a Christmas concert?' : 'Una rassegna, una festa patronale, un concerto di Natale?'}</h2>
             <p class="tenue" style="margin-top:12px">{en ? `We perform masses, oratorios and polyphony, also with orchestra: ${voci} voices with a ready repertoire.` : `Portiamo in concerto messe, oratori e polifonia, anche con orchestra: ${voci} voci con un repertorio già pronto.`}</p>
           </div>
           <a class="btn" href={l('/organizzatori')}>{en ? 'Repertoire and contacts' : 'Repertorio e contatti'} <Icona nome="freccia" /></a>

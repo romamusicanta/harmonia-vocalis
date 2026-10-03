@@ -45,8 +45,9 @@ const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k
     </style>
   </head>
   <body class="area">
+    <a class="salta" href="#contenuto">Vai al contenuto</a>
     <TestataArea veste={veste} sezione={sezione} conBarra={Boolean(Astro.locals.sessione)} admin />
-    <main class="admin" id="contenuto">
+    <main class="admin" id="contenuto" tabindex="-1">
       <div class="w">
         <slot />
       </div>
