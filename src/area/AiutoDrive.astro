@@ -1,0 +1,22 @@
+---
+// Area coristi: accanto ai link che portano ancora su Google Drive (cartelle, file non serviti dal
+// sito), come entrarci con l'account giusto e a chi scrivere se non si apre. I file del Drive del
+// coro (spartiti, brani, registrazioni) si aprono invece dal sito, senza Drive: src/area/file.ts.
+import Icona from '../componenti/Icona.astro';
+
+const aiuto = 'admin@romamusicanta.org';
+const oggetto = 'Area coristi: non riesco ad aprire un file su Drive';
+---
+
+<div class="aiuto-drive" role="note">
+  <Icona nome="info" classe="" />
+  <p>Alcuni link si aprono su <b>Google Drive</b>. Se Drive chiede l'accesso, tocca la foto in alto a destra, scegli un altro account (o aggiungilo) ed entra con <b>nome.cognome@romamusicanta.org</b>. <a href={`mailto:${aiuto}?subject=${encodeURIComponent(oggetto)}`}>Problemi di accesso? Scrivi a {aiuto}</a></p>
+</div>
+
+<style>
+  .aiuto-drive { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--bianco); border: 1px solid var(--linea); border-left: 4px solid var(--accento); margin-bottom: 24px; font-size: 14px; line-height: 1.5; color: var(--tenue); }
+  .aiuto-drive :global(svg) { width: 20px; height: 20px; flex-shrink: 0; color: var(--primario); margin-top: 1px; }
+  .aiuto-drive p { margin: 0; }
+  .aiuto-drive b { color: var(--primario); }
+  .aiuto-drive a { display: inline-block; margin-top: 4px; color: var(--primario); font-weight: 600; text-decoration: underline; }
+</style>

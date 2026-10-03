@@ -1,13 +1,16 @@
 ---
 // Area coristi, pagina Registrazioni nel sito vero (src/area/registrazioni.ts): le registrazioni
 // delle prove della stagione, raggruppate per prova, con chi le ha caricate; ognuno ne carica di
-// nuove (a pezzi, src/area/caricamento-client.ts) e toglie le proprie (POST alla pagina).
+// nuove (a pezzi, src/area/caricamento-client.ts) e toglie le proprie (POST alla pagina). I file
+// audio si ascoltano qui, nel lettore del browser, serviti dal sito (src/area/file.ts): niente Drive.
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { configurato, proveRecenti, registrazioni, type GiornoRegistrato } from './registrazioni';
 import { normalizza } from './servizio';
 import type { Evento } from './dati';
 import Errore from './Errore.astro';
+import AiutoDrive from './AiutoDrive.astro';
+import { linkDelSito, suDrive } from './file';
 
 const email = Astro.locals.corista!.email;
 const q = Astro.url.searchParams;
@@ -39,6 +42,7 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
   <div class="w">
     {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
     {errore && <Errore e={errore} />}
+    {giorni.some((g) => suDrive(linkDelSito(g.link))) && <AiutoDrive />}
 
     {configurato() && prove.length > 0 && (
       <form class="carta carica-reg" data-file="/area/registrazioni/file">
@@ -69,11 +73,12 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
           <div>
             <h3 class="titolo-prova">{g.titolo}</h3>
             <ul class="tracce-reg">
-              {g.link && <li><a href={g.link} target="_blank" rel="noopener"><Icona nome="play" />Registrazione della prova</a><span class="tenue">dal calendario</span></li>}
+              {g.link && <li><a href={linkDelSito(g.link)} target="_blank" rel="noopener"><Icona nome="play" />Registrazione della prova</a><span class="tenue">dal calendario</span></li>}
               {g.tracce.map((t) => (
                 <li>
-                  <a href={t.link} target="_blank" rel="noopener"><Icona nome="play" />{t.titolo}</a>
+                  <a href={linkDelSito(t.link)} target="_blank" rel="noopener"><Icona nome={t.tipo.startsWith('audio/') ? 'cuffie' : 'play'} />{t.titolo}</a>
                   <span class="tenue">{[t.chi, t.sezione, peso(t.dimensione)].filter(Boolean).join(' · ')}</span>
+                  {t.tipo.startsWith('audio/') && <audio controls preload="none" src={linkDelSito(t.link)} aria-label={`Ascolta: ${t.titolo}`}></audio>}
                   {mio(t.caricatoDa) && (
                     <form method="post" onsubmit="return confirm('Togliere questa registrazione? Va nel cestino del Drive del coro.')">
                       <input type="hidden" name="azione" value="togli" /><input type="hidden" name="id" value={t.id} />
@@ -160,5 +165,6 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
   .tracce-reg a :global(svg) { flex-shrink: 0; color: var(--accento); }
   .tracce-reg .tenue { font-size: 14px; }
   .tracce-reg form { display: contents; }
+  .tracce-reg audio { flex: 1 1 100%; width: 100%; height: 40px; margin-top: 4px; }
   .togli-reg { background: none; border: 0; color: var(--rosso); font: inherit; font-size: 14px; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
 </style>

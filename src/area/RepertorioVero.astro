@@ -2,12 +2,15 @@
 // Area coristi, pagina Repertorio nel sito vero: i pezzi della scheda Repertorio
 // (src/area/repertorio.ts), prima quelli in studio. Per ognuno tracce per sezione (in evidenza
 // quella del corista), esecuzione di riferimento, spartito, brani separati e note del Maestro.
-// Ogni pezzo ha l'ancora #<id>, usata dal Calendario per i brani delle prove.
+// Ogni pezzo ha l'ancora #<id>, usata dal Calendario per i brani delle prove. I file del Drive del
+// coro si aprono dal sito (src/area/file.ts); per i link che restano su Drive, l'aiuto per entrarci.
 import Icona from '../componenti/Icona.astro';
 import { coristaDi } from './dati';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
 import { comeHtml } from './testo';
 import Errore from './Errore.astro';
+import AiutoDrive from './AiutoDrive.astro';
+import { linkDelSito, suDrive } from './file';
 
 let errore: unknown;
 let elenco: Pezzo[] = [];
@@ -19,6 +22,9 @@ try {
 }
 // La propria sezione prima, poi le altre nell'ordine del coro
 const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), ...p.tracce.filter((t) => t.sezione !== sezione)];
+// I file del Drive del coro passano dal sito
+elenco = elenco.map((p) => ({ ...p, spartito: linkDelSito(p.spartito), brani: p.brani.map((b) => ({ ...b, link: linkDelSito(b.link) })), tracce: p.tracce.map((t) => ({ ...t, link: linkDelSito(t.link) })) }));
+const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), ...p.tracce.map((t) => t.link)].some(suDrive));
 ---
 
 <div class="area-intesta">
@@ -26,7 +32,7 @@ const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), 
     <div>
       <span class="eti" style="margin-bottom:12px">Repertorio</span>
       <h1>Repertorio</h1>
-      <p>Spartiti, tracce per lo studio di ogni sezione, esecuzioni di riferimento e note del Maestro. I file si aprono dal Drive del coro: entra con l'account dell'associazione.</p>
+      <p>Spartiti, tracce per lo studio di ogni sezione, esecuzioni di riferimento e note del Maestro.</p>
     </div>
   </div>
 </div>
@@ -34,6 +40,7 @@ const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), 
 <div class="area-main">
   <div class="w">
     {errore && <Errore e={errore} />}
+    {suGoogle && <AiutoDrive />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
     {elenco.map((p) => (
       <article class="opera-studio" id={p.id}>

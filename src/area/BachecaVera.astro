@@ -9,6 +9,7 @@ import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
+import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
@@ -175,8 +176,8 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
                 const traccia = p.tracce.find((t) => t.sezione === sezione) ?? p.tracce.find((t) => t.sezione === 'Tutte le voci');
                 return (
                   <>
-                    {traccia && <a href={traccia.link} target="_blank" rel="noopener"><span class="icona-q g"><Icona nome="cuffie" classe="" /></span><span><b>Tracce · {nomeCompleto(p)}</b><small>{traccia.sezione}</small></span><Icona nome="esterno" /></a>}
-                    {p.spartito && <a href={p.spartito} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>Spartito · {nomeCompleto(p)}</b><small>PDF sul Drive del coro</small></span><Icona nome="esterno" /></a>}
+                    {traccia && <a href={linkDelSito(traccia.link)} target="_blank" rel="noopener"><span class="icona-q g"><Icona nome="cuffie" classe="" /></span><span><b>Tracce · {nomeCompleto(p)}</b><small>{traccia.sezione}</small></span><Icona nome="esterno" /></a>}
+                    {p.spartito && <a href={linkDelSito(p.spartito)} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>Spartito · {nomeCompleto(p)}</b><small>PDF</small></span><Icona nome="esterno" /></a>}
                     {!traccia && !p.spartito && <a href={`/area/repertorio#${p.id}`}><span class="icona-q"><Icona nome="libro" classe="" /></span><span><b>{nomeCompleto(p)}</b><small>Materiali in arrivo</small></span><Icona nome="freccia" /></a>}
                   </>
                 );
@@ -190,7 +191,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
             <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href="/area/registrazioni">Tutte <Icona nome="freccia" /></a></div>
             <div class="cc" style="display:grid;gap:10px">
               <span class="tenue" style="font-size:14px">{maiuscola(quando(ultima.data))} · {ultima.titolo}{ultima.tracce[0] && ` · caricata da ${ultima.tracce[0].chi}`}</span>
-              <a class="btn o piccolo" style="justify-self:start" href={ultima.tracce[0]?.link ?? ultima.link} target="_blank" rel="noopener"><Icona nome="play" />{ultima.tracce[0]?.titolo ?? 'Registrazione della prova'}</a>
+              <a class="btn o piccolo" style="justify-self:start" href={linkDelSito(ultima.tracce[0]?.link ?? ultima.link)} target="_blank" rel="noopener"><Icona nome="play" />{ultima.tracce[0]?.titolo ?? 'Registrazione della prova'}</a>
             </div>
           </article>
         )}

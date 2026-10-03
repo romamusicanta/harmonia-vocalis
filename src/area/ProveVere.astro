@@ -10,6 +10,7 @@ import { aperto, assenze, configurati, coristaDi, eventi, luogoBreveDi, luogoDi,
 import { repertorio, type Pezzo } from './repertorio';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import Errore from './Errore.astro';
+import { linkDelSito } from './file';
 
 let errore: unknown;
 let elenco: Evento[] = [];
@@ -99,7 +100,7 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
                       ? v.split(SEPARATORE_PEZZI).map((t, j) => { const p = pezzoDi(t); return <>{j > 0 && ', '}{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</>; })
                       : v}</>)}</div>
                   )}
-                  {valore(e, 'Registrazione') && <a class="btn o piccolo" style="margin-top:10px" href={valore(e, 'Registrazione')} target="_blank" rel="noopener"><Icona nome="microfono" />Registrazione della prova</a>}
+                  {valore(e, 'Registrazione') && <a class="btn o piccolo" style="margin-top:10px" href={linkDelSito(valore(e, 'Registrazione'))} target="_blank" rel="noopener"><Icona nome="microfono" />Registrazione della prova</a>}
                   {luogoBreveDi(e) && <div class="meta"><span><Icona nome="luogo" />{luogoBreveDi(e)}</span></div>}
                 </div>
                 <div class="az">
