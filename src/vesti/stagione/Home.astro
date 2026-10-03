@@ -116,7 +116,8 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
       </a>
       {coro.funzioni.cantaConNoi && (
         <a class="porta" href={l('/canta-con-noi')}>
-          <div class="img gialla"><b>SATB</b></div>
+          {/* La stessa foto della pagina Canta con noi */}
+          <div class="img"><Foto nome={coro.foto.prove ?? coro.foto.coro} alt={en ? (coro.foto.prove ? `The ${coro.nome} at a rehearsal` : `The ${coro.nome}`) : coro.foto.prove ? `Il ${coro.nome} durante una prova` : `Il ${coro.nome}`} sizes="(min-width: 1000px) 33vw, 100vw" /></div>
           <div class="c"><h3>{en ? 'Sing with us' : 'Canta con noi'}</h3><p>{en ? `We are looking for new voices. ${coro.prove.orari}, in Rome.` : `Cerchiamo nuove voci. ${coro.prove.orari}, a ${coro.prove.citta}.`}</p><span class="btn">{en ? 'Auditions' : 'Audizioni'}</span></div>
         </a>
       )}

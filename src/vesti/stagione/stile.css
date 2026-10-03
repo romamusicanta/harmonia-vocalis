@@ -359,7 +359,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 
 /* Passi numerati (canta con noi) */
 .passi { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); counter-reset: passo; }
-.passo { border-top: 3px solid var(--primario); padding-top: 18px; }
+.passo { padding-top: 4px; }
 .passo::before { font-family: var(--f-titoli); counter-increment: passo; content: '0' counter(passo); display: block; font-weight: var(--peso-titoli); font-size: 34px; line-height: .9; letter-spacing: -0.012em; color: var(--accento); margin-bottom: 14px; }
 .passo h3 { font-size: 22px; margin-bottom: 8px; }
 .passo p { color: var(--tenue); font-size: 16px; }
