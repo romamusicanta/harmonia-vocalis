@@ -49,7 +49,7 @@ const sulPodio = videoIn((await elencoVideo()).find((v) => v.autore !== 'Il coro
 const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(1).replace(/\.$/, '');
 ---
 
-<Base veste={veste} titolo={en ? 'The conductor' : 'Il Maestro'} pagina="il-maestro" anteprima={m.foto} descrizione={en ? `Maestro ${m.nome}: ${attacco}.` : `Il M° ${m.nome}, ${attacco}.`}>
+<Base veste={veste} titolo={en ? 'The Conductor' : 'Il Maestro'} pagina="il-maestro" anteprima={m.foto} descrizione={en ? `Maestro ${m.nome}: ${attacco}.` : `Il M° ${m.nome}, ${attacco}.`}>
   {/* Dati: coro.config.ts → maestro; etichetta da coro/testi/maestro.md */}
   <section class="apertura" style="border-bottom:1px solid var(--linea)">
     <div class="w" style="padding-top:0">

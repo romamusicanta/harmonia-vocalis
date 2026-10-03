@@ -140,9 +140,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
                     {c.evidenza && <span class="tag" style="margin-top:8px">{c.evidenza}</span>}
                   </div>
                   <span class="dove">{dove ? <><Icona nome="luogo" />{dove}</> : <span class="tenue" style="font-size:14px">{en ? 'Venue not given' : 'Luogo non indicato'}</span>}</span>
-                  <span class="azione">{c.video
-                    ? <a href={linkVideo(c.video)}><Icona nome="play" />{en ? 'Watch the video' : 'Guarda il video'}</a>
-                    : <span class="senza">{en ? 'No video available' : 'Video non disponibile'}</span>}</span>
+                  <span class="azione">{c.video && <a href={p.incerta ? linkVideo(c.video) : l(`/concerti/${slug(c)}#registrazione`)}><Icona nome="play" />{en ? 'Watch the video' : 'Guarda il video'}</a>}</span>
                 </div>
               );
             })}

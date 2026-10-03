@@ -82,7 +82,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
           {coro.direttivo.map((p) => (
             <div class="persona">
               <span class="ruolo">{p.ruolo}</span><b>{p.nome}</b>
-              {p.nome === coro.maestro.nome && <a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>{en ? 'The conductor' : 'Il Maestro'} <Icona nome="freccia" /></a>}
+              {p.nome === coro.maestro.nome && <a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>{en ? 'The Conductor' : 'Il Maestro'} <Icona nome="freccia" /></a>}
             </div>
           ))}
         </div>

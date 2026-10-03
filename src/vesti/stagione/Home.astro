@@ -113,7 +113,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
       </a>
       <a class="porta" href={l('/il-maestro')}>
         <div class="img"><Foto nome={coro.maestro.foto} alt={en ? `Maestro ${coro.maestro.nome}` : `Il M° ${coro.maestro.nome}`} sizes="(min-width: 1000px) 33vw, 100vw" style="object-position:center 20%" /></div>
-        <div class="c"><h3>{en ? 'The conductor' : 'Il Maestro'}</h3><p>{coro.maestro.nome}: {coro.maestro.presentazione.charAt(0).toLowerCase()}{coro.maestro.presentazione.slice(1)}</p><span class="btn o">{en ? 'Biography' : 'Biografia'}</span></div>
+        <div class="c"><h3>{en ? 'The Conductor' : 'Il Maestro'}</h3><p>{coro.maestro.nome}: {coro.maestro.presentazione.charAt(0).toLowerCase()}{coro.maestro.presentazione.slice(1)}</p><span class="btn o">{en ? 'Biography' : 'Biografia'}</span></div>
       </a>
       {coro.funzioni.cantaConNoi && (
         <a class="porta" href={l('/canta-con-noi')}>
@@ -147,7 +147,9 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
   <div class="w">
     <h2>{en ? 'Don’t miss the next concert' : 'Non perdere il prossimo concerto'}</h2>
     <div class="bottoni">
-      <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />{en ? 'Add the calendar' : 'Aggiungi il calendario'}</a>
+      {iscrizione
+        ? <a class="btn" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
+        : <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />{en ? 'Upcoming concerts' : 'Concerti in programma'}</a>}
       {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />{en ? 'Subscribe to the channel' : 'Iscriviti al canale'}</a>}
     </div>
   </div>

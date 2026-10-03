@@ -30,12 +30,17 @@ const videoEsiste = (id?: string) => Boolean(id && video.some((v) => v.id === id
 // ——— Repertorio pronto: un'opera per autore e titolo, dall'archivio ———
 // Numero di catalogo in coda al titolo: "Requiem K 626" → "K 626", "Requiem op. 48" → "op. 48"
 const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*[\w.\/]+(?:\s+n\.\s*\d+)?)$/;
+// La stessa opera può avere titoli diversi nei concerti ("Requiem", "Requiem in re minore K 626"):
+// si confrontano cognome dell'autore e titolo senza catalogo né tonalità
+const TONALITA = /\s+in\s+(?:(?:do|re|mi|fa|sol|la|si)(?:\s*(?:diesis|bemolle|#|b))?\s+(?:maggiore|minore)|[A-G](?:[-\s]?(?:flat|sharp|♭|♯))?\s+(?:major|minor))\b/i;
+const chiaveOpera = (autore: string, titolo: string) => semplifica(`${cognome(autore)} ${titolo.replace(CATALOGO, '').replace(TONALITA, '')}`);
 type Opera = { autore: string; titolo: string; catalogo?: string; concerti: Concerto[]; luoghi: string[]; video?: string };
 const opere = new Map<string, Opera>();
 for (const c of arch) {
   if (!c.autore) continue; // i programmi misti senza autore non sono un'opera da proporre
-  const chiave = semplifica(`${c.autore} ${c.titolo}`);
-  const o = opere.get(chiave) ?? { autore: c.autore, titolo: c.titolo, catalogo: c.titolo.match(CATALOGO)?.[1], concerti: [], luoghi: [] };
+  const chiave = chiaveOpera(c.autore, c.titolo);
+  const o = opere.get(chiave) ?? { autore: c.autore, titolo: c.titolo, concerti: [], luoghi: [] };
+  o.catalogo ??= c.titolo.match(CATALOGO)?.[1];
   o.concerti.push(c);
   if (c.luogo && !o.luoghi.includes(c.luogo)) o.luoghi.push(c.luogo);
   if (!o.video && videoEsiste(c.video)) o.video = c.video;
@@ -101,7 +106,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
         <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{voci}</b><span style="color:var(--primario-chiaro)">{en ? 'Voices' : 'Voci'}: {sezioni}</span></div>
         {repertorio.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{repertorio.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Works in the repertoire, already performed in concert' : 'Opere in repertorio, già eseguite in concerto'}</span></div>}
         {luoghi.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{luoghi.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Places where we have sung' : 'Località in cui abbiamo cantato'}</span></div>}
-        {primo && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{parti(primo).anno}</b><span style="color:var(--primario-chiaro)">{en ? 'First concert' : 'Primo concerto'}: <em>{primo.titolo}</em>{primo.autore && ` ${en ? 'by' : 'di'} ${cognome(primo.autore)}`}</span></div>}
+        {primo && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{parti(primo).anno}</b><span style="color:var(--primario-chiaro)">{en ? 'First concert' : 'Primo concerto'}: <em>{primo.titolo}</em>{primo.autore && !primo.titolo.includes(cognome(primo.autore)!) && ` ${en ? 'by' : 'di'} ${cognome(primo.autore)}`}</span></div>}
       </div>
     </div>
   </section>
@@ -146,7 +151,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
           })}
         </div>
         {altre.length > 0 && (
-          <p class="tenue" style="margin-top:24px;font-size:15px">{en ? 'And also' : 'E ancora'}: {altre.map((o, i) => <>{i > 0 && ', '}<em>{o.titolo}</em> {en ? 'by' : 'di'} {cognome(o.autore)}</>)}.</p>
+          <p class="tenue" style="margin-top:24px;font-size:15px">{en ? 'And also' : 'E ancora'}: {altre.map((o, i) => <>{i > 0 && ', '}<em>{o.titolo}</em>{!o.titolo.includes(cognome(o.autore)!) && ` ${en ? 'by' : 'di'} ${cognome(o.autore)}`}</>)}.</p>
         )}
       </div>
     </section>

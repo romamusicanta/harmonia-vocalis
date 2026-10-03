@@ -11,10 +11,10 @@ export function vociMenu(veste: Veste, lingua: Lingua = 'it') {
   const en = lingua === 'en';
   const l = (p: string) => link(veste, p, lingua);
   return [
-    { id: 'concerti', testo: en ? 'Season' : 'Stagione', href: l('/concerti') },
+    { id: 'concerti', testo: en ? 'Concerts' : 'Concerti', href: l('/concerti') },
     f.ascolta && { id: 'ascolta', testo: en ? 'Listen' : 'Ascolta', href: l('/ascolta') },
     { id: 'il-coro', testo: en ? 'The Choir' : 'Il Coro', href: l('/il-coro') },
-    { id: 'il-maestro', testo: en ? 'The conductor' : 'Il Maestro', href: l('/il-maestro') },
+    { id: 'il-maestro', testo: en ? 'The Conductor' : 'Il Maestro', href: l('/il-maestro') },
     f.cantaConNoi && { id: 'canta-con-noi', testo: en ? 'Sing with us' : 'Canta con noi', href: l('/canta-con-noi') },
     { id: 'contatti', testo: en ? 'Contact' : 'Contatti', href: l('/contatti') },
   ].filter((v): v is { id: Pagina; testo: string; href: string } => Boolean(v));

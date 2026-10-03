@@ -1,6 +1,7 @@
 ---
 // Pagina "Ascolta": lettore con il video in evidenza e tutti i video del canale, per autore.
-// Un video dell'elenco (o l'indirizzo /ascolta#<id>) si apre nel lettore in evidenza.
+// Un video dell'elenco (o l'indirizzo /ascolta#<id>) si apre nel lettore in evidenza. Sotto i video
+// di un concerto dell'archivio, il link alla pagina di quel concerto.
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
@@ -8,7 +9,7 @@ import Video from '../componenti/Video.astro';
 
 import { contesto } from '../motore/url';
 import { videoIn } from '../motore/inglese';
-import { chiaveAutore } from '../motore/concerti';
+import { archivio, chiaveAutore, parti, slug } from '../motore/concerti';
 import { eFinto, elencoVideo, miniatura, titoloCompleto, videoInEvidenza } from '../motore/video';
 import type { Video as TipoVideo } from '../motore/tipi';
 
@@ -35,6 +36,8 @@ const elencoGruppi = [...gruppi.values()].sort((a, b) => inFondo(a) - inFondo(b)
 const dataBreve = new Intl.DateTimeFormat(en ? 'en-GB' : 'it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const pubblicato = (v: TipoVideo) => `${en ? 'published' : 'pubblicato il'} ${dataBreve.format(new Date(v.pubblicato))}`;
 const canale = coro.link.youtubeCanale;
+// Il concerto di ogni video (solo quelli con una data precisa hanno una pagina)
+const concertoDi = new Map(archivio.filter((c) => c.video && !c.dataIncerta).map((c) => [c.video!, c]));
 ---
 
 <Base veste={veste} titolo={en ? 'Listen' : 'Ascolta'} pagina="ascolta" descrizione={en ? `Live recordings of the ${coro.nome}: full concerts and excerpts.` : `Registrazioni dal vivo del ${coro.nome}: concerti integrali ed estratti.`}>
@@ -87,12 +90,19 @@ const canale = coro.link.youtubeCanale;
           <div class="stag" data-gruppo>
             <div class="stag-testa"><b style="font-size:clamp(30px,3.6vw,44px)">{g.autore}</b><small>{g.video.length} {en && g.video.length !== 1 ? 'videos' : 'video'}</small></div>
             <div class="griglia-video" style="margin-top:28px">
-              {g.video.map((v) => (
-                <button type="button" class="vid" id={v.id} data-voce data-autore={g.chiave} data-carica={v.id} data-titolo={titoloCompleto(v)} data-sotto={v.sottotitolo ?? ''} data-mini={miniatura(v)} data-finto={eFinto(v) ? '' : undefined} style="background:none;border:0;padding:0;text-align:left">
+              {g.video.map((v) => {
+                const c = concertoDi.get(v.id);
+                const p = c && parti(c, lingua);
+                return (
+                <div class="vid-voce" id={v.id} data-voce data-autore={g.chiave}>
+                <button type="button" class="vid" data-carica={v.id} data-titolo={titoloCompleto(v)} data-sotto={v.sottotitolo ?? ''} data-mini={miniatura(v)} data-finto={eFinto(v) ? '' : undefined} style="background:none;border:0;padding:0;text-align:left">
                   <span class="mini"><img src={miniatura(v)} alt="" loading="lazy" /><i><Icona nome="play" /></i></span>
                   <b>{v.titolo}</b><small>{[v.sottotitolo, pubblicato(v)].filter(Boolean).join(' · ')}</small>
                 </button>
-              ))}
+                {c && p && <a class="link-freccia link-concerto" href={l(`/concerti/${slug(c)}`)}>{en ? 'The concert' : 'Il concerto'} · {p.giorno} {p.meseBreve} {p.anno} <Icona nome="freccia" /></a>}
+                </div>
+                );
+              })}
             </div>
           </div>
         ))}

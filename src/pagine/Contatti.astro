@@ -69,12 +69,14 @@ const profiloInstagram = coro.link.instagram && `@${coro.link.instagram.replace(
         </div>
 
         <aside style="display:grid;gap:20px">
-          {/* Dati: coro.email in coro.config.ts */}
-          <div class="riquadro blu">
-            <span class="eti gialla">Email</span>
-            <a href={`mailto:${coro.email}`} style="font-weight:800;font-size:clamp(18px,2vw,22px);overflow-wrap:anywhere;display:block;margin-bottom:6px">{coro.email}</a>
-            <p style="color:var(--primario-chiaro)">{en ? 'The quickest way to reach us.' : 'Il modo più rapido per raggiungerci.'}</p>
-          </div>
+          {/* Dati: coro.email in coro.config.ts. Fuori dalla demo l'email è già nella colonna principale */}
+          {DEMO && (
+            <div class="riquadro blu">
+              <span class="eti gialla">Email</span>
+              <a href={`mailto:${coro.email}`} style="font-weight:800;font-size:clamp(18px,2vw,22px);overflow-wrap:anywhere;display:block;margin-bottom:6px">{coro.email}</a>
+              <p style="color:var(--primario-chiaro)">{en ? 'The quickest way to reach us.' : 'Il modo più rapido per raggiungerci.'}</p>
+            </div>
+          )}
           {sede && (
             <div class="riquadro" style="margin:0">
               {/* Dati: coro.sede in coro.config.ts */}

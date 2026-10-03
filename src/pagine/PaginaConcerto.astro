@@ -67,7 +67,7 @@ const altri = [
 <Base veste={veste} titolo={titoloBreve} pagina="concerti" anteprima={c.locandina ?? c.foto} descrizione={`${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`}>
   <header class="intesta" style="padding-bottom:0;border:0">
     <div class="w">
-      <nav class="briciole" aria-label={en ? 'Breadcrumb' : 'Percorso'}><a href={l('/')}>Home</a><span>/</span><a href={l('/concerti')}>{en ? 'Season' : 'Stagione'} {stagione(c).sigla}</a><span>/</span><span>{c.titolo}</span></nav>
+      <nav class="briciole" aria-label={en ? 'Breadcrumb' : 'Percorso'}><a href={l('/')}>Home</a><span>/</span><a href={l('/concerti')}>{en ? 'Concerts' : 'Concerti'}</a><span>/</span><span>{c.titolo}</span></nav>
     </div>
   </header>
 
@@ -167,7 +167,7 @@ const altri = [
   </section>
 
   {giaEseguito && video && pg && (
-    <section class="fascia">
+    <section class="fascia" id="registrazione" style="scroll-margin-top:80px">
       {/* Dati: archivio in coro/concerti.ts (stesso titolo, con video) e canale YouTube */}
       <div class="w due">
         <div>
