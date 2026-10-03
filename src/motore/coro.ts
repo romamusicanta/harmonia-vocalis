@@ -68,7 +68,8 @@ export const coroIn = (lingua: Lingua): typeof coro => (lingua === 'en' ? fondi(
 
 export const indirizzo = (l: { indirizzo: string; cap: string; citta: string }) => `${l.indirizzo}, ${l.cap} ${l.citta}`;
 
-// L'area coristi vera (accesso con Google) è ancora da fare: per ora esiste nella demo e, se
-// richiesta, come anteprima nel sito vero (dati di esempio, aperta a tutti, con un avviso).
+// L'area coristi esiste nella demo (dati di esempio) e nel sito vero quando l'accesso dei coristi
+// con Google è configurato (coro.coristi) o, in attesa, come anteprima. ANTEPRIMA_AREA mostra solo
+// l'avviso "Anteprima" in testa all'area.
 export const ANTEPRIMA_AREA = !DEMO && coro.funzioni.areaCoristi && coro.funzioni.anteprimaArea;
-export const AREA_CORISTI = coro.funzioni.areaCoristi && (DEMO || ANTEPRIMA_AREA);
+export const AREA_CORISTI = coro.funzioni.areaCoristi && (DEMO || ANTEPRIMA_AREA || Boolean(coro.coristi));

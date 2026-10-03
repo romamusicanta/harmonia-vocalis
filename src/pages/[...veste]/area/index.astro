@@ -1,13 +1,14 @@
 ---
 // Area coristi: bacheca. Prossima prova (con segnalazione di assenza), prossimo concerto
-// (con conferma), avvisi (veri: src/area/bacheca.ts), scorciatoie della sezione, ultima registrazione, presenze attese.
+// (con conferma), avvisi, scorciatoie della sezione, ultima registrazione, presenze attese. Nel sito vero tutto dai dati
+// veri (src/area/BachecaVera.astro), nella demo dati di esempio.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { parti, prossimiConcerti } from '../../../motore/concerti';
-import { avvisi as avvisiVeri, firmaDi, inBacheca, nuovo, ruoliDi } from '../../../area/bacheca';
 import { comeHtml } from '../../../area/testo';
+import BachecaVera from '../../../area/BachecaVera.astro';
 import {
   corista, prossimaProva, luogoProva, convocazione, titoloBreve, repertorio, registrazioni,
   assenzeProssima, totaleVoci, avvisi, giorno, traGiorni, dataBreve, dataEstesa, dataGiorno,
@@ -26,12 +27,8 @@ const opera = repertorio.find((o) => o.materiali);
 const basiMie = opera?.materiali?.basi.find((b) => b.sezione === corista.sezione);
 const reg = registrazioni[0];
 const attesi = totaleVoci - assenzeProssima.length;
-// Avvisi: nel sito vero quelli della bacheca (src/area/bacheca.ts), nella demo quelli di esempio
-const veri = !DEMO && Astro.locals.corista;
-const elencoAvvisi = veri
-  ? inBacheca(await avvisiVeri().catch(() => [])).map((a) => ({ id: a.id, data: a.pubblicato, autore: firmaDi(a), titolo: a.titolo, html: comeHtml(a.testo), nuovo: nuovo(a) }))
-  : avvisi.map((a, i) => ({ id: String(i), data: a.data, autore: a.autore, titolo: a.titolo, html: comeHtml(a.testo), nuovo: a.nuovo }));
-const scrive = veri ? (await ruoliDi(Astro.locals.corista!.email).catch(() => [])).length > 0 : false;
+const elencoAvvisi = avvisi.map((a, i) => ({ id: String(i), data: a.data, autore: a.autore, titolo: a.titolo, html: comeHtml(a.testo), nuovo: a.nuovo }));
+const scrive = false;
 const nuovi = elencoAvvisi.filter((a) => a.nuovo).length;
 const sezioneMin = corista.sezione.toLowerCase();
 
@@ -43,6 +40,7 @@ const intro = [
 ---
 
 <Base veste={veste} titolo="Bacheca · Area coristi" area={{ sezione: 'bacheca' }}>
+  {DEMO ? (<>
   <div class="area-intesta">
     <div class="w">
       <div>
@@ -158,4 +156,5 @@ const intro = [
       </div>
     </div>
   </div>
+  </>) : <BachecaVera />}
 </Base>

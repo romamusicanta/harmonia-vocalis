@@ -139,7 +139,7 @@ export default {
     cantaConNoi: true,
     organizzatori: true,
     areaCoristi: true,
-    // Anteprima con dati di esempio sotto /area, finché l'accesso con Google non è pronto
-    anteprimaArea: true,
+    // Avviso "Anteprima" in testa all'area coristi (spento dal 3/10/2026: tutte le pagine hanno dati veri)
+    anteprimaArea: false,
   },
 } satisfies ConfigCoro;

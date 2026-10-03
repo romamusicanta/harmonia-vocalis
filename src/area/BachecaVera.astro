@@ -1,0 +1,202 @@
+---
+// Area coristi, Bacheca nel sito vero: tutto quello che serve per la settimana, dai dati veri.
+// Prossima prova (pezzi, passi, "Non ci sarò"), prossimo concerto (convocazione e prova
+// generale), avvisi (src/area/bacheca.ts), la propria sezione (tracce e spartiti dei pezzi in
+// studio, src/area/repertorio.ts), ultima registrazione (src/area/registrazioni.ts), attesi alla
+// prossima prova. Ogni parte che non risponde resta vuota senza bloccare le altre.
+import Icona from '../componenti/Icona.astro';
+import { CALENDARIO_PROVE_ID } from 'astro:env/server';
+import { parti } from '../motore/concerti';
+import { aperto, assenze, coristaDi, coristi, eventi, luogoDi, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
+import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
+import { convocazioni, type Convocazione } from './convocazioni';
+import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
+import { registrazioni, type GiornoRegistrato } from './registrazioni';
+import { SEPARATORE_PEZZI } from '../admin/prove';
+import { comeHtml } from './testo';
+
+const email = Astro.locals.corista!.email;
+const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
+const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte] = await Promise.all([
+  nulla(coristaDi(email), undefined),
+  nulla(eventi(oggi(), piuGiorni(oggi(), 120)), [] as Evento[]),
+  nulla(avvisi(), []),
+  nulla(ruoliDi(email), []),
+  nulla(repertorio(), [] as Pezzo[]),
+  nulla(registrazioni(), [] as GiornoRegistrato[]),
+  nulla(convocazioni(), new Map<string, Convocazione>()),
+  nulla(coristi(), []),
+  nulla(assenze(), []),
+]);
+const adesso = Date.now() - 3 * 3600 * 1000;
+const prova = prossimi.find((e) => e.tipo === 'prova' && e.inizioMs > adesso);
+const concerto = prossimi.find((e) => e.tipo === 'concerto' && e.inizioMs > adesso);
+const cv = concerto && conv.get(concerto.id);
+const rProva: Riepilogo | undefined = prova && tutti.length ? riepilogo(prova, tutti, tutte) : undefined;
+const mie = new Map(tutte.filter((a) => a.email === io?.email).map((a) => [a.idEvento, a.nota]));
+const bacheca = inBacheca(elencoAvvisi);
+const sezione = io?.sezione;
+const inStudio = pezzi.filter((p) => p.stato === 'In studio');
+const ultima = regs.find((g) => g.tracce.length || g.link);
+
+const riga = (e: Evento, k: string) => e.righe.find(([x]) => x === k)?.[1];
+const pezzoDi = (t: string) => pezzi.find((p) => p.titolo === t.trim());
+const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
+const traGiorni = (iso: string) => { const n = Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000); return n === 0 ? 'Oggi' : n === 1 ? 'Domani' : `Tra ${n} giorni`; };
+const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const intro = [prova && `${maiuscola(quando(prova.data))} la prossima prova`, concerto && `${quando(concerto.data)} il concerto`].filter(Boolean).join(', ');
+const iscrizione = CALENDARIO_PROVE_ID && `https://calendar.google.com/calendar/u/0/r?${new URLSearchParams({ cid: CALENDARIO_PROVE_ID })}`;
+const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== concerto!.data ? `${quando(cv.generale.data)}, ` : ''}ore ${cv.generale.ora}` : undefined;
+---
+
+<div class="area-intesta">
+  <div class="w">
+    <div>
+      <span class="eti" style="margin-bottom:12px">Bacheca{sezione && ` · ${sezione}`}</span>
+      <h1>Ciao {Astro.locals.corista!.nome}<span style="color:var(--accento)">.</span></h1>
+      <p>{intro ? `${intro}. ` : ''}Qui trovi tutto quello che ti serve per la settimana.</p>
+    </div>
+    {iscrizione && <a class="btn o" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />Prove sul telefono</a>}
+  </div>
+</div>
+
+<div class="area-main">
+  <div class="w">
+    <div class="cruscotto">
+
+      {prova ? (() => {
+        const d = parti({ data: prova.data });
+        const rep = riga(prova, 'Repertorio')?.split(SEPARATORE_PEZZI).filter(Boolean) ?? [];
+        const brani = riga(prova, 'Brani');
+        const assente = mie.has(prova.id);
+        return (
+          <article class="carta blu c-7">
+            <div class="ct"><h2>Prossima prova{prova.titolo !== 'Prova' && ` · ${prova.titolo.toLowerCase()}`}</h2><span class="tag">{traGiorni(prova.data)}</span></div>
+            <div class="cc">
+              <div class="prova-evidenza">
+                <div class="gg">{d.giorno}<small>{d.giornoSettimana} · {d.mese}</small></div>
+                <div>
+                  <ul class="fatti" style="color:var(--primario-chiaro);margin-top:0">
+                    <li><Icona nome="orologio" />{prova.inizio}{prova.fine && ` – ${prova.fine}`}</li>
+                    {luogoDi(prova) && <li><Icona nome="luogo" />{luogoDi(prova)}</li>}
+                    {riga(prova, 'Sezioni') && <li><Icona nome="persone" />{riga(prova, 'Sezioni')}</li>}
+                  </ul>
+                  {(rep.length > 0 || brani) && (
+                    <>
+                      <span class="eti gialla" style="margin-top:18px">Da preparare</span>
+                      <ul class="brani">
+                        {rep.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="color:inherit;text-decoration:underline">{nomeCompleto(p)}</a> : t}</li>; })}
+                        {brani && <li>{brani}</li>}
+                      </ul>
+                    </>
+                  )}
+                  {riga(prova, 'Portare') && <p style="margin-top:12px;color:var(--primario-chiaro);font-size:15px"><b style="color:#fff">Portare:</b> {riga(prova, 'Portare')}</p>}
+                  {riga(prova, 'Note') && <p style="margin-top:6px;color:var(--primario-chiaro);font-size:15px">{riga(prova, 'Note')}</p>}
+                </div>
+              </div>
+              {io && aperto(prova) && (
+                <div class:list={['assenza', { segnalata: assente }]} data-evento={prova.id}>
+                  <div class="da-fare"><button class="btn btn-assenza segna" type="button"><Icona nome="chiudi" />Non ci sarò</button></div>
+                  <div class="fatto">
+                    <div class="stato-assenza"><Icona nome="spunta" />Hai segnalato l'assenza · <button class="togli" type="button">Ritira</button></div>
+                    <div class="nota-assenza"><label for={`n-${prova.id}`}>Nota per il Maestro e i redattori (facoltativa)</label><input id={`n-${prova.id}`} class="nota" maxlength="300" value={mie.get(prova.id) ?? ''} placeholder="Es. arrivo alle 21:30" /></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </article>
+        );
+      })() : (
+        <article class="carta c-7"><div class="ct"><h2>Prossima prova</h2></div><div class="cc tenue">Nessuna prova in calendario nei prossimi mesi.</div></article>
+      )}
+
+      {concerto ? (() => {
+        const d = parti({ data: concerto.data });
+        const assente = mie.has(concerto.id);
+        return (
+          <article class="carta c-5">
+            <div class="ct"><h2>Prossimo concerto</h2><a class="link-freccia" href={`/area/concerti#c-${concerto.id}`}>Convocazione <Icona nome="freccia" /></a></div>
+            <div class="cc">
+              <div style="display:flex;gap:20px;align-items:flex-start">
+                <span class="data-grande">{d.giorno}<small>{d.meseBreve} · {d.giornoSettimana}</small></span>
+                <div style="min-width:0"><h3 style="font-size:22px">{concerto.titolo}</h3><span class="tenue" style="font-size:15px">{[concerto.inizio && `ore ${concerto.inizio}`, luogoDi(concerto)].filter(Boolean).join(' · ')}</span></div>
+              </div>
+              {cv && (cv.convocazione || generale) ? (
+                <ul class="orari" style="margin-top:20px">
+                  {cv.convocazione && <li><b>{cv.convocazione}</b><span>Convocazione{cv.ritrovo && ` · ${cv.ritrovo}`}</span></li>}
+                  {generale && <li><b><Icona nome="nota" /></b><span>Prova generale: {generale}</span></li>}
+                  {cv.abito && <li><b><Icona nome="campanella" /></b><span>{cv.abito}</span></li>}
+                </ul>
+              ) : <p class="tenue" style="margin-top:16px;font-size:15px">Convocazione e prova generale in arrivo.</p>}
+              <div class="riga-conferma">
+                <div><b>{assente ? 'Hai segnalato che non ci sarai' : 'Ci sei?'}</b><div class="tenue" style="font-size:14px">{assente ? 'Puoi ritirarla dalla pagina Concerti.' : 'Sei atteso: se non puoi, segnalalo nella pagina Concerti.'}</div></div>
+                <a class="btn o piccolo" href={`/area/concerti#c-${concerto.id}`}>Concerti</a>
+              </div>
+            </div>
+          </article>
+        );
+      })() : null}
+
+      <article class="carta c-7 su">
+        <div class="ct"><h2>Avvisi</h2>{bacheca.filter(nuovo).length > 0 && <span class="tag grigio">{bacheca.filter(nuovo).length === 1 ? '1 nuovo' : `${bacheca.filter(nuovo).length} nuovi`}</span>}{ruoli.length > 0 && <a class="link-freccia" href="/area/avvisi">Scrivi un avviso <Icona nome="freccia" /></a>}</div>
+        {bacheca.length === 0 && <div class="cc tenue">Nessun avviso in bacheca.</div>}
+        <ul class="avvisi">
+          {bacheca.map((a) => {
+            const d = parti({ data: a.pubblicato || oggi() });
+            return (
+              <li class:list={['avviso', { nuovo: nuovo(a) }]}>
+                <span class="chi">{nuovo(a) && <span class="tag">Nuovo</span>}<b>{firmaDi(a)}</b> · {Number(d.giorno)} {d.mese.toLowerCase()} {d.anno}</span>
+                <h3>{a.titolo}</h3>
+                <div class="testo-avviso" set:html={comeHtml(a.testo)} />
+              </li>
+            );
+          })}
+        </ul>
+      </article>
+
+      <div class="c-5" style="display:grid;gap:24px;align-content:start">
+        {inStudio.length > 0 && (
+          <article class="carta">
+            <div class="ct"><h2>{sezione ? `La tua sezione · ${sezione}` : 'Da studiare'}</h2><a class="link-freccia" href="/area/repertorio">Repertorio <Icona nome="freccia" /></a></div>
+            <div class="scorciatoie">
+              {inStudio.map((p) => {
+                const traccia = p.tracce.find((t) => t.sezione === sezione) ?? p.tracce.find((t) => t.sezione === 'Tutte le voci');
+                return (
+                  <>
+                    {traccia && <a href={traccia.link} target="_blank" rel="noopener"><span class="icona-q g"><Icona nome="cuffie" classe="" /></span><span><b>Tracce · {nomeCompleto(p)}</b><small>{traccia.sezione}</small></span><Icona nome="esterno" /></a>}
+                    {p.spartito && <a href={p.spartito} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>Spartito · {nomeCompleto(p)}</b><small>PDF sul Drive del coro</small></span><Icona nome="esterno" /></a>}
+                    {!traccia && !p.spartito && <a href={`/area/repertorio#${p.id}`}><span class="icona-q"><Icona nome="libro" classe="" /></span><span><b>{nomeCompleto(p)}</b><small>Materiali in arrivo</small></span><Icona nome="freccia" /></a>}
+                  </>
+                );
+              })}
+            </div>
+          </article>
+        )}
+
+        {ultima && (
+          <article class="carta">
+            <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href="/area/registrazioni">Tutte <Icona nome="freccia" /></a></div>
+            <div class="cc" style="display:grid;gap:10px">
+              <span class="tenue" style="font-size:14px">{maiuscola(quando(ultima.data))} · {ultima.titolo}{ultima.tracce[0] && ` · caricata da ${ultima.tracce[0].chi}`}</span>
+              <a class="btn o piccolo" style="justify-self:start" href={ultima.tracce[0]?.link ?? ultima.link} target="_blank" rel="noopener"><Icona nome="play" />{ultima.tracce[0]?.titolo ?? 'Registrazione della prova'}</a>
+            </div>
+          </article>
+        )}
+
+        {rProva && (
+          <a class="carta" href="/area/prove" style="display:block">
+            <div class="cc" style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+              <div><span class="eti" style="margin-bottom:6px">Attesi {quando(prova!.data)}</span><b style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:40px;color:var(--primario);letter-spacing:-0.012em;line-height:1">{rProva.attesi.length - rProva.assenti.length}<span class="tenue" style="font-size:18px;letter-spacing:0;font-weight:600"> su {rProva.attesi.length}</span></b></div>
+              <Icona nome="freccia" classe="" />
+            </div>
+          </a>
+        )}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  import './assenze-client';
+</script>
