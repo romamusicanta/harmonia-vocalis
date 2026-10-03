@@ -17,5 +17,5 @@ try {
 <LayoutAdmin titolo="Modifica prova" sezione="prove">
   <h1>Modifica prova</h1>
   {errore && <p class="messaggio errore">Prova non trovata: {errore}</p>}
-  {prova && <ModuloProva prova={prova} />}
+  {prova && <ModuloProva prova={prova} base="/admin" />}
 </LayoutAdmin>

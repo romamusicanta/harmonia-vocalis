@@ -1,0 +1,25 @@
+---
+// Area del Maestro: modifica di una prova del calendario "Prove"
+import Base from '../../../layouts/Base.astro';
+import ModuloProva from '../../../admin/ModuloProva.astro';
+import { leggiProva, type Prova } from '../../../admin/prove';
+import { vesteCorrente } from '../../../motore/url';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+let prova: Prova | undefined;
+let errore: string | undefined;
+try {
+  prova = await leggiProva('servizio', Astro.url.searchParams.get('id') ?? '');
+} catch (e) {
+  errore = (e as Error).message;
+}
+---
+
+<Base veste={veste} titolo="Modifica prova · Area del Maestro" area={{ maestro: true, sezione: 'prove' }}>
+  <div class="area-intesta"><div class="w"><div><span class="eti" style="margin-bottom:12px">Prove</span><h1>Modifica prova</h1></div></div></div>
+  <div class="area-main"><div class="w">
+    {errore && <p class="messaggio errore">Prova non trovata: {errore}</p>}
+    {prova && <ModuloProva prova={prova} base="/maestro" />}
+  </div></div>
+</Base>

@@ -1,94 +1,13 @@
 ---
-// Prove: l'elenco del calendario "Prove" (ultimo mese e prossimi quattro), con Modifica e Cancella
-// per ogni data e il pulsante per una prova nuova. Scrive a nome di chi è entrato (src/admin/prove.ts).
-import { CALENDARIO_PROVE_ID } from 'astro:env/server';
+// Prove: l'elenco del calendario "Prove", a nome di chi è entrato (src/admin/ElencoProve.astro)
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
-import { elencoProve, type Prova } from '../../../admin/prove';
-import { parti } from '../../../motore/concerti';
+import ElencoProve from '../../../admin/ElencoProve.astro';
 
 export const prerender = false;
-
-const giorno = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-const oggi = giorno(new Date());
-const tra = (n: number) => giorno(new Date(Date.now() + n * 86_400_000));
-let prove: Prova[] = [];
-let errore: string | undefined;
-if (!CALENDARIO_PROVE_ID) errore = 'Manca la variabile CALENDARIO_PROVE_ID sul server.';
-else {
-  try {
-    prove = await elencoProve(Astro.locals.sessione!, tra(-31), tra(122));
-  } catch (e) {
-    errore = (e as Error).message;
-  }
-}
-const salvata = Astro.url.searchParams.get('salvata');
-const mesi = new Map<string, Prova[]>();
-for (const p of prove) {
-  const d = parti({ data: p.data });
-  const chiave = `${d.mese} ${d.anno}`;
-  if (!mesi.has(chiave)) mesi.set(chiave, []);
-  mesi.get(chiave)!.push(p);
-}
-const quando = (p: Prova) => { const d = parti({ data: p.data }); return `${d.giornoSettimana} ${Number(d.giorno)}`; };
 ---
 
 <LayoutAdmin titolo="Prove" sezione="prove">
   <h1>Prove</h1>
   <p class="tenue" style="max-width:64ch">Le prove del calendario "Prove": i coristi le vedono nel loro Google Calendar e nell'area coristi, dove segnalano le assenze. La prova del mercoledì si ripete ogni settimana: modificare o cancellare una data cambia solo quella.</p>
-  <p style="margin-top:16px"><a class="btn g" href="/admin/prove/nuova">+ Nuova prova</a></p>
-  {salvata && <p class="messaggio ok">Prova del {salvata.split('-').reverse().join('/')} salvata.</p>}
-  <p id="esito" role="status"></p>
-  {errore && <p class="messaggio errore">{errore}</p>}
-
-  {[...mesi].map(([mese, elenco]) => (
-    <>
-      <h2>{mese}</h2>
-      <ul class="elenco-prove">
-        {elenco.map((p) => (
-          <li class:list={{ passata: p.data < oggi }} data-id={p.id}>
-            <span class="quando"><b>{quando(p)}</b><small>{p.inizio}–{p.fine}</small></span>
-            <span class="cosa"><b>{p.titolo}</b>{p.ricorrente && <span class="tag">settimanale</span>}<small>{[p.luogo || 'Sala abituale', p.righe.Sezioni, p.righe.Brani].filter(Boolean).join(' · ')}</small></span>
-            <span class="azioni"><a class="btn o piccolo" href={`/admin/prove/modifica?${new URLSearchParams({ id: p.id })}`}>Modifica</a><button class="btn o piccolo cancella" type="button" data-quando={`${quando(p)} ${parti({ data: p.data }).mese.toLowerCase()}`}>Cancella</button></span>
-          </li>
-        ))}
-      </ul>
-    </>
-  ))}
-  {!errore && prove.length === 0 && <p class="tenue">Nessuna prova in calendario.</p>}
-
-  <style>
-    .elenco-prove { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-    .elenco-prove li { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); padding: 12px 16px; }
-    .elenco-prove li.passata { opacity: .65; }
-    .elenco-prove .quando b, .elenco-prove .cosa b { display: block; color: var(--primario); }
-    .elenco-prove .quando b::first-letter { text-transform: uppercase; }
-    .elenco-prove small { display: block; color: var(--tenue); font-size: 14px; }
-    .elenco-prove .cosa .tag { margin-left: 8px; vertical-align: middle; }
-    .elenco-prove .cosa b { display: inline; }
-    .elenco-prove .azioni { display: flex; gap: 8px; flex-wrap: wrap; }
-    @media (max-width: 640px) { .elenco-prove li { grid-template-columns: 1fr; } }
-  </style>
-
-  <script>
-    const esito = document.getElementById('esito')!;
-    document.querySelectorAll<HTMLButtonElement>('.cancella').forEach((b) => b.addEventListener('click', async () => {
-      const riga = b.closest('li') as HTMLElement;
-      if (!confirm(`Cancellare la prova di ${b.dataset.quando}? Sparisce dal calendario dei coristi.`)) return;
-      b.disabled = true;
-      const f = new FormData();
-      f.set('id', riga.dataset.id!);
-      try {
-        const r = await fetch('/admin/prove/cancella', { method: 'POST', body: f });
-        const j = await r.json().catch(() => ({ ok: false, errore: `errore ${r.status}` }));
-        if (!j.ok) throw new Error(j.errore);
-        riga.remove();
-        esito.className = 'messaggio ok';
-        esito.textContent = `Prova di ${b.dataset.quando} cancellata.`;
-      } catch (e) {
-        esito.className = 'messaggio errore';
-        esito.textContent = `Non cancellata: ${(e as Error).message}`;
-        b.disabled = false;
-      }
-    }));
-  </script>
+  <ElencoProve base="/admin" chi={Astro.locals.sessione!} />
 </LayoutAdmin>

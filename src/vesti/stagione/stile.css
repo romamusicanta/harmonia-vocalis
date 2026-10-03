@@ -461,6 +461,11 @@ a.sc:hover { box-shadow: var(--ombra); }
 .barra-area a.on { color: #fff; border-color: var(--accento); }
 
 .area-intesta { padding: 48px 0 32px; }
+/* Messaggi dei moduli delle aree riservate (esito di un salvataggio, errori) */
+.messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
+.messaggio:empty { display: none; }
+.messaggio.ok { border-color: #2e7d4f; }
+.messaggio.errore { border-color: #b3261e; color: #b3261e; }
 .area-intesta h1 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: clamp(28px, 3vw, 40px); line-height: 1.05; letter-spacing: -0.012em; color: var(--primario); }
 .area-intesta p { color: var(--tenue); margin-top: 14px; max-width: 60ch; font-size: 18px; }
 .area-intesta .w { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; }

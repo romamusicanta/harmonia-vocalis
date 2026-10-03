@@ -1,0 +1,16 @@
+// Area del Maestro (scrive l'account di servizio). Cancella una prova dal calendario "Prove" (per la prova settimanale, solo quella data)
+import type { APIRoute } from 'astro';
+import { cancellaProva } from '../../../admin/prove';
+
+export const prerender = false;
+
+export const POST: APIRoute = async ({ request }) => {
+  try {
+    const id = String((await request.formData()).get('id') ?? '');
+    if (!id) return Response.json({ ok: false, errore: 'manca la prova' }, { status: 400 });
+    await cancellaProva('servizio', id);
+    return Response.json({ ok: true });
+  } catch (e) {
+    return Response.json({ ok: false, errore: (e as Error).message }, { status: 500 });
+  }
+};

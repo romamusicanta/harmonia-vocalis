@@ -4,16 +4,35 @@
 // titolo = tipo di prova; luogo vuoto = sala abituale; descrizione con righe "Sezioni:",
 // "Brani:", "Portare:", "Note:". La prova settimanale è un evento ricorrente: qui si modifica o si
 // cancella una data alla volta (le altre restano come sono).
+// Scrive chi è entrato nell'Amministrazione (con il suo accesso a Google) oppure, per il Maestro
+// dalla sua area, l'account di servizio ('servizio'), che sul calendario Prove può modificare gli
+// eventi. Righe in più dal 3/10/2026: "Repertorio:" (i titoli dei pezzi, separati da " · ", che
+// l'area coristi collega alla pagina Repertorio) e "Registrazione:" (link).
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { api } from './google';
+import { tokenServizio } from '../area/servizio';
 import type { Sessione } from './sessione';
+
+export type Chi = Sessione | 'servizio';
+
+// Una chiamata al calendario a nome di chi scrive; risposta vuota (cancellazione) = undefined
+async function chiama<T>(chi: Chi, indirizzo: string, init: RequestInit = {}): Promise<T> {
+  const token = chi === 'servizio' ? await tokenServizio() : chi.accesso;
+  const r = await fetch(indirizzo, { ...init, headers: { Authorization: `Bearer ${token}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers ?? {}) } });
+  if (!r.ok && !(init.method === 'DELETE' && r.status === 410)) {
+    const testo = await r.text();
+    const messaggio = (() => { try { return JSON.parse(testo).error?.message; } catch { return undefined; } })();
+    throw new Error(`Google (${r.status}): ${messaggio ?? testo.slice(0, 200)}`);
+  }
+  return (r.status === 204 || r.status === 410 ? undefined : await r.json()) as T;
+}
 
 const CAL = 'https://www.googleapis.com/calendar/v3';
 const FUSO = 'Europe/Rome';
 const url = (resto = '') => `${CAL}/calendars/${encodeURIComponent(CALENDARIO_PROVE_ID!)}/events${resto}`;
 
-export const RIGHE = ['Sezioni', 'Brani', 'Portare', 'Note'] as const;
+export const RIGHE = ['Sezioni', 'Repertorio', 'Brani', 'Portare', 'Note', 'Registrazione'] as const;
+export const SEPARATORE_PEZZI = ' · ';
 export const salaAbituale = () => `${coro.prove.nome}, ${coro.prove.indirizzo}, ${coro.prove.cap} ${coro.prove.citta}`;
 
 export interface Prova {
@@ -71,16 +90,16 @@ function prova(e: EventoApi): Prova {
 }
 
 // Le prove tra due giorni, in ordine (le date della prova settimanale una per una)
-export async function elencoProve(s: Sessione, da: string, a: string): Promise<Prova[]> {
+export async function elencoProve(s: Chi, da: string, a: string): Promise<Prova[]> {
   const p = new URLSearchParams({
     singleEvents: 'true', orderBy: 'startTime', maxResults: '500', timeZone: FUSO,
     timeMin: new Date(`${da}T00:00:00Z`).toISOString(), timeMax: new Date(`${a}T23:59:59Z`).toISOString(),
   });
-  const { items = [] } = await api<{ items?: EventoApi[] }>(s, url(`?${p}`));
+  const { items = [] } = await chiama<{ items?: EventoApi[] }>(s, url(`?${p}`));
   return items.filter((e) => e.status !== 'cancelled').map(prova);
 }
 
-export const leggiProva = async (s: Sessione, id: string) => prova(await api<EventoApi>(s, url(`/${encodeURIComponent(id)}`)));
+export const leggiProva = async (s: Chi, id: string) => prova(await chiama<EventoApi>(s, url(`/${encodeURIComponent(id)}`)));
 
 // Dal modulo (src/admin/ModuloProva.astro) al corpo dell'evento
 export function corpoDalModulo(f: FormData): { errore: string } | object {
@@ -89,7 +108,10 @@ export function corpoDalModulo(f: FormData): { errore: string } | object {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { errore: 'Manca la data.' };
   if (!/^\d{2}:\d{2}$/.test(inizio) || !/^\d{2}:\d{2}$/.test(fine)) return { errore: 'Mancano gli orari di inizio e fine.' };
   if (fine <= inizio) return { errore: 'La fine deve essere dopo l’inizio.' };
-  const righe = RIGHE.map((r) => [r, v(r.toLowerCase())]).filter(([, x]) => x).map(([r, x]) => `${r}: ${x.replace(/\s*\n\s*/g, ' ')}`);
+  const registrazione = v('registrazione');
+  if (registrazione && !/^https?:\/\/\S+$/.test(registrazione)) return { errore: 'Il link alla registrazione deve iniziare con https://' };
+  const valori: Record<string, string> = { ...Object.fromEntries(RIGHE.map((r) => [r, v(r.toLowerCase())])), Repertorio: f.getAll('repertorio').map(String).filter(Boolean).join(SEPARATORE_PEZZI) };
+  const righe = RIGHE.map((r) => [r, valori[r]]).filter(([, x]) => x).map(([r, x]) => `${r}: ${x.replace(/\s*\n\s*/g, ' ')}`);
   const altro = v('altro');
   return {
     summary: v('titolo') || 'Prova',
@@ -100,14 +122,11 @@ export function corpoDalModulo(f: FormData): { errore: string } | object {
   };
 }
 
-export const creaProva = (s: Sessione, corpo: object) =>
-  api<EventoApi>(s, url(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+export const creaProva = (s: Chi, corpo: object) =>
+  chiama<EventoApi>(s, url(), { method: 'POST', body: JSON.stringify(corpo) });
 
-export const aggiornaProva = (s: Sessione, id: string, corpo: object) =>
-  api<EventoApi>(s, url(`/${encodeURIComponent(id)}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+export const aggiornaProva = (s: Chi, id: string, corpo: object) =>
+  chiama<EventoApi>(s, url(`/${encodeURIComponent(id)}`), { method: 'PATCH', body: JSON.stringify(corpo) });
 
 // Per una data della prova settimanale cancella solo quella data
-export async function cancellaProva(s: Sessione, id: string) {
-  const r = await fetch(url(`/${encodeURIComponent(id)}`), { method: 'DELETE', headers: { Authorization: `Bearer ${s.accesso}` } });
-  if (!r.ok && r.status !== 410) throw new Error(`Google (${r.status}): ${(await r.text()).slice(0, 200)}`);
-}
+export const cancellaProva = (s: Chi, id: string) => chiama<void>(s, url(`/${encodeURIComponent(id)}`), { method: 'DELETE' });
