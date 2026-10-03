@@ -69,15 +69,24 @@ async function nelGruppo(accesso: string, email: string, gruppo: string) {
   return memberships.some((m) => m.groupKey?.id?.toLowerCase() === gruppo.toLowerCase());
 }
 
+// La foto dell'account Google ('' se non c'è); se Google non risponde, si riprova la volta dopo
+async function fotoDi(accesso: string) {
+  try {
+    const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${accesso}` } })).json();
+    return (io.picture as string | undefined) ?? '';
+  } catch {
+    return undefined;
+  }
+}
+export const conFoto = async (s: Sessione): Promise<Sessione> => ({ ...s, foto: await fotoDi(s.accesso) });
+
 // Token ancora valido, o rinnovato; undefined se bisogna rientrare
 export async function tokenValido(s: Sessione): Promise<Sessione | undefined> {
   if (Date.now() < s.scade) return s;
   if (!s.rinnovo) return undefined;
   try {
     const t = await token({ refresh_token: s.rinnovo, grant_type: 'refresh_token' });
-    // Le sessioni di prima del 3/10/2026 non hanno la foto: si prende al primo rinnovo
-    const foto = s.foto ?? (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } }).then((r) => r.json()).then((io) => io.picture ?? '').catch(() => undefined));
-    return { ...s, foto, accesso: t.access_token, scade: Date.now() + (t.expires_in - 60) * 1000 };
+    return { ...s, accesso: t.access_token, scade: Date.now() + (t.expires_in - 60) * 1000 };
   } catch {
     return undefined;
   }

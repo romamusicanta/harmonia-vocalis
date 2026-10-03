@@ -38,13 +38,16 @@ const RICONTROLLO = 24 * 60 * 60 * 1000;
 
 export const configurato = () => Boolean(CORISTI_CLIENT_ID && CORISTI_CLIENT_SECRET && coro.coristi);
 
-export function urlAccesso(ritorno: string, stato: string) {
+// Con silenzioso (l'email di chi è già dentro) Google non mostra niente: se l'account è ancora
+// collegato nel browser torna subito con il codice, altrimenti con un errore (serve a prendere la
+// foto per le sessioni che non l'hanno)
+export function urlAccesso(ritorno: string, stato: string, silenzioso?: string) {
   const p = new URLSearchParams({
     client_id: CORISTI_CLIENT_ID!,
     redirect_uri: ritorno,
     response_type: 'code',
     scope: 'openid email profile',
-    prompt: 'select_account',
+    ...(silenzioso ? { prompt: 'none', login_hint: silenzioso } : { prompt: 'select_account' }),
     state: stato,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${p}`;

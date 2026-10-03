@@ -6,7 +6,7 @@
 // report): solo al gruppo della direzione, con lo stesso accesso con Google e la stessa sessione.
 import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
-import { tokenValido } from './admin/google';
+import { conFoto, tokenValido } from './admin/google';
 import { chiudiCorista, coristaValido, eCorista, leggiCorista, salvaCorista } from './area/accesso';
 
 const libere = ['/admin/accedi', '/admin/callback', '/admin/esci'];
@@ -44,6 +44,10 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     // L'area del Maestro è solo per la direzione, l'area coristi solo per i coristi
     if (maestro && !corista.direzione) return ctx.redirect(`/maestro/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del Maestro.` })}`);
     if (area && !eCorista(corista)) return ctx.redirect('/maestro');
+    // Le sessioni aperte prima della foto del profilo la prendono da Google, senza chiedere niente
+    if (corista.foto === undefined && ctx.request.method === 'GET' && ctx.request.headers.get('sec-fetch-mode') === 'navigate') {
+      return ctx.redirect(`/area/entra?${new URLSearchParams({ silenzioso: '1', dopo: pathname + ctx.url.search })}`);
+    }
     ctx.locals.corista = corista;
     return riservata(await avanti());
   }
@@ -58,7 +62,9 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   const letta = leggiSessione(ctx.cookies);
   const sessione = letta && (await tokenValido(letta));
   if (!sessione) return ctx.redirect(`/admin/accedi?${new URLSearchParams({ dopo: pathname + ctx.url.search })}`);
-  if (sessione !== letta) salvaSessione(ctx.cookies, sessione, ctx.url.protocol === 'https:');
-  ctx.locals.sessione = sessione;
+  // Le sessioni aperte prima della foto del profilo la prendono subito, con il token che hanno
+  const completa = sessione.foto === undefined ? await conFoto(sessione) : sessione;
+  if (completa !== letta) salvaSessione(ctx.cookies, completa, ctx.url.protocol === 'https:');
+  ctx.locals.sessione = completa;
   return riservata(await avanti());
 });
