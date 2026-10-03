@@ -28,7 +28,7 @@ const appena = elenco.find((p) => p.id === q.get('file'));
 const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 ---
 
-{q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Carica spartito, brani e tracce</a></>}</p>}
+{q.get('esito') && !q.has('caricato') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Carica spartito, brani e tracce</a></>}</p>}
 {errore && <Errore e={errore} />}
 {!configurato() && <p class="messaggio errore">Il caricamento dei file non è ancora attivo: manca la cartella Spartiti (variabile DRIVE_CARTELLA_SPARTITI) sul server.</p>}
 
@@ -39,7 +39,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
       <input type="hidden" name="azione" value="salva" />
       {inModifica && <input type="hidden" name="id" value={inModifica.id} />}
       <div class="riga-campi">
-        <label>Autore<input name="autore" maxlength="100" value={inModifica?.autore} placeholder="Es. W. A. Mozart" /></label>
+        <label>Autore <small>(iniziali e cognome, come «W. A. Mozart», oppure «Anonimo» o «Tradizionale»)</small><input name="autore" maxlength="100" value={inModifica?.autore} placeholder="W. A. Mozart" /></label>
         <label>Titolo<input name="titolo" required maxlength="140" value={inModifica?.titolo} placeholder="Es. Requiem in re minore K 626" /></label>
         <label>Stato
           <select name="stato">{STATI.map((s) => <option selected={(inModifica?.stato ?? STATI[0]) === s}>{s}</option>)}</select>
@@ -65,6 +65,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
 {inModifica && (
   <section class="carta modulo-pezzo" id="file" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`}>
     <div class="ct"><h2>File del pezzo</h2><span class="tenue" style="font-size:14px">Su Drive, nella cartella Spartiti; i coristi li aprono dal sito</span></div>
+    {q.has('caricato') && q.get('esito') && <p class="messaggio ok" style="margin:16px 24px 0">{q.get('esito')}</p>}
     <div class="cc">
       <div class="file-gruppo">
         <h3>Spartito</h3>
@@ -97,7 +98,11 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
           );
         })}
       </div>
-      <p class="stato-caricamento" role="status" aria-live="polite"></p>
+      <div class="avanza-file" hidden>
+        <progress max="100" value="0" aria-label="Caricamento"></progress>
+        <p class="stato-caricamento" role="status" aria-live="polite"></p>
+        <small>Tieni aperta questa pagina fino alla fine.</small>
+      </div>
     </div>
   </section>
 )}
@@ -150,6 +155,8 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   // Caricamento a pezzi (src/area/caricamento-client.ts): uno dopo l'altro, poi si ricarica la pagina
   import { carica } from './caricamento-client';
   const box = document.querySelector<HTMLElement>('[data-file]');
+  const avanza = box?.querySelector<HTMLElement>('.avanza-file');
+  const barra = avanza?.querySelector('progress');
   const stato = box?.querySelector<HTMLElement>('.stato-caricamento');
   // Modifiche al pezzo non ancora salvate: si salvano prima di caricare, perché alla fine la pagina si ricarica
   const modulo = document.querySelector<HTMLFormElement>('#modulo');
@@ -159,6 +166,11 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
     const file = [...(input.files ?? [])];
     if (!file.length) return;
     box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = true));
+    // Avanzamento subito sotto il riquadro del file scelto, dove lo si sta guardando
+    input.closest('.carica, .traccia-riga')?.after(avanza!);
+    avanza!.hidden = false;
+    barra!.value = 0;
+    avanza!.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     try {
       if (modificato && modulo) {
         stato!.textContent = 'Salvo prima le modifiche al pezzo…';
@@ -166,10 +178,17 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         if (!r.ok) throw new Error('Le modifiche al pezzo non si sono salvate: premi «Salva le modifiche» e riprova.');
         modificato = false;
       }
-      for (const f of file) await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso!, ...(input.dataset.sezione ? { sezione: input.dataset.sezione } : {}) }, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
-      location.href = `${box.dataset.ritorno}&ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato su Drive.` : `${file.length} file caricati su Drive.`)}`;
+      for (const [i, f] of file.entries()) {
+        await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso!, ...(input.dataset.sezione ? { sezione: input.dataset.sezione } : {}) }, (q) => {
+          barra!.value = Math.round(((i + q) / file.length) * 100);
+          stato!.textContent = `Carico «${f.name}»${file.length > 1 ? ` (${i + 1} di ${file.length})` : ''}: ${Math.round(q * 100)}%`;
+        });
+      }
+      stato!.textContent = 'Caricato. Aggiorno la pagina…';
+      location.href = `${box.dataset.ritorno}&ok=1&caricato=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato.` : `${file.length} file caricati.`)}#file`;
     } catch (e) {
       stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
+      barra!.value = 0;
       box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = false));
     }
   }));
@@ -196,6 +215,11 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .carica-traccia { cursor: pointer; position: relative; margin-left: auto; }
   .carica-traccia:focus-within { outline: 3px solid var(--primario); outline-offset: 2px; }
   .stato-caricamento { font-weight: 600; color: var(--primario); min-height: 1.4em; margin: 0; }
+  .avanza-file { display: grid; gap: 6px; padding: 12px; background: var(--fondo); border-radius: var(--raggio); }
+  .avanza-file[hidden] { display: none; }
+  .avanza-file progress { width: 100%; height: 14px; accent-color: var(--primario); }
+  .avanza-file small { color: var(--tenue); font-size: 13px; }
+  #file { scroll-margin-top: 140px; }
   .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
   .elenco-pezzi { list-style: none; margin: 0; padding: 0; }
   .elenco-pezzi li { border-bottom: 1px solid var(--linea); scroll-margin-top: 140px; }

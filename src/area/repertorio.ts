@@ -43,6 +43,22 @@ export const nomeCompleto = (p: Pick<Pezzo, 'autore' | 'titolo'>) => [p.autore, 
 const aBrani = (v = '') => v.split('\n').map((r) => r.split(' | ')).filter(([, l]) => l).map(([nome, link]) => ({ nome: nome.trim(), link: link.trim() }));
 const daBrani = (b: FileBrano[]) => b.map((x) => `${x.nome} | ${x.link}`).join('\n');
 
+// L'autore si scrive "W. A. Mozart" (iniziali puntate, poi il cognome), oppure "Anonimo" o
+// "Tradizionale": si ordina per cognome, poi per iniziali, poi per titolo
+const INIZIALI = /^((?:\p{Lu}\.\s*)+)/u;
+function cognomeEIniziali(autore: string) {
+  const a = autore.trim();
+  const iniziali = a.match(INIZIALI)?.[1] ?? '';
+  return { cognome: a.slice(iniziali.length).trim() || a, iniziali: iniziali.replace(/\s+/g, '') };
+}
+const confronta = (x: string, y: string) => x.localeCompare(y, 'it', { sensitivity: 'base' });
+const perAutore = (a: Pick<Pezzo, 'autore' | 'titolo'>, b: Pick<Pezzo, 'autore' | 'titolo'>) => {
+  const ka = cognomeEIniziali(a.autore), kb = cognomeEIniziali(b.autore);
+  return confronta(ka.cognome, kb.cognome) || confronta(ka.iniziali, kb.iniziali) || confronta(a.titolo, b.titolo);
+};
+// "W.A.  Mozart" → "W. A. Mozart"
+const scriviAutore = (v: string) => v.trim().replace(/\s+/g, ' ').replace(/(\p{Lu})\.(?=\S)/gu, '$1. ');
+
 export async function repertorio(): Promise<Pezzo[]> {
   await idScheda(SCHEDA, COLONNE);
   return (await leggiScheda(SCHEDA))
@@ -61,7 +77,7 @@ export async function repertorio(): Promise<Pezzo[]> {
       cartella: r['Cartella'] || undefined,
       aggiornato: r['Aggiornato il'],
     }))
-    .sort((a, b) => STATI.indexOf(a.stato as (typeof STATI)[number]) - STATI.indexOf(b.stato as (typeof STATI)[number]) || a.autore.localeCompare(b.autore, 'it') || a.titolo.localeCompare(b.titolo, 'it'));
+    .sort(perAutore);
 }
 
 // Il testo si scrive come testo (apostrofo iniziale): niente formule né date interpretate
@@ -113,7 +129,7 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
   const stato = STATI.includes(f.get('stato') as (typeof STATI)[number]) ? String(f.get('stato')) : STATI[0];
   const pezzo = {
     id: esistente?.id ?? randomBytes(4).toString('hex'),
-    autore: String(f.get('autore') ?? '').trim().slice(0, 100),
+    autore: scriviAutore(String(f.get('autore') ?? '')).slice(0, 100),
     titolo,
     stato,
     spartito: esistente?.spartito,
