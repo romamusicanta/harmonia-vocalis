@@ -42,9 +42,11 @@ const info = {
 }[tipo];
 const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
 
-// Chi ha un ruolo nella bacheca vede anche la voce Avvisi (i gruppi sono letti al più ogni 5 minuti)
-const scriveAvvisi = tipo === 'coristi' && conBarra && !DEMO && Astro.locals.corista
-  ? (await ruoliDi(Astro.locals.corista.email).catch(() => [])).length > 0
+// Solo chi ha un ruolo nella bacheca vede la voce Avvisi, nell'area coristi e nell'Amministrazione
+// (i gruppi sono letti al più ogni 5 minuti)
+const emailRuoli = tipo === 'coristi' ? Astro.locals.corista?.email : tipo === 'admin' ? sessione?.email : undefined;
+const scriveAvvisi = conBarra && !DEMO && emailRuoli
+  ? (await ruoliDi(emailRuoli).catch(() => [])).length > 0
   : false;
 
 // Sezioni di ogni area; quelle con tab stanno, sul telefono, nella barra in basso (al più cinque)
@@ -72,7 +74,7 @@ const sezioni = ({
     { id: 'prove', testo: 'Prove', href: '/admin/prove', gruppo: 'Coro' },
     { id: 'assenze', testo: 'Assenze', href: '/admin/assenze' },
     { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
-    { id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' },
+    ...(scriveAvvisi ? [{ id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' }] : []),
   ],
 } as Record<typeof tipo, Sezione[]>)[tipo];
 const tab = sezioni.filter((s) => s.tab && s.icona);
