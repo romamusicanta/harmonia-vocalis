@@ -38,7 +38,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
 {appena && q.get('ok') === '1' && (
   <div class="messaggio ok wa-subito">
     <span>Mandalo anche su WhatsApp, nella chat <b>{chatDi(appena)}</b>: si apre con il testo già scritto, scegli la chat e premi Invia.</span>
-    <a class="btn g piccolo" href={linkWhatsapp(perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito))} target="_blank" rel="noopener"><Icona nome="whatsapp" />Invia su WhatsApp</a>
+    <a class="btn g piccolo" href={linkWhatsapp(perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito))} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
   </div>
 )}
 
@@ -78,7 +78,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
         {mio && (
           <div class="azioni-avviso">
             <a class="btn o piccolo" href={`?modifica=${a.id}#modulo`}>Modifica</a>
-            <a class="btn o piccolo" href={linkWhatsapp(perWhatsapp({ ...a, firma: firmaDi(a) }, sito))} target="_blank" rel="noopener" title={`Scegli la chat ${chatDi(a)}`}><Icona nome="whatsapp" />WhatsApp · {chatDi(a)}</a>
+            <a class="btn o piccolo" href={linkWhatsapp(perWhatsapp({ ...a, firma: firmaDi(a) }, sito))} target="_blank" rel="noopener" title={`Scegli la chat ${chatDi(a)}`}><Icona nome="whatsapp" />WhatsApp</a>
             <form method="post" onsubmit="return confirm('Cancellare questo avviso? Sparisce dalla bacheca e dal foglio.')">
               <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={a.id} />
               <button class="btn o piccolo cancella" type="submit">Cancella</button>
