@@ -82,6 +82,8 @@ svg { flex-shrink: 0; }
   .nav { display: flex; }
   .hamb { display: none; }
 }
+.testata .azioni .btn { white-space: nowrap; }
+@media (min-width: 1000px) and (max-width: 1199.98px) { .nav { gap: 18px; } .testata > .w { gap: 16px; } }
 
 .menu-mobile { display: none; border-top: 1px solid var(--linea); background: var(--bianco); max-height: calc(100vh - 80px); overflow-y: auto; }
 .menu-aperto .menu-mobile { display: block; }

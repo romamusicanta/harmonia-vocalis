@@ -16,6 +16,10 @@ const { en, l, lingua, coro } = contesto(Astro.url, veste);
 const voci = vociMenu(veste, lingua);
 const f = coro.funzioni;
 const calendario = l('/concerti#in-programma');
+// Il pulsante giallo della testata: Per gli organizzatori, o il calendario se la pagina non c'è
+const pulsante = f.organizzatori
+  ? { href: l('/organizzatori'), testo: en ? 'For organisers' : 'Per gli organizzatori', icona: 'biglietto' as const }
+  : { href: calendario, testo: en ? 'Calendar' : 'Calendario', icona: 'calendario' as const };
 // Selettore della lingua: porta alla stessa pagina nell'altra lingua (solo nel sito vero)
 const altra = !DEMO ? alternativa(Astro.url) : undefined;
 // Aree riservate (coristi, Amministrazione, Maestro): una tendina "Area riservata" nella barra in
@@ -27,7 +31,6 @@ const aree = areeRiservate(veste, en);
   <div class="w">
     <span class="info">{[coro.associazione && (en ? `Choir of the ${coro.associazione}` : `Coro dell'${coro.associazione}`), coro.affiliazioni].filter(Boolean).join(' · ')}</span>
     <span class="dx">
-      {f.organizzatori && <a class="solo-largo" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
       <span class="solo-largo"><MenuRiservato veste={veste} en={en} /></span>
       {altra && <span class="lingue" aria-label={en ? 'Language' : 'Lingua'}>{en ? <a href={altra.href} hreflang="it" lang="it">IT</a> : <b aria-current="true">IT</b>}<span aria-hidden="true">|</span>{en ? <b aria-current="true">EN</b> : <a href={altra.href} hreflang="en" lang="en">EN</a>}</span>}
     </span>
@@ -40,18 +43,14 @@ const aree = areeRiservate(veste, en);
       {voci.map((v) => <a href={v.href} class:list={{ on: v.id === pagina }} aria-current={v.id === pagina ? 'page' : undefined}>{v.testo}</a>)}
     </nav>
     <div class="azioni">
-      <a class="btn g" href={calendario}><Icona nome="calendario" />{en ? 'Calendar' : 'Calendario'}</a>
+      <a class="btn g" href={pulsante.href}><Icona nome={pulsante.icona} />{pulsante.testo}</a>
       <button class="hamb" type="button" aria-label={en ? 'Open the menu' : 'Apri il menu'} aria-expanded="false" aria-controls="menu-mobile"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
     </div>
   </div>
   <div class="menu-mobile" id="menu-mobile">
     <div class="w">
       {voci.map((v) => <a class:list={['voce', { on: v.id === pagina }]} href={v.href}>{v.testo}<Icona nome="freccia" classe="" /></a>)}
-      <div class="extra">
-        <a class="btn g" href={calendario}><Icona nome="calendario" />{en ? 'Concert calendar' : 'Calendario concerti'}</a>
-        {f.organizzatori && <a class="btn o" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a>}
-        {altra && <a class="btn o" href={altra.href} hreflang={altra.lingua} lang={altra.lingua}>{en ? 'Italiano' : 'English'}</a>}
-      </div>
+      <div class="extra"><a class="btn g" href={pulsante.href}><Icona nome={pulsante.icona} />{pulsante.testo}</a></div>
       {aree.length > 0 && (
         <div class="riservate-mobile">
           <span class="eti"><Icona nome="lucchetto" />{en ? 'Members’ area' : 'Area riservata'}</span>
