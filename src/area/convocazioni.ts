@@ -6,6 +6,7 @@
 // (/maestro/convocazioni); i coristi le leggono nella pagina Concerti della loro area. La presenza
 // si segna come per le prove, con "Non ci sarò" (scheda Assenze).
 import { adesso, eventi, idScheda, leggiScheda, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
+import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Convocazioni';
 const COLONNE = ['ID evento', 'Data', 'Concerto', 'Convocazione', 'Ritrovo', 'Prova generale data', 'Prova generale ora', 'Prova generale luogo', 'Programma', 'Abito', 'Portare', 'Come arrivare', 'Repertorio', 'Note', 'Aggiornato il', 'Aggiornato da'];
@@ -83,7 +84,7 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
 
 export async function dopoIlModulo(request: Request, email: string, percorso: string) {
   const f = await request.formData();
-  const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare: ${(e as Error).message}`, evento: String(f.get('evento') ?? '') }));
+  const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, evento: String(f.get('evento') ?? '') }));
   const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
   if (!r.ok && r.evento) p.set('modifica', r.evento);
   return `${percorso}?${p}${r.ok && r.evento ? `#c-${r.evento}` : ''}`;

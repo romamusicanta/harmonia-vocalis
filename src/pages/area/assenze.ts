@@ -3,6 +3,7 @@
 // azione=segna (evento, nota: se c'è già aggiorna la nota) · togli (evento) · periodo (dal, al, nota)
 import type { APIRoute } from 'astro';
 import { aperto, coristaDi, eventi, eventoDa, segnaAssenza, togliAssenza } from '../../area/dati';
+import { spiegaTesto } from '../../area/errori';
 
 export const prerender = false;
 
@@ -32,6 +33,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     else return json({ ok: false, errore: 'azione sconosciuta' }, 400);
     return json({ ok: true });
   } catch (e) {
-    return json({ ok: false, errore: `Non è stato possibile salvare: ${(e as Error).message}` }, 500);
+    return json({ ok: false, errore: `Non è stato possibile salvare. ${spiegaTesto(e)}` }, 500);
   }
 };

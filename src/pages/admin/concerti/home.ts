@@ -2,6 +2,7 @@
 // dell'evento (al posto di una riga Home già presente), senza toccare il resto.
 import type { APIRoute } from 'astro';
 import { aggiornaEvento, leggiEvento } from '../../../admin/operazioni';
+import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
@@ -17,6 +18,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await aggiornaEvento(s, id, { description: [...righe, `Home: ${home ? 'sì' : 'no'}`].join('\n') });
     return Response.json({ ok: true });
   } catch (e) {
-    return Response.json({ ok: false, errore: (e as Error).message }, { status: 500 });
+    return Response.json({ ok: false, errore: spiegaTesto(e) }, { status: 500 });
   }
 };

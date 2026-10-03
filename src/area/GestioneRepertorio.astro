@@ -6,17 +6,18 @@
 // Drive dal modulo (a pezzi, con lo script in fondo, verso <base>/repertorio/file).
 import Icona from '../componenti/Icona.astro';
 import { configurato, nomeCompleto, repertorio, sezioniTracce, STATI, type Pezzo } from './repertorio';
+import Errore from './Errore.astro';
 
 interface Props { base: '/admin' | '/maestro' }
 const { base } = Astro.props;
 const q = Astro.url.searchParams;
 
-let errore: string | undefined;
+let errore: unknown;
 let elenco: Pezzo[] = [];
 try {
   elenco = await repertorio();
 } catch (e) {
-  errore = `Google non ha risposto: ${(e as Error).message}`;
+  errore = e;
 }
 const inModifica = elenco.find((p) => p.id === q.get('modifica'));
 const nuovo = q.has('nuovo') || (!inModifica && elenco.length === 0);
@@ -24,7 +25,7 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
 ---
 
 {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
-{errore && <p class="messaggio errore">{errore}</p>}
+{errore && <Errore e={errore} />}
 {!configurato() && <p class="messaggio errore">Il caricamento dei file non è ancora attivo: manca la cartella Spartiti (variabile DRIVE_CARTELLA_SPARTITI) sul server.</p>}
 
 {(inModifica || nuovo) ? (
@@ -58,14 +59,14 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
 )}
 
 {inModifica && (
-  <section class="carta modulo-pezzo" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`}>
+  <section class="carta modulo-pezzo" id="file" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`}>
     <div class="ct"><h2>Spartito e brani</h2><span class="tenue" style="font-size:14px">Su Drive, nella cartella Spartiti</span></div>
     <div class="cc">
       <div class="file-gruppo">
         <h3>Spartito</h3>
         {inModifica.spartito ? (
           <div class="file-riga"><a href={inModifica.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Spartito</a>
-            <form method="post"><input type="hidden" name="azione" value="togli-spartito" /><input type="hidden" name="id" value={inModifica.id} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
+            <form method="post" onsubmit="return confirm('Togliere lo spartito da questo pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-spartito" /><input type="hidden" name="id" value={inModifica.id} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
         ) : <p class="tenue">Nessuno spartito.</p>}
         <label class="carica">{inModifica.spartito ? 'Sostituisci lo spartito' : 'Carica lo spartito'} <small>(PDF)</small><input type="file" data-uso="spartito" accept="application/pdf,image/*" /></label>
       </div>
@@ -73,7 +74,7 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
         <h3>Brani cantati separatamente</h3>
         {inModifica.brani.length ? inModifica.brani.map((b, i) => (
           <div class="file-riga"><a href={b.link} target="_blank" rel="noopener"><Icona nome="documento" />{b.nome}</a>
-            <form method="post"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
+            <form method="post" onsubmit="return confirm('Togliere questo brano dal pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
         )) : <p class="tenue">Nessun brano. Il nome del file diventa il nome del brano.</p>}
         <label class="carica">Aggiungi brani <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
       </div>
@@ -108,11 +109,21 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
   import { carica } from './caricamento-client';
   const box = document.querySelector<HTMLElement>('[data-file]');
   const stato = box?.querySelector<HTMLElement>('.stato-caricamento');
+  // Modifiche al pezzo non ancora salvate: si salvano prima di caricare, perché alla fine la pagina si ricarica
+  const modulo = document.querySelector<HTMLFormElement>('#modulo');
+  let modificato = false;
+  modulo?.addEventListener('input', () => { modificato = true; });
   box?.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((input) => input.addEventListener('change', async () => {
     const file = [...(input.files ?? [])];
     if (!file.length) return;
     box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = true));
     try {
+      if (modificato && modulo) {
+        stato!.textContent = 'Salvo prima le modifiche al pezzo…';
+        const r = await fetch(location.pathname, { method: 'POST', body: new FormData(modulo) });
+        if (!r.ok) throw new Error('Le modifiche al pezzo non si sono salvate: premi «Salva le modifiche» e riprova.');
+        modificato = false;
+      }
       for (const f of file) await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso! }, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
       location.href = `${box.dataset.ritorno}&ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato su Drive.` : `${file.length} file caricati su Drive.`)}`;
     } catch (e) {

@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { coro } from '../motore/coro';
 import { adesso, cancellaRiga, idScheda, leggiScheda, oggi, scriviRiga } from './dati';
 import { nelGruppo } from './servizio';
+import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Bacheca';
 const COLONNE = ['ID', 'Pubblicato il', 'Firma', 'Titolo', 'Testo', 'Fino al', 'Scritto da', 'Modificato il'];
@@ -115,7 +116,7 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
 // andata, anche quanto scritto, per non perderlo)
 export async function dopoIlModulo(request: Request, email: string, percorso: string) {
   const f = await request.formData();
-  const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare: ${(e as Error).message}`, salvato: undefined }));
+  const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, salvato: undefined }));
   const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
   if (r.salvato) p.set('avviso', r.salvato.id);
   if (!r.ok && f.get('azione') === 'salva') for (const k of ['titolo', 'testo', 'fino']) p.set(k, String(f.get(k) ?? ''));

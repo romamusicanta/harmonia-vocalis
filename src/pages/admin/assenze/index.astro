@@ -8,10 +8,11 @@ import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { assenze, configurati, coristi, eventi, inizioStagione, oggi, piuGiorni, riepilogo, sezioniDi, type Evento, type Riepilogo } from '../../../area/dati';
 import { parti } from '../../../motore/concerti';
+import Errore from '../../../area/Errore.astro';
 
 export const prerender = false;
 
-let errore: string | undefined;
+let errore: unknown;
 let elenco: Evento[] = [];
 let r: Riepilogo | undefined;
 let prossimo: Riepilogo | undefined;
@@ -33,7 +34,7 @@ else {
     const e = elenco.find((x) => x.id === scelto) ?? elenco.find((x) => x.inizioMs > Date.now() - 3 * 3600 * 1000) ?? elenco.at(-1);
     if (e) r = riepilogo(e, tutti, tutte);
   } catch (e) {
-    errore = `Google non ha risposto: ${(e as Error).message}`;
+    errore = e;
   }
 }
 const etichetta = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana.slice(0, 3)} ${Number(d.giorno)} ${d.meseBreve.toLowerCase()}${e.inizio ? ` ${e.inizio}` : ''} · ${e.tipo === 'concerto' ? 'Concerto: ' : ''}${e.titolo}`; };
@@ -46,7 +47,7 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
 
 <LayoutAdmin titolo="Assenze dei coristi" sezione="assenze">
   <h1>Assenze dei coristi</h1>
-  {errore && <p class="messaggio errore">{errore}</p>}
+  {errore && <Errore e={errore} />}
 
   {(prossimo || storico.length > 0) && (
     <div class="cruscotto" style="margin:28px 0 8px">

@@ -2,6 +2,7 @@
 // passati (le presenze vere): nel foglio "Inserita da" è il redattore.
 import type { APIRoute } from 'astro';
 import { coristi, eventoDa, segnaAssenza, togliAssenza } from '../../../area/dati';
+import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
@@ -18,6 +19,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     else await togliAssenza(e.id, c.email);
     return json({ ok: true });
   } catch (e) {
-    return json({ ok: false, errore: `Non è stato possibile salvare: ${(e as Error).message}` }, 500);
+    return json({ ok: false, errore: `Non è stato possibile salvare. ${spiegaTesto(e)}` }, 500);
   }
 };

@@ -1,6 +1,7 @@
 // Sostituisce una foto del sito nella cartella Sito/Foto del Drive condiviso
 import type { APIRoute } from 'astro';
 import { NOMI_FOTO_SITO, sostituisciFotoSito } from '../../../admin/operazioni';
+import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
@@ -16,6 +17,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await sostituisciFotoSito(locals.sessione!, nome, foto);
     return json({ ok: true });
   } catch (e) {
-    return json({ ok: false, errore: (e as Error).message }, 500);
+    return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 };

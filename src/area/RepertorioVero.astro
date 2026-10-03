@@ -7,14 +7,15 @@ import Icona from '../componenti/Icona.astro';
 import { coristaDi } from './dati';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
 import { comeHtml } from './testo';
+import Errore from './Errore.astro';
 
-let errore: string | undefined;
+let errore: unknown;
 let elenco: Pezzo[] = [];
 let sezione: string | undefined;
 try {
   [elenco, sezione] = await Promise.all([repertorio(), coristaDi(Astro.locals.corista!.email).then((c) => c?.sezione)]);
 } catch (e) {
-  errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+  errore = e;
 }
 // La propria sezione prima, poi le altre nell'ordine del coro
 const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), ...p.tracce.filter((t) => t.sezione !== sezione)];
@@ -32,7 +33,7 @@ const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), 
 
 <div class="area-main">
   <div class="w">
-    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {errore && <Errore e={errore} />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
     {elenco.map((p) => (
       <article class="opera-studio" id={p.id}>

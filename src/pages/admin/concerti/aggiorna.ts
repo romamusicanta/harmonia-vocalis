@@ -4,6 +4,7 @@
 import type { APIRoute } from 'astro';
 import { corpoEvento, datiDalModulo, eLocandina, nomeCartella, stagione } from '../../../admin/concerto';
 import { aggiornaEvento, caricaImmagini, cartellaConcerto, cartellaDelFile, leggiEvento } from '../../../admin/operazioni';
+import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
@@ -37,6 +38,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const aggiornato = await aggiornaEvento(s, id, { ...corpoEvento(d), attachments: allegati.map(({ fileUrl, title, mimeType }) => ({ fileUrl, title, mimeType })) });
     return json({ ok: true, evento: aggiornato.htmlLink, cartella: cartella && `https://drive.google.com/drive/folders/${cartella}` });
   } catch (e) {
-    return json({ ok: false, errore: (e as Error).message }, 500);
+    return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 };

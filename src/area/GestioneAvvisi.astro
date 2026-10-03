@@ -8,18 +8,19 @@ import Icona from '../componenti/Icona.astro';
 import { avvisi, firmaDi, inBacheca, linkWhatsapp, perWhatsapp, puoModificare, ruoliDi, type Avviso } from './bacheca';
 import { comeHtml } from './testo';
 import { parti } from '../motore/concerti';
+import Errore from './Errore.astro';
 
 interface Props { email: string }
 const { email } = Astro.props;
 const q = Astro.url.searchParams;
 
-let errore: string | undefined;
+let errore: unknown;
 let elenco: Avviso[] = [];
 const suoi = await ruoliDi(email).catch(() => []);
 try {
   elenco = await avvisi();
 } catch (e) {
-  errore = `Google non ha risposto: ${(e as Error).message}`;
+  errore = e;
 }
 const visibili = new Set(inBacheca(elenco).map((a) => a.id));
 const inModifica = elenco.find((a) => a.id === q.get('modifica') && puoModificare(a, suoi));
@@ -31,7 +32,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
 ---
 
 {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
-{errore && <p class="messaggio errore">{errore}</p>}
+{errore && <Errore e={errore} />}
 
 {appena && q.get('ok') === '1' && (
   <div class="messaggio ok wa-subito">

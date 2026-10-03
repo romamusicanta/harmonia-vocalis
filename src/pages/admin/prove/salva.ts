@@ -1,6 +1,7 @@
 // Crea una prova (senza id) o ne modifica una (con id) nel calendario "Prove"
 import type { APIRoute } from 'astro';
 import { aggiornaProva, corpoDalModulo, creaProva } from '../../../admin/prove';
+import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
@@ -16,6 +17,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     else await creaProva(locals.sessione!, corpo);
     return json({ ok: true, data: String(f.get('data')) });
   } catch (e) {
-    return json({ ok: false, errore: (e as Error).message }, 500);
+    return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 };

@@ -7,11 +7,12 @@ import Base from '../../layouts/Base.astro';
 import { vesteCorrente } from '../../motore/url';
 import { parti } from '../../motore/concerti';
 import { assenze, attivi, configurati, coristi, eventi, inizioStagione, oggi, piuGiorni, riepilogo, sezioniDi, type Riepilogo } from '../../area/dati';
+import Errore from '../../area/Errore.astro';
 
 export const prerender = false;
 const veste = vesteCorrente(undefined);
 
-let errore: string | undefined;
+let errore: unknown;
 let prossimi: Riepilogo[] = [];
 let storico: Riepilogo[] = [];
 let assiduita: { nome: string; sezione: string; prove: number; assenze: number; ultime: number; ultimeProve: number }[] = [];
@@ -39,7 +40,7 @@ else {
       };
     }).sort((a, b) => b.assenze / (b.prove || 1) - a.assenze / (a.prove || 1) || a.nome.localeCompare(b.nome, 'it'));
   } catch (e) {
-    errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+    errore = e;
   }
 }
 
@@ -62,7 +63,7 @@ const sezioniAssiduita = sezioniDi(assiduita);
 
   <div class="area-main" id="prossimi">
     <div class="w">
-      {errore && <p class="carta" style="padding:20px">{errore}</p>}
+      {errore && <Errore e={errore} />}
       <div class="cruscotto">
         {prossimi.map((r) => (
           <article class="carta c-6 su">

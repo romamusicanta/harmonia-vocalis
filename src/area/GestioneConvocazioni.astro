@@ -8,19 +8,20 @@ import { parti } from '../motore/concerti';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
 import type { Evento } from './dati';
+import Errore from './Errore.astro';
 
 interface Props { base: '/admin' | '/maestro' }
 const { base } = Astro.props;
 const q = Astro.url.searchParams;
 
-let errore: string | undefined;
+let errore: unknown;
 let concerti: Evento[] = [];
 let tutte = new Map<string, Convocazione>();
 let pezzi: Pezzo[] = [];
 try {
   [concerti, tutte, pezzi] = await Promise.all([concertiInArrivo(), convocazioni(), repertorio().catch(() => [])]);
 } catch (e) {
-  errore = `Google non ha risposto: ${(e as Error).message}`;
+  errore = e;
 }
 const scelto = concerti.find((e) => e.id === q.get('modifica'));
 const c = scelto && tutte.get(scelto.id);
@@ -30,7 +31,7 @@ const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.g
 ---
 
 {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
-{errore && <p class="messaggio errore">{errore}</p>}
+{errore && <Errore e={errore} />}
 
 {scelto && (
   <form method="post" class="carta modulo-conv" id="modulo">

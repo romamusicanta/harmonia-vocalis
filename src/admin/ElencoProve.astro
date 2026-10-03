@@ -5,6 +5,7 @@
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { elencoProve, SEPARATORE_PEZZI, type Chi, type Prova } from './prove';
 import { parti } from '../motore/concerti';
+import Errore from '../area/Errore.astro';
 
 interface Props { base: '/admin' | '/maestro'; chi: Chi }
 const { base, chi } = Astro.props;
@@ -13,13 +14,13 @@ const giorno = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe
 const oggi = giorno(new Date());
 const tra = (n: number) => giorno(new Date(Date.now() + n * 86_400_000));
 let prove: Prova[] = [];
-let errore: string | undefined;
+let errore: unknown;
 if (!CALENDARIO_PROVE_ID) errore = 'Manca la variabile CALENDARIO_PROVE_ID sul server.';
 else {
   try {
     prove = await elencoProve(chi, tra(-31), tra(122));
   } catch (e) {
-    errore = (e as Error).message;
+    errore = e;
   }
 }
 const salvata = Astro.url.searchParams.get('salvata');
@@ -36,7 +37,7 @@ const quando = (p: Prova) => { const d = parti({ data: p.data }); return `${d.gi
 <p style="margin-top:16px"><a class="btn g" href={`${base}/prove/nuova`}>+ Nuova prova</a></p>
 {salvata && <p class="messaggio ok">Prova del {salvata.split('-').reverse().join('/')} salvata.</p>}
 <p id="esito" role="status"></p>
-{errore && <p class="messaggio errore">{errore}</p>}
+{errore && <Errore e={errore} />}
 
 {[...mesi].map(([mese, elenco]) => (
   <>

@@ -3,19 +3,20 @@
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import ModuloProva from '../../../admin/ModuloProva.astro';
 import { leggiProva, type Prova } from '../../../admin/prove';
+import Errore from '../../../area/Errore.astro';
 
 export const prerender = false;
 let prova: Prova | undefined;
-let errore: string | undefined;
+let errore: unknown;
 try {
   prova = await leggiProva(Astro.locals.sessione!, Astro.url.searchParams.get('id') ?? '');
 } catch (e) {
-  errore = (e as Error).message;
+  errore = e;
 }
 ---
 
 <LayoutAdmin titolo="Modifica prova" sezione="prove">
   <h1>Modifica prova</h1>
-  {errore && <p class="messaggio errore">Prova non trovata: {errore}</p>}
+  {errore && <Errore e={errore} />}
   {prova && <ModuloProva prova={prova} base="/admin" />}
 </LayoutAdmin>

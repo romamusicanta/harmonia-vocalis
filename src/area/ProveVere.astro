@@ -9,8 +9,9 @@ import { parti } from '../motore/concerti';
 import { aperto, assenze, configurati, coristaDi, eventi, luogoDi, oggi, piuGiorni, type Evento } from './dati';
 import { repertorio, type Pezzo } from './repertorio';
 import { SEPARATORE_PEZZI } from '../admin/prove';
+import Errore from './Errore.astro';
 
-let errore: string | undefined;
+let errore: unknown;
 let elenco: Evento[] = [];
 let mie = new Map<string, string>(); // id evento → nota
 let io: Awaited<ReturnType<typeof coristaDi>>;
@@ -25,7 +26,7 @@ else {
     registrate = (await eventi(piuGiorni(oggi(), -90), piuGiorni(oggi(), -1))).filter((e) => e.tipo === 'prova' && valore(e, 'Registrazione')).reverse();
     if (io) mie = new Map((await assenze()).filter((a) => a.email === io!.email).map((a) => [a.idEvento, a.nota]));
   } catch (e) {
-    errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+    errore = e;
   }
 }
 
@@ -63,7 +64,7 @@ const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo.trim()
 <div class="area-main">
   <div class="w">
     {Astro.url.searchParams.get('esito') && <p class:list={['messaggio', Astro.url.searchParams.get('ok') === '1' ? 'ok' : 'errore']} role="status">{Astro.url.searchParams.get('esito')}</p>}
-    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {errore && <Errore e={errore} />}
     {io && !errore && (
       <details class="carta periodo-box">
         <summary><Icona nome="calendario" />Sarò via per un periodo</summary>

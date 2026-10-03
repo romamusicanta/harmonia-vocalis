@@ -7,16 +7,17 @@ import { parti } from '../motore/concerti';
 import { configurato, proveRecenti, registrazioni, type GiornoRegistrato } from './registrazioni';
 import { normalizza } from './servizio';
 import type { Evento } from './dati';
+import Errore from './Errore.astro';
 
 const email = Astro.locals.corista!.email;
 const q = Astro.url.searchParams;
-let errore: string | undefined;
+let errore: unknown;
 let giorni: GiornoRegistrato[] = [];
 let prove: Evento[] = [];
 try {
   [giorni, prove] = await Promise.all([registrazioni(), proveRecenti()]);
 } catch (e) {
-  errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+  errore = e;
 }
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const peso = (n?: number) => (n ? (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(n > 100 * 1024 * 1024 ? 0 : 1).replace('.', ',')} MB` : `${Math.round(n / 1024)} KB`) : '');
@@ -37,7 +38,7 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
 <div class="area-main">
   <div class="w">
     {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
-    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {errore && <Errore e={errore} />}
 
     {configurato() && prove.length > 0 && (
       <form class="carta carica-reg" data-file="/area/registrazioni/file">
@@ -47,10 +48,13 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
             <label>Prova
               <select name="evento" required>{prove.map((e, i) => <option value={e.id} selected={i === 0}>{quando(e.data)} · {e.titolo}</option>)}</select>
             </label>
-            <label>Titolo <small>(facoltativo: es. «Lacrimosa, tutti»; vuoto = il nome del file)</small><input name="titolo" maxlength="120" /></label>
+            <label>Titolo <small>(facoltativo: es. «Lacrimosa, tutti»; vuoto = il nome del file; con più file resta il nome di ciascuno)</small><input name="titolo" maxlength="120" /></label>
           </div>
           <label class="file">Scegli uno o più file audio o video<input type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.aac,.ogg,.opus,.amr" multiple /></label>
-          <p class="stato-caricamento" role="status" aria-live="polite"></p>
+          <ul class="scelti" hidden></ul>
+          <div class="avanza" hidden><label for="avanzamento-reg">Caricamento</label><progress id="avanzamento-reg" max="100" value="0"></progress><small>Tieni aperta questa pagina e lo schermo acceso fino alla fine.</small></div>
+          <p class="stato-caricamento" role="status"></p>
+          <button class="btn g" type="submit" disabled>Carica</button>
         </div>
       </form>
     )}
@@ -87,23 +91,52 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
 </div>
 
 <script>
+  // Si sceglie, si controlla l'elenco, poi "Carica": barra di avanzamento, annunci solo a ogni quarto
   import { carica } from './caricamento-client';
   const form = document.querySelector<HTMLFormElement>('form.carica-reg');
-  const input = form?.querySelector<HTMLInputElement>('input[type=file]');
-  const stato = form?.querySelector<HTMLElement>('.stato-caricamento');
-  input?.addEventListener('change', async () => {
-    const file = [...(input.files ?? [])];
-    if (!file.length) return;
-    input.disabled = true;
-    const extra = { evento: form!.evento.value, titolo: file.length === 1 ? form!.titolo.value : '' };
-    try {
-      for (const f of file) await carica(form!.dataset.file!, f, extra, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
-      location.href = `/area/registrazioni?ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricata.` : `${file.length} registrazioni caricate.`)}`;
-    } catch (e) {
-      stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
-      input.disabled = false;
-    }
-  });
+  if (form) {
+    const input = form.querySelector<HTMLInputElement>('input[type=file]')!;
+    const scelti = form.querySelector<HTMLUListElement>('.scelti')!;
+    const avanza = form.querySelector<HTMLElement>('.avanza')!;
+    const barra = avanza.querySelector('progress')!;
+    const stato = form.querySelector<HTMLElement>('.stato-caricamento')!;
+    const pulsante = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    const peso = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.round(n / 1024)} KB`);
+    input.addEventListener('change', () => {
+      const file = [...(input.files ?? [])];
+      scelti.replaceChildren(...file.map((f) => Object.assign(document.createElement('li'), { textContent: `${f.name} · ${peso(f.size)}` })));
+      scelti.hidden = !file.length;
+      pulsante.disabled = !file.length;
+      pulsante.textContent = file.length > 1 ? `Carica ${file.length} file` : 'Carica';
+      stato.textContent = '';
+    });
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const file = [...(input.files ?? [])];
+      if (!file.length) return;
+      input.disabled = pulsante.disabled = true;
+      avanza.hidden = false;
+      const extra = { evento: form.evento.value, titolo: file.length === 1 ? form.titolo.value : '' };
+      const totale = file.reduce((n, f) => n + f.size, 0);
+      let fatti = 0;
+      let quarto = -1;
+      try {
+        for (const f of file) {
+          await carica(form.dataset.file!, f, extra, (q) => {
+            const perc = Math.round(((fatti + q * f.size) / totale) * 100);
+            barra.value = perc;
+            if (Math.floor(perc / 25) !== quarto) { quarto = Math.floor(perc / 25); stato.textContent = `Caricamento: ${perc}%`; }
+          });
+          fatti += f.size;
+        }
+        location.href = `/area/registrazioni?ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricata.` : `${file.length} registrazioni caricate.`)}`;
+      } catch (e) {
+        stato.textContent = (e as Error).message;
+        input.disabled = pulsante.disabled = false;
+        pulsante.textContent = 'Riprova a caricare';
+      }
+    });
+  }
 </script>
 
 <style>
@@ -114,7 +147,12 @@ const mio = (x: string) => normalizza(x) === normalizza(email);
   .carica-reg :is(input:not([type=file]), select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
   .carica-reg .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
   .carica-reg label.file { padding: 14px; border: 2px dashed var(--linea); border-radius: var(--raggio); }
-  .stato-caricamento { font-weight: 600; color: var(--primario); min-height: 1.4em; margin: 0; }
+  .stato-caricamento { font-weight: 600; color: var(--primario); margin: 0; }
+  .stato-caricamento:empty { display: none; }
+  .scelti { margin: 0; padding-left: 20px; font-size: 15px; }
+  .avanza { display: grid; gap: 6px; font-size: 14px; }
+  .avanza progress { width: 100%; height: 14px; accent-color: var(--primario); }
+  .carica-reg button[type=submit] { justify-self: start; }
   .titolo-prova { font-size: 18px; margin-bottom: 10px; }
   .tracce-reg { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .tracce-reg li { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 12px 16px; background: var(--bianco); border: 1px solid var(--linea); }

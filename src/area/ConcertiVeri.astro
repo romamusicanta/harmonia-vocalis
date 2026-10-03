@@ -9,8 +9,9 @@ import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, luogoDi, riepilogo, type Evento, type Riepilogo } from './dati';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
 import { repertorio, type Pezzo } from './repertorio';
+import Errore from './Errore.astro';
 
-let errore: string | undefined;
+let errore: unknown;
 let elenco: { e: Evento; c?: Convocazione; r: Riepilogo; pubblica?: string }[] = [];
 let mie = new Map<string, string>();
 let io: Awaited<ReturnType<typeof coristaDi>>;
@@ -25,7 +26,7 @@ try {
     return { e, c: conv.get(e.id), r: riepilogo(e, tutti, tutte), pubblica: p && !p.dataIncerta ? `/concerti/${slug(p)}` : undefined };
   });
 } catch (e) {
-  errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+  errore = e;
 }
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo);
@@ -44,7 +45,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
 
 <div class="area-main">
   <div class="w">
-    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {errore && <Errore e={errore} />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Nessun concerto in calendario nei prossimi mesi.</p>}
     {elenco.map(({ e, c, r, pubblica }) => {
       const d = parti({ data: e.data });

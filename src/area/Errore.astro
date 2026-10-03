@@ -1,0 +1,13 @@
+---
+// Un errore spiegato in parole semplici (src/area/errori.ts), con il dettaglio tecnico richiudibile
+import { spiega } from './errori';
+
+interface Props { e: unknown; classe?: string }
+const { e, classe = 'messaggio errore' } = Astro.props;
+const { testo, dettaglio } = spiega(e);
+---
+
+<div class={classe} role="alert">
+  <p style="margin:0">{testo}</p>
+  {dettaglio && dettaglio !== testo && <details style="margin-top:8px;font-size:13px"><summary>Dettaglio tecnico</summary><code style="overflow-wrap:anywhere">{dettaglio}</code></details>}
+</div>

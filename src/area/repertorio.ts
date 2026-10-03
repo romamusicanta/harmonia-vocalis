@@ -12,6 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { DRIVE_CARTELLA_SPARTITI } from 'astro:env/server';
 import { adesso, cancellaRiga, idScheda, leggiScheda, scriviRiga, SEZIONI } from './dati';
 import { cartellaIn, linkFile, rispondiCaricamento } from './drive';
+import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Repertorio';
 export const STATI = ['In studio', 'In repertorio'] as const;
@@ -118,17 +119,17 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
     cartella: esistente?.cartella,
   };
   await scrivi(pezzo, esistente?.riga, email);
-  return { ok: true, messaggio: esistente ? 'Pezzo aggiornato.' : 'Pezzo aggiunto al repertorio: ora puoi caricare lo spartito e i brani.', id: pezzo.id };
+  return { ok: true, messaggio: esistente ? 'Pezzo aggiornato.' : 'Pezzo aggiunto al repertorio: ora carica lo spartito e i brani qui sotto.', id: pezzo.id };
 }
 
 // Per le pagine: esegue l'azione e restituisce dove tornare
 export async function dopoIlModulo(request: Request, email: string, percorso: string) {
   const f = await request.formData();
-  const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare: ${(e as Error).message}`, id: undefined }));
+  const r = await gestisci(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, id: undefined }));
   const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
   const id = r.id ?? (f.get('azione') !== 'cancella' ? String(f.get('id') ?? '') : '');
   if (id) p.set('modifica', id);
-  return `${percorso}?${p}`;
+  return `${percorso}?${p}${r.ok && f.get('azione') === 'salva' && !f.get('id') ? '#file' : ''}`;
 }
 
 // ——— File su Drive ———

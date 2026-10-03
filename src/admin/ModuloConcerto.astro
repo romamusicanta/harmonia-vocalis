@@ -1,7 +1,7 @@
 ---
 // Il modulo di un concerto, per crearlo (/admin/concerti/nuovo → /admin/concerti/crea) o per
 // modificarlo (/admin/concerti/modifica → /admin/concerti/aggiorna). "Parti dalla locandina" la fa
-// leggere e riempie i campi: per un concerto nuovo tutti, in modifica solo quelli vuoti.
+// leggere e riempie i campi ancora vuoti (quelli già scritti restano, anche in un concerto nuovo).
 // Il browser riduce le immagini prima dell'invio (limite di 4,5 MB per richiesta su Vercel).
 import { coro } from '../motore/coro';
 import type { DatiConcerto } from './concerto';
@@ -26,7 +26,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <b style="color:var(--primario);font-size:19px">Parti dalla locandina</b>
   <p class="tenue" style="font-size:15px;margin:6px 0 14px">{modifica
     ? 'Carica la locandina: diventa la locandina del concerto e il sito la legge per riempire i campi ancora vuoti (quelli già scritti restano). Controlla prima di salvare.'
-    : 'Carica la locandina: il sito la legge e riempie i campi qui sotto. Controllali sempre prima di creare il concerto, soprattutto data e nomi.'}</p>
+    : 'Carica la locandina: il sito la legge e riempie i campi vuoti qui sotto (quelli già scritti restano). Controllali sempre prima di creare il concerto, soprattutto data e nomi.'}</p>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <label for="leggi-file" class="sr">Locandina da leggere</label><input type="file" id="leggi-file" accept="image/jpeg,image/png,image/webp" />
     <button class="btn g" type="button" id="leggi">Leggi la locandina</button>
@@ -192,13 +192,13 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
       const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
       if (!j.ok) throw new Error(j.errore);
       const d = j.dati;
-      if (!modifica) { modulo.reset(); aggiornaAnteprima('copertina'); }
+      // Solo i campi vuoti: quello che si è già scritto non si perde
       for (const campo of ['data', 'ora', 'citta', 'sala', 'indirizzo', 'rassegna', 'organico', 'brani', 'organizza', 'ingresso', 'evidenza']) {
         const input = modulo.elements.namedItem(campo) as HTMLInputElement;
-        if (!modifica || !input.value.trim()) input.value = d[campo] ?? input.value;
+        if (!input.value.trim()) input.value = d[campo] ?? input.value;
       }
-      if (!modifica || righeVuote('opere')) riempiRighe('opere', d.opere);
-      if (!modifica || righeVuote('interpreti')) riempiRighe('interpreti', d.interpreti);
+      if (righeVuote('opere')) riempiRighe('opere', d.opere);
+      if (righeVuote('interpreti')) riempiRighe('interpreti', d.interpreti);
       const dt = new DataTransfer();
       dt.items.add(file);
       (document.getElementById('locandina') as HTMLInputElement).files = dt.files;
@@ -209,7 +209,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         ...d.dubbi,
       ];
       letto.className = `messaggio ${avvisi.length ? 'errore' : 'ok'}`;
-      letto.innerHTML = `<b>${modifica ? 'Locandina pronta, campi vuoti riempiti: controllali.' : 'Campi riempiti dalla locandina: controllali.'}</b>` + (avvisi.length ? `<ul style="margin:8px 0 0 18px">${avvisi.map((a: string) => `<li>${a.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : '');
+      letto.innerHTML = `<b>Campi vuoti riempiti dalla locandina (quelli già scritti restano): controllali.</b>` + (avvisi.length ? `<ul style="margin:8px 0 0 18px">${avvisi.map((a: string) => `<li>${a.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : '');
     } catch (e) {
       letto.className = 'messaggio errore';
       letto.textContent = `Non letta: ${(e as Error).message}`;

@@ -3,6 +3,7 @@
 import type { APIRoute } from 'astro';
 import { corpoEvento, datiDalModulo, nomeCartella, stagione } from '../../../admin/concerto';
 import { caricaImmagini, cartellaConcerto, creaEvento, eventiDelGiorno } from '../../../admin/operazioni';
+import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
@@ -27,6 +28,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const evento = await creaEvento(s, { ...corpoEvento(d), attachments: allegati.nuovi });
     return json({ ok: true, evento: evento.htmlLink, cartella: `https://drive.google.com/drive/folders/${cartella}` });
   } catch (e) {
-    return json({ ok: false, errore: (e as Error).message }, 500);
+    return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 };

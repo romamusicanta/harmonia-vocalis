@@ -4,6 +4,7 @@
 // Lo usano il repertorio (repertorio.ts) e le registrazioni delle prove (registrazioni.ts).
 import { cifra, decifra } from '../admin/sessione';
 import { google, tokenServizio } from './servizio';
+import { spiegaTesto } from './errori';
 
 const DRIVE = 'https://www.googleapis.com/drive/v3';
 export const CARTELLA = 'application/vnd.google-apps.folder';
@@ -111,6 +112,6 @@ export async function rispondiCaricamento(
     await completa?.(idFile, g.nome, g.dopo ?? {});
     return json({ ok: true, fatto: true, id: idFile });
   } catch (e) {
-    return json({ ok: false, errore: (e as Error).message }, 500);
+    return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 }
