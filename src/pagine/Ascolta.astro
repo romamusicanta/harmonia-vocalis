@@ -63,9 +63,9 @@ const concertoDi = new Map(archivio.filter((c) => c.video && !c.dataIncerta).map
             <Video video={evidenza} id="lettore" />
           </div>
           <div>
-            <span class="eti gialla" style="margin-bottom:14px">{en ? 'Featured' : 'In evidenza'}</span>
-            <h2 style="color:#fff;font-size:clamp(30px,3vw,40px)">{evidenza.titolo}</h2>
-            <p style="color:var(--primario-chiaro);margin:14px 0 20px">{evidenza.sottotitolo && `${evidenza.sottotitolo}. `}{en ? 'Choose another video from the list below: it opens in this player.' : 'Scegli un altro video dall\'elenco qui sotto: si apre in questo lettore.'}</p>
+            <span class="eti gialla" style="margin-bottom:14px" id="lettore-eti" data-evidenza={evidenza.id} data-testo-evidenza={en ? 'Featured' : 'In evidenza'} data-testo-altro={en ? 'Now in the player' : 'Nel lettore'}>{en ? 'Featured' : 'In evidenza'}</span>
+            <h2 style="color:#fff;font-size:clamp(30px,3vw,40px)" id="lettore-titolo">{evidenza.titolo}</h2>
+            <p style="color:var(--primario-chiaro);margin:14px 0 20px"><span id="lettore-sotto">{evidenza.sottotitolo && `${evidenza.sottotitolo}. `}</span>{en ? 'Choose another video from the list below: it opens in this player.' : 'Scegli un altro video dall\'elenco qui sotto: si apre in questo lettore.'}</p>
             <p class="nota-privacy" style="color:var(--primario-3)">{en ? 'Videos load from YouTube (without cookies) only when you press play.' : 'I video si caricano da YouTube (senza cookie) solo quando premi play.'}</p>
           </div>
         </div>
@@ -95,7 +95,7 @@ const concertoDi = new Map(archivio.filter((c) => c.video && !c.dataIncerta).map
                 const p = c && parti(c, lingua);
                 return (
                 <div class="vid-voce" id={v.id} data-voce data-autore={g.chiave}>
-                <button type="button" class="vid" data-carica={v.id} data-titolo={titoloCompleto(v)} data-sotto={v.sottotitolo ?? ''} data-mini={miniatura(v)} data-finto={eFinto(v) ? '' : undefined} style="background:none;border:0;padding:0;text-align:left">
+                <button type="button" class="vid" data-carica={v.id} data-titolo={titoloCompleto(v)} data-breve={v.titolo} data-sotto={v.sottotitolo ?? ''} data-mini={miniatura(v)} data-finto={eFinto(v) ? '' : undefined} style="background:none;border:0;padding:0;text-align:left">
                   <span class="mini"><img src={miniatura(v)} alt="" loading="lazy" /><i><Icona nome="play" /></i></span>
                   <b>{v.titolo}</b><small>{[v.sottotitolo, pubblicato(v)].filter(Boolean).join(' · ')}</small>
                 </button>
@@ -156,6 +156,14 @@ const concertoDi = new Map(archivio.filter((c) => c.video && !c.dataIncerta).map
     }
     play.append(i, b);
     nuovo.append(img, play);
+
+    // Il testo accanto al lettore segue il video scelto
+    const eti = document.getElementById('lettore-eti');
+    if (eti) eti.textContent = (d.carica === eti.dataset.evidenza ? eti.dataset.testoEvidenza : eti.dataset.testoAltro) ?? '';
+    const titolo = document.getElementById('lettore-titolo');
+    if (titolo) titolo.textContent = d.breve ?? d.titolo ?? '';
+    const sotto = document.getElementById('lettore-sotto');
+    if (sotto) sotto.textContent = d.sotto ? `${d.sotto}. ` : '';
 
     attivaVideo(nuovo);
     lettore.replaceWith(nuovo);
