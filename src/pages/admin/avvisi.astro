@@ -1,0 +1,17 @@
+---
+// Amministrazione: gli avvisi della bacheca dell'area coristi (src/area/bacheca.ts). Gli
+// amministratori del sito (admin@) modificano e cancellano anche quelli degli altri ruoli.
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import GestioneAvvisi from '../../area/GestioneAvvisi.astro';
+import { dopoIlModulo } from '../../area/bacheca';
+
+export const prerender = false;
+const email = Astro.locals.sessione!.email;
+if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, email, '/admin/avvisi'));
+---
+
+<LayoutAdmin titolo="Avvisi in bacheca" sezione="avvisi">
+  <h1>Avvisi in bacheca</h1>
+  <p class="tenue" style="max-width:64ch">Gli avvisi della bacheca dell'area coristi. Li scrivono anche il Maestro (dalla sua area), il presidente e il tesoriere (dall'area coristi); gli amministratori possono correggerli tutti.</p>
+  <GestioneAvvisi email={email} />
+</LayoutAdmin>

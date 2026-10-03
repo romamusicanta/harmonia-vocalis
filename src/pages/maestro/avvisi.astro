@@ -1,0 +1,25 @@
+---
+// Area del Maestro: i suoi avvisi in bacheca (firma "Il Maestro"), come nell'area coristi.
+import Base from '../../layouts/Base.astro';
+import GestioneAvvisi from '../../area/GestioneAvvisi.astro';
+import { dopoIlModulo } from '../../area/bacheca';
+import { vesteCorrente } from '../../motore/url';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+const email = Astro.locals.corista!.email;
+if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, email, '/maestro/avvisi'));
+---
+
+<Base veste={veste} titolo="Avvisi · Area del Maestro" area={{ maestro: true, sezione: 'avvisi' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del Maestro</span>
+        <h1>Avvisi ai coristi</h1>
+        <p>Quello che scrivi qui compare nella bacheca dell'area coristi, firmato «Il Maestro». Dopo averlo pubblicato puoi mandarlo anche nella chat WhatsApp HV Maestro.</p>
+      </div>
+    </div>
+  </div>
+  <div class="area-main"><div class="w" style="max-width:860px"><GestioneAvvisi email={email} /></div></div>
+</Base>

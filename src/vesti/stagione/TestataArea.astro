@@ -39,7 +39,7 @@ const info = {
 }[tipo];
 const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
 
-// Sezioni di ogni area; nell'area del Maestro, che è una pagina sola, le sue parti
+// Sezioni di ogni area
 const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] = {
   coristi: [
     { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
@@ -49,9 +49,8 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
   ],
   maestro: [
-    { id: 'prossimi', testo: 'Prossimi appuntamenti', icona: 'calendario', href: '/maestro#prossimi' },
-    { id: 'assiduita', testo: 'Assiduità', icona: 'presenze', href: '/maestro#assiduita-stagione' },
-    { id: 'storico', testo: 'Storico', icona: 'nota', href: '/maestro#storico' },
+    { id: 'report', testo: 'Presenze e assenze', icona: 'presenze', href: '/maestro' },
+    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi' },
   ],
   admin: [
     { id: 'pubblicazione', testo: 'Pubblicazione e controlli', href: '/admin' },
@@ -59,6 +58,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     { id: 'foto', testo: 'Foto del sito', href: '/admin/foto' },
     { id: 'prove', testo: 'Prove', href: '/admin/prove' },
     { id: 'assenze', testo: 'Assenze dei coristi', href: '/admin/assenze' },
+    { id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' },
   ],
 }[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string }[];
 ---
@@ -111,7 +111,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
 )}
 {ANTEPRIMA_AREA && tipo === 'coristi' && (
   <div class="avviso-anteprima" role="note">
-    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. Il <b>Calendario</b> è vero; bacheca, concerti, repertorio e registrazioni sono ancora dati di esempio.</span></div>
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Calendario</b> e <b>avvisi</b> sono veri; il resto della bacheca, concerti, repertorio e registrazioni sono ancora dati di esempio.</span></div>
   </div>
 )}
 {conBarra && (

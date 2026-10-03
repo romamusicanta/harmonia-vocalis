@@ -41,7 +41,7 @@ export const inizioStagione = (giorno: string) => {
 
 // ——— Foglio ———
 
-async function leggiScheda(scheda: string) {
+export async function leggiScheda(scheda: string) {
   const p = new URLSearchParams({ valueRenderOption: 'FORMATTED_VALUE' });
   const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${scheda}!A1:Z`)}?${p}`);
   const [intestazioni = [], ...righe] = values;
@@ -195,7 +195,7 @@ export async function assenze(): Promise<Assenza[]> {
 }
 
 // "02/10/2026 21:43": il foglio (in italiano) la riconosce come data e ora
-const adesso = () => `${oggi().split('-').reverse().join('/')} ${oraDi(new Date())}`;
+export const adesso = () => `${oggi().split('-').reverse().join('/')} ${oraDi(new Date())}`;
 
 // Segna un'assenza; se c'è già, aggiorna la nota
 export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da: string) {
@@ -215,20 +215,51 @@ export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da
   });
 }
 
-let idScheda: number | undefined;
+// L'identificativo numerico di una scheda del foglio (serve per cancellare righe); se la scheda
+// non c'è e si danno le intestazioni, la crea
+const idSchede = new Map<string, number>();
+export async function idScheda(nome: string, intestazioni?: string[]) {
+  if (idSchede.has(nome)) return idSchede.get(nome)!;
+  const { sheets } = await google<{ sheets: { properties: { sheetId: number; title: string } }[] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}?fields=sheets.properties`);
+  let id = sheets.find((s) => s.properties.title === nome)?.properties.sheetId;
+  if (id === undefined) {
+    if (!intestazioni) throw new Error(`manca la scheda ${nome} nel foglio`);
+    const r = await google<{ replies: { addSheet: { properties: { sheetId: number } } }[] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}:batchUpdate`, {
+      method: 'POST',
+      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: nome, gridProperties: { frozenRowCount: 1 } } } }] }),
+    });
+    id = r.replies[0].addSheet.properties.sheetId;
+    await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [intestazioni] }) });
+  }
+  idSchede.set(nome, id);
+  return id;
+}
+
+// Scrive una riga (numero di riga del foglio) o la aggiunge in fondo (riga assente)
+export async function scriviRiga(scheda: string, valori: string[], riga?: number) {
+  const fine = String.fromCharCode(64 + valori.length);
+  const p = new URLSearchParams({ valueInputOption: 'USER_ENTERED' });
+  if (riga) {
+    await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${scheda}!A${riga}:${fine}${riga}`)}?${p}`, { method: 'PUT', body: JSON.stringify({ values: [valori] }) });
+    return;
+  }
+  p.set('insertDataOption', 'OVERWRITE');
+  await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${scheda}!A:${fine}`)}:append?${p}`, { method: 'POST', body: JSON.stringify({ values: [valori] }) });
+}
+
+// Cancella una riga del foglio
+export async function cancellaRiga(scheda: string, riga: number) {
+  await google(`${SHEETS}/${FOGLIO_CORISTI_ID}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: await idScheda(scheda), dimension: 'ROWS', startIndex: riga - 1, endIndex: riga } } }] }),
+  });
+}
 
 // Toglie l'assenza (cioè: era presente)
 export async function togliAssenza(idEvento: string, email: string) {
   const a = (await assenze()).find((x) => x.idEvento === idEvento && x.email === email);
   if (!a) return;
-  if (idScheda === undefined) {
-    const { sheets } = await google<{ sheets: { properties: { sheetId: number; title: string } }[] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}?fields=sheets.properties`);
-    idScheda = sheets.find((s) => s.properties.title === 'Assenze')!.properties.sheetId;
-  }
-  await google(`${SHEETS}/${FOGLIO_CORISTI_ID}:batchUpdate`, {
-    method: 'POST',
-    body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: idScheda, dimension: 'ROWS', startIndex: a.riga - 1, endIndex: a.riga } } }] }),
-  });
+  await cancellaRiga('Assenze', a.riga);
 }
 
 // ——— Riepiloghi per le pagine ———

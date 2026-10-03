@@ -530,6 +530,8 @@ a.sc:hover { box-shadow: var(--ombra); }
 .avviso .chi b { color: var(--testo); }
 .avviso h3 { font-size: 18px; letter-spacing: 0; }
 .avviso p { font-size: 15px; color: var(--testo); }
+.avviso .testo-avviso p { margin: 0 0 .5em; }
+.avviso .testo-avviso a { text-decoration: underline; word-break: break-all; }
 .avviso.nuovo { box-shadow: inset 4px 0 0 var(--accento); }
 
 /* Scorciatoie */

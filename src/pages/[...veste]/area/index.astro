@@ -1,11 +1,13 @@
 ---
 // Area coristi: bacheca. Prossima prova (con segnalazione di assenza), prossimo concerto
-// (con conferma), avvisi del direttivo, scorciatoie della sezione, ultima registrazione, presenze attese.
+// (con conferma), avvisi (veri: src/area/bacheca.ts), scorciatoie della sezione, ultima registrazione, presenze attese.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { parti, prossimiConcerti } from '../../../motore/concerti';
+import { avvisi as avvisiVeri, firmaDi, inBacheca, nuovo, ruoliDi } from '../../../area/bacheca';
+import { comeHtml } from '../../../area/testo';
 import {
   corista, prossimaProva, luogoProva, convocazione, titoloBreve, repertorio, registrazioni,
   assenzeProssima, totaleVoci, avvisi, giorno, traGiorni, dataBreve, dataEstesa, dataGiorno,
@@ -24,7 +26,13 @@ const opera = repertorio.find((o) => o.materiali);
 const basiMie = opera?.materiali?.basi.find((b) => b.sezione === corista.sezione);
 const reg = registrazioni[0];
 const attesi = totaleVoci - assenzeProssima.length;
-const nuovi = avvisi.filter((a) => a.nuovo).length;
+// Avvisi: nel sito vero quelli della bacheca (src/area/bacheca.ts), nella demo quelli di esempio
+const veri = !DEMO && Astro.locals.corista;
+const elencoAvvisi = veri
+  ? inBacheca(await avvisiVeri().catch(() => [])).map((a) => ({ id: a.id, data: a.pubblicato, autore: firmaDi(a), titolo: a.titolo, html: comeHtml(a.testo), nuovo: nuovo(a) }))
+  : avvisi.map((a, i) => ({ id: String(i), data: a.data, autore: a.autore, titolo: a.titolo, html: comeHtml(a.testo), nuovo: a.nuovo }));
+const scrive = veri ? (await ruoliDi(Astro.locals.corista!.email).catch(() => [])).length > 0 : false;
+const nuovi = elencoAvvisi.filter((a) => a.nuovo).length;
 const sezioneMin = corista.sezione.toLowerCase();
 
 const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -102,13 +110,14 @@ const intro = [
         )}
 
         <article class="carta c-7 su">
-          <div class="ct"><h2>Avvisi del direttivo</h2>{nuovi > 0 && <span class="tag grigio">{nuovi === 1 ? '1 nuovo' : `${nuovi} nuovi`}</span>}</div>
+          <div class="ct"><h2>Avvisi</h2>{nuovi > 0 && <span class="tag grigio">{nuovi === 1 ? '1 nuovo' : `${nuovi} nuovi`}</span>}{scrive && <a class="link-freccia" href="/area/avvisi">Scrivi un avviso <Icona nome="freccia" /></a>}</div>
+          {elencoAvvisi.length === 0 && <div class="cc tenue">Nessun avviso in bacheca.</div>}
           <ul class="avvisi">
-            {avvisi.map((a) => (
+            {elencoAvvisi.map((a) => (
               <li class:list={['avviso', { nuovo: a.nuovo }]}>
                 <span class="chi">{a.nuovo && <span class="tag">Nuovo</span>}<b>{a.autore}</b> · {dataEstesa(a.data)}</span>
                 <h3>{a.titolo}</h3>
-                <p>{a.testo}</p>
+                <div class="testo-avviso" set:html={a.html} />
               </li>
             ))}
           </ul>

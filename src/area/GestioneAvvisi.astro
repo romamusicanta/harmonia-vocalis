@@ -1,0 +1,112 @@
+---
+// Gestione degli avvisi della bacheca (src/area/bacheca.ts), uguale nell'area coristi
+// (/area/avvisi), in quella del Maestro (/maestro/avvisi) e nell'Amministrazione (/admin/avvisi):
+// modulo per scriverne uno nuovo o modificarne uno (?modifica=id), elenco di tutti gli avvisi con
+// Modifica, Cancella e "Invia su WhatsApp" per quelli firmati con i propri ruoli. Le azioni sono
+// POST alla pagina stessa, che le passa a gestisci() e poi torna qui con ?esito=…
+import Icona from '../componenti/Icona.astro';
+import { avvisi, firmaDi, inBacheca, linkWhatsapp, perWhatsapp, puoModificare, ruoliDi, type Avviso } from './bacheca';
+import { comeHtml } from './testo';
+import { parti } from '../motore/concerti';
+
+interface Props { email: string }
+const { email } = Astro.props;
+const q = Astro.url.searchParams;
+
+let errore: string | undefined;
+let elenco: Avviso[] = [];
+const suoi = await ruoliDi(email).catch(() => []);
+try {
+  elenco = await avvisi();
+} catch (e) {
+  errore = `Google non ha risposto: ${(e as Error).message}`;
+}
+const visibili = new Set(inBacheca(elenco).map((a) => a.id));
+const inModifica = elenco.find((a) => a.id === q.get('modifica') && puoModificare(a, suoi));
+const appena = elenco.find((a) => a.id === q.get('avviso'));
+const sito = Astro.url.origin;
+const quando = (iso: string) => { const d = parti({ data: iso }); return `${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+const chatDi = (a: Avviso) => a.ruolo?.chat ?? 'HV';
+const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
+---
+
+{q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+{errore && <p class="messaggio errore">{errore}</p>}
+
+{appena && q.get('ok') === '1' && (
+  <div class="messaggio ok wa-subito">
+    <span>Mandalo anche su WhatsApp, nella chat <b>{chatDi(appena)}</b>: si apre con il testo già scritto, scegli la chat e premi Invia.</span>
+    <a class="btn g piccolo" href={linkWhatsapp(perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito))} target="_blank" rel="noopener"><Icona nome="whatsapp" />Invia su WhatsApp</a>
+  </div>
+)}
+
+{suoi.length === 0 ? (
+  <p class="messaggio">Per scrivere in bacheca serve uno di questi ruoli: Maestro, presidente, tesoriere o amministratore del sito.</p>
+) : (
+  <form method="post" class="carta modulo-avviso" id="modulo">
+    <div class="ct"><h2>{inModifica ? 'Modifica l’avviso' : 'Nuovo avviso'}</h2>{inModifica && <a class="link-freccia" href="?">Annulla</a>}</div>
+    <div class="cc">
+      <input type="hidden" name="azione" value="salva" />
+      {inModifica && <input type="hidden" name="id" value={inModifica.id} />}
+      <label>Titolo<input name="titolo" required maxlength="140" value={valore('titolo', inModifica?.titolo)} placeholder="Es. Prova straordinaria venerdì" /></label>
+      <label>Testo<textarea name="testo" rows="6" maxlength="4000" placeholder="Si va a capo con Invio; una riga vuota separa i paragrafi. Gli indirizzi web diventano link.">{valore('testo', inModifica?.testo)}</textarea></label>
+      <div class="riga-campi">
+        <label>Firma
+          <select name="firma">
+            {suoi.map((r) => <option value={r.id} selected={(inModifica?.ruolo?.id ?? suoi[0].id) === r.id}>{r.firma}</option>)}
+          </select>
+        </label>
+        <label>Resta in bacheca fino al <small>(facoltativo)</small><input type="date" name="fino" value={valore('fino', inModifica?.finoAl)} /></label>
+      </div>
+      <button class="btn" type="submit"><Icona nome="spunta" />{inModifica ? 'Salva le modifiche' : 'Pubblica in bacheca'}</button>
+    </div>
+  </form>
+)}
+
+<h2 class="titolo-elenco">Tutti gli avvisi</h2>
+{elenco.length === 0 && !errore && <p class="tenue">Ancora nessun avviso.</p>}
+<ul class="avvisi carta elenco-avvisi">
+  {elenco.map((a) => {
+    const mio = puoModificare(a, suoi);
+    return (
+      <li class:list={['avviso', { scaduto: !visibili.has(a.id), appena: a.id === appena?.id }]} id={`avviso-${a.id}`}>
+        <span class="chi"><b>{firmaDi(a)}</b> · {a.pubblicato && quando(a.pubblicato)}{!visibili.has(a.id) ? <span class="tag grigio">Non più in bacheca</span> : a.finoAl && <span>· fino al {quando(a.finoAl)}</span>}</span>
+        <h3>{a.titolo}</h3>
+        <div class="testo-avviso" set:html={comeHtml(a.testo)} />
+        {mio && (
+          <div class="azioni-avviso">
+            <a class="btn o piccolo" href={`?modifica=${a.id}#modulo`}>Modifica</a>
+            <a class="btn o piccolo" href={linkWhatsapp(perWhatsapp({ ...a, firma: firmaDi(a) }, sito))} target="_blank" rel="noopener" title={`Scegli la chat ${chatDi(a)}`}><Icona nome="whatsapp" />WhatsApp · {chatDi(a)}</a>
+            <form method="post" onsubmit="return confirm('Cancellare questo avviso? Sparisce dalla bacheca e dal foglio.')">
+              <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={a.id} />
+              <button class="btn o piccolo cancella" type="submit">Cancella</button>
+            </form>
+          </div>
+        )}
+      </li>
+    );
+  })}
+</ul>
+
+<style>
+  .modulo-avviso { margin: 24px 0 8px; }
+  .modulo-avviso .cc { display: grid; gap: 16px; }
+  .modulo-avviso label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .modulo-avviso label small { font-weight: 400; color: var(--tenue); }
+  .modulo-avviso :is(input, textarea, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .modulo-avviso .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .modulo-avviso button { justify-self: start; }
+  .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
+  .elenco-avvisi { margin: 0; }
+  .avviso.scaduto { opacity: .6; }
+  .avviso.appena { box-shadow: inset 4px 0 0 var(--accento); }
+  .testo-avviso :global(p) { font-size: 15px; margin: 0 0 .6em; }
+  .testo-avviso :global(a) { text-decoration: underline; word-break: break-all; }
+  .azioni-avviso { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .azioni-avviso form { display: contents; }
+  .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
+  .wa-subito { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
+  .messaggio.ok { border-color: #2e7d4f; }
+  .messaggio.errore { border-color: #b3261e; color: #b3261e; }
+</style>

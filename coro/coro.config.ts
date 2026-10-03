@@ -88,6 +88,15 @@ export default {
   coristi: {
     gruppo: 'coro@romamusicanta.org',
     direzione: 'maestro@romamusicanta.org',
+    // Chi scrive in bacheca (gruppi presidente@ e tesoriere@: una persona ciascuno, si cambia il
+    // membro quando cambia il ruolo)
+    bacheca: [
+      // admin@ è dentro maestro@ per vedere l'area del Maestro, ma non firma come il Maestro
+      { id: 'maestro', firma: 'Il Maestro', gruppo: 'maestro@romamusicanta.org', tranne: 'admin@romamusicanta.org', chat: 'HV Maestro' },
+      { id: 'presidente', firma: 'Il presidente', gruppo: 'presidente@romamusicanta.org', chat: 'HV' },
+      { id: 'tesoriere', firma: 'Il tesoriere', gruppo: 'tesoriere@romamusicanta.org', chat: 'HV' },
+      { id: 'amministratori', firma: 'Gli amministratori del sito', gruppo: 'admin@romamusicanta.org', chat: 'HV', tutti: true },
+    ],
   },
 
   // Foto di riserva, dalla scheda italiacori del coro (vedi immagini/CREDITI.md). Quelle vere si
