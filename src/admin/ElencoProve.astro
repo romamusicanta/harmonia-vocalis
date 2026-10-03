@@ -34,15 +34,16 @@ else {
 const q = Astro.url.searchParams;
 const salvata = q.get('salvata');
 const sito = Astro.url.origin;
-// Il messaggio per WhatsApp: della prova appena salvata o appena cancellata
+// Il messaggio per WhatsApp: della prova appena salvata o appena cancellata, solo se non è ancora
+// passata (per le prove già fatte l'unico messaggio è quello della registrazione, nel modulo)
 let whatsapp: string | undefined;
 const idSalvata = q.get('id');
-if (salvata && idSalvata) {
+if (salvata && idSalvata && salvata >= oggi) {
   const p = prove.find((x) => x.id === idSalvata) ?? (await leggiProva(chi, idSalvata).catch(() => undefined));
   if (p) whatsapp = provaPerWhatsapp(p, q.get('come') === 'nuova' ? 'nuova' : 'cambiata', sito);
 }
 const cancellata = q.get('cancellata');
-if (cancellata) whatsapp = provaPerWhatsapp({ data: cancellata, inizio: q.get('ora') ?? '', fine: '', titolo: q.get('titolo') ?? '', luogo: '', righe: {} as Prova['righe'] }, 'cancellata', sito);
+if (cancellata && cancellata >= oggi) whatsapp = provaPerWhatsapp({ data: cancellata, inizio: q.get('ora') ?? '', fine: '', titolo: q.get('titolo') ?? '', luogo: '', righe: {} as Prova['righe'] }, 'cancellata', sito);
 
 // Prossime per mese; le passate a parte, la più recente prima
 const prossime = prove.filter((p) => p.data >= oggi);

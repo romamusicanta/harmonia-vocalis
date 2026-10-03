@@ -6,7 +6,10 @@ import { coro } from '../motore/coro';
 import { salaAbituale, SEPARATORE_PEZZI, type Prova } from './prove';
 import { repertorio, type Pezzo } from '../area/repertorio';
 import SceltaPezzi from '../area/SceltaPezzi.astro';
-import { fileDellaProva, type Traccia } from '../area/registrazioni';
+import { fileDellaProva, registrazioniPerWhatsapp, type Traccia } from '../area/registrazioni';
+import { linkWhatsapp } from '../area/bacheca';
+import { giornoEsteso } from './prove';
+import Icona from '../componenti/Icona.astro';
 
 // titolo e dopo: per una prova nuova creata da un'altra pagina (la prova generale dalla convocazione)
 interface Props { prova?: Prova; data?: string; base: '/admin' | '/maestro'; titolo?: string; dopo?: string }
@@ -20,6 +23,10 @@ const oggi = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).forma
 const conRegistrazioni = Boolean(prova && base === '/admin' && prova.data <= oggi);
 let registrate: Traccia[] = [];
 if (conRegistrazioni) registrate = await fileDellaProva(prova!).catch(() => []);
+// Dopo un caricamento (?caricate=id,id): il messaggio WhatsApp per avvisare i coristi
+const caricate = (Astro.url.searchParams.get('caricate') ?? '').split(',').filter(Boolean);
+const nuove = registrate.filter((t) => caricate.includes(t.id));
+const whatsapp = prova && nuove.length ? registrazioniPerWhatsapp(prova, nuove, giornoEsteso(prova.data), Astro.url.origin) : undefined;
 const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : '');
 ---
 
@@ -58,6 +65,12 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 {conRegistrazioni && (
   <section class="scheda-admin registrazioni-prova" id="registrazioni" style="max-width:820px;margin-top:28px;scroll-margin-top:140px" data-evento={prova!.id}>
     <h2 style="margin-top:0">Registrazioni della prova</h2>
+    {whatsapp && (
+      <div class="invio-whatsapp" style="margin:0">
+        <span>{nuove.length === 1 ? 'Registrazione caricata.' : `${nuove.length} registrazioni caricate.`} Avvisa i coristi: il messaggio con i link è già scritto, scegli la chat del coro.</span>
+        <a class="btn g piccolo" href={linkWhatsapp(whatsapp)} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
+      </div>
+    )}
     <p class="tenue" style="font-size:15px">I coristi le ascoltano nella pagina Registrazioni della loro area, sotto questa prova. Con «Togli» il file va nel cestino del Drive del coro.</p>
     {registrate.length ? (
       <ul class="elenco-reg">
@@ -136,8 +149,16 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
       avanza.hidden = false;
       const titolo = file.length === 1 ? box.querySelector<HTMLInputElement>('#titolo-reg')!.value : '';
       try {
-        for (const [i, f] of file.entries()) await carica('/admin/prove/registrazione', f, { evento: box.dataset.evento!, titolo }, (q) => { barra.value = Math.round(((i + q) / file.length) * 100); });
-        location.reload();
+        const ids: string[] = [];
+        for (const [i, f] of file.entries()) {
+          const id = await carica('/admin/prove/registrazione', f, { evento: box.dataset.evento!, titolo }, (q) => { barra.value = Math.round(((i + q) / file.length) * 100); });
+          if (id) ids.push(id);
+        }
+        // Si ricarica con i file appena caricati, per il messaggio WhatsApp
+        const u = new URL(location.href);
+        u.searchParams.set('caricate', ids.join(','));
+        u.hash = 'registrazioni';
+        location.replace(u);
       } catch (e) {
         stato.textContent = (e as Error).message;
         pulsante.disabled = input.disabled = false;

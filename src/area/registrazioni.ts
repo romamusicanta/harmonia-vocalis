@@ -79,6 +79,18 @@ export async function proveFatte(): Promise<{ prova?: Evento; giorno?: GiornoReg
 
 // ——— Dai redattori, nel modulo di Modifica della prova (Amministrazione) ———
 
+// Il messaggio per il gruppo WhatsApp dei coristi dopo aver caricato registrazioni di una prova: i
+// link dei file (si ascoltano o si scaricano dal sito) e quello della prova nella pagina Registrazioni
+export function registrazioniPerWhatsapp(prova: { id: string; data: string; titolo: string }, tracce: Pick<Traccia, 'id' | 'titolo'>[], quando: string, sito: string) {
+  const titolo = /^prova( settimanale)?$/i.test(prova.titolo) ? 'prova' : prova.titolo.toLowerCase();
+  const file = tracce.map((t) => `${t.titolo}: ${sito}/area/file/${t.id}`);
+  return [
+    `*${tracce.length === 1 ? 'Nuova registrazione' : 'Nuove registrazioni'} della ${titolo} di ${quando}*`,
+    `Da ascoltare o scaricare:\n${file.join('\n')}`,
+    `Tutte le registrazioni della prova: ${sito}/area/registrazioni#p-${prova.id}`,
+  ].join('\n\n');
+}
+
 // I file registrati di una prova: nella cartella della sua data, quelli legati a quella prova
 export async function fileDellaProva(e: Pick<Evento, 'id' | 'data'>): Promise<Traccia[]> {
   if (!configurato()) return [];

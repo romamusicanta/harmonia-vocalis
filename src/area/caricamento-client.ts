@@ -13,8 +13,10 @@ async function richiesta(indirizzo: string, init: RequestInit) {
   return esito;
 }
 
-export async function carica(indirizzo: string, file: File, extra: Record<string, string>, avanzamento?: (quota: number) => void) {
+// Restituisce l'id su Drive del file caricato
+export async function carica(indirizzo: string, file: File, extra: Record<string, string>, avanzamento?: (quota: number) => void): Promise<string | undefined> {
   addEventListener('beforeunload', trattieni);
+  let id: string | undefined;
   try {
     const avvio = await richiesta(indirizzo, {
       method: 'POST', headers: { 'x-azione': 'inizia', 'Content-Type': 'application/json' },
@@ -24,7 +26,8 @@ export async function carica(indirizzo: string, file: File, extra: Record<string
       avanzamento?.(inizio / file.size);
       for (let tentativo = 0; ; tentativo++) {
         try {
-          await richiesta(indirizzo, { method: 'POST', headers: { 'x-gettone': avvio.gettone, 'x-inizio': String(inizio) }, body: file.slice(inizio, inizio + avvio.pezzo) });
+          const r = await richiesta(indirizzo, { method: 'POST', headers: { 'x-gettone': avvio.gettone, 'x-inizio': String(inizio) }, body: file.slice(inizio, inizio + avvio.pezzo) });
+          if (r.id) id = r.id;
           break;
         } catch (e) {
           if (tentativo >= 3) throw new Error(`Caricamento interrotto al ${Math.round((inizio / file.size) * 100)}%: ${(e as Error).message} Tieni la pagina aperta e riprova.`);
@@ -36,4 +39,5 @@ export async function carica(indirizzo: string, file: File, extra: Record<string
   } finally {
     removeEventListener('beforeunload', trattieni);
   }
+  return id;
 }
