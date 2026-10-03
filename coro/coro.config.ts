@@ -43,7 +43,7 @@ export default {
   maestro: {
     nome: 'Claudio Maria Micheli',
     presentazione: 'Da oltre trent’anni sul podio dei cori romani, collaboratore di Ennio Morricone, arrangiatore e insegnante di canto.',
-    anniPodio: 30,
+    anniPodio: 35, // dal debutto come direttore, nel 1991 (curriculum 2023)
     foto: 'maestro.jpg',
   },
 
