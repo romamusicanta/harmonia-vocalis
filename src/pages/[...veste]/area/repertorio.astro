@@ -1,11 +1,13 @@
 ---
 // Area coristi: repertorio in studio (basi per sezione, tracce della propria sezione, spartito,
-// note del Maestro) e archivio degli spartiti nel Drive.
+// note del Maestro) e archivio degli spartiti nel Drive. Nel sito vero i dati veri
+// (src/area/RepertorioVero.astro), nella demo quelli di esempio.
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { prossimiConcerti } from '../../../motore/concerti';
+import RepertorioVero from '../../../area/RepertorioVero.astro';
 import { corista, repertorio, archivioSpartiti, dataEstesa } from '../../../demo/area';
 
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
@@ -22,6 +24,7 @@ const inArrivo = repertorio.filter((o) => !o.materiali);
 ---
 
 <Base veste={veste} titolo="Repertorio · Area coristi" area={{ sezione: 'repertorio' }}>
+  {DEMO ? (<>
   <div class="area-intesta">
     <div class="w">
       <div>
@@ -106,4 +109,5 @@ const inArrivo = repertorio.filter((o) => !o.materiali);
       </section>
     </div>
   </div>
+  </>) : <RepertorioVero />}
 </Base>

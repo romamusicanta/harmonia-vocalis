@@ -50,6 +50,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
   ],
   maestro: [
     { id: 'report', testo: 'Presenze e assenze', icona: 'presenze', href: '/maestro' },
+    { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: '/maestro/repertorio' },
     { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi' },
   ],
   admin: [
@@ -58,6 +59,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
     { id: 'foto', testo: 'Foto del sito', href: '/admin/foto' },
     { id: 'prove', testo: 'Prove', href: '/admin/prove' },
     { id: 'assenze', testo: 'Assenze dei coristi', href: '/admin/assenze' },
+    { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
     { id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' },
   ],
 }[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string }[];
@@ -111,7 +113,7 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string }[] 
 )}
 {ANTEPRIMA_AREA && tipo === 'coristi' && (
   <div class="avviso-anteprima" role="note">
-    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Calendario</b> e <b>avvisi</b> sono veri; il resto della bacheca, concerti, repertorio e registrazioni sono ancora dati di esempio.</span></div>
+    <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Calendario</b>, <b>avvisi</b> e <b>repertorio</b> sono veri; il resto della bacheca, concerti e registrazioni sono ancora dati di esempio.</span></div>
   </div>
 )}
 {conBarra && (

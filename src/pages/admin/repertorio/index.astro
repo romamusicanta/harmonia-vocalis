@@ -1,0 +1,15 @@
+---
+// Amministrazione: il repertorio dell'area coristi (src/area/repertorio.ts)
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import GestioneRepertorio from '../../../area/GestioneRepertorio.astro';
+import { dopoIlModulo } from '../../../area/repertorio';
+
+export const prerender = false;
+if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, Astro.locals.sessione!.email, '/admin/repertorio'));
+---
+
+<LayoutAdmin titolo="Repertorio" sezione="repertorio">
+  <h1>Repertorio</h1>
+  <p class="tenue" style="max-width:64ch">I pezzi che i coristi trovano nella pagina Repertorio della loro area: spartito e brani (caricati su Drive, cartella Spartiti), tracce di studio per sezione, esecuzione di riferimento e note del Maestro. Lo stesso elenco lo gestisce il Maestro dalla sua area.</p>
+  <GestioneRepertorio base="/admin" />
+</LayoutAdmin>

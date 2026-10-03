@@ -1,0 +1,168 @@
+---
+// Gestione del repertorio (src/area/repertorio.ts), uguale nell'Amministrazione
+// (/admin/repertorio) e nell'area del Maestro (/maestro/repertorio): elenco dei pezzi e modulo per
+// aggiungerne uno o modificarlo (?modifica=id, ?nuovo): autore, titolo, stato, link alle tracce per
+// sezione, esecuzione di riferimento, note del Maestro; spartito e brani separati si caricano su
+// Drive dal modulo (a pezzi, con lo script in fondo, verso <base>/repertorio/file).
+import Icona from '../componenti/Icona.astro';
+import { configurato, nomeCompleto, repertorio, sezioniTracce, STATI, type Pezzo } from './repertorio';
+
+interface Props { base: '/admin' | '/maestro' }
+const { base } = Astro.props;
+const q = Astro.url.searchParams;
+
+let errore: string | undefined;
+let elenco: Pezzo[] = [];
+try {
+  elenco = await repertorio();
+} catch (e) {
+  errore = `Google non ha risposto: ${(e as Error).message}`;
+}
+const inModifica = elenco.find((p) => p.id === q.get('modifica'));
+const nuovo = q.has('nuovo') || (!inModifica && elenco.length === 0);
+const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sezione === s)?.link ?? '';
+---
+
+{q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+{errore && <p class="messaggio errore">{errore}</p>}
+{!configurato() && <p class="messaggio errore">Il caricamento dei file non è ancora attivo: manca la cartella Spartiti (variabile DRIVE_CARTELLA_SPARTITI) sul server.</p>}
+
+{(inModifica || nuovo) ? (
+  <form method="post" class="carta modulo-pezzo" id="modulo">
+    <div class="ct"><h2>{inModifica ? nomeCompleto(inModifica) : 'Nuovo pezzo'}</h2><a class="link-freccia" href={`${base}/repertorio`}>{inModifica ? 'Chiudi' : 'Annulla'}</a></div>
+    <div class="cc">
+      <input type="hidden" name="azione" value="salva" />
+      {inModifica && <input type="hidden" name="id" value={inModifica.id} />}
+      <div class="riga-campi">
+        <label>Autore<input name="autore" maxlength="100" value={inModifica?.autore} placeholder="Es. W. A. Mozart" /></label>
+        <label>Titolo<input name="titolo" required maxlength="140" value={inModifica?.titolo} placeholder="Es. Requiem in re minore K 626" /></label>
+        <label>Stato
+          <select name="stato">{STATI.map((s) => <option selected={(inModifica?.stato ?? STATI[0]) === s}>{s}</option>)}</select>
+        </label>
+      </div>
+
+      <fieldset>
+        <legend>Tracce per lo studio <small>(link a Drive, YouTube o altro: uno per sezione)</small></legend>
+        <div class="riga-campi">
+          {sezioniTracce.map((s) => <label>{s}<input name={`tracce-${s}`} type="url" value={traccia(inModifica, s)} placeholder="https://…" /></label>)}
+        </div>
+      </fieldset>
+
+      <label>Esecuzione di riferimento <small>(link, per esempio a YouTube)</small><input name="esecuzione" type="url" value={inModifica?.esecuzione} placeholder="https://…" /></label>
+      <label>Note del Maestro sull'esecuzione<textarea name="note" rows="6" maxlength="4000" placeholder="Tempi, respiri, attacchi, pronuncia… Una riga vuota separa i paragrafi.">{inModifica?.note}</textarea></label>
+      <button class="btn" type="submit"><Icona nome="spunta" />{inModifica ? 'Salva le modifiche' : 'Aggiungi al repertorio'}</button>
+    </div>
+  </form>
+) : (
+  <p style="margin:24px 0"><a class="btn" href={`${base}/repertorio?nuovo`}><Icona nome="libro" />Aggiungi un pezzo</a></p>
+)}
+
+{inModifica && (
+  <section class="carta modulo-pezzo" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`}>
+    <div class="ct"><h2>Spartito e brani</h2><span class="tenue" style="font-size:14px">Su Drive, nella cartella Spartiti</span></div>
+    <div class="cc">
+      <div class="file-gruppo">
+        <h3>Spartito</h3>
+        {inModifica.spartito ? (
+          <div class="file-riga"><a href={inModifica.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Spartito</a>
+            <form method="post"><input type="hidden" name="azione" value="togli-spartito" /><input type="hidden" name="id" value={inModifica.id} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
+        ) : <p class="tenue">Nessuno spartito.</p>}
+        <label class="carica">{inModifica.spartito ? 'Sostituisci lo spartito' : 'Carica lo spartito'} <small>(PDF)</small><input type="file" data-uso="spartito" accept="application/pdf,image/*" /></label>
+      </div>
+      <div class="file-gruppo">
+        <h3>Brani cantati separatamente</h3>
+        {inModifica.brani.length ? inModifica.brani.map((b, i) => (
+          <div class="file-riga"><a href={b.link} target="_blank" rel="noopener"><Icona nome="documento" />{b.nome}</a>
+            <form method="post"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
+        )) : <p class="tenue">Nessun brano. Il nome del file diventa il nome del brano.</p>}
+        <label class="carica">Aggiungi brani <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
+      </div>
+      <p class="stato-caricamento" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+)}
+
+<h2 class="titolo-elenco">Repertorio</h2>
+{elenco.length === 0 && !errore && <p class="tenue">Ancora nessun pezzo.</p>}
+<ul class="carta elenco-pezzi">
+  {elenco.map((p) => (
+    <li class:list={{ attivo: p.id === inModifica?.id }}>
+      <div>
+        <span class="aut">{p.autore}</span>
+        <b>{p.titolo}</b>
+        <span class="tenue dettagli">{[p.stato, p.spartito && 'spartito', p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano' : 'brani'}`, p.tracce.length && `tracce: ${p.tracce.map((t) => t.sezione.toLowerCase()).join(', ')}`, p.esecuzione && 'esecuzione', p.note && 'note del Maestro'].filter(Boolean).join(' · ')}</span>
+      </div>
+      <div class="azioni-pezzo">
+        <a class="btn o piccolo" href={`${base}/repertorio?modifica=${p.id}#modulo`}>Modifica</a>
+        <form method="post" onsubmit="return confirm('Togliere questo pezzo dal repertorio? I file restano su Drive.')">
+          <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={p.id} />
+          <button class="btn o piccolo cancella" type="submit">Togli</button>
+        </form>
+      </div>
+    </li>
+  ))}
+</ul>
+
+<script>
+  // Caricamento a pezzi: "inizia" apre la sessione su Drive, poi i pezzi da 3,5 MB uno dopo l'altro
+  const box = document.querySelector<HTMLElement>('[data-file]');
+  const stato = box?.querySelector<HTMLElement>('.stato-caricamento');
+  async function carica(file: File, uso: string) {
+    const r = await fetch(box!.dataset.file!, {
+      method: 'POST', headers: { 'x-azione': 'inizia', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pezzo: box!.dataset.pezzo, uso, nome: file.name, tipo: file.type, dimensione: file.size }),
+    });
+    const avvio = await r.json().catch(() => ({ ok: false, errore: `errore ${r.status}` }));
+    if (!avvio.ok) throw new Error(avvio.errore);
+    for (let inizio = 0; inizio < file.size; inizio += avvio.pezzo) {
+      stato!.textContent = `Carico «${file.name}»: ${Math.round((inizio / file.size) * 100)}%`;
+      const p = await fetch(box!.dataset.file!, { method: 'POST', headers: { 'x-gettone': avvio.gettone, 'x-inizio': String(inizio) }, body: file.slice(inizio, inizio + avvio.pezzo) });
+      const esito = await p.json().catch(() => ({ ok: false, errore: `errore ${p.status}` }));
+      if (!esito.ok) throw new Error(esito.errore);
+    }
+  }
+  box?.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((input) => input.addEventListener('change', async () => {
+    const file = [...(input.files ?? [])];
+    if (!file.length) return;
+    box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = true));
+    try {
+      for (const f of file) await carica(f, input.dataset.uso!);
+      location.href = `${box.dataset.ritorno}&ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato su Drive.` : `${file.length} file caricati su Drive.`)}`;
+    } catch (e) {
+      stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
+      box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = false));
+    }
+  }));
+</script>
+
+<style>
+  .modulo-pezzo { margin: 24px 0 8px; }
+  .modulo-pezzo .cc { display: grid; gap: 18px; }
+  .modulo-pezzo label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .modulo-pezzo small { font-weight: 400; color: var(--tenue); }
+  .modulo-pezzo :is(input:not([type=file]), textarea, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .modulo-pezzo .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .modulo-pezzo fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .modulo-pezzo legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 10px; }
+  .modulo-pezzo button[type=submit]:not(.piccolo) { justify-self: start; }
+  .file-gruppo { display: grid; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid var(--linea); }
+  .file-gruppo h3 { font-size: 17px; }
+  .file-riga { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--fondo); border-radius: var(--raggio); }
+  .file-riga a { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; color: var(--primario); text-decoration: underline; min-width: 0; overflow-wrap: anywhere; }
+  .carica { padding: 12px; border: 2px dashed var(--linea); border-radius: var(--raggio); }
+  .stato-caricamento { font-weight: 600; color: var(--primario); min-height: 1.4em; margin: 0; }
+  .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
+  .elenco-pezzi { list-style: none; margin: 0; padding: 0; }
+  .elenco-pezzi li { display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--linea); }
+  .elenco-pezzi li:last-child { border-bottom: 0; }
+  .elenco-pezzi li.attivo { box-shadow: inset 4px 0 0 var(--accento); }
+  .elenco-pezzi b { display: block; font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }
+  .elenco-pezzi .aut { display: block; }
+  .elenco-pezzi .dettagli { font-size: 14px; }
+  .azioni-pezzo { display: flex; gap: 8px; }
+  .azioni-pezzo form, .file-riga form { display: contents; }
+  .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
+  .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
+  .messaggio.ok { border-color: #2e7d4f; }
+  .messaggio.errore { border-color: #b3261e; color: #b3261e; }
+</style>

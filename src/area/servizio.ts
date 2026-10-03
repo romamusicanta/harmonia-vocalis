@@ -7,11 +7,13 @@
 import { getVercelOidcToken } from '@vercel/oidc';
 import { GCP_PROJECT_NUMBER, GCP_SERVICE_ACCOUNT_EMAIL, GCP_WORKLOAD_IDENTITY_POOL_ID, GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID } from 'astro:env/server';
 
-// Gruppi (chi entra), foglio "Coristi e assenze" (lettura e scrittura) e calendari Prove e Concerti
+// Gruppi (chi entra), foglio "Coristi e assenze" (lettura e scrittura), calendari Prove e Concerti,
+// Drive (spartiti del repertorio, nella cartella Spartiti dove l'account è Gestore contenuti)
 const AMBITI = [
   'https://www.googleapis.com/auth/cloud-identity.groups.readonly',
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/drive',
 ];
 const CI = 'https://cloudidentity.googleapis.com/v1';
 

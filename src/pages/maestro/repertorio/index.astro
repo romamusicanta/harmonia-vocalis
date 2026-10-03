@@ -1,0 +1,24 @@
+---
+// Area del Maestro: il repertorio dell'area coristi (src/area/repertorio.ts), come nell'Amministrazione
+import Base from '../../../layouts/Base.astro';
+import GestioneRepertorio from '../../../area/GestioneRepertorio.astro';
+import { dopoIlModulo } from '../../../area/repertorio';
+import { vesteCorrente } from '../../../motore/url';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, Astro.locals.corista!.email, '/maestro/repertorio'));
+---
+
+<Base veste={veste} titolo="Repertorio · Area del Maestro" area={{ maestro: true, sezione: 'repertorio' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del Maestro</span>
+        <h1>Repertorio</h1>
+        <p>Quello che inserisci qui i coristi lo trovano nella pagina Repertorio della loro area: spartito e brani, tracce per sezione, esecuzione di riferimento e le tue note.</p>
+      </div>
+    </div>
+  </div>
+  <div class="area-main"><div class="w" style="max-width:960px"><GestioneRepertorio base="/maestro" /></div></div>
+</Base>

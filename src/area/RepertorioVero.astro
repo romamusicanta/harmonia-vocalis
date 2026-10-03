@@ -1,0 +1,91 @@
+---
+// Area coristi, pagina Repertorio nel sito vero: i pezzi della scheda Repertorio
+// (src/area/repertorio.ts), prima quelli in studio. Per ognuno tracce per sezione (in evidenza
+// quella del corista), esecuzione di riferimento, spartito, brani separati e note del Maestro.
+// Ogni pezzo ha l'ancora #<id>, usata dal Calendario per i brani delle prove.
+import Icona from '../componenti/Icona.astro';
+import { coristaDi } from './dati';
+import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
+import { comeHtml } from './testo';
+
+let errore: string | undefined;
+let elenco: Pezzo[] = [];
+let sezione: string | undefined;
+try {
+  [elenco, sezione] = await Promise.all([repertorio(), coristaDi(Astro.locals.corista!.email).then((c) => c?.sezione)]);
+} catch (e) {
+  errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+}
+// La propria sezione prima, poi le altre nell'ordine del coro
+const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), ...p.tracce.filter((t) => t.sezione !== sezione)];
+---
+
+<div class="area-intesta">
+  <div class="w">
+    <div>
+      <span class="eti" style="margin-bottom:12px">Repertorio</span>
+      <h1>Repertorio</h1>
+      <p>Spartiti, tracce per lo studio di ogni sezione, esecuzioni di riferimento e note del Maestro. I file si aprono dal Drive del coro: entra con l'account dell'associazione.</p>
+    </div>
+  </div>
+</div>
+
+<div class="area-main">
+  <div class="w">
+    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
+    {elenco.map((p) => (
+      <article class="opera-studio" id={p.id}>
+        <div class="intest">
+          <div>
+            {p.autore && <span class="aut">{p.autore}</span>}
+            <h2 style="margin-top:8px">{p.titolo}</h2>
+          </div>
+          <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
+        </div>
+        <div class="corpo-o">
+          <div class="colonna">
+            <h3>Tracce per lo studio</h3>
+            {p.tracce.length ? (
+              <div class="basi">
+                {tracce(p).map((t) => (
+                  <div class:list={['base', { tua: t.sezione === sezione }]}>
+                    <div><b>{t.sezione}{t.sezione === sezione && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
+                    <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>
+                  </div>
+                ))}
+              </div>
+            ) : <p class="tenue">Tracce non ancora disponibili.</p>}
+            {p.esecuzione && (
+              <>
+                <h3 style="margin-top:28px">Esecuzione di riferimento</h3>
+                <a class="btn o piccolo" href={p.esecuzione} target="_blank" rel="noopener"><Icona nome="cuffie" />Ascolta</a>
+              </>
+            )}
+          </div>
+          <div class="colonna">
+            <h3>Spartito</h3>
+            {p.spartito
+              ? <a class="btn piccolo" href={p.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Apri lo spartito</a>
+              : <p class="tenue">Spartito non ancora disponibile.</p>}
+            {p.brani.length > 0 && (
+              <>
+                <h3 style="margin-top:28px">Brani cantati separatamente</h3>
+                <div class="scorciatoie" style="border:1px solid var(--linea)">
+                  {p.brani.map((b) => <a href={b.link} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>{b.nome}</b></span><Icona nome="esterno" /></a>)}
+                </div>
+              </>
+            )}
+            {p.note && (
+              <div class="nota-maestro">
+                <span class="eti">Note del Maestro</span>
+                <div set:html={comeHtml(p.note)} />
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    ))}
+    {elenco.length > 0 && <p class="tenue" style="margin-top:24px;font-size:14px">{elenco.length} {elenco.length === 1 ? 'pezzo' : 'pezzi'}: {elenco.map(nomeCompleto).join(' · ')}</p>}
+  </div>
+</div>
