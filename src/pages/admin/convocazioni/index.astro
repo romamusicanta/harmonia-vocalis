@@ -1,0 +1,15 @@
+---
+// Amministrazione: convocazioni ai concerti per i coristi (src/area/convocazioni.ts)
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import GestioneConvocazioni from '../../../area/GestioneConvocazioni.astro';
+import { dopoIlModulo } from '../../../area/convocazioni';
+
+export const prerender = false;
+if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, Astro.locals.sessione!.email, '/admin/convocazioni'));
+---
+
+<LayoutAdmin titolo="Convocazioni" sezione="convocazioni">
+  <h1>Convocazioni</h1>
+  <p class="tenue" style="max-width:64ch">Per ogni concerto del calendario, le informazioni riservate ai coristi: orario di convocazione, prova generale, programma della giornata, abito, cosa portare, come arrivare, pezzi in programma. I coristi le trovano nella pagina Concerti della loro area, dove segnalano anche se non ci saranno. Le scrive anche il Maestro dalla sua area.</p>
+  <GestioneConvocazioni base="/admin" />
+</LayoutAdmin>

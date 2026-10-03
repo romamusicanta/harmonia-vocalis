@@ -1,0 +1,132 @@
+---
+// Area coristi, pagina Concerti nel sito vero: i concerti del prossimo anno (calendario "Concerti")
+// con la loro convocazione (src/area/convocazioni.ts): orario di convocazione e ritrovo, prova
+// generale, programma della giornata, abito e cosa portare, come arrivare, pezzi del repertorio in
+// programma, note. "Non ci sarò" come nel Calendario (scheda Assenze); la disponibilità per sezione
+// è chi è atteso meno chi ha segnalato l'assenza.
+import Icona from '../componenti/Icona.astro';
+import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
+import { aperto, assenze, coristaDi, coristi, luogoDi, riepilogo, type Evento, type Riepilogo } from './dati';
+import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
+import { repertorio, type Pezzo } from './repertorio';
+
+let errore: string | undefined;
+let elenco: { e: Evento; c?: Convocazione; r: Riepilogo; pubblica?: string }[] = [];
+let mie = new Map<string, string>();
+let io: Awaited<ReturnType<typeof coristaDi>>;
+let pezzi: Pezzo[] = [];
+try {
+  const [concerti, conv, tutti, tutte, rep, pubblici] = await Promise.all([concertiInArrivo(), convocazioni(), coristi(), assenze(), repertorio().catch(() => []), prossimiConcerti().catch(() => [])]);
+  io = await coristaDi(Astro.locals.corista!.email);
+  pezzi = rep;
+  if (io) mie = new Map(tutte.filter((a) => a.email === io!.email).map((a) => [a.idEvento, a.nota]));
+  elenco = concerti.map((e) => {
+    const p = pubblici.find((x) => x.data.startsWith(e.data));
+    return { e, c: conv.get(e.id), r: riepilogo(e, tutti, tutte), pubblica: p && !p.dataIncerta ? `/concerti/${slug(p)}` : undefined };
+  });
+} catch (e) {
+  errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+}
+const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
+const pezzoDi = (titolo: string) => pezzi.find((p) => p.titolo === titolo);
+const percento = (parte: number, totale: number) => `${totale ? Math.round((parte / totale) * 1000) / 10 : 0}%`;
+---
+
+<div class="area-intesta">
+  <div class="w">
+    <div>
+      <span class="eti" style="margin-bottom:12px">Convocazioni</span>
+      <h1>Concerti</h1>
+      <p>Per ogni concerto: convocazione, prova generale, programma della giornata, abito e cosa portare. Se non puoi esserci, segnalalo qui: chi non segnala niente è atteso.</p>
+    </div>
+  </div>
+</div>
+
+<div class="area-main">
+  <div class="w">
+    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+    {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Nessun concerto in calendario nei prossimi mesi.</p>}
+    {elenco.map(({ e, c, r, pubblica }) => {
+      const d = parti({ data: e.data });
+      const assente = mie.has(e.id);
+      const luogo = luogoDi(e);
+      const generale = c && c.generale.ora ? { quando: c.generale.data && c.generale.data !== e.data ? quando(c.generale.data) : 'lo stesso giorno', ora: c.generale.ora, dove: c.generale.luogo || luogo } : undefined;
+      return (
+        <article class="convocazione" id={`c-${e.id}`}>
+          <div class="intest">
+            <div class="data"><b>{d.giorno}</b><span>{d.giornoSettimana}<br />{d.mese} {d.anno}</span></div>
+            <div class="titolo">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">{vuota(c) && <span class="tag grigio">Convocazione in arrivo</span>}{assente && <span class="tag rosso">Non ci sarai</span>}</div>
+              <h2>{e.titolo}</h2>
+              <span class="tenue">{[e.inizio && `ore ${e.inizio}`, luogo].filter(Boolean).join(' · ')}{pubblica && <> · <a class="link-freccia" href={pubblica}>Pagina pubblica <Icona nome="freccia" /></a></>}</span>
+            </div>
+          </div>
+          <div class="corpo-c">
+            <div class="blocco">
+              {c && !vuota(c) ? (
+                <>
+                  {c.convocazione && (
+                    <div class="evidenza-conv"><span class="eti">Convocazione</span><b>ore {c.convocazione}</b><span>{c.ritrovo || luogo}</span></div>
+                  )}
+                  {generale && (
+                    <div class="evidenza-conv"><span class="eti">Prova generale</span><b>{generale.quando === 'lo stesso giorno' ? '' : `${generale.quando}, `}ore {generale.ora}</b>{generale.dove && <span>{generale.dove}</span>}</div>
+                  )}
+                  {c.programma.length > 0 && (
+                    <>
+                      <h3 style="margin-top:20px">Programma della giornata</h3>
+                      <ul class="orari">{c.programma.map((p) => <li><b>{p.ora}</b><span>{p.cosa}</span></li>)}</ul>
+                    </>
+                  )}
+                </>
+              ) : <p class="tenue">Orari e convocazione in arrivo: li trovi qui appena il Maestro e i redattori li scrivono.</p>}
+            </div>
+            <div class="blocco">
+              {c?.abito && <><h3>Abito</h3><p style="font-size:15px">{c.abito}</p></>}
+              {c && c.portare.length > 0 && <><h3 style="margin-top:20px">Cosa portare</h3><ul class="elenco-puntato" style="font-size:15px">{c.portare.map((x) => <li>{x}</li>)}</ul></>}
+              {c && c.repertorio.length > 0 && (
+                <>
+                  <h3 style="margin-top:20px">In programma</h3>
+                  <ul class="elenco-puntato" style="font-size:15px">{c.repertorio.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</li>; })}</ul>
+                </>
+              )}
+              {(c?.arrivare || luogo) && <h3 style="margin-top:20px">Come arrivare</h3>}
+              {c?.arrivare && <p style="font-size:15px">{c.arrivare}</p>}
+              {luogo && <a class="link-freccia" style="margin-top:8px" href={linkMappa(luogo)} target="_blank" rel="noopener"><Icona nome="mappa" />Mappa</a>}
+              {c?.note && <div class="nota-maestro"><span class="eti">Note</span><p>{c.note}</p></div>}
+            </div>
+            <div class="blocco">
+              <h3>Chi c'è, per sezione</h3>
+              <div class="mini-sezioni">
+                {r.perSezione.map((s) => <div class="ms">{s.sezione}<span class="barra" style="background:var(--fondo-2)"><i style={`width:${percento(s.presenti, s.totale)};background:var(--primario)`}></i><i style={`width:${percento(s.assenti, s.totale)};background:var(--rosso)`}></i></span><em>{s.presenti}/{s.totale}</em></div>)}
+              </div>
+              <div class="legenda" style="margin-top:14px"><span><i style="background:var(--primario)"></i>Attesi</span><span><i style="background:var(--rosso)"></i>Assenti</span></div>
+              <div style="margin-top:20px">
+                {io && aperto(e) ? (
+                  <div class:list={['assenza', { segnalata: assente }]} data-evento={e.id}>
+                    <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button" style="width:100%"><Icona nome="chiudi" />Non ci sarò</button></div>
+                    <div class="fatto">
+                      <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata · <button class="togli" type="button">Ritira</button></div>
+                      <div class="nota-assenza"><label for={`n-${e.id}`}>Nota (facoltativa)</label><input id={`n-${e.id}`} class="nota" maxlength="300" value={mie.get(e.id) ?? ''} placeholder="Es. sono fuori Roma" /></div>
+                    </div>
+                  </div>
+                ) : assente ? <div class="stato-assenza"><Icona nome="spunta" />Assenza segnalata</div> : null}
+              </div>
+            </div>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  import './assenze-client';
+</script>
+
+<style>
+  .evidenza-conv { display: grid; gap: 2px; padding: 14px 16px; background: var(--fondo); border-left: 4px solid var(--accento); margin-bottom: 12px; }
+  .evidenza-conv .eti { font-size: 11px; margin-bottom: 2px; }
+  .evidenza-conv b { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); }
+  .evidenza-conv b::first-letter { text-transform: uppercase; }
+  .evidenza-conv span:last-child { color: var(--tenue); font-size: 15px; }
+</style>

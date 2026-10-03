@@ -1,0 +1,121 @@
+---
+// Gestione delle convocazioni ai concerti (src/area/convocazioni.ts), uguale nell'Amministrazione
+// (/admin/convocazioni) e nell'area del Maestro (/maestro/convocazioni): i concerti del prossimo
+// anno dal calendario "Concerti", ognuno con la sua convocazione; ?modifica=<id evento> apre il
+// modulo. I concerti nuovi si aggiungono al calendario (Amministrazione → Nuovo concerto).
+import Icona from '../componenti/Icona.astro';
+import { parti } from '../motore/concerti';
+import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
+import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
+import type { Evento } from './dati';
+
+interface Props { base: '/admin' | '/maestro' }
+const { base } = Astro.props;
+const q = Astro.url.searchParams;
+
+let errore: string | undefined;
+let concerti: Evento[] = [];
+let tutte = new Map<string, Convocazione>();
+let pezzi: Pezzo[] = [];
+try {
+  [concerti, tutte, pezzi] = await Promise.all([concertiInArrivo(), convocazioni(), repertorio().catch(() => [])]);
+} catch (e) {
+  errore = `Google non ha risposto: ${(e as Error).message}`;
+}
+const scelto = concerti.find((e) => e.id === q.get('modifica'));
+const c = scelto && tutte.get(scelto.id);
+const scelti = new Set(c?.repertorio ?? []);
+const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
+const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+---
+
+{q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+{errore && <p class="messaggio errore">{errore}</p>}
+
+{scelto && (
+  <form method="post" class="carta modulo-conv" id="modulo">
+    <div class="ct"><h2>{scelto.titolo}</h2><a class="link-freccia" href={`${base}/convocazioni`}>Chiudi</a></div>
+    <div class="cc">
+      <p class="tenue" style="margin:0">{quando(scelto)}{scelto.inizio && `, ore ${scelto.inizio}`}{scelto.luogo && ` · ${scelto.luogo}`}</p>
+      <input type="hidden" name="evento" value={scelto.id} />
+
+      <fieldset>
+        <legend>Convocazione</legend>
+        <div class="riga-campi">
+          <label>Orario di convocazione<input type="time" name="convocazione" value={c?.convocazione} /></label>
+          <label>Ritrovo <small>(vuoto = il luogo del concerto)</small><input name="ritrovo" value={c?.ritrovo} placeholder="Es. ingresso laterale, sacrestia" /></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Prova generale</legend>
+        <div class="riga-campi">
+          <label>Giorno <small>(vuoto = il giorno del concerto)</small><input type="date" name="generale-data" value={c?.generale.data} /></label>
+          <label>Ora<input type="time" name="generale-ora" value={c?.generale.ora} /></label>
+          <label>Luogo <small>(vuoto = il luogo del concerto)</small><input name="generale-luogo" value={c?.generale.luogo} /></label>
+        </div>
+      </fieldset>
+
+      <label>Programma della giornata <small>(una riga per voce, con l'ora davanti)</small><textarea name="programma" rows="4" placeholder={'16:30 Prova acustica con orchestra\n17:30 Pausa e cambio d’abito\n18:00 Concerto'}>{c?.programma.map((p) => [p.ora, p.cosa].filter(Boolean).join(' ')).join('\n')}</textarea></label>
+      <div class="riga-campi">
+        <label>Abito<input name="abito" value={c?.abito} placeholder="Es. abito da concerto nero, cartellina nera" /></label>
+      </div>
+      <label>Cosa portare <small>(una riga per cosa)</small><textarea name="portare" rows="3" placeholder={'Spartito con le note del Maestro\nBottiglietta d’acqua'}>{c?.portare.join('\n')}</textarea></label>
+      <label>Come arrivare<textarea name="arrivare" rows="2" placeholder="Parcheggi, mezzi pubblici, ZTL…">{c?.arrivare}</textarea></label>
+
+      <fieldset>
+        <legend>Pezzi del repertorio in programma</legend>
+        {pezzi.length || altri.length ? (
+          <div class="scelte">
+            {pezzi.map((p) => <label class="scelta"><input type="checkbox" name="repertorio" value={p.titolo} checked={scelti.has(p.titolo)} />{nomeCompleto(p)}</label>)}
+            {altri.map((x) => <label class="scelta"><input type="checkbox" name="repertorio" value={x} checked />{x}</label>)}
+          </div>
+        ) : <small>Il repertorio è vuoto: i pezzi si aggiungono dalla pagina Repertorio.</small>}
+      </fieldset>
+
+      <label>Note per i coristi<textarea name="note" rows="3">{c?.note}</textarea></label>
+      <button class="btn" type="submit"><Icona nome="spunta" />Salva la convocazione</button>
+    </div>
+  </form>
+)}
+
+<h2 class="titolo-elenco">Concerti in arrivo</h2>
+{!errore && concerti.length === 0 && <p class="tenue">Nessun concerto nel calendario nei prossimi dodici mesi.</p>}
+<ul class="carta elenco-conv">
+  {concerti.map((e) => {
+    const cv = tutte.get(e.id);
+    return (
+      <li id={`c-${e.id}`} class:list={{ attivo: e.id === scelto?.id }}>
+        <div>
+          <span class="aut">{quando(e)}</span>
+          <b>{e.titolo}</b>
+          <span class="tenue dettagli">{vuota(cv) ? 'Convocazione da scrivere' : [cv!.convocazione && `convocazione ${cv!.convocazione}`, cv!.generale.ora && `generale ${cv!.generale.data && cv!.generale.data !== e.data ? `${cv!.generale.data.split('-').reverse().slice(0, 2).join('/')} ` : ''}${cv!.generale.ora}`, cv!.repertorio.length && `${cv!.repertorio.length} ${cv!.repertorio.length === 1 ? 'pezzo' : 'pezzi'}`].filter(Boolean).join(' · ') || 'Convocazione scritta'}</span>
+        </div>
+        <a class:list={['btn', 'piccolo', vuota(cv) ? 'g' : 'o']} href={`${base}/convocazioni?modifica=${encodeURIComponent(e.id)}#modulo`}>{vuota(cv) ? 'Scrivi la convocazione' : 'Modifica'}</a>
+      </li>
+    );
+  })}
+</ul>
+
+<style>
+  .modulo-conv { margin: 24px 0 8px; }
+  .modulo-conv .cc { display: grid; gap: 18px; }
+  .modulo-conv label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .modulo-conv small { font-weight: 400; color: var(--tenue); }
+  .modulo-conv :is(input:not([type=checkbox]), textarea) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .modulo-conv .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .modulo-conv fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .modulo-conv legend { font-family: var(--f-titoli); font-size: 18px; color: var(--primario); margin-bottom: 10px; }
+  .modulo-conv .scelte { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+  .modulo-conv label.scelta { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); font-weight: 500; color: var(--testo); }
+  .modulo-conv button { justify-self: start; }
+  .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
+  .elenco-conv { list-style: none; margin: 0; padding: 0; }
+  .elenco-conv li { display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--linea); }
+  .elenco-conv li:last-child { border-bottom: 0; }
+  .elenco-conv li.attivo { box-shadow: inset 4px 0 0 var(--accento); }
+  .elenco-conv b { display: block; font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }
+  .elenco-conv .aut { display: block; }
+  .elenco-conv .aut::first-letter { text-transform: uppercase; }
+  .elenco-conv .dettagli { font-size: 14px; }
+</style>

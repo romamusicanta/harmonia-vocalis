@@ -1,12 +1,13 @@
 ---
 // Area coristi: convocazioni ai prossimi concerti. I concerti vengono dal calendario pubblico;
 // orari, abito e risposte dalla convocazione. Senza convocazione il concerto è "in preparazione"
-// e si chiede solo una disponibilità di massima.
+// e si chiede solo una disponibilità di massima. Nel sito vero i dati veri (src/area/ConcertiVeri.astro).
 import Base from '../../../layouts/Base.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { linkMappa, luogoCompleto, parti, prossimiConcerti, slug } from '../../../motore/concerti';
+import ConcertiVeri from '../../../area/ConcertiVeri.astro';
 import { convocazione, titoloBreve, traGiorni, sezioni, voci, percento, dataGiorno } from '../../../demo/area';
 
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
@@ -15,6 +16,7 @@ const concerti = await prossimiConcerti();
 ---
 
 <Base veste={veste} titolo="Concerti · Area coristi" area={{ sezione: 'concerti' }}>
+  {DEMO ? (<>
   <div class="area-intesta">
     <div class="w">
       <div>
@@ -99,4 +101,5 @@ const concerti = await prossimiConcerti();
       })}
     </div>
   </div>
+  </>) : <ConcertiVeri />}
 </Base>
