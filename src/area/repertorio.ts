@@ -7,16 +7,13 @@
 // Per ogni pezzo: spartito, brani cantati separatamente (un file ciascuno), link alle tracce di
 // studio per sezione e per tutte le voci, link all'esecuzione di riferimento, note del Maestro.
 // I file si caricano a pezzi da 3,5 MB attraverso il sito (le funzioni di Vercel accettano al più
-// 4,5 MB per richiesta), con il caricamento "resumable" di Drive.
+// 4,5 MB per richiesta), con il caricamento "resumable" di Drive (src/area/drive.ts).
 import { randomBytes } from 'node:crypto';
 import { DRIVE_CARTELLA_SPARTITI } from 'astro:env/server';
 import { adesso, cancellaRiga, idScheda, leggiScheda, scriviRiga, SEZIONI } from './dati';
-import { google, tokenServizio } from './servizio';
-import { cifra, decifra } from '../admin/sessione';
+import { cartellaIn, linkFile, rispondiCaricamento } from './drive';
 
 const SCHEDA = 'Repertorio';
-const DRIVE = 'https://www.googleapis.com/drive/v3';
-const CARTELLA = 'application/vnd.google-apps.folder';
 export const STATI = ['In studio', 'In repertorio'] as const;
 const TRACCE = [...SEZIONI, 'Tutte le voci'];
 const COLONNE = ['ID', 'Autore', 'Titolo', 'Stato', 'Spartito', 'Brani separati', ...TRACCE.map((t) => `Tracce ${t}`), 'Esecuzione di riferimento', 'Note del Maestro', 'Cartella', 'Aggiornato il', 'Aggiornato da'];
@@ -136,93 +133,19 @@ export async function dopoIlModulo(request: Request, email: string, percorso: st
 
 // ——— File su Drive ———
 
-const virgolette = (s: string) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-// La cartella del pezzo in Spartiti (creata se manca; il nome è "Autore – Titolo")
-async function cartellaDi(p: Pezzo) {
-  if (p.cartella) return p.cartella;
-  const nome = nomeCompleto(p).replace(/[/\\]/g, '-');
-  const q = `'${DRIVE_CARTELLA_SPARTITI}' in parents and name = '${virgolette(nome)}' and mimeType = '${CARTELLA}' and trashed = false`;
-  const { files } = await google<{ files: { id: string }[] }>(`${DRIVE}/files?${new URLSearchParams({ q, fields: 'files(id)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true' })}`);
-  const id = files[0]?.id ?? (await google<{ id: string }>(`${DRIVE}/files?supportsAllDrives=true&fields=id`, {
-    method: 'POST', body: JSON.stringify({ name: nome, mimeType: CARTELLA, parents: [DRIVE_CARTELLA_SPARTITI] }),
-  })).id;
-  return id;
-}
-
-export const PEZZO_FILE = 14 * 256 * 1024; // 3,5 MB, multiplo di 256 KB come vuole Drive
-
-// Inizio del caricamento di un file: crea la sessione su Drive e restituisce il suo indirizzo
-export async function iniziaCaricamento(idPezzo: string, nome: string, tipo: string, dimensione: number, email: string) {
+// Endpoint dei file (/admin/repertorio/file, /maestro/repertorio/file): il file va nella cartella
+// del pezzo in Spartiti ("Autore – Titolo", creata se manca) e poi diventa lo spartito del pezzo
+// (al posto del precedente, che resta su Drive) o un brano in più, con il nome del file.
+export const rispondiFile = (request: Request, email: string) => rispondiCaricamento(request, async (d) => {
   if (!configurato()) throw new Error('manca la variabile DRIVE_CARTELLA_SPARTITI sul server');
-  const pezzo = (await repertorio()).find((p) => p.id === idPezzo);
+  const pezzo = (await repertorio()).find((p) => p.id === String(d.pezzo));
   if (!pezzo) throw new Error('pezzo non trovato');
-  const cartella = await cartellaDi(pezzo);
+  const cartella = pezzo.cartella ?? (await cartellaIn(DRIVE_CARTELLA_SPARTITI!, nomeCompleto(pezzo)));
   if (cartella !== pezzo.cartella) await scrivi({ ...pezzo, cartella }, pezzo.riga, email);
-  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${await tokenServizio()}`,
-      'Content-Type': 'application/json; charset=UTF-8',
-      'X-Upload-Content-Type': tipo || 'application/octet-stream',
-      'X-Upload-Content-Length': String(dimensione),
-    },
-    body: JSON.stringify({ name: nome, parents: [cartella] }),
-  });
-  const sessione = r.headers.get('Location');
-  if (!r.ok || !sessione) throw new Error(`Drive non ha aperto il caricamento (${r.status}): ${(await r.text()).slice(0, 200)}`);
-  return sessione;
-}
-
-// Un pezzo del file (da inizio, sul totale): restituisce l'id del file quando è arrivato tutto
-export async function caricaPezzo(sessione: string, dati: ArrayBuffer, inizio: number, totale: number): Promise<string | undefined> {
-  if (!sessione.startsWith('https://www.googleapis.com/upload/drive/')) throw new Error('caricamento non valido');
-  const fine = inizio + dati.byteLength - 1;
-  const r = await fetch(sessione, { method: 'PUT', headers: { 'Content-Range': `bytes ${inizio}-${fine}/${totale}` }, body: dati });
-  if (r.status === 308) return undefined;
-  if (!r.ok) throw new Error(`Drive ha rifiutato il file (${r.status}): ${(await r.text()).slice(0, 200)}`);
-  return ((await r.json()) as { id: string }).id;
-}
-
-// File arrivato: diventa lo spartito del pezzo (al posto del precedente, che resta su Drive) o un
-// brano in più
-export async function registraFile(idPezzo: string, uso: 'spartito' | 'brano', idFile: string, nome: string, email: string) {
-  const pezzo = (await repertorio()).find((p) => p.id === idPezzo);
+  return { cartella, nome: d.nome, dopo: { pezzo: pezzo.id, uso: d.uso === 'spartito' ? 'spartito' : 'brano' } };
+}, async (idFile, nome, dopo) => {
+  const pezzo = (await repertorio()).find((p) => p.id === dopo.pezzo);
   if (!pezzo) throw new Error('pezzo non trovato');
-  const linkFile = `https://drive.google.com/file/d/${idFile}/view`;
-  if (uso === 'spartito') await scrivi({ ...pezzo, spartito: linkFile }, pezzo.riga, email);
-  else await scrivi({ ...pezzo, brani: [...pezzo.brani, { nome: nome.replace(/ \| /g, ' - '), link: linkFile }] }, pezzo.riga, email);
-}
-
-// Endpoint dei file (/admin/repertorio/file, /maestro/repertorio/file), usato dallo script del
-// modulo: "inizia" (JSON: pezzo, uso, nome, tipo, dimensione) restituisce un gettone cifrato con
-// la sessione di Drive; ogni "pezzo" (corpo = byte, intestazioni x-gettone e x-inizio) la porta
-// avanti, e all'ultimo il file si registra nel foglio.
-type Gettone = { sessione: string; pezzo: string; uso: 'spartito' | 'brano'; nome: string; totale: number; scade: number };
-const json = (corpo: object, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } });
-
-export async function rispondiFile(request: Request, email: string) {
-  try {
-    if (request.headers.get('x-azione') === 'inizia') {
-      const d = (await request.json()) as { pezzo: string; uso: string; nome: string; tipo: string; dimensione: number };
-      const uso = d.uso === 'spartito' ? 'spartito' : 'brano';
-      const nome = String(d.nome ?? '').trim().slice(0, 150) || 'file';
-      if (!(d.dimensione > 0) || d.dimensione > 200 * 1024 * 1024) return json({ ok: false, errore: 'Il file deve essere tra 1 byte e 200 MB.' }, 400);
-      const sessione = await iniziaCaricamento(String(d.pezzo), nome, String(d.tipo ?? ''), d.dimensione, email);
-      const g: Gettone = { sessione, pezzo: String(d.pezzo), uso, nome, totale: d.dimensione, scade: Date.now() + 6 * 3600 * 1000 };
-      return json({ ok: true, gettone: cifra(g), pezzo: PEZZO_FILE });
-    }
-    const g = decifra<Gettone>(request.headers.get('x-gettone') ?? undefined);
-    if (!g || g.scade < Date.now()) return json({ ok: false, errore: 'Caricamento scaduto: riprova.' }, 400);
-    const inizio = Number(request.headers.get('x-inizio'));
-    const dati = await request.arrayBuffer();
-    if (!Number.isInteger(inizio) || inizio < 0 || dati.byteLength > PEZZO_FILE || inizio + dati.byteLength > g.totale) return json({ ok: false, errore: 'Pezzo del file non valido.' }, 400);
-    const idFile = await caricaPezzo(g.sessione, dati, inizio, g.totale);
-    if (!idFile) return json({ ok: true, fatto: false });
-    // Il nome del brano è quello del file senza estensione
-    await registraFile(g.pezzo, g.uso, idFile, g.nome.replace(/\.[a-z0-9]{2,4}$/i, ''), email);
-    return json({ ok: true, fatto: true });
-  } catch (e) {
-    return json({ ok: false, errore: (e as Error).message }, 500);
-  }
-}
+  if (dopo.uso === 'spartito') await scrivi({ ...pezzo, spartito: linkFile(idFile) }, pezzo.riga, email);
+  else await scrivi({ ...pezzo, brani: [...pezzo.brani, { nome: nome.replace(/\.[a-z0-9]{2,4}$/i, '').replace(/ \| /g, ' - '), link: linkFile(idFile) }] }, pezzo.riga, email);
+});

@@ -1,0 +1,126 @@
+---
+// Area coristi, pagina Registrazioni nel sito vero (src/area/registrazioni.ts): le registrazioni
+// delle prove della stagione, raggruppate per prova, con chi le ha caricate; ognuno ne carica di
+// nuove (a pezzi, src/area/caricamento-client.ts) e toglie le proprie (POST alla pagina).
+import Icona from '../componenti/Icona.astro';
+import { parti } from '../motore/concerti';
+import { configurato, proveRecenti, registrazioni, type GiornoRegistrato } from './registrazioni';
+import { normalizza } from './servizio';
+import type { Evento } from './dati';
+
+const email = Astro.locals.corista!.email;
+const q = Astro.url.searchParams;
+let errore: string | undefined;
+let giorni: GiornoRegistrato[] = [];
+let prove: Evento[] = [];
+try {
+  [giorni, prove] = await Promise.all([registrazioni(), proveRecenti()]);
+} catch (e) {
+  errore = `Google non ha risposto: ${(e as Error).message}. Riprova tra poco.`;
+}
+const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
+const peso = (n?: number) => (n ? (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(n > 100 * 1024 * 1024 ? 0 : 1).replace('.', ',')} MB` : `${Math.round(n / 1024)} KB`) : '');
+const mio = (x: string) => normalizza(x) === normalizza(email);
+---
+
+<div class="area-intesta">
+  <div class="w">
+    <div>
+      <span class="eti" style="margin-bottom:12px">Registrazioni delle prove</span>
+      <h1>Registrazioni</h1>
+      <p>Le prove registrate con il telefono, per riascoltare a casa le indicazioni del Maestro. Chi registra la carica qui: compare a tutti i coristi. Si ascoltano dal Drive del coro, con l'account dell'associazione.</p>
+    </div>
+    <span class="tag bordo" style="display:inline-flex;gap:6px;align-items:center"><Icona nome="lucchetto" />Riservate ai coristi</span>
+  </div>
+</div>
+
+<div class="area-main">
+  <div class="w">
+    {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+    {errore && <p class="carta" style="padding:20px">{errore}</p>}
+
+    {configurato() && prove.length > 0 && (
+      <form class="carta carica-reg" data-file="/area/registrazioni/file">
+        <div class="ct"><h2>Carica una registrazione</h2></div>
+        <div class="cc">
+          <div class="riga-campi">
+            <label>Prova
+              <select name="evento" required>{prove.map((e, i) => <option value={e.id} selected={i === 0}>{quando(e.data)} · {e.titolo}</option>)}</select>
+            </label>
+            <label>Titolo <small>(facoltativo: es. «Lacrimosa, tutti»; vuoto = il nome del file)</small><input name="titolo" maxlength="120" /></label>
+          </div>
+          <label class="file">Scegli uno o più file audio o video<input type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.aac,.ogg,.opus,.amr" multiple /></label>
+          <p class="stato-caricamento" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    )}
+
+    {!errore && giorni.length === 0 && <p class="carta" style="padding:20px;margin-top:24px">Ancora nessuna registrazione in questa stagione.</p>}
+    {giorni.map((g) => {
+      const d = parti({ data: g.data });
+      const n = g.tracce.length + (g.link ? 1 : 0);
+      return (
+        <div class="giorno-reg">
+          <div class="gg"><b>{d.giorno}</b><span>{d.giornoSettimana} · {d.meseBreve.toLowerCase()}</span><small>{n === 1 ? '1 registrazione' : `${n} registrazioni`}</small></div>
+          <div>
+            <h3 class="titolo-prova">{g.titolo}</h3>
+            <ul class="tracce-reg">
+              {g.link && <li><a href={g.link} target="_blank" rel="noopener"><Icona nome="play" />Registrazione della prova</a><span class="tenue">dal calendario</span></li>}
+              {g.tracce.map((t) => (
+                <li>
+                  <a href={t.link} target="_blank" rel="noopener"><Icona nome="play" />{t.titolo}</a>
+                  <span class="tenue">{[t.chi, t.sezione, peso(t.dimensione)].filter(Boolean).join(' · ')}</span>
+                  {mio(t.caricatoDa) && (
+                    <form method="post" onsubmit="return confirm('Togliere questa registrazione? Va nel cestino del Drive del coro.')">
+                      <input type="hidden" name="azione" value="togli" /><input type="hidden" name="id" value={t.id} />
+                      <button class="togli-reg" type="submit">Togli</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  import { carica } from './caricamento-client';
+  const form = document.querySelector<HTMLFormElement>('form.carica-reg');
+  const input = form?.querySelector<HTMLInputElement>('input[type=file]');
+  const stato = form?.querySelector<HTMLElement>('.stato-caricamento');
+  input?.addEventListener('change', async () => {
+    const file = [...(input.files ?? [])];
+    if (!file.length) return;
+    input.disabled = true;
+    const extra = { evento: form!.evento.value, titolo: file.length === 1 ? form!.titolo.value : '' };
+    try {
+      for (const f of file) await carica(form!.dataset.file!, f, extra, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
+      location.href = `/area/registrazioni?ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricata.` : `${file.length} registrazioni caricate.`)}`;
+    } catch (e) {
+      stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
+      input.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .carica-reg { margin-bottom: 32px; }
+  .carica-reg .cc { display: grid; gap: 14px; }
+  .carica-reg label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .carica-reg small { font-weight: 400; color: var(--tenue); }
+  .carica-reg :is(input:not([type=file]), select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .carica-reg .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+  .carica-reg label.file { padding: 14px; border: 2px dashed var(--linea); border-radius: var(--raggio); }
+  .stato-caricamento { font-weight: 600; color: var(--primario); min-height: 1.4em; margin: 0; }
+  .titolo-prova { font-size: 18px; margin-bottom: 10px; }
+  .tracce-reg { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .tracce-reg li { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 12px 16px; background: var(--bianco); border: 1px solid var(--linea); }
+  .tracce-reg a { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; color: var(--primario); flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+  .tracce-reg a :global(svg) { flex-shrink: 0; color: var(--accento); }
+  .tracce-reg .tenue { font-size: 14px; }
+  .tracce-reg form { display: contents; }
+  .togli-reg { background: none; border: 0; color: var(--rosso); font: inherit; font-size: 14px; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
+</style>

@@ -104,29 +104,16 @@ const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sez
 </ul>
 
 <script>
-  // Caricamento a pezzi: "inizia" apre la sessione su Drive, poi i pezzi da 3,5 MB uno dopo l'altro
+  // Caricamento a pezzi (src/area/caricamento-client.ts): uno dopo l'altro, poi si ricarica la pagina
+  import { carica } from './caricamento-client';
   const box = document.querySelector<HTMLElement>('[data-file]');
   const stato = box?.querySelector<HTMLElement>('.stato-caricamento');
-  async function carica(file: File, uso: string) {
-    const r = await fetch(box!.dataset.file!, {
-      method: 'POST', headers: { 'x-azione': 'inizia', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pezzo: box!.dataset.pezzo, uso, nome: file.name, tipo: file.type, dimensione: file.size }),
-    });
-    const avvio = await r.json().catch(() => ({ ok: false, errore: `errore ${r.status}` }));
-    if (!avvio.ok) throw new Error(avvio.errore);
-    for (let inizio = 0; inizio < file.size; inizio += avvio.pezzo) {
-      stato!.textContent = `Carico «${file.name}»: ${Math.round((inizio / file.size) * 100)}%`;
-      const p = await fetch(box!.dataset.file!, { method: 'POST', headers: { 'x-gettone': avvio.gettone, 'x-inizio': String(inizio) }, body: file.slice(inizio, inizio + avvio.pezzo) });
-      const esito = await p.json().catch(() => ({ ok: false, errore: `errore ${p.status}` }));
-      if (!esito.ok) throw new Error(esito.errore);
-    }
-  }
   box?.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((input) => input.addEventListener('change', async () => {
     const file = [...(input.files ?? [])];
     if (!file.length) return;
     box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = true));
     try {
-      for (const f of file) await carica(f, input.dataset.uso!);
+      for (const f of file) await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso! }, (q) => { stato!.textContent = `Carico «${f.name}»: ${Math.round(q * 100)}%`; });
       location.href = `${box.dataset.ritorno}&ok=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato su Drive.` : `${file.length} file caricati su Drive.`)}`;
     } catch (e) {
       stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
