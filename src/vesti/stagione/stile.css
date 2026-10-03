@@ -457,7 +457,33 @@ a.sc:hover { box-shadow: var(--ombra); }
   .testata-area .hamb-area { justify-self: start; margin-left: -10px; }
   .testata-area .marchio-area { justify-self: center; }
   .testata-area .azioni { justify-self: end; gap: 4px; }
-  .testata-area .utente .nome, .testata-area .etichetta-area { display: none; }
+  .testata-area .utente .nome { display: none; }
+  /* Il nome dell'area resta visibile, piccolo sotto il logo; Esci sta in fondo al menu */
+  .testata-area .marchio-area { flex-direction: column; gap: 3px; }
+  .testata-area .etichetta-area { display: inline-block; font-size: 10px; padding: 3px 7px; margin: 0; }
+  .testata-area .esci-btn { display: none; }
+}
+.esci-menu { display: none; }
+@media (max-width: 999.98px) {
+  .menu-mobile .esci-menu { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--linea); }
+  .utente-menu { display: grid; font-size: 14px; line-height: 1.3; min-width: 0; }
+  .utente-menu b { color: var(--primario); }
+  .utente-menu small { color: var(--tenue); font-size: 13px; overflow-wrap: anywhere; }
+}
+/* Telefono: sezioni principali in una barra fissa in basso, con icona e scritta; nel menu restano le altre */
+.barra-tab { display: none; }
+@media (max-width: 759.98px) {
+  .barra-tab { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--primario); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2px 12px rgb(0 0 0 / .12); }
+  .barra-tab a { flex: 1 1 0; min-width: 0; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 0 7px; color: var(--primario-chiaro); font-size: 11px; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; text-align: center; border-top: 3px solid transparent; }
+  .barra-tab a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barra-tab a .ic { width: 23px; height: 23px; }
+  .barra-tab a.on { color: #fff; border-top-color: var(--accento); }
+  body:has(.barra-tab) { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  body:has(.barra-tab) .avviso-toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .menu-mobile .voce.in-tab, .menu-mobile .voci-area.tutte-in-tab { display: none; }
+  /* Pulsanti piccoli ed etichette più comodi da toccare e da leggere */
+  .area-main .btn.piccolo { min-height: 44px; padding: 11px 16px; font-size: 14px; }
+  .area-main .tag { font-size: 12px; }
 }
 #prossimi, #assiduita-stagione, #storico { scroll-margin-top: 150px; }
 .utente { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.2; }

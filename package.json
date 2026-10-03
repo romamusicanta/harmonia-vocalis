@@ -10,6 +10,7 @@
     "dev": "DEMO=1 astro dev",
     "dev:sito": "npm run allegati; astro dev",
     "build": "npm run allegati && astro build",
+    "icone": "node scripts/icone-app.mjs",
     "allegati": "node --env-file-if-exists=.env.local scripts/scarica-allegati.mjs",
     "build:demo": "DEMO=1 astro build",
     "preview": "astro preview",

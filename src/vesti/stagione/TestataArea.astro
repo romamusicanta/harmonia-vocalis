@@ -2,10 +2,12 @@
 // Veste Stagione: testata comune delle aree riservate (area coristi, area del Maestro, area
 // Amministrazione), sempre in tre fasce: barra scura con il sito pubblico e la tendina "Area
 // riservata" per passare da un'area all'altra; testata chiara con logo, nome dell'area, utente
-// collegato e uscita; barra delle sezioni. Sul telefono (sotto 1000px) barra scura e sezioni stanno
-// nel menu dell'hamburger (in alto aree riservate e sito pubblico, sotto le sezioni), con
-// l'hamburger a sinistra, il logo al centro e utente ed Esci a destra. Con conBarra = false (pagine di accesso) niente utente, sezioni né
-// menu, solo "Torna al sito".
+// collegato e uscita; barra delle sezioni. Sotto 1000px barra scura e sezioni stanno nel menu
+// dell'hamburger (in alto aree riservate e sito pubblico, poi le sezioni, in fondo utente ed Esci),
+// con l'hamburger a sinistra, il logo con il nome dell'area al centro e la foto dell'utente a destra.
+// Sul telefono (sotto 760px) le sezioni principali dell'area coristi e del Maestro stanno in una
+// barra fissa in basso, con icona e scritta, e nel menu restano solo le altre. Con conBarra = false
+// (pagine di accesso) niente utente, sezioni né menu, solo "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import MenuRiservato from './MenuRiservato.astro';
@@ -45,21 +47,22 @@ const scriveAvvisi = tipo === 'coristi' && conBarra && !DEMO && Astro.locals.cor
   ? (await ruoliDi(Astro.locals.corista.email).catch(() => [])).length > 0
   : false;
 
-// Sezioni di ogni area
-const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string; gruppo?: string }[] = {
+// Sezioni di ogni area; quelle con tab stanno, sul telefono, nella barra in basso (al più cinque)
+type Sezione = { id: string; testo: string; breve?: string; icona?: NomeIcona; href: string; gruppo?: string; tab?: boolean };
+const sezioni = ({
   coristi: [
-    { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area') },
-    { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove') },
-    { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti') },
-    { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio') },
-    { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni') },
+    { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area'), tab: true },
+    { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove'), tab: true },
+    { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti'), tab: true },
+    { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio'), tab: true },
+    { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni'), tab: true },
     // Solo per chi scrive gli avvisi della bacheca (presidente, tesoriere…: src/area/bacheca.ts)
     ...(scriveAvvisi ? [{ id: 'avvisi', testo: 'Avvisi', icona: 'campanella' as const, href: '/area/avvisi' }] : []),
   ],
   maestro: [
-    { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro' },
-    { id: 'repertorio', testo: 'Note sul repertorio', icona: 'libro', href: '/maestro/repertorio' },
-    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi' },
+    { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro', tab: true },
+    { id: 'repertorio', testo: 'Note sul repertorio', breve: 'Note', icona: 'libro', href: '/maestro/repertorio', tab: true },
+    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi', tab: true },
   ],
   admin: [
     // Due gruppi: quello che cambia il sito pubblico (va pubblicato) e quello dell'area coristi (vale subito)
@@ -71,7 +74,10 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string; gru
     { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
     { id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' },
   ],
-}[tipo] as { id: string; testo: string; icona?: NomeIcona; href: string; gruppo?: string }[];
+} as Record<typeof tipo, Sezione[]>)[tipo];
+const tab = sezioni.filter((s) => s.tab && s.icona);
+// L'invito a installare l'app solo nella prima pagina dell'area
+const primaPagina = sezione === sezioni[0]?.id;
 ---
 
 <div class:list={['servizio area-s', { 'con-menu': conBarra }]}>
@@ -108,9 +114,15 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string; gru
           </div>
         )}
         <div class="extra in-testa"><a class="btn o" href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></div>
-        <div class="voci-area">
-          {sezioni.map((s) => <>{s.gruppo && <span class="eti gruppo-menu">{s.gruppo}</span>}<a class:list={['voce', { on: s.id === sezione }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a></>)}
+        <div class:list={['voci-area', { 'tutte-in-tab': tab.length === sezioni.length }]}>
+          {sezioni.map((s) => <>{s.gruppo && <span class="eti gruppo-menu">{s.gruppo}</span>}<a class:list={['voce', { on: s.id === sezione, 'in-tab': tab.includes(s) }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a></>)}
         </div>
+        {utente && (
+          <div class="esci-menu">
+            <span class="utente-menu"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span>
+            <a class="btn o" href={esci}><Icona nome="esci" />Esci</a>
+          </div>
+        )}
       </div>
     </div>
   )}
@@ -132,7 +144,12 @@ const sezioni: { id: string; testo: string; icona?: NomeIcona; href: string; gru
     </div>
   </nav>
 )}
-{conBarra && !DEMO && <InvitoApp area={tipo} />}
+{conBarra && tab.length > 0 && (
+  <nav class="barra-tab" aria-label={`${nomeArea}, sezioni`}>
+    {tab.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona!} classe="" /><span>{s.breve ?? s.testo}</span></a>)}
+  </nav>
+)}
+{conBarra && !DEMO && primaPagina && <InvitoApp area={tipo} />}
 
 <script>
   // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che

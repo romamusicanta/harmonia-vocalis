@@ -1,7 +1,7 @@
 // Manifest della PWA: il sito si installa sul telefono (Aggiungi a schermata Home). Uno per il sito
 // pubblico e uno per ogni area riservata, così chi la installa da lì la apre direttamente sull'area.
-// Colori e nome da coro.config.ts; icone in public/icone (il diapason della favicon, da rifare a mano
-// se cambiano i colori, come public/favicon.svg).
+// Colori e nome da coro.config.ts; icone in public/icone (il diapason della favicon, con colori
+// diversi per ogni app: si rifanno con `npm run icone` se cambiano i colori, vedi scripts/icone-app.mjs).
 import type { APIRoute } from 'astro';
 import { coro } from '../../motore/coro';
 
@@ -18,9 +18,10 @@ export const getStaticPaths = () => Object.keys(app).map((a) => ({ params: { app
 export const GET: APIRoute = ({ params }) => {
   const a = app[params.app as App];
   const colori = coro.aspetto.colori;
+  const suff = params.app === 'sito' ? '' : `-${params.app}`;
   const icone = [192, 512].flatMap((n) => [
-    { src: `/icone/icona-${n}.png`, sizes: `${n}x${n}`, type: 'image/png', purpose: 'any' },
-    { src: `/icone/icona-maschera-${n}.png`, sizes: `${n}x${n}`, type: 'image/png', purpose: 'maskable' },
+    { src: `/icone/icona${suff}-${n}.png`, sizes: `${n}x${n}`, type: 'image/png', purpose: 'any' },
+    { src: `/icone/icona-maschera${suff}-${n}.png`, sizes: `${n}x${n}`, type: 'image/png', purpose: 'maskable' },
   ]);
   return new Response(JSON.stringify({
     id: a.avvio,
