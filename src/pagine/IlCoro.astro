@@ -1,5 +1,5 @@
 ---
-// Pagina "Il coro": storia, organico, numeri, direttivo, associazioni.
+// Pagina "Il Coro": storia, organico, numeri, direttivo, associazioni.
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
@@ -21,12 +21,12 @@ const massimo = Math.max(...coro.organico.map((s) => s.voci), 1);
 const iconeAssociazioni = ['persone', 'nota'] as const;
 ---
 
-<Base veste={veste} titolo={en ? 'The choir' : 'Il coro'} pagina="il-coro" anteprima={coro.foto.coro}>
+<Base veste={veste} titolo={en ? 'The choir' : 'Il Coro'} pagina="il-coro" anteprima={coro.foto.coro}>
   {/* Dati: coro/testi/storia.md (intestazione) */}
   <header class="intesta">
     <div class="w due">
       <div>
-        <span class="eti" style="margin-bottom:20px">{en ? 'The choir' : 'Il coro'}</span>
+        <span class="eti" style="margin-bottom:20px">{en ? 'The choir' : 'Il Coro'}</span>
         <h1>{titolo}<span>.</span></h1>
       </div>
       {dati.lead && <p class="lead">{dati.lead}</p>}
@@ -78,7 +78,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
       {/* Dati: coro.config.ts → direttivo (il Maestro rimanda alla sua pagina) */}
       <div class="w">
         <div class="testa"><h2>{en ? 'The board' : 'Il direttivo'}</h2><p>{en ? 'The association is run by a board elected by its members.' : 'L\'associazione è guidata da un direttivo eletto dai soci.'}</p></div>
-        <div class="persone">
+        <div class="persone direttivo">
           {coro.direttivo.map((p) => (
             <div class="persona">
               <span class="ruolo">{p.ruolo}</span><b>{p.nome}</b>
