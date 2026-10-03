@@ -1,14 +1,14 @@
 // Convocazioni ai concerti: scheda "Convocazioni" del foglio "Coristi e assenze" (la crea il sito),
 // una riga per concerto, legata all'evento del calendario pubblico "Concerti" dal suo ID. Lì stanno
-// solo le informazioni riservate ai coristi: orario di convocazione, prova generale (anche in un
-// altro giorno o luogo), programma della giornata, abito, cosa portare, come arrivare, pezzi del
+// solo le informazioni riservate ai coristi: orario di convocazione, prova generale (sempre una
+// prova del calendario "Prove", di cui si tiene l'ID: così ha presenze e promemoria), programma della giornata, abito, cosa portare, come arrivare, pezzi del
 // repertorio, note. Le scrivono i redattori (Amministrazione); i coristi le leggono nella pagina Concerti della loro area. La presenza
 // si segna come per le prove, con "Non ci sarò" (scheda Assenze).
 import { adesso, eventi, idScheda, leggiScheda, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
 import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Convocazioni';
-const COLONNE = ['ID evento', 'Data', 'Concerto', 'Convocazione', 'Ritrovo', 'Prova generale data', 'Prova generale ora', 'Prova generale luogo', 'Programma', 'Abito', 'Portare', 'Come arrivare', 'Repertorio', 'Note', 'Aggiornato il', 'Aggiornato da'];
+const COLONNE = ['ID evento', 'Data', 'Concerto', 'Convocazione', 'Ritrovo', 'Prova generale', 'Programma', 'Abito', 'Portare', 'Come arrivare', 'Repertorio', 'Note', 'Aggiornato il', 'Aggiornato da'];
 export const SEPARATORE_PEZZI = ' · ';
 
 export interface Convocazione {
@@ -16,7 +16,7 @@ export interface Convocazione {
   idEvento: string;
   convocazione: string;      // "16:00"
   ritrovo: string;           // dove ci si ritrova, se non è il luogo del concerto
-  generale: { data: string; ora: string; luogo: string }; // data AAAA-MM-GG (vuota = il giorno del concerto)
+  generale: string;          // ID della prova generale nel calendario "Prove" (vuoto = nessuna)
   programma: { ora: string; cosa: string }[]; // nel foglio una riga per voce, "16:30 Prova acustica"
   abito: string;
   portare: string[];         // una riga per cosa
@@ -40,7 +40,7 @@ export async function convocazioni(): Promise<Map<string, Convocazione>> {
     idEvento: r['ID evento'],
     convocazione: ora(r['Convocazione']),
     ritrovo: r['Ritrovo'],
-    generale: { data: giorno(r['Prova generale data']), ora: ora(r['Prova generale ora']), luogo: r['Prova generale luogo'] },
+    generale: r['Prova generale'] ?? '',
     programma: righe(r['Programma']).map((x) => { const m = x.match(/^(\d{1,2}[:.]\d{2})\s*[-–·]?\s*(.*)$/); return m ? { ora: ora(m[1]), cosa: m[2] } : { ora: '', cosa: x }; }),
     abito: r['Abito'],
     portare: righe(r['Portare']),
@@ -51,11 +51,14 @@ export async function convocazioni(): Promise<Map<string, Convocazione>> {
   return new Map(elenco.map((c) => [c.idEvento, c]));
 }
 
+// Le prove che possono fare da generale a un concerto: dalle due settimane prima al giorno stesso
+export const proveVicine = (e: Evento, tutte: Evento[]) => tutte.filter((x) => x.tipo === 'prova' && x.data <= e.data && x.data >= piuGiorni(e.data, -14));
+
 // I concerti da oggi a un anno, dal calendario Concerti
 export const concertiInArrivo = async (): Promise<Evento[]> => (await eventi(oggi(), piuGiorni(oggi(), 366))).filter((e) => e.tipo === 'concerto');
 
 // C'è qualcosa da mostrare?
-export const vuota = (c?: Convocazione) => !c || !(c.convocazione || c.generale.ora || c.programma.length || c.abito || c.portare.length || c.arrivare || c.repertorio.length || c.note);
+export const vuota = (c?: Convocazione) => !c || !(c.convocazione || c.generale || c.programma.length || c.abito || c.portare.length || c.arrivare || c.repertorio.length || c.note);
 
 const t = (v?: string) => (v ? `'${v}` : '');
 const perFoglio = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '');
@@ -66,13 +69,12 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
   const idEvento = v('evento');
   const e = (await concertiInArrivo()).find((x) => x.id === idEvento);
   if (!e) return { ok: false, messaggio: 'Concerto non trovato nel calendario: ricarica la pagina.' };
-  for (const k of ['convocazione', 'generale-ora']) if (v(k) && !/^\d{2}:\d{2}$/.test(v(k))) return { ok: false, messaggio: 'Orario non valido.', evento: idEvento };
-  if (v('generale-data') && !/^\d{4}-\d{2}-\d{2}$/.test(v('generale-data'))) return { ok: false, messaggio: 'Data della prova generale non valida.', evento: idEvento };
+  if (v('convocazione') && !/^\d{2}:\d{2}$/.test(v('convocazione'))) return { ok: false, messaggio: 'Orario non valido.', evento: idEvento };
   const esistente = (await convocazioni()).get(idEvento);
   const valori = [
     idEvento, perFoglio(e.data), t(e.titolo),
     t(v('convocazione')), t(v('ritrovo')),
-    perFoglio(v('generale-data')), t(v('generale-ora')), t(v('generale-luogo')),
+    v('generale'),
     t(v('programma')), t(v('abito')), t(v('portare')), t(v('arrivare')),
     t(f.getAll('repertorio').map(String).filter(Boolean).join(SEPARATORE_PEZZI)),
     t(v('note')), adesso(), email,

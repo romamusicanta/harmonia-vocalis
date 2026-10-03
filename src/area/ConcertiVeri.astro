@@ -6,7 +6,7 @@
 // è chi è atteso meno chi ha segnalato l'assenza.
 import Icona from '../componenti/Icona.astro';
 import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, luogoBreveDi, luogoDi, nomeEvento, riepilogo, type Evento, type Riepilogo } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
 import { repertorio, type Pezzo } from './repertorio';
 import Errore from './Errore.astro';
@@ -16,8 +16,10 @@ let elenco: { e: Evento; c?: Convocazione; r: Riepilogo; pubblica?: string }[] =
 let mie = new Map<string, string>();
 let io: Awaited<ReturnType<typeof coristaDi>>;
 let pezzi: Pezzo[] = [];
+let prove: Evento[] = [];
 try {
-  const [concerti, conv, tutti, tutte, rep, pubblici] = await Promise.all([concertiInArrivo(), convocazioni(), coristi(), assenze(), repertorio().catch(() => []), prossimiConcerti().catch(() => [])]);
+  const [concerti, conv, tutti, tutte, rep, pubblici, tuttiEventi] = await Promise.all([concertiInArrivo(), convocazioni(), coristi(), assenze(), repertorio().catch(() => []), prossimiConcerti().catch(() => []), eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 366)).catch(() => [] as Evento[])]);
+  prove = tuttiEventi.filter((x) => x.tipo === 'prova');
   io = await coristaDi(Astro.locals.corista!.email);
   pezzi = rep;
   if (io) mie = new Map(tutte.filter((a) => a.email === io!.email).map((a) => [a.idEvento, a.nota]));
@@ -52,7 +54,8 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
       const assente = mie.has(e.id);
       const luogo = luogoDi(e);
       const luogoBreve = luogoBreveDi(e);
-      const generale = c && c.generale.ora ? { quando: c.generale.data && c.generale.data !== e.data ? quando(c.generale.data) : 'lo stesso giorno', ora: c.generale.ora, dove: c.generale.luogo || luogo } : undefined;
+      const pg = c?.generale ? prove.find((x) => x.id === c.generale) : undefined;
+      const generale = pg ? { quando: pg.data !== e.data ? quando(pg.data) : 'lo stesso giorno', ora: pg.inizio ?? '', dove: luogoBreveDi(pg) } : undefined;
       return (
         <article class="convocazione" id={`c-${e.id}`}>
           <div class="intest">
@@ -68,7 +71,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
               {c && !vuota(c) ? (
                 <>
                   {c.convocazione && (
-                    <div class="evidenza-conv"><span class="eti">Convocazione</span><b>ore {c.convocazione}</b><span>{c.ritrovo || luogo}</span></div>
+                    <div class="evidenza-conv"><span class="eti">Convocazione</span><b>ore {c.convocazione}</b><span>{c.ritrovo || luogoBreve}</span></div>
                   )}
                   {generale && (
                     <div class="evidenza-conv"><span class="eti">Prova generale</span><b>{generale.quando === 'lo stesso giorno' ? '' : `${generale.quando}, `}ore {generale.ora}</b>{generale.dove && <span>{generale.dove}</span>}</div>

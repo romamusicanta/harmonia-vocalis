@@ -19,7 +19,7 @@ const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
 const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte] = await Promise.all([
   nulla(coristaDi(email), undefined),
-  nulla(eventi(oggi(), piuGiorni(oggi(), 120)), [] as Evento[]),
+  nulla(eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 120)), [] as Evento[]),
   nulla(avvisi(), []),
   nulla(ruoliDi(email), []),
   nulla(repertorio(), [] as Pezzo[]),
@@ -52,7 +52,8 @@ const intro = (concertoPrima
   : [prova && `${maiuscola(quando(prova.data))} la prossima prova`, concerto && `${quando(concerto.data)} il concerto`]).filter(Boolean).join(', ');
 const giorniAl = (iso: string) => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000);
 const iscrizione = CALENDARIO_PROVE_ID && `https://calendar.google.com/calendar/u/0/r?${new URLSearchParams({ cid: CALENDARIO_PROVE_ID })}`;
-const generale = cv?.generale.ora ? `${cv.generale.data && cv.generale.data !== concerto!.data ? `${quando(cv.generale.data)}, ` : ''}ore ${cv.generale.ora}` : undefined;
+const pg = cv?.generale ? prossimi.find((x) => x.id === cv.generale) : undefined;
+const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : ''}${pg.inizio ? `ore ${pg.inizio}` : ''}` : undefined;
 ---
 
 <div class="area-intesta">

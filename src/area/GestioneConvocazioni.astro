@@ -4,9 +4,9 @@
 // modulo. I concerti nuovi si aggiungono al calendario (Amministrazione → Nuovo concerto).
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
-import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
+import { concertiInArrivo, convocazioni, proveVicine, vuota, type Convocazione } from './convocazioni';
 import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
-import { luogoBreveDi, nomeEvento, type Evento } from './dati';
+import { eventi, luogoBreveDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
 import Errore from './Errore.astro';
 
 interface Props { base: '/admin' | '/maestro' }
@@ -17,8 +17,9 @@ let errore: unknown;
 let concerti: Evento[] = [];
 let tutte = new Map<string, Convocazione>();
 let pezzi: Pezzo[] = [];
+let prove: Evento[] = [];
 try {
-  [concerti, tutte, pezzi] = await Promise.all([concertiInArrivo(), convocazioni(), repertorio().catch(() => [])]);
+  [concerti, tutte, pezzi, prove] = await Promise.all([concertiInArrivo(), convocazioni(), repertorio().catch(() => []), eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 366)).then((x) => x.filter((e) => e.tipo === 'prova'))]);
 } catch (e) {
   errore = e;
 }
@@ -26,6 +27,7 @@ const scelto = concerti.find((e) => e.id === q.get('modifica'));
 const c = scelto && tutte.get(scelto.id);
 const scelti = new Set(c?.repertorio ?? []);
 const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
+const etichettaProva = (p: Evento) => { const d = parti({ data: p.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()}${p.inizio ? `, ${p.inizio}` : ''} · ${p.titolo}`; };
 const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.giornoSettimana} ${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
 ---
 
@@ -50,9 +52,13 @@ const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.g
       <fieldset>
         <legend>Prova generale</legend>
         <div class="riga-campi">
-          <label>Giorno <small>(vuoto = il giorno del concerto)</small><input type="date" name="generale-data" value={c?.generale.data} /></label>
-          <label>Ora<input type="time" name="generale-ora" value={c?.generale.ora} /></label>
-          <label>Luogo <small>(vuoto = il luogo del concerto)</small><input name="generale-luogo" value={c?.generale.luogo} /></label>
+          <label>Quale prova <small>(dal calendario "Prove", nelle due settimane prima del concerto)</small>
+            <select name="generale">
+              <option value="">Nessuna prova generale</option>
+              {proveVicine(scelto, prove).map((p) => <option value={p.id} selected={c?.generale === p.id}>{etichettaProva(p)}</option>)}
+            </select>
+          </label>
+          <p style="margin:0;font-size:14px">Non c'è ancora? <a class="link-freccia" href={`/admin/prove/nuova?${new URLSearchParams({ data: piuGiorni(scelto.data, -1), titolo: 'Prova generale', dopo: `/admin/convocazioni?modifica=${scelto.id}#modulo` })}`}>Crea la prova generale</a> <span class="tenue">(diventa una prova del calendario, con presenze e assenze; poi torni qui e la scegli)</span></p>
         </div>
       </fieldset>
 
@@ -89,7 +95,7 @@ const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.g
         <div>
           <span class="aut">{quando(e)}</span>
           <b>{nomeEvento(e)}</b>{e.rassegna && <span class="tenue dettagli">{e.rassegna}</span>}
-          <span class="tenue dettagli">{vuota(cv) ? 'Convocazione da scrivere' : [cv!.convocazione && `convocazione ${cv!.convocazione}`, cv!.generale.ora && `generale ${cv!.generale.data && cv!.generale.data !== e.data ? `${cv!.generale.data.split('-').reverse().slice(0, 2).join('/')} ` : ''}${cv!.generale.ora}`, cv!.repertorio.length && `${cv!.repertorio.length} ${cv!.repertorio.length === 1 ? 'pezzo' : 'pezzi'}`].filter(Boolean).join(' · ') || 'Convocazione scritta'}</span>
+          <span class="tenue dettagli">{vuota(cv) ? 'Convocazione da scrivere' : [cv!.convocazione && `convocazione ${cv!.convocazione}`, cv!.generale && 'prova generale', cv!.repertorio.length && `${cv!.repertorio.length} ${cv!.repertorio.length === 1 ? 'pezzo' : 'pezzi'}`].filter(Boolean).join(' · ') || 'Convocazione scritta'}</span>
         </div>
         <a class:list={['btn', 'piccolo', vuota(cv) ? 'g' : 'o']} href={`${base}/convocazioni?modifica=${encodeURIComponent(e.id)}#modulo`}>{vuota(cv) ? 'Scrivi la convocazione' : 'Modifica'}</a>
       </li>
@@ -102,7 +108,7 @@ const quando = (e: Evento) => { const d = parti({ data: e.data }); return `${d.g
   .modulo-conv .cc { display: grid; gap: 18px; }
   .modulo-conv label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
   .modulo-conv small { font-weight: 400; color: var(--tenue); }
-  .modulo-conv :is(input:not([type=checkbox]), textarea) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .modulo-conv :is(input:not([type=checkbox]), textarea, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
   .modulo-conv .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
   .modulo-conv fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
   .modulo-conv legend { font-family: var(--f-titoli); font-size: 18px; color: var(--primario); margin-bottom: 10px; }

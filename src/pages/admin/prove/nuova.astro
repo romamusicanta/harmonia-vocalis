@@ -5,10 +5,12 @@ import ModuloProva from '../../../admin/ModuloProva.astro';
 
 export const prerender = false;
 const data = Astro.url.searchParams.get('data') ?? undefined;
+const titolo = Astro.url.searchParams.get('titolo') ?? undefined;
+const dopo = Astro.url.searchParams.get('dopo') ?? undefined;
 ---
 
 <LayoutAdmin titolo="Nuova prova" sezione="prove">
   <h1>Nuova prova</h1>
   <p class="tenue" style="max-width:62ch">La prova compare subito nel calendario "Prove" dei coristi e, entro qualche minuto, nell'area coristi del sito, dove si possono segnalare le assenze.</p>
-  <ModuloProva data={data} base="/admin" />
+  <ModuloProva data={data} titolo={titolo} dopo={dopo} base="/admin" />
 </LayoutAdmin>

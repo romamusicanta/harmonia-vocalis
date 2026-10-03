@@ -6,8 +6,9 @@ import { coro } from '../motore/coro';
 import { salaAbituale, SEPARATORE_PEZZI, type Prova } from './prove';
 import { nomeCompleto, repertorio, type Pezzo } from '../area/repertorio';
 
-interface Props { prova?: Prova; data?: string; base: '/admin' | '/maestro' }
-const { prova, data, base } = Astro.props;
+// titolo e dopo: per una prova nuova creata da un'altra pagina (la prova generale dalla convocazione)
+interface Props { prova?: Prova; data?: string; base: '/admin' | '/maestro'; titolo?: string; dopo?: string }
+const { prova, data, base, titolo, dopo } = Astro.props;
 const r = prova?.righe;
 let pezzi: Pezzo[] = [];
 try { pezzi = await repertorio(); } catch { /* senza repertorio resta il campo Brani */ }
@@ -16,7 +17,7 @@ const scelti = new Set((r?.Repertorio ?? '').split(SEPARATORE_PEZZI).map((x) => 
 const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
 ---
 
-<form class="modulo" id="modulo-prova" style="max-width:820px;margin-top:28px" novalidate data-base={base}>
+<form class="modulo" id="modulo-prova" style="max-width:820px;margin-top:28px" novalidate data-base={base} data-dopo={dopo && dopo.startsWith('/admin/') ? dopo : undefined}>
   {prova && <input type="hidden" name="id" value={prova.id} />}
   {prova?.ricorrente && <p class="messaggio">È una data della prova settimanale: le modifiche valgono solo per il {prova.data.split('-').reverse().join('/')}, le altre settimane restano come sono.</p>}
 
@@ -26,7 +27,7 @@ const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
     <div class="campo"><label for="inizio">Inizio</label><input id="inizio" name="inizio" type="time" required value={prova?.inizio ?? '20:00'} /></div>
     <div class="campo"><label for="fine">Fine</label><input id="fine" name="fine" type="time" required value={prova?.fine ?? '22:00'} /></div>
   </div>
-  <div class="campo"><label for="titolo">Tipo di prova</label><input id="titolo" name="titolo" list="tipi" placeholder="Prova" value={prova?.titolo ?? 'Prova'} /><span class="aiuto">È il titolo nel calendario dei coristi.</span></div>
+  <div class="campo"><label for="titolo">Tipo di prova</label><input id="titolo" name="titolo" list="tipi" placeholder="Prova" value={prova?.titolo ?? titolo ?? 'Prova'} /><span class="aiuto">È il titolo nel calendario dei coristi.</span></div>
   <datalist id="tipi"><option value="Prova" /><option value="Prova supplementare" /><option value="Prova di sezione" /><option value="Prova generale" /><option value="Prova con orchestra" /></datalist>
   <div class="campo"><label for="luogo">Luogo</label><input id="luogo" name="luogo" placeholder={salaAbituale()} value={prova?.luogo} /><span class="aiuto">Vuoto = la sala abituale ({coro.prove.nome}).</span></div>
 
@@ -69,7 +70,7 @@ const altri = [...scelti].filter((x) => !pezzi.some((p) => p.titolo === x));
       const r = await fetch(`${modulo.dataset.base}/prove/salva`, { method: 'POST', body: new FormData(modulo) });
       const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
       if (!j.ok) throw new Error(j.errore);
-      location.href = `${modulo.dataset.base}/prove?salvata=${encodeURIComponent(j.data)}`;
+      location.href = modulo.dataset.dopo ?? `${modulo.dataset.base}/prove?salvata=${encodeURIComponent(j.data)}`;
     } catch (e) {
       esito.className = 'messaggio errore';
       esito.textContent = `Non salvata: ${(e as Error).message}`;
