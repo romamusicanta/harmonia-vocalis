@@ -21,10 +21,13 @@ const iscrizione = linkIscrizioneCalendario();
 const prossimi = await prossimiConcerti();
 const prossimo = prossimi[0] && concertoIn(prossimi[0], lingua);
 const d = prossimo && parti(prossimo, lingua);
-// Schede della home: i concerti in programma (tranne quelli con "Home: no") e i passati con
-// "Home: sì", scelti dall'area Amministrazione; se nessun passato è scelto, i più recenti fino a 4
+// Schede della home: i concerti in programma e quelli già fatti della stagione in corso (tranne
+// quelli con "Home: no"; un concerto in programma, quando è passato, resta così in home con
+// l'etichetta della stagione), più i passati con "Home: sì", scelti dall'area Amministrazione;
+// se non ce n'è nessuno, i più recenti fino a 4
 const prossimiInHome = prossimi.filter((c) => c.home !== false);
-const passatiScelti = archivio.filter((c) => c.home);
+const stagioneInCorso = stagione({ data: new Date().toISOString().slice(0, 10) }).id;
+const passatiScelti = archivio.filter((c) => c.home || (c.home !== false && !c.dataIncerta && stagione(c).id === stagioneInCorso));
 const passatiInHome = passatiScelti.length ? passatiScelti : archivio.slice(0, Math.max(0, 4 - prossimiInHome.length));
 const schede = [
   ...prossimiInHome.map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 && c === prossimi[0] ? (en ? 'Next' : 'Prossimo') : (en ? 'Upcoming' : 'In programma'), grigia: false, azione: en ? 'Details and calendar' : 'Dettagli e calendario' })),

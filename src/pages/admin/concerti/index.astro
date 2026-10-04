@@ -8,7 +8,7 @@ import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import Errore from '../../../area/Errore.astro';
 import { elencoConcerti, type RigaConcerto } from '../../../admin/controllo';
 import { nomeStato, passato } from '../../../admin/stati';
-import { slug } from '../../../motore/calendario';
+import { slug, stagione } from '../../../motore/calendario';
 import type { Concerto } from '../../../motore/tipi';
 
 export const prerender = false;
@@ -19,6 +19,9 @@ try {
 } catch (err) {
   erroreCalendario = err;
 }
+// Senza scelta, in home ci sono i concerti in programma e quelli già fatti della stagione in corso
+// (come in src/vesti/stagione/Home.astro)
+const stagioneInCorso = stagione({ data: new Date().toISOString().slice(0, 10) }).id;
 const futuri = righe.filter((r) => r.futuro);
 const passati = righe.filter((r) => !r.futuro).reverse();
 const conAvvisi = righe.filter((r) => r.avvisi.length).length;
@@ -49,7 +52,7 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
                   ? <span class="tag grigio" title={stato === 'in-cartellone' ? 'Nell’archivio del sito pubblico' : 'Mai andato in cartellone: non è sul sito pubblico'}>Passato{stato === 'in-cartellone' ? ' · nell’archivio' : ' · non pubblico'}</span>
                   : <span class:list={['tag', { grigio: stato !== 'in-cartellone' }]}>{nomeStato(stato)}</span>}
                 {daPubblicare && <span class="tag">{stato === 'in-cartellone' ? 'Da pubblicare' : 'Da togliere dal sito: pubblica'}</span>}
-                <label class="in-home" title="Mostra il concerto tra le schede della home page"><input type="checkbox" data-evento={e.id} checked={c.home ?? futuro} /> In home</label>
+                <label class="in-home" title="Mostra il concerto tra le schede della home page"><input type="checkbox" data-evento={e.id} checked={c.home ?? (futuro || (!c.dataIncerta && stagione(c).id === stagioneInCorso))} /> In home</label>
                 <a href={`/admin/concerti/modifica?id=${encodeURIComponent(e.id)}`} style="text-decoration:underline;font-weight:700">Modifica</a>
                 {futuro && <a href={`/admin/convocazioni?modifica=${encodeURIComponent(e.id)}#modulo`} style="text-decoration:underline;font-weight:700">Convocazione</a>}
                 <a href={e.htmlLink} target="_blank" rel="noopener" style="text-decoration:underline">Apri nel calendario</a>

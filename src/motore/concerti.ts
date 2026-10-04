@@ -40,7 +40,7 @@
 //                  Le scarica scripts/scarica-allegati.mjs prima della build.
 import ical from 'node-ical';
 import { coro } from './coro';
-import { daEvento, giornoIso, semplifica } from './calendario';
+import { daEvento, giornoIso, semplifica, stagione } from './calendario';
 import type { Concerto } from './tipi';
 import { localeDi, type Lingua } from './lingua';
 import { archivio as archivioCoro, prossimi as prossimiCoro } from '../../coro/concerti';
@@ -107,15 +107,6 @@ export function parti(c: Pick<Concerto, 'data' | 'dataIncerta'>, lingua: Lingua 
   };
 }
 
-// Stagione concertistica, da settembre ad agosto: "25/26"
-export function stagione(c: Pick<Concerto, 'data'>, lingua: Lingua = 'it') {
-  const anno = Number(c.data.slice(0, 4));
-  const mese = c.data.length >= 7 ? Number(c.data.slice(5, 7)) : 9;
-  const inizio = mese >= 9 ? anno : anno - 1;
-  const due = (n: number) => String(n % 100).padStart(2, '0');
-  return { sigla: `${due(inizio)}/${due(inizio + 1)}`, nome: `${lingua === 'en' ? 'Season' : 'Stagione'} ${inizio}/${String(inizio + 1).slice(2)}`, id: `s-${due(inizio)}${due(inizio + 1)}` };
-}
-
 // Archivio raggruppato per stagione, dalla più recente
 export function perStagione(elenco: Concerto[], lingua: Lingua = 'it') {
   const gruppi = new Map<string, { stagione: ReturnType<typeof stagione>; concerti: Concerto[] }>();
@@ -131,7 +122,7 @@ export function perStagione(elenco: Concerto[], lingua: Lingua = 'it') {
 export const chiaveAutore = (autore?: string) => (autore ? semplifica(autore.split(/\s+/).at(-1)!) : 'altri');
 
 // semplifica e slug stanno in calendario.ts (servono anche all'area Amministrazione)
-export { semplifica, slug } from './calendario';
+export { semplifica, slug, stagione } from './calendario';
 
 export const luogoCompleto = (c: Concerto) => [c.luogo, c.sala].filter(Boolean).join(' · ');
 

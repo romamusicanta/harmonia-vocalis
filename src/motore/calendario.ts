@@ -4,6 +4,7 @@
 import type ical from 'node-ical';
 import { esisteImmagine } from './coro';
 import type { Brano, Concerto } from './tipi';
+import type { Lingua } from './lingua';
 
 const fuso = { timeZone: 'Europe/Rome' } as const;
 export const giornoIso = (d: Date) => new Intl.DateTimeFormat('sv-SE', fuso).format(d);
@@ -147,3 +148,12 @@ export const semplifica = (s: string) =>
 
 // Identificativo per l'indirizzo della scheda: "2026-10-18-requiem-k-626"
 export const slug = (c: Concerto) => `${c.data.slice(0, 10)}-${semplifica(c.titolo)}`;
+
+// Stagione concertistica, da settembre ad agosto: "25/26"
+export function stagione(c: Pick<Concerto, 'data'>, lingua: Lingua = 'it') {
+  const anno = Number(c.data.slice(0, 4));
+  const mese = c.data.length >= 7 ? Number(c.data.slice(5, 7)) : 9;
+  const inizio = mese >= 9 ? anno : anno - 1;
+  const due = (n: number) => String(n % 100).padStart(2, '0');
+  return { sigla: `${due(inizio)}/${due(inizio + 1)}`, nome: `${lingua === 'en' ? 'Season' : 'Stagione'} ${inizio}/${String(inizio + 1).slice(2)}`, id: `s-${due(inizio)}${due(inizio + 1)}` };
+}
