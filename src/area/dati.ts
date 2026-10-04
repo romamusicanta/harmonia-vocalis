@@ -88,7 +88,9 @@ export async function coristi(): Promise<SchedaCorista[]> {
       dal: dataFoglio(r['Dal']),
       al: dataFoglio(r['Al']),
     }))
-    .sort((a, b) => a.cognome.localeCompare(b.cognome, 'it') || a.nome.localeCompare(b.nome, 'it'));
+    // In ordine alfabetico come si mostrano, "Nome Cognome" (dal 5/10/2026; prima per cognome): sulla
+    // scritta intera, così "Maria Cristina Di Bernardino" viene prima di "Maria Di Paola"
+    .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it', { sensitivity: 'base' }));
   coristiInCache = { elenco, letti: Date.now() };
   return elenco;
 }
