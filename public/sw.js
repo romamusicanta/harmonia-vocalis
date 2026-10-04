@@ -64,12 +64,14 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(fetch(req).then((r) => salva(req, r)).catch(() => salvata(req).then((c) => c || Response.error())));
 });
 
-// Notifiche push ai coristi (src/area/notifiche.ts): titolo, testo e la pagina da aprire al tocco
+// Notifiche push ai coristi (src/area/notifiche.ts): in testa sempre "Harmonia Vocalis", sotto il
+// titolo del messaggio e poi il testo (le notifiche hanno solo titolo e corpo: titolo e testo del
+// messaggio vanno tutti e due nel corpo, su righe diverse); al tocco si apre la pagina del link
 self.addEventListener('push', (e) => {
   let n = {};
   try { n = e.data ? e.data.json() : {}; } catch { n = { testo: e.data?.text() }; }
-  e.waitUntil(self.registration.showNotification(n.titolo || 'Harmonia Vocalis', {
-    body: n.testo || '',
+  e.waitUntil(self.registration.showNotification('Harmonia Vocalis', {
+    body: [n.titolo, n.testo].filter(Boolean).join('\n'),
     icon: '/icone/icona-coristi-192.png',
     data: { link: n.link || '/area' },
     tag: n.link || undefined,
