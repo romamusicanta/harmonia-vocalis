@@ -36,6 +36,8 @@ export default defineConfig({
       GOOGLE_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
       SESSIONE_SEGRETO: envField.string({ context: 'server', access: 'secret', optional: true }),
       VERCEL_DEPLOY_HOOK: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Firma delle chiamate del cron di Vercel a /api/ricostruisci
+      CRON_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
       CALENDARIO_CONCERTI_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_CONCERTI: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_FOTO: envField.string({ context: 'server', access: 'secret', optional: true }),
