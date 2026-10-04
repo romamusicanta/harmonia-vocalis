@@ -12,3 +12,34 @@
 /* Su fondo scuro il logo è bianco: piè di pagina di Stagione e Calda, tutta la veste Palco al buio */
 .piede-sito .con-logo, [data-veste="palco"] .con-logo { color: #fff; }
 .piede-sito .logo-coro { width: 200px; }
+
+/* Menu a tendina del sito (src/motore/tendine.ts): il <select> chiuso con la freccia del sito,
+   l'elenco aperto disegnato come le schede. Vale per tutte le vesti, aree riservate comprese. */
+.tendina { position: relative; display: block; min-width: 0; }
+.tendina > select { appearance: none; -webkit-appearance: none; padding-right: 42px !important; cursor: pointer; text-overflow: ellipsis; }
+.tendina::after {
+  content: ''; position: absolute; right: 15px; top: 50%; width: 12px; height: 8px; margin-top: -4px; pointer-events: none;
+  background: var(--primario);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform .15s;
+}
+.tendina.aperta::after { transform: rotate(180deg); }
+.tendina.aperta > select { border-color: var(--primario) !important; }
+.tendina-elenco {
+  position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); min-width: 200px; max-height: 320px; overflow-y: auto;
+  margin: 0; padding: 6px; list-style: none; text-align: left;
+  background: var(--bianco); color: var(--testo); border: 2px solid var(--primario); border-radius: var(--raggio);
+  box-shadow: var(--ombra); font-weight: 400; line-height: 1.35; outline: none;
+}
+.tendina-elenco.sopra { top: auto; bottom: calc(100% + 6px); }
+.tendina-elenco [role=option] { position: relative; padding: 10px 12px 10px 34px; border-radius: var(--raggio); cursor: pointer; }
+.tendina-elenco [role=option].nel-gruppo { padding-left: 46px; }
+.tendina-elenco [role=option].attiva { background: color-mix(in srgb, var(--accento) 28%, var(--bianco)); }
+.tendina-elenco [aria-selected=true] { font-weight: 700; color: var(--primario); }
+.tendina-elenco [aria-selected=true]::before {
+  content: ''; position: absolute; left: 12px; top: 50%; width: 12px; height: 9px; margin-top: -5px; background: var(--primario);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 9'%3E%3Cpath d='M1 4.5l3.5 3.5L11 1' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.tendina-elenco [aria-disabled=true] { color: var(--tenue); cursor: default; }
+.tendina-elenco .tendina-gruppo { padding: 10px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+@media (max-width: 760px) { .tendina-elenco [role=option] { min-height: 44px; display: flex; align-items: center; } }

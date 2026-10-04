@@ -55,6 +55,7 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito: per questo o
 
 - Foto: mai deformate. Ogni foto si adatta al suo riquadro ritagliandosi (`object-fit: cover`, con `object-position` se serve tenere un volto); solo le locandine si mostrano intere (`contain`). La regola base `img` in `src/vesti/stagione/stile.css` lo garantisce come predefinito: un nuovo riquadro con altezza fissa deve comunque dichiarare il suo adattamento.
 
+- Menu a tendina (dal 4/10/2026): mai l'elenco predefinito del browser. Ogni `<select>` del sito, aree riservate e Amministrazione comprese, si apre con l'elenco disegnato da `src/motore/tendine.ts` (stile `.tendina` in `src/stile/comune.css`; caricato da `Base.astro` e `LayoutAdmin.astro`): il `<select>` resta quello vero, con le misure del suo modulo, cambia solo l'elenco aperto. Un nuovo `<select>` non richiede niente; `data-nativa` per tenere quello del browser. Un `<select>` aggiunto dopo il caricamento della pagina va preparato con `preparaTendine()`.
 - Codice, nomi e testi in italiano.
 - I dati incerti sono marcati con commento `DA VERIFICARE`: non presentarli come certi e non inventarne di nuovi (date, luoghi, biografie).
 - Niente elenchi nominativi dei coristi nel sito pubblico (privacy): solo direttivo e Maestro.

@@ -53,12 +53,12 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
       <label>Titolo<input name="titolo" required maxlength="140" value={valore('titolo', inModifica?.titolo)} placeholder="Es. Prova straordinaria venerdì" /></label>
       <label>Testo<textarea name="testo" rows="6" maxlength="4000" placeholder="Si va a capo con Invio; una riga vuota separa i paragrafi. Gli indirizzi web diventano link.">{valore('testo', inModifica?.testo)}</textarea></label>
       <div class="riga-campi">
-        <label>Firma
+        <label><span>Firma</span>
           <select name="firma">
             {suoi.map((r) => <option value={r.id} selected={(inModifica?.ruolo?.id ?? (suoi.some((x) => x.id === firma) ? firma : suoi[0].id)) === r.id}>{r.firma}</option>)}
           </select>
         </label>
-        <label>Resta in bacheca fino al <small>(facoltativo)</small><input type="date" name="fino" value={valore('fino', inModifica?.finoAl)} /></label>
+        <label><span>Resta in bacheca fino al <small>(facoltativo)</small></span><input type="date" name="fino" value={valore('fino', inModifica?.finoAl)} /></label>
       </div>
       <button class="btn" type="submit"><Icona nome="spunta" />{inModifica ? 'Salva le modifiche' : 'Pubblica in bacheca'}</button>
     </div>
@@ -96,6 +96,8 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
   .modulo-avviso label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
   .modulo-avviso label small { font-weight: 400; color: var(--tenue); }
   .modulo-avviso :is(input, textarea, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  /* Firma e data, una accanto all'altra, hanno la stessa altezza (il campo data del browser è più alto) */
+  .modulo-avviso .riga-campi :is(input, select) { height: 48px; }
   .modulo-avviso .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
   .modulo-avviso button { justify-self: start; }
   .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
