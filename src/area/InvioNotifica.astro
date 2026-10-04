@@ -1,0 +1,118 @@
+---
+// Pulsante "Notifica" accanto ai pulsanti WhatsApp (avvisi, prove, registrazioni, convocazioni):
+// manda la notifica push ai telefoni iscritti dei coristi (src/area/notifiche.ts). Titolo, testo e
+// pagina da aprire sono ricavati dal messaggio WhatsApp; al tocco si apre una finestra per
+// correggerli, con quanti telefoni la riceveranno, e solo "Invia" la manda.
+import Icona from '../componenti/Icona.astro';
+import { configurate, daWhatsapp } from './notifiche';
+
+interface Props { messaggio: string; classe?: string }
+const { messaggio, classe = 'btn o piccolo' } = Astro.props;
+const n = daWhatsapp(messaggio, Astro.url.origin);
+const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' : '/admin/notifiche';
+---
+
+{configurate() && (
+  <button type="button" class:list={[classe, 'invia-notifica']} data-invio={invio} data-titolo={n.titolo} data-testo={n.testo} data-link={n.link} title="Notifica sui telefoni dei coristi che le hanno attivate">
+    <Icona nome="campanella" />Notifica
+  </button>
+)}
+
+<style is:global>
+  .finestra-notifica { margin: auto; border: 0; border-radius: var(--raggio); padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); background: var(--bianco); color: var(--testo); box-shadow: 0 20px 60px rgb(0 0 0 / .3); }
+  .finestra-notifica::backdrop { background: rgb(0 0 0 / .45); }
+  .finestra-notifica form { display: grid; gap: 14px; padding: 22px; }
+  .finestra-notifica h2 { margin: 0; font-family: var(--f-titoli); font-size: 21px; color: var(--primario); }
+  .finestra-notifica label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .finestra-notifica :is(input, textarea) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .finestra-notifica .nota { margin: 0; font-size: 14px; color: var(--tenue); }
+  .finestra-notifica .esito { margin: 0; font-weight: 700; }
+  .finestra-notifica .esito.errore { color: #b3261e; }
+  .finestra-notifica .esito.ok { color: #2e7d4f; }
+  .finestra-notifica .pulsanti { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+</style>
+
+<script>
+  // Una sola finestra per pagina, creata al primo tocco e riempita dal pulsante toccato
+  let finestra: HTMLDialogElement | undefined;
+  let invio = '';
+
+  function crea() {
+    const d = document.createElement('dialog');
+    d.className = 'finestra-notifica';
+    d.innerHTML = `
+      <form method="dialog">
+        <h2>Notifica ai coristi</h2>
+        <label>Titolo<input name="titolo" maxlength="120" required /></label>
+        <label>Testo<textarea name="testo" rows="5" maxlength="600"></textarea></label>
+        <p class="nota quanti">Conto i telefoni iscritti…</p>
+        <p class="esito" hidden></p>
+        <div class="pulsanti">
+          <button type="button" class="btn o piccolo chiudi">Annulla</button>
+          <button type="submit" class="btn g piccolo invia">Invia</button>
+        </div>
+      </form>`;
+    document.body.append(d);
+    const f = d.querySelector('form')!;
+    const esito = d.querySelector<HTMLElement>('.esito')!;
+    const pulsante = d.querySelector<HTMLButtonElement>('.invia')!;
+    d.querySelector('.chiudi')!.addEventListener('click', () => d.close());
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      pulsante.disabled = true;
+      pulsante.textContent = 'Invio…';
+      esito.hidden = true;
+      try {
+        const r = await fetch(invio, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ azione: 'invia', titolo: f.titolo.value, testo: f.testo.value, link: d.dataset.link }) });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
+        esito.className = 'esito ok';
+        esito.textContent = j.telefoni
+          ? `Inviata a ${j.telefoni} ${j.telefoni === 1 ? 'telefono' : 'telefoni'} (${j.persone} ${j.persone === 1 ? 'persona' : 'persone'}).${j.nonArrivate ? ` ${j.nonArrivate} non raggiunti.` : ''}`
+          : 'Nessun telefono l’ha ricevuta: nessuno ha ancora attivato le notifiche.';
+        pulsante.textContent = 'Inviata';
+        pulsante.disabled = true;
+        d.querySelector('.chiudi')!.textContent = 'Chiudi';
+        esito.hidden = false;
+        return;
+      } catch (err) {
+        esito.className = 'esito errore';
+        esito.textContent = `Non inviata. ${(err as Error).message}`;
+        esito.hidden = false;
+      }
+      pulsante.disabled = false;
+      pulsante.textContent = 'Invia';
+    });
+    return d;
+  }
+
+  document.addEventListener('click', async (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>('.invia-notifica');
+    if (!b) return;
+    finestra ??= crea();
+    const d = finestra;
+    const f = d.querySelector('form')!;
+    invio = b.dataset.invio!;
+    d.dataset.link = b.dataset.link;
+    f.titolo.value = b.dataset.titolo ?? '';
+    f.testo.value = b.dataset.testo ?? '';
+    const pulsante = d.querySelector<HTMLButtonElement>('.invia')!;
+    pulsante.disabled = false;
+    pulsante.textContent = 'Invia';
+    d.querySelector('.chiudi')!.textContent = 'Annulla';
+    d.querySelector<HTMLElement>('.esito')!.hidden = true;
+    const quanti = d.querySelector<HTMLElement>('.quanti')!;
+    quanti.textContent = 'Conto i telefoni iscritti…';
+    d.showModal();
+    try {
+      const r = await fetch(invio, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ azione: 'quanti' }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.errore);
+      quanti.textContent = j.telefoni
+        ? `Arriverà a ${j.telefoni} ${j.telefoni === 1 ? 'telefono' : 'telefoni'} di ${j.persone} ${j.persone === 1 ? 'persona' : 'persone'} che hanno attivato le notifiche. Al tocco si apre la pagina dell'area coristi.`
+        : 'Nessun corista ha ancora attivato le notifiche: si attivano dalla Bacheca dell’area coristi, sul telefono.';
+    } catch (err) {
+      quanti.textContent = `Non riesco a contare i telefoni iscritti. ${(err as Error).message ?? ''}`;
+    }
+  });
+</script>

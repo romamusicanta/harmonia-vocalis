@@ -23,9 +23,13 @@
     "ai": "7.0.127",
     "astro": "7.3.5",
     "fast-xml-parser": "5.11.2",
-    "node-ical": "0.27.2"
+    "node-ical": "0.27.2",
+    "web-push": "3.6.7"
   },
   "allowScripts": {
     "esbuild": true
+  },
+  "devDependencies": {
+    "@types/web-push": "^3.6.4"
   }
 }

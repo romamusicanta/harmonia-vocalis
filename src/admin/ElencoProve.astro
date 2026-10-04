@@ -9,6 +9,7 @@ import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { elencoProve, giornoEsteso, leggiProva, provaPerWhatsapp, type Chi, type Prova } from './prove';
 import { linkWhatsapp } from '../area/bacheca';
 import Icona from '../componenti/Icona.astro';
+import InvioNotifica from '../area/InvioNotifica.astro';
 import RigaProva from './RigaProva.astro';
 import { inizioStagione } from '../area/dati';
 import { registrazioni } from '../area/registrazioni';
@@ -68,8 +69,9 @@ for (const p of prossime) {
 {cancellata && <p class="messaggio ok">Prova di {giornoEsteso(cancellata)} cancellata.</p>}
 {whatsapp && (
   <div class="invio-whatsapp">
-    <span>Avvisa i coristi: il messaggio è già scritto, scegli la chat del coro.</span>
+    <span>Avvisa i coristi: il messaggio è già scritto, scegli la chat del coro. Con «Notifica» arriva anche sui telefoni di chi ha attivato le notifiche.</span>
     <a class="btn g piccolo" href={linkWhatsapp(whatsapp)} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
+    <InvioNotifica messaggio={whatsapp} />
   </div>
 )}
 {errore && <Errore e={errore} />}

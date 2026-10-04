@@ -8,6 +8,7 @@ import { repertorio, type Pezzo } from '../area/repertorio';
 import SceltaPezzi from '../area/SceltaPezzi.astro';
 import { fileDellaProva, registrazioniPerWhatsapp, type Traccia } from '../area/registrazioni';
 import { linkWhatsapp } from '../area/bacheca';
+import InvioNotifica from '../area/InvioNotifica.astro';
 import { giornoEsteso } from './prove';
 import Icona from '../componenti/Icona.astro';
 
@@ -69,7 +70,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 {conRegistrazioni && (
   <section class="scheda-admin registrazioni-prova" id="registrazioni" style="max-width:820px;margin-top:28px;scroll-margin-top:140px" data-evento={prova!.id}>
     <h2 style="margin-top:0">Registrazioni della prova</h2>
-    {nuove.length > 0 && <p class="messaggio ok" style="margin:0">{nuove.length === 1 ? 'Registrazione caricata.' : `${nuove.length} registrazioni caricate.`} Per avvisare i coristi usa «Invia link con WhatsApp» qui sotto.</p>}
+    {nuove.length > 0 && <p class="messaggio ok" style="margin:0">{nuove.length === 1 ? 'Registrazione caricata.' : `${nuove.length} registrazioni caricate.`} Per avvisare i coristi usa «Invia link con WhatsApp» o «Notifica» qui sotto.</p>}
     <p class="tenue" style="font-size:15px">I coristi le ascoltano nella pagina Registrazioni della loro area, sotto questa prova. Con «Togli» il file va nel cestino del Drive del coro.</p>
     {registrate.length ? (
       <ul class="elenco-reg">
@@ -83,6 +84,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
     <div class="bottoni-reg">
       <button class="btn g" type="button" id="carica-reg" disabled>Carica la registrazione</button>
       {whatsapp && <a class="btn o" href={linkWhatsapp(whatsapp)} target="_blank" rel="noopener"><Icona nome="whatsapp" />Invia link con WhatsApp</a>}
+      {whatsapp && <InvioNotifica messaggio={whatsapp} classe="btn o" />}
     </div>
   </section>
 )}

@@ -48,6 +48,9 @@ export default defineConfig({
       // Area coristi: foglio "Coristi e assenze" e calendario privato "Prove"
       FOGLIO_CORISTI_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       CALENDARIO_PROVE_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Notifiche push ai coristi (src/area/notifiche.ts)
+      VAPID_PUBLIC_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+      VAPID_PRIVATE_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
       // Federazione delle identità verso l'account di servizio (anche per la build, vedi scripts/)
       GCP_PROJECT_NUMBER: envField.string({ context: 'server', access: 'secret', optional: true }),
       GCP_SERVICE_ACCOUNT_EMAIL: envField.string({ context: 'server', access: 'secret', optional: true }),

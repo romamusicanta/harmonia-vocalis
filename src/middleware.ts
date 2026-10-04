@@ -43,7 +43,8 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     }
     // L'area del Maestro è solo per la direzione, l'area coristi solo per i coristi
     if (maestro && !corista.direzione) return ctx.redirect(`/maestro/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del Maestro.` })}`);
-    if (area && !eCorista(corista)) return ctx.redirect('/maestro');
+    // /area/notifiche anche per la direzione: lì si iscrivono i telefoni di tutte e due le aree
+    if (area && !eCorista(corista) && pathname !== '/area/notifiche') return ctx.redirect('/maestro');
     // Le sessioni aperte prima della foto del profilo la prendono da Google, senza chiedere niente
     if (corista.foto === undefined && ctx.request.method === 'GET' && ctx.request.headers.get('sec-fetch-mode') === 'navigate') {
       return ctx.redirect(`/area/entra?${new URLSearchParams({ silenzioso: '1', dopo: pathname + ctx.url.search })}`);
@@ -66,7 +67,7 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   const completa = sessione.foto === undefined ? await conFoto(sessione) : sessione;
   if (completa !== letta) salvaSessione(ctx.cookies, completa, ctx.url.protocol === 'https:');
   ctx.locals.sessione = completa;
-  // Chi ha solo un ruolo nella bacheca (tesoriere, presidente…) vede solo gli avvisi
-  if (completa.redattore === false && !/^\/admin\/avvisi\/?$/.test(pathname)) return ctx.redirect('/admin/avvisi');
+  // Chi ha solo un ruolo nella bacheca (tesoriere, presidente…) vede solo gli avvisi (e ne manda la notifica)
+  if (completa.redattore === false && !/^\/admin\/(avvisi|notifiche)\/?$/.test(pathname)) return ctx.redirect('/admin/avvisi');
   return riservata(await avanti());
 });

@@ -13,6 +13,7 @@ import Marchio from './Marchio.astro';
 import MenuRiservato from './MenuRiservato.astro';
 import { areeRiservate } from './aree';
 import InvitoApp from '../../area/InvitoApp.astro';
+import InvitoNotifiche from '../../area/InvitoNotifiche.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
@@ -151,6 +152,7 @@ const primaPagina = sezione === sezioni[0]?.id;
   </nav>
 )}
 {conBarra && !DEMO && primaPagina && <InvitoApp area={tipo} />}
+{conBarra && !DEMO && primaPagina && tipo !== 'admin' && <InvitoNotifiche area={tipo} />}
 
 <script>
   // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che

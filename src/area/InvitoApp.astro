@@ -20,7 +20,7 @@ const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", admin: 
       <b>Metti {nome} sul telefono</b>
       <span class="breve">Si apre dalla schermata Home, come un'app.</span>
       <span class="android">In Chrome tocca <Icona nome="menu-punti" /> in alto a destra, poi <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>): {nome} si aprirà con un tocco, come un'app.</span>
-      <span class="ios">Tocca <Icona nome="condividi-ios" /> <b>Condividi</b> (in Safari può stare nel menu <b>···</b>), poi <b>Aggiungi alla schermata Home</b>: {nome} si aprirà con un tocco, come un'app.</span>
+      <span class="ios">Tocca <Icona nome="condividi-ios" /> <b>Condividi</b> (in Safari può stare nel menu <b>···</b>), poi <b>Aggiungi alla schermata Home</b>: {nome} si aprirà con un tocco, come un'app{area !== 'admin' && ', e potrai ricevere le notifiche del coro'}.</span>
     </div>
     <button type="button" class="btn g piccolo installa">Installa</button>
     <button type="button" class="chiudi-invito" aria-label="Non ora" title="Non ora"><Icona nome="chiudi" classe="" /></button>

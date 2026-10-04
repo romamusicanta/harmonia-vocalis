@@ -9,6 +9,7 @@ import { avvisi, firmaDi, inBacheca, linkWhatsapp, perWhatsapp, puoModificare, r
 import { comeHtml } from './testo';
 import { parti } from '../motore/concerti';
 import Errore from './Errore.astro';
+import InvioNotifica from './InvioNotifica.astro';
 
 interface Props { email: string; firma?: string }
 // firma: il ruolo proposto per primo (nell'area del Maestro, "maestro")
@@ -37,8 +38,11 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
 
 {appena && q.get('ok') === '1' && (
   <div class="messaggio ok wa-subito">
-    <span>Mandalo anche su WhatsApp, nella chat <b>{chatDi(appena)}</b>: si apre con il testo già scritto, scegli la chat e premi Invia.</span>
-    <a class="btn g piccolo" href={linkWhatsapp(perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito))} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
+    <span>Mandalo anche su WhatsApp, nella chat <b>{chatDi(appena)}</b>: si apre con il testo già scritto, scegli la chat e premi Invia. Con «Notifica» arriva sui telefoni di chi ha attivato le notifiche.</span>
+    <span class="pulsanti-invio">
+      <a class="btn g piccolo" href={linkWhatsapp(perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito))} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
+      <InvioNotifica messaggio={perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito)} />
+    </span>
   </div>
 )}
 
@@ -79,6 +83,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
           <div class="azioni-avviso">
             <a class="btn o piccolo" href={`?modifica=${a.id}#modulo`}>Modifica</a>
             <a class="btn o piccolo" href={linkWhatsapp(perWhatsapp({ ...a, firma: firmaDi(a) }, sito))} target="_blank" rel="noopener" title={`Scegli la chat ${chatDi(a)}`}><Icona nome="whatsapp" />WhatsApp</a>
+            <InvioNotifica messaggio={perWhatsapp({ ...a, firma: firmaDi(a) }, sito)} />
             <form method="post" onsubmit="return confirm('Cancellare questo avviso? Sparisce dalla bacheca e dal foglio.')">
               <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={a.id} />
               <button class="btn o piccolo cancella" type="submit">Cancella</button>
@@ -109,6 +114,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
   .azioni-avviso { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .azioni-avviso form { display: contents; }
   .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
+  .pulsanti-invio { display: flex; flex-wrap: wrap; gap: 8px; }
   .wa-subito { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
   .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
   .messaggio.ok { border-color: #2e7d4f; }

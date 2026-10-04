@@ -6,6 +6,7 @@ import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { concertiInArrivo, convocazionePerWhatsapp, convocazioni, proveVicine, vuota, type Convocazione } from './convocazioni';
 import { linkWhatsapp } from './bacheca';
+import InvioNotifica from './InvioNotifica.astro';
 import { repertorio, type Pezzo } from './repertorio';
 import SceltaPezzi from './SceltaPezzi.astro';
 import { eventi, luogoBreveDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
@@ -41,8 +42,9 @@ const whatsapp = appena && convAppena && !vuota(convAppena)
 {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
 {whatsapp && (
   <div class="invio-whatsapp">
-    <span>Avvisa i coristi: il messaggio è già scritto, scegli la chat del coro.</span>
+    <span>Avvisa i coristi: il messaggio è già scritto, scegli la chat del coro. Con «Notifica» arriva anche sui telefoni di chi ha attivato le notifiche.</span>
     <a class="btn g piccolo" href={linkWhatsapp(whatsapp)} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
+    <InvioNotifica messaggio={whatsapp} />
   </div>
 )}
 {errore && <Errore e={errore} />}
