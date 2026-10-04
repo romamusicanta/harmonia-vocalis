@@ -11,6 +11,11 @@ export type DatiStrutturati = Record<string, unknown>;
 // Riferimento al coro, uguale in tutte le pagine: Google lo collega alla scheda completa della home
 const idCoro = (coro: Coro) => `${coro.url}/#coro`;
 
+function nomiAlternativi(coro: Coro) {
+  const breve = coro.nome.replace(/^Coro\s+/, '');
+  return [...new Set([breve, breve.replace(/\s+/g, ''), coro.sigla])];
+}
+
 export function datiCoro(coro: Coro, lingua: 'it' | 'en', immagine?: string): DatiStrutturati[] {
   const indirizzo = (l: { nome?: string; indirizzo: string; cap?: string; citta: string }) => ({
     '@type': 'PostalAddress',
@@ -25,7 +30,8 @@ export function datiCoro(coro: Coro, lingua: 'it' | 'en', immagine?: string): Da
       '@type': 'MusicGroup',
       '@id': idCoro(coro),
       name: coro.nome,
-      alternateName: coro.sigla,
+      // Le forme con cui la gente cerca il coro, anche tutto attaccato come il dominio harmoniavocalis.com
+      alternateName: nomiAlternativi(coro),
       description: coro.descrizione,
       url: coro.url,
       logo: `${coro.url}/icone/icona-512.png`,
@@ -42,7 +48,9 @@ export function datiCoro(coro: Coro, lingua: 'it' | 'en', immagine?: string): Da
     {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: coro.nome,
+      // Nome del sito mostrato da Google sopra il risultato al posto dell'indirizzo
+      name: coro.nome.replace(/^Coro\s+/, ''),
+      alternateName: [coro.nome, ...nomiAlternativi(coro)].filter((n) => n !== coro.nome.replace(/^Coro\s+/, '')),
       url: coro.url,
       inLanguage: ['it', 'en'],
       publisher: { '@id': idCoro(coro) },
