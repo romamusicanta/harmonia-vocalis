@@ -1,0 +1,122 @@
+---
+// Area coristi e area del Maestro: interruttore delle notifiche push del coro (src/area/notifiche.ts)
+// su questo telefono, sotto la barra delle sezioni nella prima pagina (Bacheca, Presenze), sempre
+// presente. Acceso = iscritto: il browser dà l'iscrizione e il sito la salva con /area/notifiche;
+// spento = iscrizione cancellata dal browser e tolta dal foglio. Nascosto finché lo script non sa
+// lo stato e dove le notifiche non esistono; su iPhone e iPad fuori dall'app installata resta
+// spento con l'indicazione di installarla (le notifiche arrivano solo lì); se il telefono le ha
+// bloccate, spento con l'indicazione delle impostazioni. Un telefono iscritto ripete l'iscrizione al
+// sito ogni settimana, così il foglio resta aggiornato.
+import Icona from '../componenti/Icona.astro';
+import { chiavePubblica, configurate } from './notifiche';
+
+interface Props { area?: 'coristi' | 'maestro' }
+const { area = 'coristi' } = Astro.props;
+---
+
+{configurate() && (
+  <div class="notifiche-telefono" hidden data-chiave={chiavePubblica()} data-area={area}>
+    <div class="w">
+      <span class="campana"><Icona nome="campanella" classe="" /></span>
+      <label class="testo" for="interruttore-notifiche">
+        <b>Notifiche del coro</b>
+        <span class="stato" aria-live="polite"></span>
+      </label>
+      <input type="checkbox" role="switch" id="interruttore-notifiche" class="interruttore" />
+    </div>
+  </div>
+)}
+
+<style>
+  .notifiche-telefono { background: var(--bianco); border-bottom: 1px solid var(--linea); }
+  .notifiche-telefono .w { display: flex; align-items: center; gap: 14px; padding-top: 12px; padding-bottom: 12px; }
+  .notifiche-telefono .testo { flex: 1; min-width: 0; font-size: 14px; line-height: 1.45; color: var(--tenue); cursor: pointer; }
+  .notifiche-telefono .testo > b { display: block; color: var(--primario); font-size: 15px; }
+  .campana { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: var(--primario); color: var(--accento); }
+  .campana :global(svg) { width: 22px; height: 22px; }
+  /* Interruttore: binario e pallino, giallo dell'accento quando è acceso */
+  .interruttore { appearance: none; flex-shrink: 0; width: 52px; height: 30px; margin: 0; border-radius: 15px; background: var(--linea); position: relative; cursor: pointer; transition: background .15s; }
+  .interruttore::before { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--bianco); box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform .15s; }
+  .interruttore:checked { background: var(--accento); }
+  .interruttore:checked::before { transform: translateX(22px); }
+  .interruttore:disabled { opacity: .5; cursor: default; }
+  .interruttore:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
+  .notifiche-telefono.in-corso .interruttore { opacity: .6; pointer-events: none; }
+</style>
+
+<script>
+  const riquadro = document.querySelector<HTMLElement>('.notifiche-telefono');
+  const interruttore = riquadro?.querySelector<HTMLInputElement>('.interruttore');
+  const stato = riquadro?.querySelector<HTMLElement>('.stato');
+  const ISCRITTO = 'hv-notifiche-iscritto';
+  const leggi = (k: string) => { try { return Number(localStorage.getItem(k) ?? 0); } catch { return 0; } };
+  const scrivi = (k: string) => { try { localStorage.setItem(k, String(Date.now())); } catch {} };
+  const supportate = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const app = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
+  const ios = !/android/i.test(navigator.userAgent) && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+  const TESTI = {
+    accese: 'Accese su questo telefono: avvisi, prove, convocazioni e registrazioni nuove arrivano qui.',
+    spente: 'Spente su questo telefono. Accendile per sapere subito di avvisi, prove, convocazioni e registrazioni nuove.',
+    bloccate: 'Bloccate dal telefono: si riattivano dalle impostazioni delle notifiche del browser o dell’app.',
+    ios: 'Su iPhone e iPad arrivano solo nell’app: aggiungila alla schermata Home (Condividi, poi Aggiungi alla schermata Home) e accendile da lì.',
+    errore: 'Non è stato possibile cambiarle: riprova tra poco.',
+  };
+  const mostra = (acceso: boolean, testo: string, bloccato = false) => {
+    interruttore!.checked = acceso;
+    interruttore!.disabled = bloccato;
+    stato!.textContent = testo;
+    riquadro!.hidden = false;
+  };
+
+  // La chiave VAPID, da base64url ai byte che vuole il browser
+  const byte = (b64: string) => Uint8Array.from(atob((b64 + '='.repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+  const chiama = (corpo: object) => fetch('/area/notifiche', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })
+    .then((r) => { if (!r.ok) throw new Error(String(r.status)); });
+  const salva = (iscrizione: PushSubscription) => chiama({ azione: 'iscrivi', iscrizione: iscrizione.toJSON(), area: riquadro?.dataset.area }).then(() => scrivi(ISCRITTO));
+
+  if (riquadro && interruttore && stato) {
+    if (!supportate) {
+      if (ios && !app) mostra(false, TESTI.ios, true);
+    } else {
+      navigator.serviceWorker.ready.then(async (reg) => {
+        const gia = await reg.pushManager.getSubscription();
+        if (Notification.permission === 'denied') return mostra(false, TESTI.bloccate, true);
+        if (gia) {
+          mostra(true, TESTI.accese);
+          if (Date.now() - leggi(ISCRITTO) > 7 * 86400 * 1000) salva(gia).catch(() => {});
+        } else mostra(false, TESTI.spente);
+
+        interruttore.addEventListener('change', async () => {
+          const accendi = interruttore.checked;
+          riquadro.classList.add('in-corso');
+          try {
+            if (accendi) {
+              // Su iPhone il permesso va chiesto subito, dentro il tocco
+              const permesso = await Notification.requestPermission();
+              if (permesso !== 'granted') return mostra(false, permesso === 'denied' ? TESTI.bloccate : TESTI.spente, permesso === 'denied');
+              const iscrizione = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: byte(riquadro.dataset.chiave!) });
+              await salva(iscrizione);
+              mostra(true, TESTI.accese);
+            } else {
+              const iscrizione = await reg.pushManager.getSubscription();
+              if (iscrizione) {
+                await iscrizione.unsubscribe();
+                // Anche se il sito non risponde, il telefono non riceve più niente: il foglio si
+                // ripulisce al primo invio (iscrizione scaduta)
+                await chiama({ azione: 'togli', indirizzo: iscrizione.endpoint }).catch(() => {});
+              }
+              try { localStorage.removeItem(ISCRITTO); } catch {}
+              mostra(false, TESTI.spente);
+            }
+          } catch {
+            const ora = await reg.pushManager.getSubscription().catch(() => null);
+            mostra(Boolean(ora), TESTI.errore);
+          } finally {
+            riquadro.classList.remove('in-corso');
+          }
+        });
+      });
+    }
+  }
+</script>

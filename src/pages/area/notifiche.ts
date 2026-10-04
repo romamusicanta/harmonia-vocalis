@@ -1,5 +1,5 @@
 // Iscrizione e cancellazione del telefono alle notifiche push (src/area/notifiche.ts), da
-// InvitoNotifiche.astro nell'area coristi e in quella del Maestro (il middleware lascia passare qui
+// InterruttoreNotifiche.astro nell'area coristi e in quella del Maestro (il middleware lascia passare qui
 // anche chi è solo nella direzione)
 import type { APIRoute } from 'astro';
 import { rispondi } from '../../area/notifiche';

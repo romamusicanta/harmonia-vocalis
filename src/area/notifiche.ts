@@ -1,6 +1,6 @@
 // Notifiche push ai coristi (dal 5/10/2026). Chi apre l'area coristi o quella del Maestro sul
-// telefono (su iPhone e iPad solo dall'app installata, con iOS 16.4 o successivo) tocca "Attiva" in
-// InvitoNotifiche.astro: il browser dà un'iscrizione (un indirizzo del servizio push di Google,
+// telefono (su iPhone e iPad solo dall'app installata, con iOS 16.4 o successivo) accende l'interruttore di
+// InterruttoreNotifiche.astro: il browser dà un'iscrizione (un indirizzo del servizio push di Google,
 // Apple o Mozilla più due chiavi), che il sito salva nella scheda "Notifiche" del foglio "Coristi e
 // assenze" (la crea il sito; una riga per telefono, chiave l'indirizzo). Redattori, presidente,
 // tesoriere e Maestro mandano una notifica con "Notifica" accanto ai pulsanti WhatsApp

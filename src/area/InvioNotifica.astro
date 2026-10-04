@@ -110,7 +110,7 @@ const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' :
       if (!r.ok) throw new Error(j.errore);
       quanti.textContent = j.telefoni
         ? `Arriverà a ${j.telefoni} ${j.telefoni === 1 ? 'telefono' : 'telefoni'} di ${j.persone} ${j.persone === 1 ? 'persona' : 'persone'} che hanno attivato le notifiche. Al tocco si apre la pagina dell'area coristi.`
-        : 'Nessun corista ha ancora attivato le notifiche: si attivano dalla Bacheca dell’area coristi, sul telefono.';
+        : 'Nessun corista ha ancora attivato le notifiche: si accendono con l’interruttore «Notifiche del coro» nella Bacheca dell’area coristi, sul telefono.';
     } catch (err) {
       quanti.textContent = `Non riesco a contare i telefoni iscritti. ${(err as Error).message ?? ''}`;
     }
