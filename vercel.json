@@ -3,17 +3,6 @@
   "buildCommand": "npm run build",
   "redirects": [
     {
-      "source": "/:percorso*",
-      "has": [
-        {
-          "type": "host",
-          "value": "harmonia-vocalis.vercel.app"
-        }
-      ],
-      "destination": "https://romamusicanta.org/:percorso*",
-      "permanent": true
-    },
-    {
       "source": "/stagione",
       "destination": "/",
       "permanent": true
