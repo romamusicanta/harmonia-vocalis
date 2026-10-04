@@ -1,11 +1,11 @@
 ---
 // Area coristi e area del Maestro: interruttore delle notifiche push del coro (src/area/notifiche.ts)
-// su questo telefono, sotto la barra delle sezioni nella prima pagina (Bacheca, Presenze), sempre
+// su questo dispositivo (telefono, tablet o computer: la scritta dice quale), sotto la barra delle sezioni nella prima pagina (Bacheca, Presenze), sempre
 // presente. Acceso = iscritto: il browser dà l'iscrizione e il sito la salva con /area/notifiche;
 // spento = iscrizione cancellata dal browser e tolta dal foglio. Nascosto finché lo script non sa
 // lo stato e dove le notifiche non esistono; su iPhone e iPad fuori dall'app installata resta
-// spento con l'indicazione di installarla (le notifiche arrivano solo lì); se il telefono le ha
-// bloccate, spento con l'indicazione delle impostazioni. Un telefono iscritto ripete l'iscrizione al
+// spento con l'indicazione di installarla (le notifiche arrivano solo lì); se il browser le ha
+// bloccate, spento con l'indicazione delle impostazioni. Un dispositivo iscritto ripete l'iscrizione al
 // sito ogni settimana, così il foglio resta aggiornato.
 import Icona from '../componenti/Icona.astro';
 import { chiavePubblica, configurate } from './notifiche';
@@ -55,10 +55,15 @@ const { area = 'coristi' } = Astro.props;
   const app = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
   const ios = !/android/i.test(navigator.userAgent) && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
+  // "questo telefono", "questo tablet" o "questo computer": le notifiche arrivano anche sul computer
+  // (con il browser aperto), non solo sul telefono
+  const tablet = /ipad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || (/android/i.test(navigator.userAgent) && !/mobile/i.test(navigator.userAgent));
+  const telefono = !tablet && /android|iphone|ipod|mobile/i.test(navigator.userAgent);
+  const qui = telefono ? 'questo telefono' : tablet ? 'questo tablet' : 'questo computer';
   const TESTI = {
-    accese: 'Accese su questo telefono: avvisi, prove, convocazioni e registrazioni nuove arrivano qui.',
-    spente: 'Spente su questo telefono. Accendile per sapere subito di avvisi, prove, convocazioni e registrazioni nuove.',
-    bloccate: 'Bloccate dal telefono: si riattivano dalle impostazioni delle notifiche del browser o dell’app.',
+    accese: `Accese su ${qui}: avvisi, prove, convocazioni e registrazioni nuove arrivano qui${telefono || tablet ? '' : ', quando il browser è aperto'}.`,
+    spente: `Spente su ${qui}. Accendile per sapere subito di avvisi, prove, convocazioni e registrazioni nuove.`,
+    bloccate: `Bloccate su ${qui}: si riattivano dalle impostazioni delle notifiche del browser o dell’app.`,
     ios: 'Su iPhone e iPad arrivano solo nell’app: aggiungila alla schermata Home (Condividi, poi Aggiungi alla schermata Home) e accendile da lì.',
     errore: 'Non è stato possibile cambiarle: riprova tra poco.',
   };
@@ -102,7 +107,7 @@ const { area = 'coristi' } = Astro.props;
               const iscrizione = await reg.pushManager.getSubscription();
               if (iscrizione) {
                 await iscrizione.unsubscribe();
-                // Anche se il sito non risponde, il telefono non riceve più niente: il foglio si
+                // Anche se il sito non risponde, il dispositivo non riceve più niente: il foglio si
                 // ripulisce al primo invio (iscrizione scaduta)
                 await chiama({ azione: 'togli', indirizzo: iscrizione.endpoint }).catch(() => {});
               }

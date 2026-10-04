@@ -1,8 +1,8 @@
 ---
 // Pulsante "Notifica" accanto ai pulsanti WhatsApp (avvisi, prove, registrazioni, convocazioni):
-// manda la notifica push ai telefoni iscritti dei coristi (src/area/notifiche.ts). Titolo, testo e
+// manda la notifica push ai dispositivi iscritti (telefoni, tablet, computer) dei coristi (src/area/notifiche.ts). Titolo, testo e
 // pagina da aprire sono ricavati dal messaggio WhatsApp; al tocco si apre una finestra per
-// correggerli, con quanti telefoni la riceveranno, e solo "Invia" la manda.
+// correggerli, con quanti dispositivi la riceveranno, e solo "Invia" la manda.
 import Icona from '../componenti/Icona.astro';
 import { configurate, daWhatsapp } from './notifiche';
 
@@ -13,7 +13,7 @@ const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' :
 ---
 
 {configurate() && (
-  <button type="button" class:list={[classe, 'invia-notifica']} data-invio={invio} data-titolo={n.titolo} data-testo={n.testo} data-link={n.link} title="Notifica sui telefoni dei coristi che le hanno attivate">
+  <button type="button" class:list={[classe, 'invia-notifica']} data-invio={invio} data-titolo={n.titolo} data-testo={n.testo} data-link={n.link} title="Notifica sui dispositivi dei coristi che le hanno attivate">
     <Icona nome="campanella" />Notifica
   </button>
 )}
@@ -45,7 +45,7 @@ const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' :
         <h2>Notifica ai coristi</h2>
         <label>Titolo<input name="titolo" maxlength="120" required /></label>
         <label>Testo<textarea name="testo" rows="5" maxlength="600"></textarea></label>
-        <p class="nota quanti">Conto i telefoni iscritti…</p>
+        <p class="nota quanti">Conto i dispositivi iscritti…</p>
         <p class="esito" hidden></p>
         <div class="pulsanti">
           <button type="button" class="btn o piccolo chiudi">Annulla</button>
@@ -68,8 +68,8 @@ const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' :
         if (!r.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
         esito.className = 'esito ok';
         esito.textContent = j.telefoni
-          ? `Inviata a ${j.telefoni} ${j.telefoni === 1 ? 'telefono' : 'telefoni'} (${j.persone} ${j.persone === 1 ? 'persona' : 'persone'}).${j.nonArrivate ? ` ${j.nonArrivate} non raggiunti.` : ''}`
-          : 'Nessun telefono l’ha ricevuta: nessuno ha ancora attivato le notifiche.';
+          ? `Inviata a ${j.telefoni} ${j.telefoni === 1 ? 'dispositivo' : 'dispositivi'} (${j.persone} ${j.persone === 1 ? 'persona' : 'persone'}).${j.nonArrivate ? ` ${j.nonArrivate} non raggiunti.` : ''}`
+          : 'Nessun dispositivo l’ha ricevuta: nessuno ha ancora attivato le notifiche.';
         pulsante.textContent = 'Inviata';
         pulsante.disabled = true;
         d.querySelector('.chiudi')!.textContent = 'Chiudi';
@@ -102,17 +102,17 @@ const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' :
     d.querySelector('.chiudi')!.textContent = 'Annulla';
     d.querySelector<HTMLElement>('.esito')!.hidden = true;
     const quanti = d.querySelector<HTMLElement>('.quanti')!;
-    quanti.textContent = 'Conto i telefoni iscritti…';
+    quanti.textContent = 'Conto i dispositivi iscritti…';
     d.showModal();
     try {
       const r = await fetch(invio, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ azione: 'quanti' }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.errore);
       quanti.textContent = j.telefoni
-        ? `Arriverà a ${j.telefoni} ${j.telefoni === 1 ? 'telefono' : 'telefoni'} di ${j.persone} ${j.persone === 1 ? 'persona' : 'persone'} che hanno attivato le notifiche. Al tocco si apre la pagina dell'area coristi.`
-        : 'Nessun corista ha ancora attivato le notifiche: si accendono con l’interruttore «Notifiche del coro» nella Bacheca dell’area coristi, sul telefono.';
+        ? `Arriverà a ${j.telefoni} ${j.telefoni === 1 ? 'dispositivo' : 'dispositivi'} (telefoni, tablet o computer) di ${j.persone} ${j.persone === 1 ? 'persona' : 'persone'} che hanno attivato le notifiche. Al tocco si apre la pagina dell'area coristi.`
+        : 'Nessun corista ha ancora attivato le notifiche: si accendono con l’interruttore «Notifiche del coro» nella Bacheca dell’area coristi.';
     } catch (err) {
-      quanti.textContent = `Non riesco a contare i telefoni iscritti. ${(err as Error).message ?? ''}`;
+      quanti.textContent = `Non riesco a contare i dispositivi iscritti. ${(err as Error).message ?? ''}`;
     }
   });
 </script>

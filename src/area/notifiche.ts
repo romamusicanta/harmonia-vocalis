@@ -1,11 +1,11 @@
 // Notifiche push ai coristi (dal 5/10/2026). Chi apre l'area coristi o quella del Maestro sul
-// telefono (su iPhone e iPad solo dall'app installata, con iOS 16.4 o successivo) accende l'interruttore di
+// telefono, sul tablet o sul computer (su iPhone e iPad solo dall'app installata, con iOS 16.4 o successivo) accende l'interruttore di
 // InterruttoreNotifiche.astro: il browser dà un'iscrizione (un indirizzo del servizio push di Google,
 // Apple o Mozilla più due chiavi), che il sito salva nella scheda "Notifiche" del foglio "Coristi e
-// assenze" (la crea il sito; una riga per telefono, chiave l'indirizzo). Redattori, presidente,
+// assenze" (la crea il sito; una riga per dispositivo, chiave l'indirizzo). Redattori, presidente,
 // tesoriere e Maestro mandano una notifica con "Notifica" accanto ai pulsanti WhatsApp
 // (InvioNotifica.astro): il testo è ricavato dal messaggio WhatsApp e si corregge prima dell'invio.
-// Arriva a tutti i telefoni iscritti di chi è ancora nel gruppo dei coristi o della direzione; le
+// Arriva a tutti i dispositivi iscritti di chi è ancora nel gruppo dei coristi o della direzione; le
 // iscrizioni che il servizio push dà per scadute (404, 410) si tolgono dal foglio. Le chiavi VAPID
 // (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY) sono su Vercel: se cambiano, tutte le iscrizioni vanno rifatte.
 import webpush, { type PushSubscription } from 'web-push';
