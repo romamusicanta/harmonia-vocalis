@@ -6,7 +6,7 @@
 import Icona from '../componenti/Icona.astro';
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
@@ -125,7 +125,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
             <div class="cc">
               <div style="display:flex;gap:20px;align-items:flex-start">
                 <span class="data-grande">{d.giorno}<small>{d.meseBreve} · {d.giornoSettimana}</small></span>
-                <div style="min-width:0">{concerto.rassegna && <span class="aut">{concerto.rassegna}</span>}<h3 style="font-size:22px">{nomeEvento(concerto)}</h3><span class="tenue" style="font-size:15px">{[concerto.inizio && `ore ${concerto.inizio}`, luogoBreveDi(concerto)].filter(Boolean).join(' · ')}</span></div>
+                <div style="min-width:0">{concerto.rassegna && <span class="aut">{concerto.rassegna}</span>}<h3 style="font-size:22px">{nomeEvento(concerto)}</h3>{etichettaStato(concerto) && <span class="tag grigio" style="margin:4px 0">{etichettaStato(concerto)}</span>}<span class="tenue" style="font-size:15px">{[concerto.inizio && `ore ${concerto.inizio}`, luogoBreveDi(concerto)].filter(Boolean).join(' · ')}</span></div>
               </div>
               {cv && (cv.convocazione || generale) ? (
                 <ul class="orari" style="margin-top:20px">

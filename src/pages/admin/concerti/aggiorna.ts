@@ -3,7 +3,8 @@
 // nella cartella del concerto e le allega al posto delle precedenti (che restano su Drive).
 import type { APIRoute } from 'astro';
 import { corpoEvento, datiDalModulo, eLocandina, nomeCartella, stagione } from '../../../admin/concerto';
-import { aggiornaEvento, caricaImmagini, cartellaConcerto, cartellaDelFile, leggiEvento } from '../../../admin/operazioni';
+import { caricaImmagini, cartellaConcerto, cartellaDelFile } from '../../../admin/operazioni';
+import { leggiConcerto, salvaConcerto, statoValido } from '../../../admin/stati';
 import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
@@ -17,7 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const id = String(f.get('evento') ?? '');
     const d = datiDalModulo(f);
     if ('errore' in d) return json({ ok: false, errore: d.errore }, 400);
-    const e = await leggiEvento(s, id);
+    const { e } = await leggiConcerto(s, id);
     let allegati = e.attachments ?? [];
 
     const nuovaLocandina = f.get('locandina') instanceof File && (f.get('locandina') as File).size > 0;
@@ -35,7 +36,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       allegati = [...allegati, ...caricati.nuovi];
     }
 
-    const aggiornato = await aggiornaEvento(s, id, { ...corpoEvento(d), attachments: allegati.map(({ fileUrl, title, mimeType }) => ({ fileUrl, title, mimeType })) });
+    // Lo stato decide se il concerto è (o resta) anche nel calendario pubblico
+    const aggiornato = await salvaConcerto(s, id, { ...corpoEvento(d), attachments: allegati.map(({ fileUrl, title, mimeType }) => ({ fileUrl, title, mimeType })) }, statoValido(f.get('stato')));
     return json({ ok: true, evento: aggiornato.htmlLink, cartella: cartella && `https://drive.google.com/drive/folders/${cartella}` });
   } catch (e) {
     return json({ ok: false, errore: spiegaTesto(e) }, 500);

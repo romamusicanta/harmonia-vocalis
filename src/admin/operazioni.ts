@@ -1,6 +1,6 @@
 // Operazioni dell'area Amministrazione sul calendario "Concerti", sul Drive condiviso e su Vercel,
 // sempre a nome di chi è entrato (tranne la ripubblicazione, che usa il deploy hook).
-import { CALENDARIO_CONCERTI_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, VERCEL_DEPLOY_HOOK } from 'astro:env/server';
+import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, VERCEL_DEPLOY_HOOK } from 'astro:env/server';
 import type ical from 'node-ical';
 import { api } from './google';
 import type { Sessione } from './sessione';
@@ -23,7 +23,47 @@ export interface EventoApi {
   htmlLink: string;
   updated: string;
   start: { date?: string; dateTime?: string };
+  end?: { date?: string; dateTime?: string; timeZone?: string };
   attachments?: { fileUrl: string; title: string; mimeType: string; fileId?: string }[];
+  // Nel calendario "Prove": tipo = 'concerto', stato, pubblico (id della copia nel calendario
+  // "Concerti"); nella copia: origine (id dell'evento nel calendario "Prove")
+  extendedProperties?: { private?: Record<string, string> };
+}
+
+// ——— I due calendari dei concerti (dal 4/10/2026) ———
+// Un concerto nasce nel calendario privato "Prove", con lo stato nelle proprietà nascoste
+// dell'evento: "Da confermare" e "Confermato" restano lì (li vedono coristi e Maestro, non il
+// pubblico); "In cartellone" ne fa una copia nel calendario pubblico "Concerti", tenuta allineata a
+// ogni modifica e tolta se lo stato torna indietro. I concerti scritti prima direttamente in
+// "Concerti" (senza origine) valgono come "In cartellone".
+export type Calendario = 'prove' | 'concerti';
+const idCal = (c: Calendario) => encodeURIComponent((c === 'prove' ? CALENDARIO_PROVE_ID : CALENDARIO_CONCERTI_ID)!);
+
+export async function eventiIn(s: Sessione, c: Calendario, filtro: Record<string, string> = {}): Promise<EventoApi[]> {
+  const p = new URLSearchParams({ singleEvents: 'true', orderBy: 'startTime', maxResults: '500', ...filtro });
+  const { items = [] } = await api<{ items?: EventoApi[] }>(s, `${CAL}/calendars/${idCal(c)}/events?${p}`);
+  return items.filter((e) => e.status !== 'cancelled');
+}
+// I concerti del calendario "Prove"
+export const concertiInProve = (s: Sessione) => eventiIn(s, 'prove', { privateExtendedProperty: 'tipo=concerto' });
+
+export async function creaEventoIn(s: Sessione, c: Calendario, corpo: object): Promise<EventoApi> {
+  return api(s, `${CAL}/calendars/${idCal(c)}/events?supportsAttachments=true`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+}
+export async function leggiEventoIn(s: Sessione, c: Calendario, id: string): Promise<EventoApi> {
+  return api(s, `${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`);
+}
+export async function aggiornaEventoIn(s: Sessione, c: Calendario, id: string, corpo: object): Promise<EventoApi> {
+  return api(s, `${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}?supportsAttachments=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+}
+export async function cancellaEventoIn(s: Sessione, c: Calendario, id: string) {
+  await api(s, `${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch((e) => {
+    if (!/\((404|410)\)/.test(String(e))) throw e; // già cancellato
+  });
+}
+// Sposta un evento in un altro calendario (resta lo stesso id: convocazione e assenze restano legate)
+export async function spostaEvento(s: Sessione, da: Calendario, a: Calendario, id: string): Promise<EventoApi> {
+  return api(s, `${CAL}/calendars/${idCal(da)}/events/${encodeURIComponent(id)}/move?${new URLSearchParams({ destination: decodeURIComponent(idCal(a)) })}`, { method: 'POST' });
 }
 
 export async function eventiConcerti(s: Sessione): Promise<EventoApi[]> {
@@ -32,14 +72,14 @@ export async function eventiConcerti(s: Sessione): Promise<EventoApi[]> {
   return items.filter((e) => e.status !== 'cancelled');
 }
 
-// Gli eventi di un giorno (ora di Roma), per non creare due volte lo stesso concerto
+// I concerti di un giorno (ora di Roma) nei due calendari, per non creare due volte lo stesso concerto
 export async function eventiDelGiorno(s: Sessione, data: string): Promise<EventoApi[]> {
   const giorno = (d: string) => new Date(`${d}T00:00:00+01:00`);
   const fine = giorno(data);
   fine.setUTCDate(fine.getUTCDate() + 1);
-  const p = new URLSearchParams({ singleEvents: 'true', timeMin: giorno(data).toISOString(), timeMax: fine.toISOString(), timeZone: 'Europe/Rome' });
-  const { items = [] } = await api<{ items?: EventoApi[] }>(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events?${p}`);
-  return items.filter((e) => e.status !== 'cancelled');
+  const p = { timeMin: giorno(data).toISOString(), timeMax: fine.toISOString(), timeZone: 'Europe/Rome' };
+  const [inProve, pubblici] = await Promise.all([eventiIn(s, 'prove', { ...p, privateExtendedProperty: 'tipo=concerto' }), eventiIn(s, 'concerti', p)]);
+  return [...inProve, ...pubblici.filter((e) => !e.extendedProperties?.private?.origine)];
 }
 
 // Lo stesso evento nella forma di node-ical, per leggerlo con src/motore/calendario.ts

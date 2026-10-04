@@ -6,7 +6,7 @@
 import Icona from '../componenti/Icona.astro';
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, configurati, coristaDi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
+import { aperto, assenze, configurati, coristaDi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, type Evento, etichettaStato } from './dati';
 import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import Errore from './Errore.astro';
@@ -94,7 +94,7 @@ const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
               <article class:list={['prova', { speciale: e.tipo === 'concerto' }]}>
                 <div class="quando"><b>{d.giorno}</b><span>{d.giornoSettimana}</span><small>{e.inizio ? `${e.inizio}–${e.fine}` : 'orario da definire'}</small></div>
                 <div class="cosa">
-                  <h3>{nomeEvento(e)} {e === prossima && <span class="tag">Prossima</span>}{e.tipo === 'concerto' && <span class="tag blu">Concerto</span>}{e.data === oggiIso && <span class="tag">Oggi</span>}</h3>
+                  <h3>{nomeEvento(e)} {e === prossima && <span class="tag">Prossima</span>}{e.tipo === 'concerto' && <span class="tag blu">Concerto</span>}{etichettaStato(e) && <span class="tag grigio">{etichettaStato(e)}</span>}{e.data === oggiIso && <span class="tag">Oggi</span>}</h3>
                   {e.tipo === 'prova' && righe(e).length > 0 && (
                     <div class="elenco-brani">{righe(e).map(([k, v], i) => <>{i > 0 && <br />}<b>{k}:</b> {k === 'Repertorio'
                       ? v.split(SEPARATORE_PEZZI).map((t, j) => { const p = pezzoDi(t); return <>{j > 0 && ', '}{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</>; })

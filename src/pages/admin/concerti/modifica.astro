@@ -5,15 +5,18 @@
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import ModuloConcerto from '../../../admin/ModuloConcerto.astro';
 import { datiDaEvento, eLocandina } from '../../../admin/concerto';
-import { leggiEvento } from '../../../admin/operazioni';
+import { leggiConcerto, statoDi, type Stato } from '../../../admin/stati';
 
 export const prerender = false;
 
 const id = Astro.url.searchParams.get('id') ?? '';
 let errore: string | undefined;
 let evento;
+let stato: Stato | undefined;
 try {
-  evento = await leggiEvento(Astro.locals.sessione!, id);
+  const letto = await leggiConcerto(Astro.locals.sessione!, id);
+  evento = letto.e;
+  stato = statoDi(letto.e, letto.calendario);
 } catch (e) {
   errore = (e as Error).message;
 }
@@ -30,7 +33,7 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
   {errore || !evento || !valori
     ? <p class="messaggio errore">Non trovo questo concerto nel calendario{errore ? `: ${errore}` : ''}. <a href="/admin/concerti">Torna ai concerti</a></p>
     : <>
-        <p class="tenue" style="max-width:64ch">Le modifiche vanno nell'evento del calendario "Concerti"; sul sito si vedono con la prossima pubblicazione. Le righe della descrizione che il sito non riconosce vengono tolte.</p>
-        <ModuloConcerto valori={valori} evento={{ id: evento.id, htmlLink: evento.htmlLink, locandina, copertina }} />
+        <p class="tenue" style="max-width:64ch">Coristi e Maestro vedono subito le modifiche; sul sito pubblico, se il concerto è in cartellone, si vedono con la prossima pubblicazione. Le righe della descrizione che il sito non riconosce vengono tolte.</p>
+        <ModuloConcerto valori={valori} stato={stato} evento={{ id: evento.id, htmlLink: evento.htmlLink, locandina, copertina }} />
       </>}
 </LayoutAdmin>

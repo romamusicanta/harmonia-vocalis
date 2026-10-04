@@ -57,6 +57,7 @@ interface EventoApi {
   recurringEventId?: string;
   start: { dateTime?: string; date?: string };
   end: { dateTime?: string; date?: string };
+  extendedProperties?: { private?: Record<string, string> };
 }
 
 const giorno = new Intl.DateTimeFormat('en-CA', { timeZone: FUSO, year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -95,7 +96,8 @@ export async function elencoProve(s: Chi, da: string, a: string): Promise<Prova[
     timeMin: new Date(`${da}T00:00:00Z`).toISOString(), timeMax: new Date(`${a}T23:59:59Z`).toISOString(),
   });
   const { items = [] } = await chiama<{ items?: EventoApi[] }>(s, url(`?${p}`));
-  return items.filter((e) => e.status !== 'cancelled').map(prova);
+  // Nel calendario ci sono anche i concerti (src/admin/stati.ts): qui solo le prove
+  return items.filter((e) => e.status !== 'cancelled' && e.extendedProperties?.private?.tipo !== 'concerto').map(prova);
 }
 
 export const leggiProva = async (s: Chi, id: string) => prova(await chiama<EventoApi>(s, url(`/${encodeURIComponent(id)}`)));

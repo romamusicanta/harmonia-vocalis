@@ -115,7 +115,13 @@ export interface Evento {
   autore?: string;
   rassegna?: string;
   luogoBreve?: string;
+  // Solo per i concerti: 'da-confermare', 'confermato' (nel calendario "Prove", non pubblici) o
+  // 'in-cartellone' (src/admin/stati.ts)
+  stato?: 'da-confermare' | 'confermato' | 'in-cartellone';
 }
+
+// Per le schede: "Da confermare" o "Confermato" sui concerti non ancora in cartellone
+export const etichettaStato = (e: Evento) => (e.tipo === 'concerto' && e.stato && e.stato !== 'in-cartellone' ? (e.stato === 'confermato' ? 'Confermato' : 'Da confermare') : undefined);
 
 // "Mozart · Requiem in re minore K 626" per i concerti, il titolo per le prove
 export const nomeEvento = (e: Evento) => (e.tipo === 'concerto' && e.opera ? [e.autore?.split(/\s+/).at(-1), e.opera].filter(Boolean).join(' · ') : e.titolo);
@@ -127,6 +133,7 @@ interface EventoApi {
   description?: string;
   start: { date?: string; dateTime?: string };
   end: { date?: string; dateTime?: string };
+  extendedProperties?: { private?: Record<string, string> };
 }
 
 const testo = (html = '') => html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
@@ -147,16 +154,21 @@ function evento(e: EventoApi, tipo: Evento['tipo']): Evento {
     luogo: e.location?.trim() || undefined,
     righe,
     ...(tipo === 'concerto' ? sommario(e.summary?.trim() ?? '', testo(e.description), e.location ?? '') : {}),
+    ...(tipo === 'concerto' ? { stato: (['da-confermare', 'confermato', 'in-cartellone'] as const).find((x) => x === e.extendedProperties?.private?.stato) ?? (e.extendedProperties?.private?.tipo === 'concerto' ? 'da-confermare' : 'in-cartellone') } : {}),
   };
 }
 
+// Nel calendario "Prove" ci sono anche i concerti (proprietà tipo = concerto); nel calendario
+// "Concerti" le copie pubbliche (proprietà origine) si saltano: il concerto è già quello in "Prove"
 async function eventiDi(calendario: string, tipo: Evento['tipo'], da: string, a: string) {
   const p = new URLSearchParams({
     singleEvents: 'true', orderBy: 'startTime', maxResults: '500', timeZone: FUSO,
     timeMin: new Date(`${da}T00:00:00Z`).toISOString(), timeMax: new Date(`${piuGiorni(a, 1)}T00:00:00Z`).toISOString(),
   });
   const { items = [] } = await google<{ items?: EventoApi[] }>(`${CAL}/calendars/${encodeURIComponent(calendario)}/events?${p}`);
-  return items.map((e) => evento(e, tipo));
+  return items
+    .filter((e) => !(tipo === 'concerto' && e.extendedProperties?.private?.origine))
+    .map((e) => evento(e, tipo === 'prova' && e.extendedProperties?.private?.tipo === 'concerto' ? 'concerto' : tipo));
 }
 
 const eventiInCache = new Map<string, { elenco: Evento[]; letti: number }>();

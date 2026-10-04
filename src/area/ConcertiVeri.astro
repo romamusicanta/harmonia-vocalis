@@ -6,7 +6,7 @@
 // è chi è atteso meno chi ha segnalato l'assenza.
 import Icona from '../componenti/Icona.astro';
 import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato } from './dati';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
 import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import Errore from './Errore.astro';
@@ -62,7 +62,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
             <div class="data"><b>{d.giorno}</b><span>{d.giornoSettimana}<br />{d.mese} {d.anno}</span></div>
             <div class="titolo">
               <div style="display:flex;gap:8px;flex-wrap:wrap">{vuota(c) && <span class="tag grigio">Convocazione in arrivo</span>}{assente && <span class="tag rosso">Non ci sarai</span>}</div>
-              {e.rassegna && <span class="aut">{e.rassegna}</span>}<h2>{nomeEvento(e)}</h2>
+              {e.rassegna && <span class="aut">{e.rassegna}</span>}<h2>{nomeEvento(e)}</h2>{etichettaStato(e) && <span class="tag grigio" style="margin-top:6px">{etichettaStato(e)}</span>}
               <span class="tenue">{[e.inizio && `ore ${e.inizio}`, luogoBreve].filter(Boolean).join(' · ')}{pubblica && <> · <a class="link-freccia" href={pubblica}>Pagina pubblica <Icona nome="freccia" /></a></>}</span>
             </div>
           </div>
