@@ -17,6 +17,14 @@ const FUSO = 'Europe/Rome';
 
 export const configurati = () => Boolean(FOGLIO_CORISTI_ID && CALENDARIO_PROVE_ID);
 
+// Il link che aggiunge il calendario "Prove" all'account Google con cui si è entrati nell'area
+// (authuser: senza, Google usa il primo account del browser, che spesso è un altro e non ha il
+// permesso). Una volta aggiunto, il calendario compare in Google Calendar ovunque si usi
+// quell'account: computer, app del telefono, Calendario di iPhone se l'account è configurato lì.
+// Google però non lascia aggiungere calendari dal telefono in modo affidabile: va fatto da computer.
+export const linkCalendarioProve = (email: string) =>
+  CALENDARIO_PROVE_ID ? `https://calendar.google.com/calendar/r?${new URLSearchParams({ cid: CALENDARIO_PROVE_ID, authuser: email })}` : undefined;
+
 // ——— Date (tutte come "AAAA-MM-GG", ora di Roma) ———
 
 const formatoGiorno = new Intl.DateTimeFormat('en-CA', { timeZone: FUSO, year: 'numeric', month: '2-digit', day: '2-digit' });

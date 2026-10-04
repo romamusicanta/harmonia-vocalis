@@ -4,9 +4,8 @@
 // generale), avvisi (src/area/bacheca.ts), ultima registrazione (src/area/registrazioni.ts),
 // attesi alla prossima prova. Spartiti e tracce stanno nella pagina Repertorio. Ogni parte che non risponde resta vuota senza bloccare le altre.
 import Icona from '../componenti/Icona.astro';
-import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
@@ -50,7 +49,7 @@ const intro = (concertoPrima
   ? [concerto && `${maiuscola(quando(concerto.data))} il concerto`, prova && `${quando(prova.data)} la prossima prova`]
   : [prova && `${maiuscola(quando(prova.data))} la prossima prova`, concerto && `${quando(concerto.data)} il concerto`]).filter(Boolean).join(', ');
 const giorniAl = (iso: string) => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000);
-const iscrizione = CALENDARIO_PROVE_ID && `https://calendar.google.com/calendar/u/0/r?${new URLSearchParams({ cid: CALENDARIO_PROVE_ID })}`;
+const iscrizione = linkCalendarioProve(Astro.locals.corista!.email);
 const pg = cv?.generale ? prossimi.find((x) => x.id === cv.generale) : undefined;
 const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : ''}${pg.inizio ? `ore ${pg.inizio}` : ''}` : undefined;
 ---
@@ -62,7 +61,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
       <h1>Ciao {Astro.locals.corista!.nome}<span style="color:var(--accento)">.</span></h1>
       <p>{intro ? `${intro}. ` : ''}Qui trovi tutto quello che ti serve per la settimana.</p>
     </div>
-    {iscrizione && <a class="btn o" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />Prove sul telefono</a>}
+    {iscrizione && <a class="btn o" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />Prove nel tuo Google Calendar</a>}
   </div>
 </div>
 
