@@ -14,6 +14,12 @@ export type Stato = (typeof STATI)[number]['id'];
 export const nomeStato = (s: Stato) => STATI.find((x) => x.id === s)!.nome;
 export const statoValido = (v: unknown): Stato | undefined => STATI.find((x) => x.id === v)?.id;
 
+// Un concerto con la data prima di oggi (ora di Roma) è "Passato": si ricava dalla data, non si
+// scrive. Lo stato salvato resta e dice se è nell'archivio del sito (in cartellone) o no.
+export const oggiRoma = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+export const passato = (data: string) => data.slice(0, 10) < oggiRoma();
+export const nomeStatoMostrato = (s: Stato, data: string) => (passato(data) ? 'Passato' : nomeStato(s));
+
 // Lo stato di un evento: nel calendario "Prove" quello scritto; in "Concerti" sempre in cartellone
 export const statoDi = (e: EventoApi, c: Calendario): Stato => (c === 'concerti' ? 'in-cartellone' : statoValido(e.extendedProperties?.private?.stato) ?? 'da-confermare');
 

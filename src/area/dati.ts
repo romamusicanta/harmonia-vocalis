@@ -121,7 +121,8 @@ export interface Evento {
 }
 
 // Per le schede: "Da confermare" o "Confermato" sui concerti non ancora in cartellone
-export const etichettaStato = (e: Evento) => (e.tipo === 'concerto' && e.stato && e.stato !== 'in-cartellone' ? (e.stato === 'confermato' ? 'Confermato' : 'Da confermare') : undefined);
+// (e "Passato" dopo la data, ricavato dalla data come nell'Amministrazione)
+export const etichettaStato = (e: Evento) => (e.tipo !== 'concerto' ? undefined : e.data < oggi() ? 'Passato' : e.stato && e.stato !== 'in-cartellone' ? (e.stato === 'confermato' ? 'Confermato' : 'Da confermare') : undefined);
 
 // "Mozart · Requiem in re minore K 626" per i concerti, il titolo per le prove
 export const nomeEvento = (e: Evento) => (e.tipo === 'concerto' && e.opera ? [e.autore?.split(/\s+/).at(-1), e.opera].filter(Boolean).join(' · ') : e.titolo);

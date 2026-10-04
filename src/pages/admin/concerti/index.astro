@@ -7,7 +7,7 @@
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import Errore from '../../../area/Errore.astro';
 import { elencoConcerti, type RigaConcerto } from '../../../admin/controllo';
-import { nomeStato } from '../../../admin/stati';
+import { nomeStato, passato } from '../../../admin/stati';
 import { slug } from '../../../motore/calendario';
 import type { Concerto } from '../../../motore/tipi';
 
@@ -45,7 +45,9 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
             <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between">
               <div><b style="color:var(--primario)">{dataBreve(c)}</b> · {[c.autore, c.titolo].filter(Boolean).join(', ')}{c.luogo && <span class="tenue"> · {c.luogo}</span>}</div>
               <div style="display:flex;gap:14px;font-size:14px;flex-wrap:wrap">
-                <span class:list={['tag', { grigio: stato !== 'in-cartellone' }]}>{nomeStato(stato)}</span>
+                {passato(c.data)
+                  ? <span class="tag grigio" title={stato === 'in-cartellone' ? 'Nell’archivio del sito pubblico' : 'Mai andato in cartellone: non è sul sito pubblico'}>Passato{stato === 'in-cartellone' ? ' · nell’archivio' : ' · non pubblico'}</span>
+                  : <span class:list={['tag', { grigio: stato !== 'in-cartellone' }]}>{nomeStato(stato)}</span>}
                 {daPubblicare && <span class="tag">{stato === 'in-cartellone' ? 'Da pubblicare' : 'Da togliere dal sito: pubblica'}</span>}
                 <label class="in-home" title="Mostra il concerto tra le schede della home page"><input type="checkbox" data-evento={e.id} checked={c.home ?? futuro} /> In home</label>
                 <a href={`/admin/concerti/modifica?id=${encodeURIComponent(e.id)}`} style="text-decoration:underline;font-weight:700">Modifica</a>
