@@ -1,0 +1,34 @@
+---
+// Pagina non trovata: una sola, in italiano con la riga in inglese (Vercel la serve per ogni
+// indirizzo che non esiste, anche sotto /en/). Non va indicizzata.
+import Base from '../layouts/Base.astro';
+import { coro } from '../motore/coro';
+
+const veste = coro.aspetto.veste;
+---
+
+<Base veste={veste} titolo="Pagina non trovata" noindex>
+  <header class="intesta">
+    <div class="w due">
+      <div>
+        <span class="eti" style="margin-bottom:20px">Errore 404</span>
+        <h1>Pagina non trovata<span>.</span></h1>
+      </div>
+      <div>
+        <p class="lead">L'indirizzo non esiste più o è stato scritto in modo diverso. Forse cercavi uno di questi.</p>
+        <p lang="en" style="margin-top:12px">Page not found. <a href="/en/">Go to the English site</a>.</p>
+      </div>
+    </div>
+  </header>
+  <section>
+    <div class="w">
+      <div class="bottoni">
+        <a class="btn g" href="/">Home</a>
+        <a class="btn o" href="/concerti">Concerti</a>
+        <a class="btn o" href="/il-coro">Il Coro</a>
+        <a class="btn o" href="/canta-con-noi">Canta con noi</a>
+        <a class="btn o" href="/contatti">Contatti</a>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -16,6 +16,7 @@ import { trovaVideo } from '../motore/video';
 import type { Brano, Concerto } from '../motore/tipi';
 import { vesti } from '../vesti';
 import { concertoIn, videoIn } from '../motore/inglese';
+import { datiConcerto } from '../motore/seo';
 
 interface Props { concerto: Concerto; veste: Veste }
 const { concerto: originale, veste } = Astro.props;
@@ -37,6 +38,7 @@ const dove = luogoCompleto(c);
 const indirizzoMappa = c.indirizzo ?? [c.sala, c.luogo].filter(Boolean).join(', ');
 const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
 
+const descrizione = `${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`;
 const indirizzoPagina = new URL(l(`/concerti/${id}`), coro.url).href;
 const testoWhatsApp = `${titoloBreve} — ${quando}${c.luogo ? `, ${c.luogo}` : ''}. ${coro.nome}\n${indirizzoPagina}`;
 
@@ -64,7 +66,7 @@ const altri = [
 ].slice(0, 3);
 ---
 
-<Base veste={veste} titolo={titoloBreve} pagina="concerti" anteprima={c.locandina ?? c.foto} descrizione={`${titoloBreve}: ${quando}${dove ? `, ${dove}` : ''}. ${coro.nome}.`}>
+<Base veste={veste} titolo={titoloBreve} pagina="concerti" anteprima={c.locandina ?? c.foto} {descrizione} dati={(immagine) => datiConcerto(c, { coro, url: indirizzoPagina, titolo: [c.autore, c.titolo].filter(Boolean).join(', '), descrizione, immagine, direttore: direttore?.nome })}>
   <header class="intesta" style="padding-bottom:0;border:0">
     <div class="w">
       <nav class="briciole" aria-label={en ? 'Breadcrumb' : 'Percorso'}><a href={l('/')}>Home</a><span>/</span><a href={l('/concerti')}>{en ? 'Concerts' : 'Concerti'}</a><span>/</span><span>{c.titolo}</span></nav>

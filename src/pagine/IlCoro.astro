@@ -21,7 +21,7 @@ const massimo = Math.max(...coro.organico.map((s) => s.voci), 1);
 const iconeAssociazioni = ['persone', 'nota'] as const;
 ---
 
-<Base veste={veste} titolo={en ? 'The Choir' : 'Il Coro'} pagina="il-coro" anteprima={coro.foto.coro}>
+<Base veste={veste} titolo={en ? 'The Choir' : 'Il Coro'} pagina="il-coro" anteprima={coro.foto.coro} descrizione={en ? `History of the ${coro.nome}, founded in Rome in ${coro.fondazione}: ${voci} voices in four sections, board and affiliations.` : `La storia del ${coro.nome}, nato a ${coro.citta} nel ${coro.fondazione}: ${voci} voci in quattro sezioni, direttivo e associazioni.`}>
   {/* Dati: coro/testi/storia.md (intestazione) */}
   <header class="intesta">
     <div class="w due">

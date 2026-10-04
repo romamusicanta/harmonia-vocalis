@@ -16,6 +16,7 @@ import { aspettoDi } from '../motore/url';
 import { vesti } from '../vesti';
 import TestaApp from '../componenti/TestaApp.astro';
 import type { Pagina } from '../motore/navigazione';
+import { datiCoro, type DatiStrutturati } from '../motore/seo';
 
 interface Props {
   veste: Veste;
@@ -26,11 +27,16 @@ interface Props {
   area?: { sezione?: string; conBarra?: boolean; maestro?: boolean };
   // Immagine dell'anteprima nei link condivisi (WhatsApp, social), da coro/immagini; senza, la foto di apertura
   anteprima?: string;
+  // Dati strutturati per Google (src/motore/seo.ts); nella home quelli del coro si aggiungono da soli.
+  // Ricevono l'indirizzo dell'immagine di anteprima
+  dati?: (immagine?: string) => DatiStrutturati | DatiStrutturati[];
+  // Pagina da non indicizzare (la 404)
+  noindex?: boolean;
 }
 // Lingua dall'indirizzo (/en/… è inglese); l'altra versione della pagina, se c'è, per hreflang
 const lingua = linguaDi(Astro.url);
 const coro = coroIn(lingua);
-const { veste, titolo, descrizione = coro.descrizione, pagina, area, anteprima } = Astro.props;
+const { veste, titolo, descrizione = coro.descrizione, pagina, area, anteprima, noindex } = Astro.props;
 const altra = !area && !DEMO ? alternativa(Astro.url) : undefined;
 // Gli indirizzi per hreflang nella stessa forma del canonical (con la barra finale)
 const conBarra = (h: string) => (h.endsWith('/') ? h : `${h}/`);
@@ -44,11 +50,13 @@ const colori = !DEMO && aspetto.colori;
 const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k, v]) => `--${k}:${v}`).join(';') : undefined;
 // Le copie delle pagine nelle vesti in prova non vanno indicizzate
 const inProva = !DEMO && veste !== coro.aspetto.veste;
-const indicizzata = !(DEMO || area || inProva);
+const indicizzata = !(DEMO || area || inProva || noindex);
 const indirizzo = new URL(Astro.url.pathname, Astro.site ?? coro.url).href;
 // Anteprima nei link condivisi: JPEG largo al massimo 1200 px, che WhatsApp e i social leggono tutti
 const sorgente = immagine(anteprima ?? coro.foto.apertura);
 const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorgente, width: Math.min(1200, sorgente.width), format: 'jpg' }) : undefined;
+const immagineOg = og && new URL(og.src, indirizzo).href;
+const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immagineOg) : []), ...[Astro.props.dati?.(immagineOg) ?? []].flat()] : [];
 ---
 
 <!doctype html>
@@ -76,12 +84,13 @@ const og = indicizzata && sorgente.format !== 'svg' ? await getImage({ src: sorg
         <meta property="og:title" content={titolo ?? titoloCompleto} />
         <meta property="og:description" content={descrizione} />
         <meta property="og:url" content={indirizzo} />
-        {og && <meta property="og:image" content={new URL(og.src, indirizzo).href} />}
+        {og && <meta property="og:image" content={immagineOg} />}
         {og && <meta property="og:image:width" content={String(og.attributes.width)} />}
         {og && <meta property="og:image:height" content={String(og.attributes.height)} />}
         <meta name="twitter:card" content="summary_large_image" />
       </>
     )}
+    {dati.map((d) => <script type="application/ld+json" set:html={JSON.stringify(d).replace(/</g, '\\u003c')} />)}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {!DEMO && <TestaApp app={area?.maestro ? 'maestro' : area ? 'coristi' : 'sito'} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
