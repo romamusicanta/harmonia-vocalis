@@ -17,7 +17,7 @@ import { nomeCompleto, repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import { comeHtml } from './testo';
-import { configurata as tesoreriaConfigurata, euro, indice, meseEsteso, meseBreve, mesiDelleQuote, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, type Quota } from './tesoreria';
+import { configurata as tesoreriaConfigurata, dovutoDi, euro, indice, meseEsteso, meseBreve, mesiDelleQuote, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, type Quota } from './tesoreria';
 
 const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
@@ -45,17 +45,16 @@ const mie = new Map(tutte.filter((a) => a.email === io?.email).map((a) => [a.idE
 const bacheca = inBacheca(elencoAvvisi);
 const sezione = io?.sezione;
 const ultima = regs.find((g) => g.tracce.length || g.link);
-const coroQuota = coro.coristi?.tesoreria?.quota;
 // Il conto per i bonifici delle quote
 const t = coro.coristi?.tesoreria;
 const conto = t?.iban ? { iban: t.iban, intestatario: t.intestatario ?? coro.associazione ?? coro.nome } : undefined;
 // Le mie quote della stagione: un pallino per mese; dovute quelle fino al mese in corso
 const mieQuote = leQuote && io ? (() => {
-  const idx = indice(leQuote);
+  const idx = indice(leQuote, tutti);
   const mesi = mesiDelleQuote(stagioneCorrente(), leQuote).filter((m) => attiviNelMese([io], m).length);
   const stati = mesi.map((m) => ({ mese: m, stato: statoDi(idx, io.email, m), dovuta: m <= questoMese(), nota: idx.get(`${io.email}|${m}`)?.nota }));
   const daVersare = stati.filter((x) => x.dovuta && x.stato === 'da-pagare');
-  return { stati, daVersare, importo: daVersare.length * (coroQuota ?? 0) };
+  return { stati, daVersare, importo: daVersare.reduce((t, x) => t + dovutoDi(idx, io.email, x.mese), 0) };
 })() : undefined;
 
 // "Scrivi un avviso": il Maestro e il tesoriere li scrivono dalla loro area, gli altri ruoli dall'Amministrazione

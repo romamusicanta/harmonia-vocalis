@@ -42,7 +42,7 @@ else {
     errore = e;
   }
 }
-const idx = indice(tutte);
+const idx = indice(tutte, elenco);
 const senza = mesiSenzaQuota(tutte);
 const mesi = anno ? tutteLeQuote(anno) : [];
 const nellaStagione = elenco.filter((c) => mesi.some((m) => attiviNelMese([c], m).length));

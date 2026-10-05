@@ -96,6 +96,9 @@ export const schemaCoro = z.object({
     tesoreria: z.object({
       gruppi: z.array(z.string()),
       quota: z.number(),
+      // Quota base di settembre, quando il tesoriere non la indica per quell'anno (di solito metà
+      // quota: settembre ha poche prove; zero se il giugno prima ne ha avute poche anche lui)
+      quotaSettembre: z.number().optional(),
       mesi: z.array(z.number().int().min(1).max(12)),
       // Onorari dei maestri, in euro: a prova per il Direttore e per chi lo sostituisce, lezioni di
       // vocalità di gruppo singola e doppia (prospetti "Onorario maestri" e "Spese gestione prove")

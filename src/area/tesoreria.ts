@@ -6,6 +6,14 @@
 //   pagamento, nota). Chi non ha una riga per un mese deve ancora pagare quella quota. Una riga con
 //   email "tutti" e stato "Nessuna quota" segna un mese in cui la quota non si raccoglie (come
 //   settembre 2025, coperto dalla quota di giugno).
+//   Una riga con email "tutti" e stato "Quota base" dà la quota di un mese diversa dal solito (dal
+//   5/10/2026): serve per giugno e settembre. Settembre ha poche prove e si assimila a giugno: se
+//   giugno ha avuto poche prove (come nel 2026) a settembre la quota base è zero, se giugno è stato un
+//   mese intero è metà quota (coro.coristi.tesoreria.quotaSettembre, di base).
+//   A settembre si pagano anche i debiti della stagione prima: la cifra di ognuno è la quota base più
+//   l'ammanco (le quote della stagione prima rimaste da pagare, settembre compreso). Il tesoriere la
+//   corregge a mano, e allora la riga ha lo stato "Da pagare" con la cifra nell'Importo. Cifra zero =
+//   esonerato, e viceversa: chi non deve niente risulta esonerato da solo, senza riga.
 // - "Movimenti": una riga per entrata, uscita o avanzo di cassa (saldo di inizio stagione).
 // - "Prove dei maestri": le prove del calendario "Prove" per cui qualcosa cambia rispetto al solito
 //   (sostituto, prova gratuita, lezione di vocalità), più le prove non in calendario.
@@ -114,18 +122,23 @@ const testo = (v: string) => (v ? `'${v}` : '');
 // ——— Quote ———
 
 export type StatoQuota = 'pagata' | 'esonerato' | 'da-pagare';
-export interface Quota { riga: number; mese: string; email: string; nome: string; stato: Exclude<StatoQuota, 'da-pagare'> | 'nessuna'; importo: number; pagataIl?: string; nota: string }
+// riga 0 = quota di settembre calcolata (quota base più ammanco), non scritta nel foglio; calcolata:
+// solo a settembre, anche quando la cifra è scritta a mano. Stato "base": riga "tutti" con la quota base del mese
+export interface Quota { riga: number; mese: string; email: string; nome: string; stato: StatoQuota | 'nessuna' | 'base'; importo: number; pagataIl?: string; nota: string; calcolata?: Calcolata }
+export interface Calcolata { base: number; ammanco: number; mesi: string[]; importo: number }
+// Settembre: quota base ridotta più i debiti della stagione prima
+export const diSettembre = (mese: string) => mese.slice(5, 7) === '09';
 
 export async function quote(): Promise<Quota[]> {
   await idScheda(QUOTE, COLONNE_QUOTE, FOGLIO_TESORERIA_ID);
   return (await leggiScheda(QUOTE, FOGLIO_TESORERIA_ID))
-    .filter((r) => /^\d{4}-\d{2}$/.test(r['Mese']) && r['Email'] && /^(pagata|esonerat|nessuna)/i.test(r['Stato']))
+    .filter((r) => /^\d{4}-\d{2}$/.test(r['Mese']) && r['Email'] && /^(pagata|esonerat|nessuna|da pagare|quota base)/i.test(r['Stato']))
     .map((r) => ({
       riga: r.riga,
       mese: r['Mese'],
       email: r['Email'].toLowerCase(),
       nome: r['Corista'] ?? '',
-      stato: /^pagata/i.test(r['Stato']) ? 'pagata' : /^nessuna/i.test(r['Stato']) ? 'nessuna' : 'esonerato',
+      stato: /^pagata/i.test(r['Stato']) ? 'pagata' : /^nessuna/i.test(r['Stato']) ? 'nessuna' : /^da pagare/i.test(r['Stato']) ? 'da-pagare' : /^quota base/i.test(r['Stato']) ? 'base' : 'esonerato',
       importo: numero(r['Importo']),
       pagataIl: dataFoglio(r['Pagata il']),
       nota: r['Nota'] ?? '',
@@ -144,11 +157,51 @@ export const exCoristi = (tutte: Quota[], elenco: SchedaCorista[]) => {
 export const mesiSenzaQuota = (tutte: Quota[]) => new Set(tutte.filter((q) => q.email === TUTTI && q.stato === 'nessuna').map((q) => q.mese));
 
 const chiave = (email: string, mese: string) => `${email}|${mese}`;
-export const indice = (elenco: Quota[]) => new Map(elenco.filter((q) => q.email !== TUTTI).map((q) => [chiave(q.email, q.mese), q]));
+// Le quote per corista e mese, più le quote base dei mesi (chiave "tutti|mese"). Con l'elenco dei
+// coristi ci sono anche le quote di settembre di chi non ha una riga nel foglio, calcolate come quota
+// base più ammanco della stagione prima (riga 0: esonerato se fa zero), e ogni quota di settembre
+// porta il calcolo, anche se la cifra è scritta a mano.
+export function indice(tutte: Quota[], elenco?: SchedaCorista[]) {
+  const idx = new Map(tutte.filter((q) => q.email !== TUTTI || q.stato === 'base').map((q) => [chiave(q.email, q.mese), { ...q }]));
+  if (!elenco || !tutte.length) return idx;
+  const senza = mesiSenzaQuota(tutte);
+  const stagioni = tutte.map((q) => stagioneDi(`${q.mese}-15`));
+  // Dalla stagione più vecchia: l'ammanco di una stagione comprende il suo settembre, calcolato prima.
+  // Della stagione prima della più vecchia nel foglio non si sa niente: nessun debito.
+  const prima = Math.min(...stagioni);
+  for (let anno = prima; anno <= stagioneCorrente() + 1; anno++) {
+    const settembre = `${anno}-09`;
+    if (senza.has(settembre)) continue;
+    const mesiPrima = anno > prima ? mesiDelleQuote(anno - 1, tutte).filter((m) => m <= questoMese()) : [];
+    for (const c of attiviNelMese(elenco, settembre)) {
+      const mesi = mesiPrima.filter((m) => attiviNelMese([c], m).length && statoDi(idx, c.email, m) === 'da-pagare');
+      const base = quotaBase(idx, settembre);
+      const ammanco = centesimi(mesi.reduce((t, m) => t + dovutoDi(idx, c.email, m), 0));
+      const calcolata = { base, ammanco, mesi, importo: centesimi(base + ammanco) };
+      const q = idx.get(chiave(c.email, settembre));
+      if (q) q.calcolata = calcolata;
+      else idx.set(chiave(c.email, settembre), {
+        riga: 0, mese: settembre, email: c.email, nome: `${c.nome} ${c.cognome}`,
+        stato: calcolata.importo ? 'da-pagare' : 'esonerato', importo: calcolata.importo, nota: '', calcolata,
+      });
+    }
+  }
+  return idx;
+}
 export const quotaDi = (idx: Map<string, Quota>, email: string, mese: string) => idx.get(chiave(email, mese));
 export const statoDi = (idx: Map<string, Quota>, email: string, mese: string): StatoQuota => {
   const s = idx.get(chiave(email, mese))?.stato;
   return s === 'pagata' || s === 'esonerato' ? s : 'da-pagare';
+};
+// La quota base di un mese: quella indicata dal tesoriere per quel mese, altrimenti la solita
+// (a settembre quotaSettembre, di base metà quota)
+export const quotaBase = (idx: Map<string, Quota>, mese: string) =>
+  idx.get(chiave(TUTTI, mese))?.importo ?? (diSettembre(mese) ? conf().quotaSettembre ?? quotaMensile() / 2 : quotaMensile());
+// Quanto deve (o doveva) un corista per un mese: la quota base; a settembre la sua cifra (quota base più debiti)
+export const dovutoDi = (idx: Map<string, Quota>, email: string, mese: string) => {
+  if (!diSettembre(mese)) return quotaBase(idx, mese);
+  const q = idx.get(chiave(email, mese));
+  return !q || q.stato === 'esonerato' ? 0 : q.importo;
 };
 
 export interface SituazioneMese {
@@ -159,7 +212,7 @@ export interface SituazioneMese {
   esonerati: number;
   daPagare: number;
   raccolto: number;   // le quote di quel mese pagate (in qualunque giorno), anche da chi non è più nella scheda Coristi
-  dovuto: number;     // (attesi - esonerati) × quota
+  dovuto: number;     // le quote dei non esonerati (a settembre le cifre dei debiti)
 }
 
 export function situazioneMese(mese: string, elenco: SchedaCorista[], idx: Map<string, Quota>, senza = new Set<string>()): SituazioneMese {
@@ -175,7 +228,7 @@ export function situazioneMese(mese: string, elenco: SchedaCorista[], idx: Map<s
     esonerati,
     daPagare: senzaQuota ? 0 : attesi.length - pagate.length - esonerati,
     raccolto: tutteDelMese.reduce((t, q) => t + q.importo, 0),
-    dovuto: senzaQuota ? 0 : (attesi.length - esonerati) * quotaMensile(),
+    dovuto: senzaQuota ? 0 : centesimi(attesi.filter((c) => statoDi(idx, c.email, mese) !== 'esonerato').reduce((t, c) => t + dovutoDi(idx, c.email, mese), 0)),
   };
 }
 
@@ -186,24 +239,57 @@ export function arretrati(mesi: string[], elenco: SchedaCorista[], idx: Map<stri
   return elenco
     .map((c) => {
       const suoi = mesi.filter((m) => attiviNelMese([c], m).length && statoDi(idx, c.email, m) === 'da-pagare');
-      return { corista: c, mesi: suoi, importo: suoi.length * quotaMensile() };
+      return { corista: c, mesi: suoi, importo: centesimi(suoi.reduce((t, m) => t + dovutoDi(idx, c.email, m), 0)) };
     })
     .filter((a) => a.mesi.length);
 }
 
+// La quota base di un mese per tutti (giugno, settembre): se è quella solita la riga si toglie
+export async function segnaQuotaBase(mese: string, importo: number, da: string) {
+  if (!/^\d{4}-\d{2}$/.test(mese)) throw new Error('Mese non valido.');
+  const cifra = centesimi(importo);
+  if (!(cifra >= 0)) throw new Error('Quota non valida.');
+  if (!cifra && !diSettembre(mese)) throw new Error('Per un mese senza quota usa «Nessuna quota questo mese».');
+  const tutte = await quote();
+  const esistente = tutte.find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'base');
+  const solita = quotaBase(new Map(), mese);
+  if (cifra === solita) {
+    if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
+    return;
+  }
+  await scriviRiga(QUOTE, [testo(mese), 'Tutti i coristi', TUTTI, 'Quota base', cifra, '', '', da, adesso()], esistente?.riga, FOGLIO_TESORERIA_ID);
+}
+
 // Segna la quota di un corista per un mese: pagata (oggi, o il giorno dato; la quota intera, o
-// l'importo dato), esonerato (con il motivo nella nota) o da pagare (si cancella la riga)
+// l'importo dato), esonerato (con il motivo nella nota) o da pagare (si cancella la riga).
+// A settembre l'importo di "da pagare" è la cifra del corista: zero vale esonerato, e "esonerato" vale
+// zero; se la cifra è quella calcolata (quota base più ammanco, senza nota) la riga si toglie, così
+// segue da sola le correzioni della quota base e della stagione prima.
 export async function segnaQuota(email: string, mese: string, stato: StatoQuota, nota: string, da: string, pagataIl?: string, importo?: number) {
   if (!/^\d{4}-\d{2}$/.test(mese)) throw new Error('Mese non valido.');
-  const c = (await coristi()).find((x) => x.email === email.toLowerCase());
+  const elenco = await coristi();
+  const c = elenco.find((x) => x.email === email.toLowerCase());
   if (!c) throw new Error('Corista non trovato nella scheda Coristi.');
-  const esistente = (await quote()).find((q) => q.email === c.email && q.mese === mese);
+  const tutte = await quote();
+  const esistente = tutte.find((q) => q.email === c.email && q.mese === mese);
+  if (diSettembre(mese) && stato !== 'pagata') {
+    const calcolata = quotaDi(indice(tutte, elenco), c.email, mese)?.calcolata?.importo ?? 0;
+    const cifra = centesimi(stato === 'esonerato' ? 0 : importo !== undefined && importo >= 0 ? importo : calcolata);
+    if (cifra === calcolata && !nota.trim()) {
+      if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
+      return;
+    }
+    await scriviRiga(QUOTE, [testo(mese), testo(`${c.nome} ${c.cognome}`), c.email, cifra ? 'Da pagare' : 'Esonerato', cifra, '', testo(nota.trim().slice(0, 300)), da, adesso()], esistente?.riga, FOGLIO_TESORERIA_ID);
+    return;
+  }
   if (stato === 'da-pagare') {
     if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
     return;
   }
   const giorno = stato === 'pagata' ? (pagataIl && /^\d{4}-\d{2}-\d{2}$/.test(pagataIl) ? pagataIl : esistente?.stato === 'pagata' && esistente.pagataIl ? esistente.pagataIl : oggi()) : '';
-  const quanto = stato === 'pagata' ? centesimi(importo !== undefined && importo >= 0 ? importo : esistente?.stato === 'pagata' ? esistente.importo : quotaMensile()) : 0;
+  const solito = () => dovutoDi(indice(tutte, elenco), c.email, mese);
+  const quanto = stato === 'pagata' ? centesimi(importo !== undefined && importo >= 0 ? importo : esistente?.stato === 'pagata' ? esistente.importo : solito()) : 0;
+  if (stato === 'pagata' && diSettembre(mese) && !quanto) throw new Error('A settembre la cifra zero vuol dire esonerato: scrivi quanto ha versato.');
   const valori = [
     testo(mese), testo(`${c.nome} ${c.cognome}`), c.email,
     stato === 'pagata' ? 'Pagata' : 'Esonerato',
@@ -217,7 +303,7 @@ export async function segnaQuota(email: string, mese: string, stato: StatoQuota,
 // Un mese senza quota per nessuno (sì) o di nuovo con la quota (no)
 export async function segnaMeseSenzaQuota(mese: string, senza: boolean, nota: string, da: string) {
   if (!/^\d{4}-\d{2}$/.test(mese)) throw new Error('Mese non valido.');
-  const esistente = (await quote()).find((q) => q.email === TUTTI && q.mese === mese);
+  const esistente = (await quote()).find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'nessuna');
   if (!senza) {
     if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
     return;
