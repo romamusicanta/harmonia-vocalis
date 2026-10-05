@@ -1,0 +1,168 @@
+---
+// Area coristi: foto dei concerti (/area/foto, src/area/fotoConcerti.ts). In alto il caricamento:
+// si sceglie un concerto già fatto (di base il più recente) e una o più foto; il browser le riduce
+// (lato lungo 2400 px, JPEG) e le carica una dopo l'altra (/area/foto/carica). Sotto, per concerto,
+// le foto che vedono i coristi (miniature da /area/foto/miniatura, la foto intera da /area/file),
+// con chi le ha caricate e "Sul sito" per quelle che i redattori hanno messo nel sito pubblico; chi
+// ha caricato una foto la può togliere.
+import Base from '../../layouts/Base.astro';
+import Icona from '../../componenti/Icona.astro';
+import Errore from '../../area/Errore.astro';
+import { vesteCorrente } from '../../motore/url';
+import { parti } from '../../motore/concerti';
+import { nomeEvento, type Evento } from '../../area/dati';
+import { concertiPerFoto, configurato, fotoDeiConcerti, type ConcertoConFoto } from '../../area/fotoConcerti';
+import { normalizza } from '../../area/servizio';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+const email = normalizza(Astro.locals.corista!.email);
+
+let errore: unknown;
+let concerti: Evento[] = [];
+let gallerie: ConcertoConFoto[] = [];
+if (!configurato()) errore = 'Le foto dei concerti non sono ancora collegate: manca la cartella su Drive (variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server).';
+else {
+  try {
+    [concerti, gallerie] = await Promise.all([concertiPerFoto(), fotoDeiConcerti()]);
+  } catch (e) {
+    errore = e;
+  }
+}
+const quando = (iso: string) => { const d = parti({ data: iso }); return `${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+---
+
+<Base veste={veste} titolo="Foto · Area coristi" area={{ sezione: 'foto' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Foto dei concerti</span>
+        <h1>Foto</h1>
+        <p>Carica le tue foto dei concerti: le vedono subito tutti i coristi. I redattori scelgono quali mettere anche nel sito pubblico.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {errore && <Errore e={errore} />}
+
+      {concerti.length > 0 && (
+        <form class="carta carica-foto" id="carica">
+          <div class="ct"><h2>Carica le foto</h2></div>
+          <div class="cc">
+            <label>Concerto
+              <select name="evento" required>
+                {concerti.map((e) => <option value={e.id}>{quando(e.data)} · {nomeEvento(e)}</option>)}
+              </select>
+            </label>
+            <label class="scegli-foto">
+              <span><Icona nome="fotocamera" />Scegli le foto</span>
+              <input type="file" name="foto" accept="image/*" multiple required />
+            </label>
+            <p class="scelte tenue"></p>
+            <div class="avanza" hidden><progress max="100" value="0" aria-label="Caricamento"></progress><small>Tieni aperta questa pagina fino alla fine.</small></div>
+            <p class="stato" role="status"></p>
+            <button class="btn g" type="submit" disabled><Icona nome="spunta" />Carica</button>
+          </div>
+        </form>
+      )}
+      {configurato() && !errore && concerti.length === 0 && <p class="tenue">Nessun concerto nell'ultimo anno: le foto si caricano dopo il concerto.</p>}
+
+      {gallerie.map((g) => (
+        <div class="carta galleria" id={`c-${g.evento?.id ?? g.data}`}>
+          <div class="ct"><h2>{g.titolo}</h2><span class="tenue" style="font-size:14px">{quando(g.data)} · {g.foto.length} {g.foto.length === 1 ? 'foto' : 'foto'}</span></div>
+          <ul class="foto-griglia">
+            {g.foto.map((f) => (
+              <li>
+                <a href={`/area/file/${f.id}`} target="_blank" rel="noopener"><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
+                <span class="chi">{f.chi}{f.visibilita === 'pubblica' && <span class="tag">Sul sito</span>}</span>
+                {normalizza(f.caricatoDa) === email && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      {configurato() && !errore && gallerie.length === 0 && concerti.length > 0 && <p class="tenue" style="margin-top:20px">Ancora nessuna foto: carica la prima!</p>}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .carica-foto { margin-bottom: 24px; }
+  .carica-foto .cc { display: grid; gap: 14px; }
+  .carica-foto label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .carica-foto select { font: inherit; font-weight: 400; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
+  .scegli-foto { cursor: pointer; }
+  .scegli-foto span { display: inline-flex; align-items: center; gap: 8px; justify-self: start; padding: 12px 18px; border: 2px dashed var(--linea); border-radius: var(--raggio); background: var(--fondo); }
+  .scegli-foto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .scegli-foto:focus-within span { outline: 3px solid var(--primario); }
+  .scelte:empty, .stato:empty { display: none; }
+  .scelte, .stato { margin: 0; font-size: 14px; }
+  .avanza { display: grid; gap: 4px; }
+  .avanza progress { width: 100%; height: 10px; }
+  .carica-foto button { justify-self: start; }
+  .galleria { margin-bottom: 20px; }
+  .galleria .ct { flex-wrap: wrap; gap: 4px 16px; }
+  .foto-griglia { list-style: none; margin: 0; padding: 14px 18px 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .foto-griglia li { position: relative; display: grid; gap: 4px; }
+  .foto-griglia a { display: block; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--fondo); }
+  .foto-griglia img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .foto-griglia .chi { font-size: 13px; color: var(--tenue); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .togli-foto { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgb(0 0 0 / .55); color: #fff; display: grid; place-items: center; cursor: pointer; }
+  .togli-foto :global(svg) { width: 16px; height: 16px; }
+</style>
+
+<script>
+  import { carica } from '../../area/caricamento-client';
+  import { riduci } from '../../admin/immagini';
+
+  const f = document.querySelector<HTMLFormElement>('.carica-foto');
+  if (f) {
+    const input = f.querySelector<HTMLInputElement>('input[type=file]')!;
+    const scelte = f.querySelector<HTMLElement>('.scelte')!;
+    const stato = f.querySelector<HTMLElement>('.stato')!;
+    const avanza = f.querySelector<HTMLElement>('.avanza')!;
+    const barra = avanza.querySelector('progress')!;
+    const bottone = f.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    input.addEventListener('change', () => {
+      const n = input.files?.length ?? 0;
+      scelte.textContent = n ? `${n} ${n === 1 ? 'foto scelta' : 'foto scelte'}` : '';
+      bottone.disabled = !n;
+    });
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = [...(input.files ?? [])];
+      if (!file.length) return;
+      bottone.disabled = true;
+      avanza.hidden = false;
+      const evento = (f.elements.namedItem('evento') as HTMLSelectElement).value;
+      let fatte = 0;
+      const errori: string[] = [];
+      for (const [i, originale] of file.entries()) {
+        stato.textContent = `Foto ${i + 1} di ${file.length}…`;
+        try {
+          // Ridotta prima di partire: più veloce e leggera da vedere
+          const ridotta = await riduci(originale).catch(() => originale);
+          await carica('/area/foto/carica', ridotta, { evento }, (q) => { barra.value = Math.round(((i + q) / file.length) * 100); });
+          fatte++;
+        } catch (err) {
+          errori.push(`${originale.name}: ${(err as Error).message}`);
+        }
+      }
+      barra.value = 100;
+      stato.textContent = `${fatte} ${fatte === 1 ? 'foto caricata' : 'foto caricate'}.${errori.length ? ` Non caricate: ${errori.join(' · ')}` : ''}`;
+      if (fatte && !errori.length) location.href = `/area/foto?caricate=${fatte}#c-${evento}`;
+      else if (fatte) setTimeout(() => location.reload(), 4000);
+      bottone.disabled = false;
+    });
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.togli-foto').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('Togliere questa foto? Sparisce per tutti.')) return;
+    const r = await fetch('/area/foto/togli', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.id }) });
+    const j = await r.json().catch(() => ({ ok: false }));
+    if (j.ok) b.closest('li')?.remove();
+    else alert(`Non tolta: ${j.errore ?? r.status}`);
+  }));
+</script>

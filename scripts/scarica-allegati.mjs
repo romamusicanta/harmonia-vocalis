@@ -3,7 +3,11 @@
 //   graffetta) in coro/immagini/drive/<id>.<ext>: src/motore/concerti.ts le collega ai concerti;
 // - le foto del sito dalla cartella Sito/Foto del Drive condiviso (DRIVE_CARTELLA_FOTO), con i nomi
 //   fissi apertura, coro, prove, maestro, accesso (.jpg, .png…), in coro/immagini/drive/sito/:
-//   src/motore/coro.ts le usa al posto di quelle di coro.config.ts.
+//   src/motore/coro.ts le usa al posto di quelle di coro.config.ts;
+// - le foto dei concerti caricate dai coristi che i redattori hanno messo nel sito pubblico
+//   (cartella Foto dei concerti, DRIVE_CARTELLA_FOTO_CONCERTI, una sottocartella per concerto, proprietà
+//   visibilita = pubblica, vedi src/area/fotoConcerti.ts) in coro/immagini/drive/concerti/<data>/<id>.jpg:
+//   la pagina del concerto di quella data le mostra. Quelle non più pubbliche si cancellano.
 // Astro poi le ottimizza come le altre foto.
 //
 // Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
@@ -14,11 +18,12 @@
 //
 // Non blocca mai la build: se qualcosa manca o non risponde lo scrive con [drive] e il sito
 // usa la locandina generata.
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import ical from 'node-ical';
 
 const cartella = new URL('../coro/immagini/drive/', import.meta.url);
 const cartellaSito = new URL('sito/', cartella);
+const cartellaConcerti = new URL('concerti/', cartella);
 const nomiFotoSito = ['apertura', 'coro', 'prove', 'maestro', 'accesso'];
 const estensioni = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
 const avviso = (m) => console.warn(`[drive] ${m}`);
@@ -108,12 +113,47 @@ async function fotoSito(token) {
   }
 }
 
+// Foto dei concerti pubbliche: una foto non cambia (si scarica una volta); si tolgono quelle che non
+// sono più pubbliche
+async function fotoConcerti(token) {
+  const radice = process.env.DRIVE_CARTELLA_FOTO_CONCERTI;
+  if (!radice) return;
+  const elenco = async (q, campi) => {
+    const p = new URLSearchParams({ q, fields: `files(${campi})`, supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '1000' });
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?${p}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error(`cartella Foto dei concerti non leggibile (${r.status})`);
+    return (await r.json()).files;
+  };
+  const cartelle = await elenco(`'${radice}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`, 'id,name');
+  const volute = new Set();
+  for (const c of cartelle) {
+    const foto = await elenco(`'${c.id}' in parents and trashed = false and appProperties has { key='visibilita' and value='pubblica' }`, 'id,name,mimeType,appProperties');
+    for (const f of foto) {
+      const data = f.appProperties?.data ?? c.name.slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !estensioni[f.mimeType]) continue;
+      const dove = new URL(`${data}/`, cartellaConcerti);
+      const file = new URL(`${f.id}.${estensioni[f.mimeType]}`, dove);
+      volute.add(file.pathname);
+      if (existsSync(file)) continue;
+      mkdirSync(dove, { recursive: true });
+      await scarica(token, f.id, `Foto dei concerti/${c.name}/${f.name}`, file);
+    }
+  }
+  if (!existsSync(cartellaConcerti)) return;
+  for (const giorno of readdirSync(cartellaConcerti)) {
+    const dove = new URL(`${giorno}/`, cartellaConcerti);
+    for (const nome of readdirSync(dove)) if (!volute.has(new URL(nome, dove).pathname)) rmSync(new URL(nome, dove));
+    if (!readdirSync(dove).length) rmSync(dove, { recursive: true });
+  }
+}
+
 async function main() {
-  if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO) return;
+  if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO && !process.env.DRIVE_CARTELLA_FOTO_CONCERTI) return;
   const token = await accessoDrive();
   if (!token) return;
   await allegatiCalendario(token).catch((err) => avviso(`allegati: ${err.message ?? err}`));
   await fotoSito(token).catch((err) => avviso(`foto del sito: ${err.message ?? err}`));
+  await fotoConcerti(token).catch((err) => avviso(`foto dei concerti: ${err.message ?? err}`));
 }
 
 await main().catch((err) => avviso(`${err.message ?? err}`));

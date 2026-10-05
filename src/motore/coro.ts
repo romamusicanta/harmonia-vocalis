@@ -18,8 +18,9 @@ export const DEMO = process.env.DEMO === '1';
 
 // Le immagini del coro stanno in coro/immagini e si indicano per nome di file. Prima della build
 // scripts/scarica-allegati.mjs porta da Drive in coro/immagini/drive/ quelle allegate agli eventi
-// del calendario ("drive/<id>.<ext>") e le foto del sito della cartella Sito/Foto ("drive/sito/…").
-const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*,drive/sito/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
+// del calendario ("drive/<id>.<ext>"), le foto del sito della cartella Sito/Foto ("drive/sito/…") e le
+// foto dei concerti messe nel sito pubblico dai redattori ("drive/concerti/<data>/<id>.jpg").
+const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*,drive/sito/*,drive/concerti/*/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
 
 // Foto del sito: quelle della cartella Sito/Foto di Drive, se ci sono, al posto di coro.config.ts
 const fotoDrive = (nome: string) => !DEMO ? Object.keys(immagini).find((k) => k.startsWith(`/coro/immagini/drive/sito/${nome}.`))?.slice('/coro/immagini/'.length) : undefined;
@@ -36,6 +37,10 @@ export function immagine(nome: string) {
 }
 
 export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in immagini;
+
+// Le foto dei coristi del concerto di quel giorno (AAAA-MM-GG) messe nel sito pubblico, come nomi per immagine()
+export const fotoDelConcerto = (data: string) =>
+  DEMO ? [] : Object.keys(immagini).filter((k) => k.startsWith(`/coro/immagini/drive/concerti/${data}/`)).sort().map((k) => k.slice('/coro/immagini/'.length));
 
 // Sezioni dell'organico. Al singolare parola per parola, per le voci del modulo di candidatura:
 // "Tenori" → "Tenore", "Baritoni e bassi" → "Baritono e basso".

@@ -43,6 +43,8 @@ export default defineConfig({
       DRIVE_CARTELLA_FOTO: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_SPARTITI: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_REGISTRAZIONI: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Foto dei concerti caricate dai coristi (src/area/fotoConcerti.ts; anche la build, per quelle pubbliche)
+      DRIVE_CARTELLA_FOTO_CONCERTI: envField.string({ context: 'server', access: 'secret', optional: true }),
       CORISTI_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       CORISTI_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
       // Area coristi: foglio "Coristi e assenze" e calendario privato "Prove"

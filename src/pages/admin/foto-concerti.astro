@@ -1,0 +1,96 @@
+---
+// Amministrazione → Foto dei concerti (src/area/fotoConcerti.ts): tutte le foto caricate dai coristi,
+// per concerto, il più recente prima. Per ognuna i redattori scelgono chi la vede: Sito pubblico
+// (anche nella pagina del concerto, dopo la pubblicazione), Solo coristi (com'è appena caricata) o
+// Nascosta; oppure la tolgono (cestino del Drive condiviso). Si salva subito (/admin/foto-concerti/stato).
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import Errore from '../../area/Errore.astro';
+import { parti } from '../../motore/concerti';
+import { configurato, fotoDeiConcerti, type ConcertoConFoto } from '../../area/fotoConcerti';
+
+export const prerender = false;
+let errore: unknown;
+let gallerie: ConcertoConFoto[] = [];
+if (!configurato()) errore = 'Manca la cartella «Foto dei concerti» su Drive (variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server).';
+else {
+  try {
+    gallerie = await fotoDeiConcerti(true);
+  } catch (e) {
+    errore = e;
+  }
+}
+const quando = (iso: string) => { const d = parti({ data: iso }); return `${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+const ETICHETTE = { pubblica: 'Sito pubblico', coristi: 'Solo coristi', nascosta: 'Nascosta' } as const;
+---
+
+<LayoutAdmin titolo="Foto dei concerti" sezione="foto-concerti">
+  <h1>Foto dei concerti</h1>
+  <p class="tenue" style="max-width:64ch">Le foto caricate dai coristi dalla loro area. Appena caricate le vedono tutti i coristi; scegli quali mettere anche nel <b>sito pubblico</b>, nella pagina del concerto, e quali nascondere. Le foto pubbliche compaiono sul sito dopo la prossima <a href="/admin">pubblicazione</a>.</p>
+  {errore && <Errore e={errore} />}
+  {!errore && gallerie.length === 0 && <p class="tenue">Ancora nessuna foto.</p>}
+
+  {gallerie.map((g) => (
+    <section class="scheda-admin galleria-admin">
+      <h2>{g.titolo} <small class="tenue">· {quando(g.data)} · {g.foto.length} foto, {g.foto.filter((f) => f.visibilita === 'pubblica').length} sul sito</small></h2>
+      <ul class="foto-admin">
+        {g.foto.map((f) => (
+          <li class:list={[f.visibilita]} data-id={f.id}>
+            <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
+            <small class="tenue">{f.chi}</small>
+            <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
+              {(['pubblica', 'coristi', 'nascosta'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
+            </span>
+            <button type="button" class="togli">Togli</button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</LayoutAdmin>
+
+<style>
+  .galleria-admin { margin: 24px 0; }
+  .galleria-admin h2 { font-size: 19px; margin: 0 0 12px; }
+  .galleria-admin h2 small { font-size: 14px; font-weight: 400; }
+  .foto-admin { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .foto-admin li { display: grid; gap: 6px; align-content: start; }
+  .foto-admin a { display: block; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--fondo); outline: 3px solid transparent; }
+  .foto-admin li.pubblica a { outline-color: var(--accento); }
+  .foto-admin li.nascosta img { opacity: .35; }
+  .foto-admin img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scelta-visibilita { display: flex; border: 2px solid var(--linea); border-radius: var(--raggio); overflow: hidden; }
+  .scelta-visibilita button { flex: 1; font: inherit; font-size: 12px; font-weight: 600; padding: 7px 4px; border: 0; background: var(--bianco); color: var(--tenue); cursor: pointer; min-height: 36px; }
+  .scelta-visibilita button + button { border-left: 2px solid var(--linea); }
+  .scelta-visibilita button[aria-pressed='true'][data-v='pubblica'] { background: var(--accento); color: var(--testo); }
+  .scelta-visibilita button[aria-pressed='true'][data-v='coristi'] { background: var(--primario); color: #fff; }
+  .scelta-visibilita button[aria-pressed='true'][data-v='nascosta'] { background: #6b6b6b; color: #fff; }
+  .foto-admin .in-corso { opacity: .5; pointer-events: none; }
+  .togli { justify-self: start; font: inherit; font-size: 13px; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 4px 0; }
+</style>
+
+<script>
+  const chiama = async (corpo: object) => {
+    const r = await fetch('/admin/foto-concerti/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(() => ({ ok: false }));
+    if (!j.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
+  };
+  document.querySelectorAll<HTMLLIElement>('.foto-admin li').forEach((li) => {
+    const gruppo = li.querySelector<HTMLElement>('.scelta-visibilita')!;
+    gruppo.addEventListener('click', async (e) => {
+      const b = (e.target as Element).closest<HTMLButtonElement>('button');
+      if (!b || b.getAttribute('aria-pressed') === 'true') return;
+      const prima = gruppo.querySelector<HTMLElement>('[aria-pressed="true"]')?.dataset.v ?? 'coristi';
+      const mostra = (v: string) => { gruppo.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v))); li.className = v; };
+      mostra(b.dataset.v!);
+      gruppo.classList.add('in-corso');
+      try { await chiama({ id: li.dataset.id, visibilita: b.dataset.v }); }
+      catch (err) { mostra(prima); alert(`Non salvato: ${(err as Error).message}`); }
+      finally { gruppo.classList.remove('in-corso'); }
+    });
+    li.querySelector('.togli')!.addEventListener('click', async () => {
+      if (!confirm('Togliere questa foto? Va nel cestino del Drive condiviso (si recupera per 30 giorni).')) return;
+      try { await chiama({ id: li.dataset.id, togli: true }); li.remove(); }
+      catch (err) { alert(`Non tolta: ${(err as Error).message}`); }
+    });
+  });
+</script>

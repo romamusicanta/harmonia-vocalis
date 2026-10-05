@@ -69,6 +69,8 @@ const sezioni = ({
     { id: 'registrazioni', testo: 'Registrazioni', icona: 'microfono', href: link(veste, '/area/registrazioni'), tab: true },
     { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: link(veste, '/area/concerti'), tab: true },
     { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: link(veste, '/area/repertorio'), tab: true },
+    // Le foto dei concerti (dal 5/10/2026): nel menu, la barra in basso ha già cinque voci
+    ...(DEMO ? [] : [{ id: 'foto', testo: 'Foto', icona: 'fotocamera' as const, href: '/area/foto' }]),
   ],
   maestro: [
     { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro', tab: true },
@@ -87,6 +89,7 @@ const sezioni = ({
     { id: 'pubblicazione', testo: 'Pubblicazione', href: '/admin', gruppo: 'Sito pubblico' },
     { id: 'concerti', testo: 'Concerti', href: '/admin/concerti' },
     { id: 'foto', testo: 'Foto del sito', href: '/admin/foto' },
+    { id: 'foto-concerti', testo: 'Foto dei concerti', href: '/admin/foto-concerti' },
     { id: 'prove', testo: 'Prove', href: '/admin/prove', gruppo: 'Coro' },
     { id: 'assenze', testo: 'Assenze', href: '/admin/assenze' },
     { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
