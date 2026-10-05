@@ -64,6 +64,11 @@ const riportiVersati = riportiQui.reduce((t, r) => t + r.pagato, 0);
 const raccolte = situazioni.filter((s) => dovuti.includes(s.mese)).reduce((t, s) => t + s.raccolto, 0) + (anno > corrente ? 0 : riportiVersati);
 const attese = situazioni.filter((s) => dovuti.includes(s.mese)).reduce((t, s) => t + s.dovuto, 0) + (anno > corrente ? 0 : riportiQui.reduce((t, r) => t + r.importo, 0));
 const cifra = (n: number) => euro(n).replace(/\s*€/, '');
+// Nella stagione in corso i mesi prima di quello corrente (e il riporto) si possono richiudere: la
+// pagina si apre con loro chiusi, sul mese corrente
+const passati = anno === corrente ? mesi.filter((m) => m < questoMese()) : [];
+const richiudibili = passati.length > 0;
+const etichettaPassati = [...(conRiporto ? ['riporto'] : []), ...(passati.length ? [passati.length > 1 ? `${meseBreve(passati[0])}–${meseBreve(passati.at(-1)!)}` : meseBreve(passati[0])] : [])].join(', ');
 const ETICHETTA = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' } as const;
 const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
 ---
@@ -102,13 +107,17 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
       {nellaStagione.length > 0 && (
         <div class="carta" style="margin-top:24px">
           <div class="tabella-wrap">
-            <table class="tabella griglia-quote">
+            <table class:list={['tabella griglia-quote', { compatta: richiudibili }]}>
               <thead>
                 <tr>
-                  <th>Corista</th>
-                  {conRiporto && <th class="testa-riporto" title="I debiti della stagione prima: calcolati, correggibili a mano; la casellina segna se sono stati versati">Riporto</th>}
+                  <th>
+                    <span class="testa-corista">Corista
+                      {richiudibili && <button type="button" class="mostra-passati" aria-expanded="false" data-etichetta={etichettaPassati} title="Mostra o nascondi i mesi già passati"><span class="freccia">‹</span> <span class="testo-passati">{etichettaPassati}</span></button>}
+                    </span>
+                  </th>
+                  {conRiporto && <th class:list={['testa-riporto', { passato: richiudibili }]} title="I debiti della stagione prima: calcolati, correggibili a mano; la casellina segna se sono stati versati">Riporto</th>}
                   {mesi.map((m) => (
-                    <th><button type="button" class:list={['testa-mese', { 'senza-quota': senza.has(m), ora: m === questoMese() }]} data-mese={m} data-senza={senza.has(m) ? '1' : ''} data-base={String(quotaBase(idx, m))} data-nota={tutte.find((q) => q.email === 'tutti' && q.mese === m && q.stato === 'nessuna')?.nota ?? ''} title={`${meseEsteso(m)}: cifre, quota base e sollecito`}>{meseBreve(m)}<small>{senza.has(m) ? '–' : `${cifra(quotaBase(idx, m))} €`}</small></button></th>
+                    <th class:list={{ passato: passati.includes(m) }}><button type="button" class:list={['testa-mese', { 'senza-quota': senza.has(m), ora: m === questoMese() }]} data-mese={m} data-senza={senza.has(m) ? '1' : ''} data-base={senza.has(m) ? '0' : String(quotaBase(idx, m))} data-nota={tutte.find((q) => q.email === 'tutti' && q.mese === m && q.stato === 'nessuna')?.nota ?? ''} title={`${meseEsteso(m)}: cifre, quota base e sollecito`}>{meseBreve(m)}<small>{senza.has(m) ? '0 €' : `${cifra(quotaBase(idx, m))} €`}</small></button></th>
                   ))}
                 </tr>
               </thead>
@@ -118,14 +127,15 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                     <td title={c.sezione}>{c.nome} {c.cognome}</td>
                     {conRiporto && (() => {
                       const r = riportoDi(rip, c.email, anno);
-                      if (!r) return <td class="cella-riporto"><span class="tenue">–</span></td>;
+                      if (!r) return <td class:list={['cella-riporto', { passato: richiudibili }]}><span class="tenue">–</span></td>;
                       const origine = [r.mesi.length && `quote di ${r.mesi.map(meseEsteso).join(', ')}`, r.precedente && `riporto non versato ${euro(r.precedente)}`].filter(Boolean).join('; ');
                       return (
-                        <td class="cella-riporto">
+                        <td class:list={['cella-riporto', { passato: richiudibili }]}>
                           <span class:list={['riporto', { versato: r.versato, debito: !r.versato && r.importo > 0 }]}>
                             <input class:list={['cifra-riporto', { mano: r.scritto !== undefined }]} inputmode="decimal" value={cifra(r.importo)} disabled={r.versato}
                               data-email={c.email} data-anno={String(anno)} data-valore={cifra(r.importo)} aria-label={`Riporto di ${c.nome} ${c.cognome}`}
-                              title={`Calcolato: ${euro(r.calcolato)}${origine ? ` (${origine})` : ''}${r.scritto !== undefined ? '. Scritto a mano: svuota il campo per tornare a quello calcolato' : ''}${r.versato ? '. Versato: togli la spunta per cambiarlo' : ''}`} />
+                              title={`${r.scritto !== undefined ? `Scritto a mano. Il calcolo ora dà ${euro(r.calcolato)}` : `Calcolato: ${euro(r.calcolato)}`}${origine ? ` (${origine})` : ''}${r.versato ? '. Versato: togli la spunta per cambiarlo' : ''}`} />
+                            {r.scritto !== undefined && !r.versato && <button type="button" class="torna-calcolo" data-email={c.email} data-anno={String(anno)} title={`Cifra scritta a mano: il calcolo ora dà ${euro(r.calcolato)}. Tocca per tornare al calcolo`} aria-label={`Riporta al calcolo (${euro(r.calcolato)})`}>↺</button>}
                             <input type="checkbox" class="versato-riporto" checked={r.versato} disabled={!r.importo && !r.versato} data-email={c.email} data-anno={String(anno)}
                               aria-label={`Riporto di ${c.nome} ${c.cognome} versato`} title={r.versato ? `Versato${r.versatoIl ? ` il ${r.versatoIl.split('-').reverse().join('/')}` : ''}` : 'Segna versato (oggi)'} />
                           </span>
@@ -139,7 +149,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                       const diversa = q?.stato === 'pagata' && q.importo !== quotaBase(idx, m);
                       const dettaglio = [diversa && euro(q.importo), q?.pagataIl && `il ${q.pagataIl.split('-').reverse().join('/')}`, q?.nota].filter(Boolean).join(' · ');
                       return (
-                        <td>
+                        <td class:list={{ passato: passati.includes(m) }}>
                           <button type="button" class:list={['cella-quota', { dovuta: dovuti.includes(m), diversa }]} disabled={!attivo}
                             data-email={c.email} data-mese={m} data-nome={`${c.nome} ${c.cognome}`} data-stato={attivo ? stato : undefined}
                             data-importo={q?.stato === 'pagata' ? String(q.importo) : String(quotaBase(idx, m))} data-data={q?.pagataIl ?? oggi()} data-nota={q?.nota ?? ''}
@@ -150,7 +160,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                   </tr>
                 ))}
               </tbody>
-              <tfoot><tr><td>Raccolte</td>{conRiporto && <td class="tot-riporto">{cifra(riportiVersati)}</td>}{situazioni.map((s) => <td class="tot-mese" data-mese={s.mese}>{s.senzaQuota ? '–' : euro(s.raccolto).replace(/\s*€/, '')}</td>)}</tr></tfoot>
+              <tfoot><tr><td>Raccolte</td>{conRiporto && <td class:list={['tot-riporto', { passato: richiudibili }]}>{cifra(riportiVersati)}</td>}{situazioni.map((s) => <td class:list={['tot-mese', { passato: passati.includes(s.mese) }]} data-mese={s.mese}>{s.senzaQuota ? '–' : euro(s.raccolto).replace(/\s*€/, '')}</td>)}</tr></tfoot>
             </table>
           </div>
           <div class="legenda-t">
@@ -168,12 +178,12 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
               <span><span class="riporto debito mini"><span class="cifra-mini">20</span><span class="spunta-mini"></span></span>da versare</span>
               <span><span class="riporto versato mini"><span class="cifra-mini fissa">20</span><span class="spunta-mini on">✓</span></span>versato</span>
               <span><span class="riporto mini"><span class="cifra-mini">0</span><span class="spunta-mini off"></span></span>nessun debito</span>
-              <span><span class="riporto debito mini"><span class="cifra-mini mano">25</span><span class="spunta-mini"></span></span>cifra scritta a mano</span>
+              <span><span class="riporto debito mini"><span class="cifra-mini mano">25</span><span class="spunta-mini"></span><span class="torna-mini">↺</span></span>cifra scritta a mano (↺ torna al calcolo)</span>
             </div>
           )}
         </div>
       )}
-      <p class="tenue" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base, il sollecito per quel mese, «Nessuna quota». Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
+      <p class="tenue" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
     </div>
   </div>
 
@@ -191,7 +201,6 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
       <p class="nota spiega-base"></p>
       <div class="pulsanti" style="justify-content:flex-start">
         <button type="button" class="btn g piccolo apri-sollecito">Sollecita per questo mese</button>
-        <button type="button" class="btn o piccolo cambia-senza"></button>
         <button type="button" class="btn o piccolo chiudi" style="margin-left:auto">Chiudi</button>
       </div>
     </form>
@@ -245,6 +254,13 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   .base-m { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
   .base-m label { flex: 1 1 160px; }
   .spiega-base:empty { display: none; }
+  .compatta .passato { display: none; }
+  .testa-corista { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mostra-passati { font: inherit; font-size: 12px; font-weight: 600; color: var(--primario); background: var(--fondo); border: 1px solid var(--linea); border-radius: 999px; padding: 3px 9px; cursor: pointer; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+  .mostra-passati:hover { border-color: var(--primario); }
+  .mostra-passati[aria-expanded='true'] .freccia { display: inline-block; transform: scaleX(-1); }
+  .torna-calcolo { font: inherit; font-size: 15px; line-height: 1; color: var(--primario); background: none; border: 0; padding: 2px; cursor: pointer; }
+  .torna-mini { font-size: 11px; color: var(--primario); }
   .cella-quota.diversa { box-shadow: inset 0 0 0 2px var(--accento); }
   .griglia-quote tfoot td { font-size: 12px; text-align: center; }
   .cifre-mese { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -391,15 +407,9 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
     const sol = fm.querySelector<HTMLButtonElement>('.apri-sollecito')!;
     sol.dataset.mese = m;
     sol.hidden = senza || !n('da-pagare');
-    // Senza quota perché la quota base è zero (settembre dopo un giugno corto): si cambia la quota base
-    const baseZero = senza && t.dataset.base === '0';
-    fm.querySelector('.cambia-senza')!.textContent = senza ? `Raccogli la quota a ${meseLungo(m).split(' ')[0]}` : 'Nessuna quota questo mese';
-    fm.querySelector<HTMLElement>('.cambia-senza')!.hidden = baseZero;
-    fm.querySelector<HTMLElement>('.base-m')!.hidden = senza && !baseZero;
     fm.querySelector<HTMLInputElement>('input[name="base"]')!.value = String(t.dataset.base ?? '').replace('.', ',');
-    fm.querySelector('.spiega-base')!.textContent = senza && !baseZero ? ''
-      : m.endsWith('-09') ? 'Settembre ha poche prove e si assimila a giugno: se giugno ne ha avute poche la quota base è zero, se è stato un mese intero metà quota. I debiti della stagione prima sono nella colonna Riporto.'
-      : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : '';
+    fm.querySelector('.spiega-base')!.textContent = m.endsWith('-09') ? 'Settembre ha poche prove e si assimila a giugno: se giugno ne ha avute poche la quota base è zero, se è stato un mese intero metà quota. I debiti della stagione prima sono nella colonna Riporto.'
+      : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : 'Zero = in questo mese la quota non si raccoglie.';
     fm.showModal();
   }));
   fm.querySelector('.salva-base')!.addEventListener('click', async () => {
@@ -413,20 +423,24 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
       alert(`Non salvato: ${(e as Error).message}`);
     }
   });
-  fm.querySelector('.cambia-senza')!.addEventListener('click', async () => {
-    if (!meseAperto) return;
-    const senza = meseAperto.dataset.senza !== '1';
-    let nota = '';
-    if (senza) {
-      const r = prompt('In questo mese la quota non si raccoglie per nessuno. Perché? (facoltativo, es. «coperto dalla quota di giugno»)', '');
-      if (r === null) return;
-      nota = r;
-    }
+
+  // I mesi già passati (e il riporto): chiusi all'apertura, si mostrano con la freccia
+  const passati = document.querySelector<HTMLButtonElement>('.mostra-passati');
+  passati?.addEventListener('click', () => {
+    const aperti = !document.querySelector('.griglia-quote')!.classList.toggle('compatta');
+    passati.setAttribute('aria-expanded', String(aperti));
+    passati.querySelector('.testo-passati')!.textContent = aperti ? 'nascondi' : passati.dataset.etichetta!;
+  });
+
+  // Riporto scritto a mano: ↺ lo riporta al calcolo
+  document.querySelectorAll<HTMLButtonElement>('.torna-calcolo').forEach((b) => b.addEventListener('click', async () => {
+    b.disabled = true;
     try {
-      await invia({ azione: 'senza-quota', mese: meseAperto.dataset.mese, senza, nota });
+      await invia({ azione: 'riporto', email: b.dataset.email, anno: b.dataset.anno, cifra: '' });
       location.reload();
     } catch (e) {
+      b.disabled = false;
       alert(`Non salvato: ${(e as Error).message}`);
     }
-  });
+  }));
 </script>

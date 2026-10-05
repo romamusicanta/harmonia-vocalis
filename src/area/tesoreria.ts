@@ -302,14 +302,17 @@ export function arretrati(mesi: string[], elenco: SchedaCorista[], idx: Map<stri
     .filter((a) => a.mesi.length || a.riporto);
 }
 
-// La quota base di un mese per tutti (giugno, settembre): se è quella solita la riga si toglie
+// La quota base di un mese per tutti (giugno, settembre; zero = il mese non ha quota): se è quella
+// solita la riga si toglie. Toglie anche la vecchia riga "Nessuna quota" del mese (dal 5/10/2026 il
+// mese senza quota si indica solo con la quota base zero)
 export async function segnaQuotaBase(mese: string, importo: number, da: string) {
   if (!/^\d{4}-\d{2}$/.test(mese)) throw new Error('Mese non valido.');
   const cifra = centesimi(importo);
   if (!(cifra >= 0)) throw new Error('Quota non valida.');
-  if (!cifra && !diSettembre(mese)) throw new Error('Per un mese senza quota usa «Nessuna quota questo mese».');
   const tutte = await quote();
-  const esistente = tutte.find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'base');
+  const nessuna = tutte.find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'nessuna');
+  if (nessuna) await cancellaRiga(QUOTE, nessuna.riga, FOGLIO_TESORERIA_ID);
+  const esistente = (nessuna ? await quote() : tutte).find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'base');
   const solita = quotaBase(new Map(), mese);
   if (cifra === solita) {
     if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
