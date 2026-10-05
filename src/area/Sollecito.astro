@@ -1,118 +1,105 @@
 ---
-// Area del tesoriere: chi deve ancora pagare le quote e il sollecito solo a loro. Nel Riepilogo con
-// tutte le quote della stagione fino a oggi, in Quote con quelle di un mese (mese). Due modi:
+// Area del tesoriere: la finestra del sollecito a chi deve ancora pagare le quote. Si apre da ogni
+// pulsante .apri-sollecito della pagina: con data-mese solo quel mese, senza tutte le quote della
+// stagione fino a oggi. L'elenco arriva da /tesoriere/sollecito (azione=quanti). Due modi:
 // - notifica personale sui dispositivi dove il corista ha acceso le notifiche ("Ciao Anna, risulta
-//   ancora da versare la quota di ottobre…", dal modello correggibile; /tesoriere/sollecito);
+//   ancora da versare la quota di ottobre…", dal modello correggibile);
 // - email: si apre il programma di posta con i loro indirizzi in Ccn (nessuno vede gli altri).
 // Chi non ha né notifiche né guarda la posta va avvisato a voce: l'elenco dei nomi serve a questo.
-import Icona from '../componenti/Icona.astro';
 import { coro } from '../motore/coro';
-import { euro, meseEsteso, MODELLO_SOLLECITO, nomeMese, type Arretrato } from './tesoreria';
+import { MODELLO_SOLLECITO } from './tesoreria';
 import { configurate } from './notifiche';
-
-interface Props { elenco: Arretrato[]; mese?: string }
-const { elenco, mese } = Astro.props;
-const totale = elenco.reduce((t, a) => t + a.importo, 0);
-const oggetto = mese ? `Quota del coro di ${meseEsteso(mese)}` : 'Quote del coro';
-const corpo = mese
-  ? `Ciao,\nrisulta ancora da versare la quota del coro di ${meseEsteso(mese)}. Puoi darla al tesoriere alla prossima prova.\nGrazie!\n\nIl tesoriere – ${coro.nome}`
-  : `Ciao,\nrisultano ancora da versare alcune quote del coro di questa stagione. Puoi chiedere al tesoriere quali e darle alla prossima prova.\nGrazie!\n\nIl tesoriere – ${coro.nome}`;
-// Gli indirizzi separati da virgole non codificate: alcuni programmi di posta non leggono %2C
-const posta = `mailto:?bcc=${elenco.map((a) => encodeURIComponent(a.corista.email)).join(',')}&subject=${encodeURIComponent(oggetto)}&body=${encodeURIComponent(corpo)}`;
 ---
 
-<div class="carta sollecito-quote" data-mese={mese ?? ''}>
-  <div class="ct">
-    <h2>{mese ? `Da pagare per ${nomeMese(mese)}` : 'Chi deve ancora pagare'}</h2>
-    {elenco.length > 0 && <span class="tag">{elenco.length} · {euro(totale)}</span>}
-  </div>
-  <div class="cc">
-    {elenco.length === 0 ? (
-      <p class="tenue" style="margin:0">{mese ? 'Tutti in regola per questo mese.' : 'Tutti in regola con le quote della stagione fino a oggi.'}</p>
-    ) : (
+<dialog class="finestra-notifica finestra-sollecito" data-firma={`Il tesoriere – ${coro.nome}`} data-notifiche={configurate() ? '1' : ''}>
+  <form method="dialog">
+    <h2 class="titolo-s">Chi deve ancora pagare</h2>
+    <p class="nota quanti">Carico l'elenco…</p>
+    <ul class="chi-deve"></ul>
+    {configurate() && (
       <>
-        <ul class="chi-deve">
-          {elenco.map((a) => (
-            <li><b>{a.corista.nome} {a.corista.cognome}</b><span>{mese ? euro(a.importo) : `${a.mesi.map((m) => nomeMese(m).slice(0, 3)).join(', ')} · ${euro(a.importo)}`}</span></li>
-          ))}
-        </ul>
-        <div class="azioni-sollecito">
-          {configurate() && <button type="button" class="btn g piccolo apri-sollecito"><Icona nome="campanella" />Notifica a chi non ha pagato</button>}
-          <a class="btn o piccolo" href={posta}><Icona nome="email" />Email a chi non ha pagato</a>
-        </div>
-        <p class="tenue nota-sollecito">La notifica arriva solo a chi l'ha accesa nell'area coristi; l'email si apre nel tuo programma di posta, con gli indirizzi in Ccn.</p>
+        <label class="solo-se-debitori">Messaggio della notifica<textarea name="modello" rows="4" maxlength="600">{MODELLO_SOLLECITO}</textarea></label>
+        <p class="nota solo-se-debitori">{'{nome}'}, {'{mesi}'} e {'{importo}'} diventano il nome, i mesi da pagare e l'importo di ciascuno. Arriva con il titolo «Quota del coro» solo a chi ha acceso le notifiche.</p>
       </>
     )}
-  </div>
-</div>
-
-{elenco.length > 0 && configurate() && (
-  <dialog class="finestra-notifica finestra-sollecito">
-    <form method="dialog">
-      <h2>Sollecito delle quote</h2>
-      <label>Messaggio<textarea name="modello" rows="5" maxlength="600">{MODELLO_SOLLECITO}</textarea></label>
-      <p class="nota">{'{nome}'}, {'{mesi}'} e {'{importo}'} diventano il nome, i mesi da pagare e l'importo di ciascuno. Arriva con il titolo «Quota del coro».</p>
-      <p class="nota quanti">Conto chi ha le notifiche accese…</p>
-      <p class="esito" hidden></p>
-      <div class="pulsanti">
-        <button type="button" class="btn o piccolo chiudi">Annulla</button>
-        <button type="submit" class="btn g piccolo invia">Invia</button>
-      </div>
-    </form>
-  </dialog>
-)}
+    <p class="esito" hidden></p>
+    <div class="pulsanti">
+      <button type="button" class="btn o piccolo chiudi">Chiudi</button>
+      <a class="btn o piccolo posta solo-se-debitori" href="#">Email (in Ccn)</a>
+      {configurate() && <button type="submit" class="btn g piccolo invia solo-se-debitori">Invia la notifica</button>}
+    </div>
+  </form>
+</dialog>
 
 <style>
-  .sollecito-quote { margin: 24px 0; }
-  .chi-deve { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 2px; }
-  .chi-deve li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--linea); font-size: 15px; }
-  .chi-deve li span { color: var(--tenue); text-align: right; }
-  .azioni-sollecito { display: flex; flex-wrap: wrap; gap: 10px; }
-  .nota-sollecito { font-size: 13px; margin: 12px 0 0; }
+  .chi-deve { list-style: none; margin: 0; padding: 0; max-height: 34vh; overflow: auto; border-top: 1px solid var(--linea); }
+  .chi-deve:empty { display: none; }
+  .chi-deve :global(li) { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--linea); font-size: 14px; }
+  .chi-deve :global(li span) { color: var(--tenue); text-align: right; }
+  .finestra-sollecito:not(.con-debitori) .solo-se-debitori { display: none; }
 </style>
 
 <script>
-  // Il sollecito: conta chi ha le notifiche accese, poi manda a ciascuno la sua
-  document.querySelectorAll<HTMLElement>('.sollecito-quote').forEach((s) => {
-    const d = s.nextElementSibling as HTMLDialogElement | null;
-    if (!d?.matches('dialog.finestra-sollecito')) return;
-    const mese = s.dataset.mese || undefined;
+  const d = document.querySelector<HTMLDialogElement>('.finestra-sollecito');
+  if (d) {
     const f = d.querySelector('form')!;
+    const titolo = d.querySelector<HTMLElement>('.titolo-s')!;
     const quanti = d.querySelector<HTMLElement>('.quanti')!;
+    const lista = d.querySelector<HTMLUListElement>('.chi-deve')!;
     const esito = d.querySelector<HTMLElement>('.esito')!;
-    const invia = d.querySelector<HTMLButtonElement>('.invia')!;
-    const chiudi = d.querySelector<HTMLButtonElement>('.chiudi')!;
-    const chiama = (azione: string) => fetch('/tesoriere/sollecito', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ azione, mese, modello: f.modello.value }) })
+    const invia = d.querySelector<HTMLButtonElement>('.invia');
+    const posta = d.querySelector<HTMLAnchorElement>('.posta')!;
+    let mese: string | undefined;
+    const chiama = (azione: string) => fetch('/tesoriere/sollecito', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ azione, mese, modello: (f.modello as HTMLTextAreaElement | undefined)?.value }) })
       .then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.errore ?? `Errore ${r.status}`); return j; });
-    chiudi.addEventListener('click', () => d.close());
-    s.querySelector('.apri-sollecito')?.addEventListener('click', async () => {
-      invia.disabled = false; invia.textContent = 'Invia'; chiudi.textContent = 'Annulla'; esito.hidden = true;
-      quanti.textContent = 'Conto chi ha le notifiche accese…';
-      d.showModal();
+    const nomeMese = (m: string) => new Date(`${m}-15`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+    d.querySelector('.chiudi')!.addEventListener('click', () => d.close());
+
+    document.addEventListener('click', async (e) => {
+      const b = (e.target as Element).closest<HTMLElement>('.apri-sollecito');
+      if (!b) return;
+      mese = b.dataset.mese || undefined;
+      titolo.textContent = mese ? `Da pagare per ${nomeMese(mese)}` : 'Chi deve ancora pagare';
+      quanti.textContent = 'Carico l’elenco…';
+      lista.replaceChildren();
+      d.classList.remove('con-debitori');
+      esito.hidden = true;
+      if (invia) { invia.disabled = false; invia.textContent = 'Invia la notifica'; }
+      document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((x) => x !== d && x.close());
+      if (!d.open) d.showModal();
       try {
         const j = await chiama('quanti');
-        quanti.textContent = j.conNotifiche
-          ? `Arriverà a ${j.conNotifiche} ${j.conNotifiche === 1 ? 'persona' : 'persone'} su ${j.persone}: ${j.persone - j.conNotifiche ? `gli altri ${j.persone - j.conNotifiche} non hanno acceso le notifiche, avvisali per email o a voce.` : 'tutti hanno le notifiche accese.'}`
-          : `Nessuno dei ${j.persone} ha acceso le notifiche: avvisali per email o a voce.`;
-        invia.disabled = !j.conNotifiche;
-      } catch (e) {
-        quanti.textContent = `Non riesco a contarli. ${(e as Error).message}`;
+        for (const x of j.elenco as { nome: string; mesi: string[]; importo: string }[]) {
+          const li = document.createElement('li');
+          li.append(Object.assign(document.createElement('b'), { textContent: x.nome }), Object.assign(document.createElement('span'), { textContent: `${mese ? '' : `${x.mesi.map((m) => m.slice(0, 3)).join(', ')} · `}${x.importo}` }));
+          lista.append(li);
+        }
+        d.classList.toggle('con-debitori', j.persone > 0);
+        if (!j.persone) { quanti.textContent = mese ? 'Tutti in regola per questo mese.' : 'Tutti in regola con le quote della stagione fino a oggi.'; return; }
+        quanti.textContent = `${j.persone} ${j.persone === 1 ? 'corista' : 'coristi'}, ${j.totale} in tutto.${d.dataset.notifiche ? ` La notifica arriverebbe a ${j.conNotifiche} di loro${j.persone - j.conNotifiche ? `: gli altri ${j.persone - j.conNotifiche} non hanno acceso le notifiche, avvisali per email o a voce.` : '.'}` : ''}`;
+        if (invia) invia.disabled = !j.conNotifiche;
+        const corpo = `Ciao,\nrisulta ancora da versare ${mese ? `la quota del coro di ${nomeMese(mese)}` : 'qualche quota del coro di questa stagione: puoi chiedere al tesoriere quali'}. Puoi darla al tesoriere alla prossima prova.\nGrazie!\n\n${d.dataset.firma}`;
+        posta.href = `mailto:?bcc=${(j.email as string[]).map(encodeURIComponent).join(',')}&subject=${encodeURIComponent(mese ? `Quota del coro di ${nomeMese(mese)}` : 'Quote del coro')}&body=${encodeURIComponent(corpo)}`;
+      } catch (err) {
+        quanti.textContent = `Non riesco a caricare l’elenco. ${(err as Error).message}`;
       }
     });
+
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!invia) return;
       invia.disabled = true; invia.textContent = 'Invio…'; esito.hidden = true;
       try {
         const j = await chiama('invia');
         esito.className = 'esito ok';
         esito.textContent = `Sollecito arrivato a ${j.raggiunte} ${j.raggiunte === 1 ? 'persona' : 'persone'}.`;
-        invia.textContent = 'Inviato'; chiudi.textContent = 'Chiudi';
+        invia.textContent = 'Inviata';
       } catch (err) {
         esito.className = 'esito errore';
-        esito.textContent = `Non inviato. ${(err as Error).message}`;
-        invia.disabled = false; invia.textContent = 'Invia';
+        esito.textContent = `Non inviata. ${(err as Error).message}`;
+        invia.disabled = false; invia.textContent = 'Invia la notifica';
       }
       esito.hidden = false;
     });
-  });
+  }
 </script>

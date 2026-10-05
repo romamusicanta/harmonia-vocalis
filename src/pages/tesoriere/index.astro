@@ -1,16 +1,22 @@
 ---
-// Area del tesoriere (/tesoriere): riepilogo della stagione (dal 1 settembre al 31 agosto; ?stagione=2025
-// per quelle passate). Quote: raccolte, dovute fino a oggi, situazione del mese in corso e mese per
-// mese; cassa: saldo iniziale, entrate, uscite, saldo, mese per mese; chi deve ancora pagare, con il
-// sollecito. Dati in src/area/tesoreria.ts.
+// Area del tesoriere (/tesoriere): il riepilogo della stagione (dal 1 settembre al 31 agosto;
+// ?stagione=2025 per le passate, la stagione dopo per gli anticipi). Una sola tabella, come il
+// prospetto "Quote coristi" del rendiconto, da cui si segnano anche i pagamenti (dal 5/10/2026, al
+// posto della pagina Quote, che rimanda qui): una riga per corista (in ordine alfabetico) e una
+// casella per mese. Un tocco su una casella: da pagare → pagata → esonerato (chiede il motivo) →
+// da pagare; pressione lunga o doppio clic: importo, data del pagamento e nota (anticipi, pagamenti
+// di altri giorni). Un tocco sul nome del mese: le sue cifre, il sollecito per quel mese e "Nessuna
+// quota" (come settembre 2025). In alto tre cifre (quote raccolte, chi deve pagare, saldo di cassa)
+// e il sollecito per tutte le quote dovute fino a oggi. Si salva tutto subito con /tesoriere/quote/segna.
 import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
+import Icona from '../../componenti/Icona.astro';
 import Sollecito from '../../area/Sollecito.astro';
 import { vesteCorrente } from '../../motore/url';
-import { coristi, type SchedaCorista } from '../../area/dati';
+import { coristi, oggi, type SchedaCorista } from '../../area/dati';
 import {
-  arretrati, cassa, configurata, euro, indice, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeMese, nomeStagione, questoMese,
-  quote, situazioneMese, tutteLeQuote, stagioneCorrente, stagioniConDati, type Arretrato, type Cassa, type SituazioneMese,
+  arretrati, attiviNelMese, cassa, configurata, euro, indice, meseBreve, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeStagione, questoMese,
+  quotaDi, quotaMensile, quote, situazioneMese, stagioneCorrente, stagioneDi, statoDi, tutteLeQuote, type Cassa, type Quota,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -19,36 +25,37 @@ const veste = vesteCorrente(undefined);
 
 const corrente = configurata() ? stagioneCorrente() : 0;
 const chiesta = Number(Astro.url.searchParams.get('stagione'));
-const anno = chiesta >= 2000 && chiesta <= corrente ? chiesta : corrente;
+const anno = chiesta >= 2000 && chiesta <= corrente + 1 ? chiesta : corrente;
 const passata = anno < corrente;
 
 let errore: unknown;
-let stagioni: number[] = [];
-let mesi: SituazioneMese[] = [];
-let conti: Cassa | undefined;
-let debitori: Arretrato[] = [];
 let elenco: SchedaCorista[] = [];
+let tutte: Quota[] = [];
+let conti: Cassa | undefined;
+let stagioni: number[] = [];
 if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
 else {
   try {
     const [c, q, m] = await Promise.all([coristi(), quote(), movimenti()]);
-    elenco = c;
-    const idx = indice(q);
-    stagioni = stagioniConDati(q, m);
-    const senza = mesiSenzaQuota(q);
-    mesi = tutteLeQuote(anno).map((mese) => situazioneMese(mese, c, idx, senza));
+    elenco = c; tutte = q;
     conti = cassa(anno, q, m);
-    debitori = arretrati(passata ? mesiDelleQuote(anno, q) : mesiDovuti(anno, q), c, idx);
+    stagioni = [...new Set([corrente + 1, corrente, ...q.map((x) => stagioneDi(`${x.mese}-15`)), ...m.map((x) => stagioneDi(x.data))])].filter((x) => x <= corrente + 1).sort((a, b) => b - a);
   } catch (e) {
     errore = e;
   }
 }
-const dovuti = mesi.filter((m) => passata || m.mese <= questoMese());
-const raccolte = dovuti.reduce((t, m) => t + m.raccolto, 0);
-const attese = dovuti.reduce((t, m) => t + m.dovuto, 0);
-const meseOra = mesi.find((m) => m.mese === questoMese() && !m.senzaQuota);
-const inRegola = elenco.length - debitori.length;
-const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+const idx = indice(tutte);
+const senza = mesiSenzaQuota(tutte);
+const mesi = anno ? tutteLeQuote(anno) : [];
+// Le quote "dovute": fino al mese in corso (tutte, per una stagione passata)
+const dovuti = passata ? mesiDelleQuote(anno, tutte) : anno > corrente ? [] : mesiDovuti(anno, tutte);
+const debitori = arretrati(dovuti, elenco, idx);
+const situazioni = mesi.map((m) => situazioneMese(m, elenco, idx, senza));
+const raccolte = situazioni.filter((s) => dovuti.includes(s.mese)).reduce((t, s) => t + s.raccolto, 0);
+const attese = situazioni.filter((s) => dovuti.includes(s.mese)).reduce((t, s) => t + s.dovuto, 0);
+const nellaStagione = elenco.filter((c) => mesi.some((m) => attiviNelMese([c], m).length));
+const ETICHETTA = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' } as const;
+const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
 ---
 
 <Base veste={veste} titolo="Riepilogo · Area del tesoriere" area={{ tesoriere: true, sezione: 'riepilogo' }}>
@@ -57,7 +64,7 @@ const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Riepilogo</h1>
-        <p>Quote dei coristi e cassa del coro, dal 1 settembre al 31 agosto. Le quote si segnano in <a href="/tesoriere/quote">Quote</a>, le altre entrate e le uscite in <a href="/tesoriere/cassa">Entrate e uscite</a>.</p>
+        <p>{euro(quotaMensile())} al mese, da settembre a giugno. Segna le quote nella tabella: un tocco su una casella per «pagata», pressione lunga per importo e data.</p>
       </div>
     </div>
   </div>
@@ -67,61 +74,251 @@ const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
       {errore && <Errore e={errore} />}
       {stagioni.length > 1 && (
         <nav class="scelta-t" aria-label="Stagione">
-          {stagioni.map((s) => <a href={s === corrente ? '/tesoriere' : `/tesoriere?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}</a>)}
+          {stagioni.map((s) => <a href={s === corrente ? '/tesoriere' : `/tesoriere?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}{s > corrente && ' · anticipi'}</a>)}
         </nav>
       )}
 
       {conti && (
         <>
-          <h2 class="titolo-t" style="margin-top:0">Quote {passata ? 'della stagione' : 'fino a oggi'}</h2>
           <div class="cifre-t">
-            <div class="cifra-t forte"><b>{euro(raccolte)}</b><span>raccolte su {euro(attese)} dovute</span></div>
-            <div class="cifra-t verde"><b>{inRegola}</b><span>coristi in regola</span></div>
-            <div class:list={['cifra-t', { rosso: debitori.length }]}><b>{debitori.length}</b><span>con quote da pagare</span><small>{euro(debitori.reduce((t, a) => t + a.importo, 0))} in tutto</small></div>
-            {meseOra && !passata && <div class="cifra-t"><b>{meseOra.pagate}/{meseOra.attesi.length - meseOra.esonerati}</b><span>hanno pagato {nomeMese(meseOra.mese)}</span><small>{meseOra.esonerati} esonerati · {meseOra.daPagare} da pagare</small></div>}
+            <div class="cifra-t forte"><b>{euro(raccolte)}</b><span>quote raccolte {passata ? 'nella stagione' : 'fino a oggi'}</span><small>su {euro(attese)} dovute</small></div>
+            <div class:list={['cifra-t', { rosso: debitori.length }]}><b>{debitori.length}</b><span>{debitori.length === 1 ? 'corista deve' : 'coristi devono'} ancora pagare</span><small>{euro(debitori.reduce((t, a) => t + a.importo, 0))} in tutto</small></div>
+            <a class="cifra-t" href={passata ? `/tesoriere/cassa?stagione=${anno}` : '/tesoriere/cassa'}><b>{euro(conti.saldoFinale)}</b><span>{passata ? 'saldo di fine stagione' : 'saldo di cassa'}</span><small>Entrate e uscite →</small></a>
           </div>
-
-          <h2 class="titolo-t">Cassa</h2>
-          <div class="cifre-t">
-            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>avanzo di cassa {nomeStagione(anno - 1)}</span>{conti.saldoInizialeRiportato && <small>riportato dalla stagione prima</small>}</div>
-            <div class="cifra-t"><b>{euro(conti.quote + conti.entrate)}</b><span>entrate</span><small>{euro(conti.quote)} di quote · {euro(conti.entrate)} altre</small></div>
-            <div class="cifra-t"><b>{euro(conti.speseDiGestione)}</b><span>spese di gestione</span>{conti.partiteDiGiro.uscite > 0 && <small>uscite {euro(conti.uscite)}, meno {euro(conti.partiteDiGiro.uscite)} di partite di giro</small>}</div>
-            <div class="cifra-t forte"><b>{euro(conti.saldoFinale)}</b><span>{passata ? 'saldo di fine stagione' : 'saldo di oggi'}</span></div>
-          </div>
-          <p class="tenue" style="font-size:14px;margin-top:10px">Il rendiconto completo della stagione, da stampare o salvare in PDF, è in <a href="/tesoriere/rendiconto">Rendiconto</a>.</p>
-
-          <Sollecito elenco={passata ? [] : debitori} />
-
-          <h2 class="titolo-t">Mese per mese</h2>
-          <div class="carta">
-            <div class="tabella-wrap">
-              <table class="tabella">
-                <thead><tr><th>Mese</th><th class="num">Hanno pagato</th><th class="num">Esonerati</th><th class="num">Da pagare</th><th class="num">Quote incassate</th><th class="num">Altre entrate</th><th class="num">Uscite</th><th class="num">Saldo del mese</th></tr></thead>
-                <tbody>
-                  {conti.mesi.map((c) => {
-                    const q = mesi.find((m) => m.mese === c.mese);
-                    const futuro = !passata && c.mese > questoMese();
-                    return (
-                      <tr class:list={{ futuro }}>
-                        <td><a href={`/tesoriere/quote?mese=${c.mese}`} style={q ? '' : 'pointer-events:none;color:inherit;text-decoration:none'}>{meseEsteso(c.mese)}</a></td>
-                        <td class="num">{q && !q.senzaQuota ? `${q.pagate}/${q.attesi.length - q.esonerati}` : q?.senzaQuota ? 'senza quota' : '—'}</td>
-                        <td class="num">{q && !q.senzaQuota ? q.esonerati : '—'}</td>
-                        <td class="num">{q ? (futuro ? '—' : q.daPagare) : '—'}</td>
-                        <td class="num">{c.quote ? euro(c.quote) : '—'}</td>
-                        <td class="num">{c.entrate ? euro(c.entrate) : '—'}</td>
-                        <td class="num">{c.uscite ? euro(c.uscite) : '—'}</td>
-                        <td class:list={['num', segno(c.saldo)]}>{c.saldo ? euro(c.saldo) : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot><tr><td>Stagione</td><td class="num"></td><td class="num"></td><td class="num">{debitori.reduce((t, a) => t + a.mesi.length, 0) || '—'}</td><td class="num">{euro(conti.quote)}</td><td class="num">{euro(conti.entrate)}</td><td class="num">{euro(conti.uscite)}</td><td class:list={['num', segno(conti.quote + conti.entrate - conti.uscite)]}>{euro(conti.quote + conti.entrate - conti.uscite)}</td></tr></tfoot>
-              </table>
-            </div>
-          </div>
-          <p class="tenue" style="font-size:14px;margin-top:10px">«Hanno pagato» conta le quote di quel mese, chiunque e in qualunque giorno le abbia pagate; «Quote incassate» conta i soldi entrati quel mese (anche quote di altri mesi pagate insieme). Il saldo del mese è incassi meno uscite.</p>
+          {!passata && anno <= corrente && debitori.length > 0 && <p style="margin:12px 0 0"><button type="button" class="btn g apri-sollecito"><Icona nome="campanella" />Sollecita chi non ha pagato</button></p>}
         </>
       )}
+
+      {nellaStagione.length > 0 && (
+        <div class="carta" style="margin-top:24px">
+          <div class="tabella-wrap">
+            <table class="tabella griglia-quote" data-quota={quotaMensile()}>
+              <thead>
+                <tr>
+                  <th>Corista</th>
+                  {mesi.map((m) => (
+                    <th><button type="button" class:list={['testa-mese', { 'senza-quota': senza.has(m), ora: m === questoMese() }]} data-mese={m} data-senza={senza.has(m) ? '1' : ''} data-nota={tutte.find((q) => q.email === 'tutti' && q.mese === m)?.nota ?? ''} title={`${meseEsteso(m)}: cifre e sollecito`}>{meseBreve(m)}</button></th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {nellaStagione.map((c) => (
+                  <tr>
+                    <td title={c.sezione}>{c.nome} {c.cognome}</td>
+                    {mesi.map((m) => {
+                      const attivo = attiviNelMese([c], m).length > 0 && !senza.has(m);
+                      const stato = statoDi(idx, c.email, m);
+                      const q = quotaDi(idx, c.email, m);
+                      const dettaglio = [q?.stato === 'pagata' && q.importo !== quotaMensile() && euro(q.importo), q?.pagataIl && `il ${q.pagataIl.split('-').reverse().join('/')}`, q?.nota].filter(Boolean).join(' · ');
+                      return (
+                        <td>
+                          <button type="button" class:list={['cella-quota', { dovuta: dovuti.includes(m), diversa: q?.stato === 'pagata' && q.importo !== quotaMensile() }]} disabled={!attivo}
+                            data-email={c.email} data-mese={m} data-nome={`${c.nome} ${c.cognome}`} data-stato={attivo ? stato : undefined}
+                            data-importo={q?.stato === 'pagata' ? String(q.importo) : String(quotaMensile())} data-data={q?.pagataIl ?? oggi()} data-nota={q?.nota ?? ''}
+                            title={attivo ? `${c.nome} ${c.cognome}, ${meseEsteso(m)}: ${ETICHETTA[stato]}${dettaglio ? ` (${dettaglio})` : ''}` : senza.has(m) ? `Nessuna quota a ${meseEsteso(m)}` : `Non era nel coro a ${meseEsteso(m)}`}>{attivo ? SIMBOLO[stato] : '–'}</button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot><tr><td>Raccolte</td>{situazioni.map((s) => <td class="tot-mese" data-mese={s.mese}>{s.senzaQuota ? '–' : euro(s.raccolto).replace(/\s*€/, '')}</td>)}</tr></tfoot>
+            </table>
+          </div>
+          <div class="legenda-t">
+            <span><span class="cella-quota" data-stato="pagata">✓</span>pagata</span>
+            <span><span class="cella-quota" data-stato="esonerato">E</span>esonerato</span>
+            <span><span class="cella-quota dovuta" data-stato="da-pagare"></span>da pagare</span>
+            <span><span class="cella-quota" data-stato="da-pagare"></span>mese non ancora arrivato</span>
+            <span><span class="cella-quota" style="border-style:dashed;opacity:.4">–</span>non dovuta</span>
+            <span><span class="cella-quota diversa" data-stato="pagata">✓</span>importo diverso</span>
+          </div>
+        </div>
+      )}
+      <p class="tenue" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Un tocco sul mese: le sue cifre, il sollecito per quel mese, «Nessuna quota». Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
     </div>
   </div>
+
+  <Sollecito />
+
+  <dialog class="finestra-notifica finestra-mese">
+    <form method="dialog">
+      <h2 class="titolo-m"></h2>
+      <div class="cifre-mese"></div>
+      <p class="nota nota-m"></p>
+      <div class="pulsanti" style="justify-content:flex-start">
+        <button type="button" class="btn g piccolo apri-sollecito">Sollecita per questo mese</button>
+        <button type="button" class="btn o piccolo cambia-senza"></button>
+        <button type="button" class="btn o piccolo chiudi" style="margin-left:auto">Chiudi</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="finestra-notifica finestra-dettagli">
+    <form method="dialog">
+      <h2>Quota di <span class="chi-d"></span></h2>
+      <p class="nota mese-d"></p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label>Importo (€)<input name="importo" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" required /></label>
+        <label>Pagata il<input name="pagataIl" type="date" required /></label>
+      </div>
+      <label>Nota <input name="nota" maxlength="300" placeholder="Es. anticipo, pagata con bonifico" /></label>
+      <p class="esito" hidden></p>
+      <div class="pulsanti">
+        <button type="button" class="btn o piccolo chiudi">Annulla</button>
+        <button type="submit" class="btn g piccolo">Segna pagata</button>
+      </div>
+    </form>
+  </dialog>
 </Base>
+
+<style>
+  a.cifra-t { text-decoration: none; color: inherit; }
+  a.cifra-t:hover { border-color: var(--primario); }
+  .testa-mese { font: inherit; font-weight: 700; font-size: 13px; color: var(--primario); background: none; border: 0; padding: 6px 4px; border-radius: 6px; cursor: pointer; text-transform: lowercase; }
+  .testa-mese:hover { background: var(--fondo); }
+  .testa-mese.ora { box-shadow: inset 0 -3px 0 var(--accento); }
+  .testa-mese.senza-quota { color: var(--tenue); text-decoration: line-through; }
+  .cella-quota.diversa { box-shadow: inset 0 0 0 2px var(--accento); }
+  .griglia-quote tfoot td { font-size: 12px; text-align: center; }
+  .cifre-mese { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .cifre-mese:empty { display: none; }
+  .cifre-mese :global(div) { border: 1px solid var(--linea); border-radius: var(--raggio); padding: 10px 12px; display: grid; }
+  .cifre-mese :global(b) { font-size: 22px; color: var(--primario); }
+  .cifre-mese :global(span) { font-size: 13px; color: var(--tenue); }
+</style>
+
+<script>
+  const SIMBOLO: Record<string, string> = { pagata: '✓', esonerato: 'E', 'da-pagare': '' };
+  const ETICHETTA: Record<string, string> = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' };
+  const PROSSIMO: Record<string, string> = { 'da-pagare': 'pagata', pagata: 'esonerato', esonerato: 'da-pagare' };
+  const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(n).replace(/,00(?=\s?€)/, '');
+  const meseLungo = (m: string) => new Date(`${m}-15`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+  const tabella = document.querySelector<HTMLTableElement>('.griglia-quote');
+  const quota = Number(tabella?.dataset.quota ?? 0);
+  const celle = (mese: string) => [...document.querySelectorAll<HTMLButtonElement>(`button.cella-quota[data-mese="${mese}"]`)];
+  const invia = async (corpo: object) => {
+    const r = await fetch('/tesoriere/quote/segna', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).errore ?? `Errore ${r.status}`);
+  };
+
+  // Il totale del mese in fondo alla colonna, dalle caselle (le quote degli ex coristi si vedono ricaricando)
+  function totale(mese: string) {
+    const td = document.querySelector<HTMLElement>(`.tot-mese[data-mese="${mese}"]`);
+    if (!td || td.textContent === '–') return;
+    const t = celle(mese).filter((c) => c.dataset.stato === 'pagata').reduce((s, c) => s + Number(c.dataset.importo), 0);
+    td.textContent = euro(t).replace(/\s*€/, '');
+  }
+
+  function mostra(c: HTMLButtonElement, stato: string) {
+    c.dataset.stato = stato;
+    c.textContent = SIMBOLO[stato];
+    c.title = `${c.dataset.nome}, ${meseLungo(c.dataset.mese!)}: ${ETICHETTA[stato]}`;
+    if (stato !== 'pagata') { c.dataset.importo = String(quota); c.classList.remove('diversa'); }
+    totale(c.dataset.mese!);
+  }
+
+  // Un tocco: da pagare → pagata → esonerato → da pagare
+  async function avanza(c: HTMLButtonElement) {
+    const prima = c.dataset.stato ?? 'da-pagare';
+    const stato = PROSSIMO[prima];
+    let nota = '';
+    if (stato === 'esonerato') {
+      const r = prompt(`Perché ${c.dataset.nome} è esonerato a ${meseLungo(c.dataset.mese!)}? (facoltativo)`, '');
+      if (r === null) return;
+      nota = r;
+    }
+    c.classList.add('in-corso');
+    mostra(c, stato);
+    try {
+      await invia({ email: c.dataset.email, mese: c.dataset.mese, stato, nota });
+      c.dataset.nota = nota;
+    } catch (e) {
+      mostra(c, prima);
+      alert(`Non salvato: ${(e as Error).message}`);
+    } finally {
+      c.classList.remove('in-corso');
+    }
+  }
+
+  // Pressione lunga, doppio clic o tasto destro: importo, data e nota
+  const det = document.querySelector<HTMLDialogElement>('.finestra-dettagli')!;
+  const fd = det.querySelector('form')!;
+  let inDettaglio: HTMLButtonElement | undefined;
+  function dettagli(c: HTMLButtonElement) {
+    inDettaglio = c;
+    det.querySelector('.chi-d')!.textContent = c.dataset.nome!;
+    det.querySelector('.mese-d')!.textContent = `Quota di ${meseLungo(c.dataset.mese!)}. L'incasso conta nella cassa del giorno del pagamento.`;
+    fd.importo.value = String(c.dataset.importo).replace('.', ',');
+    fd.pagataIl.value = c.dataset.data!;
+    fd.nota.value = c.dataset.nota ?? '';
+    det.querySelector<HTMLElement>('.esito')!.hidden = true;
+    det.showModal();
+  }
+  det.querySelector('.chiudi')!.addEventListener('click', () => det.close());
+  fd.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!inDettaglio) return;
+    try {
+      await invia({ email: inDettaglio.dataset.email, mese: inDettaglio.dataset.mese, stato: 'pagata', importo: fd.importo.value, pagataIl: fd.pagataIl.value, nota: fd.nota.value });
+      location.reload();
+    } catch (err) {
+      const es = det.querySelector<HTMLElement>('.esito')!;
+      es.className = 'esito errore'; es.textContent = `Non salvato: ${(err as Error).message}`; es.hidden = false;
+    }
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('button.cella-quota').forEach((c) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lunga = false;
+    let clicTimer: ReturnType<typeof setTimeout> | undefined;
+    c.addEventListener('pointerdown', () => { lunga = false; timer = setTimeout(() => { lunga = true; dettagli(c); }, 550); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => c.addEventListener(ev, () => clearTimeout(timer)));
+    c.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!lunga) { lunga = true; dettagli(c); } });
+    // Il clic aspetta un attimo: se arriva il secondo è un doppio clic (dettagli), non due avanzamenti
+    c.addEventListener('click', () => {
+      if (lunga) { lunga = false; return; }
+      if (clicTimer) { clearTimeout(clicTimer); clicTimer = undefined; dettagli(c); return; }
+      clicTimer = setTimeout(() => { clicTimer = undefined; avanza(c); }, 260);
+    });
+  });
+
+  // Un tocco sul mese: cifre, sollecito, "Nessuna quota"
+  const fm = document.querySelector<HTMLDialogElement>('.finestra-mese')!;
+  fm.querySelector('.chiudi')!.addEventListener('click', () => fm.close());
+  let meseAperto: HTMLButtonElement | undefined;
+  document.querySelectorAll<HTMLButtonElement>('.testa-mese').forEach((t) => t.addEventListener('click', () => {
+    meseAperto = t;
+    const m = t.dataset.mese!;
+    const cc = celle(m).filter((c) => !c.disabled);
+    const n = (s: string) => cc.filter((c) => c.dataset.stato === s).length;
+    const senza = t.dataset.senza === '1';
+    fm.querySelector('.titolo-m')!.textContent = meseLungo(m).replace(/^./, (x) => x.toUpperCase());
+    fm.querySelector('.cifre-mese')!.innerHTML = senza ? '' : [
+      [euro(cc.filter((c) => c.dataset.stato === 'pagata').reduce((s, c) => s + Number(c.dataset.importo), 0)), 'raccolti'],
+      [String(n('pagata')), 'hanno pagato'], [String(n('esonerato')), 'esonerati'], [String(n('da-pagare')), 'da pagare'],
+    ].map(([v, e]) => `<div><b>${v}</b><span>${e}</span></div>`).join('');
+    fm.querySelector('.nota-m')!.textContent = senza ? `A ${meseLungo(m)} la quota non si raccoglie.${t.dataset.nota ? ` ${t.dataset.nota}` : ''}` : `${cc.length} coristi nel coro.`;
+    const sol = fm.querySelector<HTMLButtonElement>('.apri-sollecito')!;
+    sol.dataset.mese = m;
+    sol.hidden = senza || !n('da-pagare');
+    fm.querySelector('.cambia-senza')!.textContent = senza ? `Raccogli la quota a ${meseLungo(m).split(' ')[0]}` : 'Nessuna quota questo mese';
+    fm.showModal();
+  }));
+  fm.querySelector('.cambia-senza')!.addEventListener('click', async () => {
+    if (!meseAperto) return;
+    const senza = meseAperto.dataset.senza !== '1';
+    let nota = '';
+    if (senza) {
+      const r = prompt('In questo mese la quota non si raccoglie per nessuno. Perché? (facoltativo, es. «coperto dalla quota di giugno»)', '');
+      if (r === null) return;
+      nota = r;
+    }
+    try {
+      await invia({ azione: 'senza-quota', mese: meseAperto.dataset.mese, senza, nota });
+      location.reload();
+    } catch (e) {
+      alert(`Non salvato: ${(e as Error).message}`);
+    }
+  });
+</script>

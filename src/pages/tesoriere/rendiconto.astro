@@ -129,7 +129,7 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                             const dovuta = attiviNelMese([c], m).length > 0 && !senza.has(m);
                             const stato = statoDi(idx, c.email, m);
                             const q = quotaDi(idx, c.email, m);
-                            return <td class:list={['num', { 'non-dovuta': !dovuta || stato === 'esonerato', mancante: dovuta && stato === 'da-pagare' && m <= questoMese() }]}>{stato === 'pagata' && q ? euro(q.importo).replace(' €', '') : ''}</td>;
+                            return <td class:list={['num', { 'non-dovuta': !dovuta || stato === 'esonerato', mancante: dovuta && stato === 'da-pagare' && m <= questoMese() }]}>{stato === 'pagata' && q ? euro(q.importo).replace(/\s*€/, '') : ''}</td>;
                           })}
                         </tr>
                       ))}
@@ -137,10 +137,10 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                   ))}
                   {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).length > 0 && <tr class="sezione-r"><td colspan={mesi.length + 1}>Non più nella scheda Coristi</td></tr>}
                   {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).map((x) => (
-                    <tr><td>{x.nome}</td>{mesi.map((m) => { const q = quotaDi(idx, x.email, m); return <td class:list={['num', { 'non-dovuta': q?.stato !== 'pagata' }]}>{q?.stato === 'pagata' ? euro(q.importo).replace(' €', '') : ''}</td>; })}</tr>
+                    <tr><td>{x.nome}</td>{mesi.map((m) => { const q = quotaDi(idx, x.email, m); return <td class:list={['num', { 'non-dovuta': q?.stato !== 'pagata' }]}>{q?.stato === 'pagata' ? euro(q.importo).replace(/\s*€/, '') : ''}</td>; })}</tr>
                   ))}
                 </tbody>
-                <tfoot><tr><td>Totali mensili</td>{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(' €', '') : '0'}</td>)}</tr></tfoot>
+                <tfoot><tr><td>Totali mensili</td>{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(/\s*€/, '') : '0'}</td>)}</tr></tfoot>
               </table>
             </div>
             <p class="nota-r">Totale quote della stagione: <b>{euroEsatto(raccoltePerMese.reduce((t, r) => t + r, 0))}</b>. In grigio le quote non dovute (prima dell'ingresso o dopo l'uscita dal coro, esoneri{senza.size > 0 && `, mesi senza quota: ${[...senza].filter((m) => mesi.includes(m)).map(nomeMese).join(', ')}`}); in giallo quelle dovute e non versate.</p>

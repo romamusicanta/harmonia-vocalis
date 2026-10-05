@@ -81,7 +81,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Entrate e uscite</h1>
-        <p>Tutti i movimenti di cassa del coro. Le quote dei coristi entrano da sole da <a href="/tesoriere/quote">Quote</a>, nel mese in cui sono state pagate: non scriverle anche qui.</p>
+        <p>Tutti i movimenti di cassa del coro. Le quote dei coristi entrano da sole dalla tabella del <a href="/tesoriere">Riepilogo</a>, nel mese in cui sono state pagate: non scriverle anche qui.</p>
       </div>
     </div>
   </div>
@@ -161,9 +161,9 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
                     {m.quote > 0 && (
                       <tr class="riga-quote">
                         <td class="data"></td>
-                        <td>Quote dei coristi<small class="tenue">{m.numeroQuote} {m.numeroQuote === 1 ? 'quota pagata' : 'quote pagate'} in questo mese · da Quote</small></td>
+                        <td>Quote dei coristi<small class="tenue">{m.numeroQuote} {m.numeroQuote === 1 ? 'quota pagata' : 'quote pagate'} in questo mese · dal Riepilogo</small></td>
                         <td class="num pos">+{euro(m.quote)}</td>
-                        <td class="num"><a class="btn o piccolo" href={`/tesoriere/quote`}>Quote</a></td>
+                        <td class="num"><a class="btn o piccolo" href={`/tesoriere${anno !== corrente ? `?stagione=${anno}` : ''}`}>Quote</a></td>
                       </tr>
                     )}
                   </tbody>

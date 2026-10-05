@@ -59,3 +59,9 @@
 .legenda-t { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--tenue); padding: 12px 18px; border-top: 1px solid var(--linea); }
 .legenda-t span { display: inline-flex; align-items: center; gap: 6px; }
 .legenda-t .cella-quota { width: 22px; height: 22px; font-size: 11px; cursor: default; border-radius: 6px; }
+/* Sul telefono la colonna dei nomi si stringe (i nomi lunghi vanno a capo), per vedere più mesi */
+@media (max-width: 559.98px) {
+  .griglia-quote th:first-child, .griglia-quote td:first-child { white-space: normal; min-width: 96px; max-width: 112px; font-size: 13px; line-height: 1.25; padding-left: 10px; }
+  .griglia-quote th, .griglia-quote td { padding: 5px 2px; }
+  .cella-quota { width: 32px; height: 32px; }
+}

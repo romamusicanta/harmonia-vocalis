@@ -1,8 +1,9 @@
-// Area del tesoriere: sollecito delle quote a chi non le ha pagate, con una notifica personale
-// (src/area/notifiche.ts: arriva solo a chi ha acceso le notifiche). Con mese, solo quel mese;
-// senza, tutte le quote della stagione fino al mese in corso. azione=quanti conta senza mandare.
+// Area del tesoriere: sollecito delle quote a chi non le ha pagate (Sollecito.astro nel Riepilogo).
+// Con mese, solo quel mese; senza, tutte le quote della stagione fino al mese in corso.
+// azione=quanti: l'elenco di chi deve pagare (nomi, mesi, importo, email) e quanti hanno le notifiche
+// accese, senza mandare niente; azione=invia: a ciascuno la sua notifica personale (src/area/notifiche.ts).
 import type { APIRoute } from 'astro';
-import { arretrati, configurata, indice, indirizziDi, MODELLO_SOLLECITO, mesiDovuti, quote, stagioneCorrente, testoSollecito } from '../../area/tesoreria';
+import { arretrati, configurata, euro, indice, indirizziDi, MODELLO_SOLLECITO, mesiDovuti, nomeMese, quote, stagioneCorrente, testoSollecito } from '../../area/tesoreria';
 import { coristi } from '../../area/dati';
 import { inviaPersonali } from '../../area/notifiche';
 import { spiegaTesto } from '../../area/errori';
@@ -22,7 +23,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const prova = d.azione !== 'invia';
     if (!prova) console.log(`[tesoreria] sollecito da ${locals.corista!.email} a ${chi.length} coristi`);
     const r = await inviaPersonali(messaggi, prova);
-    return json({ persone: chi.length, ...r });
+    return json({
+      persone: chi.length,
+      totale: euro(chi.reduce((t, a) => t + a.importo, 0)),
+      elenco: chi.map((a) => ({ nome: `${a.corista.nome} ${a.corista.cognome}`, mesi: a.mesi.map(nomeMese), importo: euro(a.importo) })),
+      email: chi.map((a) => a.corista.email),
+      ...r,
+    });
   } catch (e) {
     return json({ errore: spiegaTesto(e) }, 500);
   }
