@@ -11,7 +11,7 @@ import { vesteCorrente } from '../../motore/url';
 import { coro } from '../../motore/coro';
 import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
 import {
-  attiviNelMese, cassa, configurata, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
+  attiviNelMese, cassa, COMPENSI_CONCERTI, configurata, exCoristi, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
   nomeStagioneLungo, onorari, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
   verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica,
 } from '../../area/tesoreria';
@@ -54,7 +54,7 @@ const entrate = conti?.movimenti.filter((m) => m.tipo === 'Entrata') ?? [];
 const uscite = conti?.movimenti.filter((m) => m.tipo === 'Uscita') ?? [];
 const totEntrate = (conti?.saldoIniziale ?? 0) + totaleQuote + (conti?.entrate ?? 0);
 const perCategoria = (cat: string) => conti?.perCategoria.find((c) => c.categoria === cat)?.totale ?? 0;
-const rimborsiConcerti = perCategoria('Rimborsi concerti');
+const rimborsiConcerti = perCategoria('Rimborsi concerti') - perCategoria(COMPENSI_CONCERTI);
 // Spese fisse gestione prove
 const affitti = uscite.filter((m) => m.categoria === 'Affitto sala prove');
 const mesiStagione = conti?.mesi.map((m) => m.mese) ?? [];
@@ -101,12 +101,12 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
               <tbody>
                 <tr><td>Avanzo di cassa {nomeStagioneLungo(anno - 1)}</td><td class="num">{euroEsatto(conti.saldoIniziale)}</td></tr>
                 <tr><td>Quote versate dai coristi</td><td class="num">{euroEsatto(conti.quote)}</td></tr>
-                <tr><td>Rimborsi per i concerti</td><td class="num">{euroEsatto(rimborsiConcerti)}</td></tr>
-                <tr><td>Altre entrate{conti.partiteDiGiro.entrate > 0 && ` (di cui ${euroEsatto(conti.partiteDiGiro.entrate)} di partite di giro)`}</td><td class="num">{euroEsatto(conti.entrate - rimborsiConcerti)}</td></tr>
-                <tr><td>Uscite</td><td class="num">{euroEsatto(conti.uscite)}</td></tr>
+                <tr><td>Rimborsi per i concerti{perCategoria(COMPENSI_CONCERTI) > 0 && ` (${euroEsatto(perCategoria('Rimborsi concerti'))}, meno ${euroEsatto(perCategoria(COMPENSI_CONCERTI))} di compensi ai maestri per i concerti)`}</td><td class="num">{euroEsatto(rimborsiConcerti)}</td></tr>
+                <tr><td>Altre entrate{conti.partiteDiGiro.entrate > 0 && ` (di cui ${euroEsatto(conti.partiteDiGiro.entrate)} di partite di giro)`}</td><td class="num">{euroEsatto(conti.entrate - perCategoria('Rimborsi concerti'))}</td></tr>
+                <tr><td>Uscite{perCategoria(COMPENSI_CONCERTI) > 0 && ` (di cui ${euroEsatto(perCategoria(COMPENSI_CONCERTI))} di compensi per i concerti)`}</td><td class="num">{euroEsatto(conti.uscite)}</td></tr>
                 <tr><td>di cui partite di giro (spartiti per i coristi)</td><td class="num">{euroEsatto(conti.partiteDiGiro.uscite)}</td></tr>
                 <tr><td><b>Spese di gestione</b> (uscite meno partite di giro)</td><td class="num"><b>{euroEsatto(conti.speseDiGestione)}</b></td></tr>
-                <tr><td>Quote e rimborsi dei concerti, rispetto alle spese di gestione</td><td class:list={['num', conti.quote + rimborsiConcerti - conti.speseDiGestione < 0 ? 'neg' : 'pos']}>{euroEsatto(conti.quote + rimborsiConcerti - conti.speseDiGestione)}</td></tr>
+                <tr><td>Quote e rimborsi dei concerti, rispetto alle spese di gestione (al netto dei compensi per i concerti)</td><td class:list={['num', conti.quote + rimborsiConcerti - (conti.speseDiGestione - perCategoria(COMPENSI_CONCERTI)) < 0 ? 'neg' : 'pos']}>{euroEsatto(conti.quote + rimborsiConcerti - (conti.speseDiGestione - perCategoria(COMPENSI_CONCERTI)))}</td></tr>
               </tbody>
               <tfoot><tr><td>Saldo {anno < corrente ? 'di fine stagione' : 'a oggi'}</td><td class="num">{euroEsatto(conti.saldoFinale)}</td></tr></tfoot>
             </table>
@@ -134,6 +134,10 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                         </tr>
                       ))}
                     </>
+                  ))}
+                  {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).length > 0 && <tr class="sezione-r"><td colspan={mesi.length + 1}>Non più nella scheda Coristi</td></tr>}
+                  {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).map((x) => (
+                    <tr><td>{x.nome}</td>{mesi.map((m) => { const q = quotaDi(idx, x.email, m); return <td class:list={['num', { 'non-dovuta': q?.stato !== 'pagata' }]}>{q?.stato === 'pagata' ? euro(q.importo).replace(' €', '') : ''}</td>; })}</tr>
                   ))}
                 </tbody>
                 <tfoot><tr><td>Totali mensili</td>{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(' €', '') : '0'}</td>)}</tr></tfoot>

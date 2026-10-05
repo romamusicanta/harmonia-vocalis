@@ -98,10 +98,10 @@ const mesiProve = [...new Set(prove.map((p) => meseDi(p.data)))].reverse();
                         <td>{maiuscola(meseEsteso(m.mese))}</td>
                         <td class="num">{m.proveDirettore || '—'}</td>
                         <td class="num">{m.direttore ? euro(m.direttore) : '—'}</td>
-                        <td>{m.sostituti.size ? [...m.sostituti].map(([n, s]) => `${n}: ${s.prove} × ${euro(s.totale / (s.prove || 1))}`).join(' · ') : '—'}</td>
+                        <td>{m.sostituti.size ? [...m.sostituti].map(([n, s]) => `${n}: ${s.prove} ${s.prove === 1 ? 'prova' : 'prove'}, ${euro(s.totale)}`).join(' · ') : '—'}</td>
                         <td class="num">{m.vocalita.totale ? `${euro(m.vocalita.totale)}` : '—'}</td>
                         <td class="num"><b>{euro(m.direttore + sost + m.vocalita.totale)}</b></td>
-                        <td class="num">{m.direttore > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario Direttore – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
+                        <td class="num">{m.direttore > 0 && totaleMaturato - totalePagato > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario Direttore – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
                       </tr>
                     );
                   })}
@@ -110,7 +110,7 @@ const mesiProve = [...new Set(prove.map((p) => meseDi(p.data)))].reverse();
               </table>
             </div>
           </div>
-          <p class="tenue" style="font-size:14px;margin-top:10px">«Paga» apre Entrate e uscite con il pagamento del Direttore per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>
+          <p class="tenue" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Direttore per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>
 
           <h2 class="titolo-t">Le prove</h2>
           <form class="carta aggiungi-prova">

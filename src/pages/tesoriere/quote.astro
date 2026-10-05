@@ -189,7 +189,7 @@ const dettaglio = (q?: Quota) => [
   const SIMBOLO: Record<string, string> = { pagata: '✓', esonerato: 'E', 'da-pagare': '' };
   const ETICHETTA: Record<string, string> = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' };
   const PROSSIMO: Record<string, string> = { 'da-pagare': 'pagata', pagata: 'esonerato', esonerato: 'da-pagare' };
-  const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n).replace(/,00(?=\s?€)/, '');
+  const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(n).replace(/,00(?=\s?€)/, '');
   const invia = async (corpo: object) => {
     const r = await fetch('/tesoriere/quote/segna', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).errore ?? `Errore ${r.status}`);

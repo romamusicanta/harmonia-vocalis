@@ -43,11 +43,14 @@ export const direttore = () => coro.maestro.nome;
 export const CATEGORIE = {
   Entrata: ['Rimborsi concerti', 'Spartiti: versamenti dei coristi', 'Contributi e donazioni', 'Altre entrate'],
   Uscita: [
-    'Onorario Direttore', 'Altri maestri', 'Lezioni di vocalità', 'Affitto sala prove', 'Spartiti per i coristi', 'Spartiti e materiale musicale',
+    'Onorario Direttore', 'Altri maestri', 'Lezioni di vocalità', 'Compensi per i concerti', 'Affitto sala prove', 'Spartiti per i coristi', 'Spartiti e materiale musicale',
     'Concerti (trasporti, fiori, allestimento)', 'Pedane e attrezzatura', 'Feste e rinfreschi', 'Adesioni e assicurazione', 'Spese bancarie',
     'Omaggi e donazioni', 'Altre uscite',
   ],
 } as const;
+// Compensi ai maestri pagati con il rimborso di un concerto: nella sintesi del rendiconto i rimborsi si
+// contano al netto di questi (come il concerto in Vaticano del 2025: 750 €, di cui 250 al Maestro)
+export const COMPENSI_CONCERTI = 'Compensi per i concerti';
 // Partite di giro: gli spartiti comprati per i coristi e da loro rimborsati (si tolgono dalle spese di gestione)
 export const PARTITE_DI_GIRO: string[] = ['Spartiti: versamenti dei coristi', 'Spartiti per i coristi'];
 // Le categorie degli onorari, per confrontare il pagato con il maturato (pagina Maestri)
@@ -99,7 +102,8 @@ export function numero(v?: string | number) {
   const n = Number(t);
   return Number.isFinite(n) ? n : 0;
 }
-const formatoEuro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+// Il punto delle migliaia anche con quattro cifre (4.443 €, come nei rendiconti): l'italiano di base lo mette da 10.000
+const formatoEuro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' });
 export const euro = (n: number) => formatoEuro.format(n).replace(/,00(?=\s?€)/, '');
 export const euroEsatto = (n: number) => formatoEuro.format(n);
 const centesimi = (n: number) => Math.round(n * 100) / 100;
@@ -110,7 +114,7 @@ const testo = (v: string) => (v ? `'${v}` : '');
 // ——— Quote ———
 
 export type StatoQuota = 'pagata' | 'esonerato' | 'da-pagare';
-export interface Quota { riga: number; mese: string; email: string; stato: Exclude<StatoQuota, 'da-pagare'> | 'nessuna'; importo: number; pagataIl?: string; nota: string }
+export interface Quota { riga: number; mese: string; email: string; nome: string; stato: Exclude<StatoQuota, 'da-pagare'> | 'nessuna'; importo: number; pagataIl?: string; nota: string }
 
 export async function quote(): Promise<Quota[]> {
   await idScheda(QUOTE, COLONNE_QUOTE, FOGLIO_TESORERIA_ID);
@@ -120,12 +124,21 @@ export async function quote(): Promise<Quota[]> {
       riga: r.riga,
       mese: r['Mese'],
       email: r['Email'].toLowerCase(),
+      nome: r['Corista'] ?? '',
       stato: /^pagata/i.test(r['Stato']) ? 'pagata' : /^nessuna/i.test(r['Stato']) ? 'nessuna' : 'esonerato',
       importo: numero(r['Importo']),
       pagataIl: dataFoglio(r['Pagata il']),
       nota: r['Nota'] ?? '',
     }));
 }
+
+// Chi ha quote nel foglio ma non è nella scheda Coristi (ex coristi caricati dai rendiconti passati)
+export const exCoristi = (tutte: Quota[], elenco: SchedaCorista[]) => {
+  const noti = new Set(elenco.map((c) => c.email));
+  const visti = new Map<string, string>();
+  for (const q of tutte) if (q.email !== TUTTI && !noti.has(q.email)) visti.set(q.email, q.nome || q.email);
+  return [...visti].map(([email, nome]) => ({ email, nome }));
+};
 
 // I mesi in cui la quota non si raccoglie
 export const mesiSenzaQuota = (tutte: Quota[]) => new Set(tutte.filter((q) => q.email === TUTTI && q.stato === 'nessuna').map((q) => q.mese));
@@ -145,11 +158,12 @@ export interface SituazioneMese {
   pagate: number;
   esonerati: number;
   daPagare: number;
-  raccolto: number;   // le quote di quel mese pagate (in qualunque giorno)
+  raccolto: number;   // le quote di quel mese pagate (in qualunque giorno), anche da chi non è più nella scheda Coristi
   dovuto: number;     // (attesi - esonerati) × quota
 }
 
 export function situazioneMese(mese: string, elenco: SchedaCorista[], idx: Map<string, Quota>, senza = new Set<string>()): SituazioneMese {
+  const tutteDelMese = [...idx.values()].filter((q) => q.mese === mese && q.stato === 'pagata');
   const attesi = attiviNelMese(elenco, mese);
   const stati = attesi.map((c) => idx.get(chiave(c.email, mese)));
   const pagate = stati.filter((q) => q?.stato === 'pagata');
@@ -160,7 +174,7 @@ export function situazioneMese(mese: string, elenco: SchedaCorista[], idx: Map<s
     pagate: pagate.length,
     esonerati,
     daPagare: senzaQuota ? 0 : attesi.length - pagate.length - esonerati,
-    raccolto: pagate.reduce((t, q) => t + (q?.importo ?? 0), 0),
+    raccolto: tutteDelMese.reduce((t, q) => t + q.importo, 0),
     dovuto: senzaQuota ? 0 : (attesi.length - esonerati) * quotaMensile(),
   };
 }
