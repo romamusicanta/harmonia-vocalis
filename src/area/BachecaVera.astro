@@ -157,7 +157,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
                 <ul class="orari" style="margin-top:20px">
                   {cv.convocazione && <li><b>{cv.convocazione}</b><span>Convocazione{cv.ritrovo && ` · ${cv.ritrovo}`}</span></li>}
                   {generale && <li><b><Icona nome="nota" /></b><span>Prova generale: {generale}</span></li>}
-                  {cv.abito && <li><b><Icona nome="campanella" /></b><span>{cv.abito}</span></li>}
+                  {cv.abito && <li><b><Icona nome="gruccia" /></b><span>{cv.abito}</span></li>}
                 </ul>
               ) : <p class="tenue" style="margin-top:16px;font-size:15px">Convocazione e prova generale in arrivo.</p>}
               {io && aperto(concerto) ? (

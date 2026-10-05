@@ -126,7 +126,7 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
             <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>1 · Versamento quote {nomeStagioneLungo(anno)}</h2></div>
             <div class="tabella-wrap">
               <table class="tabella griglia-r">
-                <thead><tr><th>Corista</th>{conRiporto && <th class="num">rip.</th>}{mesi.map((m) => <th class="num">{meseBreve(m)}</th>)}</tr></thead>
+                <thead><tr><th>Corista</th>{conRiporto && <th class="num" title="Riporto della stagione prima">Rip.</th>}{mesi.map((m) => <th class="num">{meseBreve(m)}</th>)}</tr></thead>
                 <tbody>
                   {sezioni.map((s) => (
                     <>
@@ -153,7 +153,7 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                 <tfoot><tr><td>Totali mensili</td>{conRiporto && <td class="num">{euro(riportiVersati).replace(/\s*€/, '')}</td>}{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(/\s*€/, '') : '0'}</td>)}</tr></tfoot>
               </table>
             </div>
-            <p class="nota-r">Totale quote della stagione: <b>{euroEsatto(raccoltePerMese.reduce((t, r) => t + r, 0))}</b>. In grigio le quote non dovute (prima dell'ingresso o dopo l'uscita dal coro, esoneri{senza.size > 0 && `, mesi senza quota: ${[...senza].filter((m) => mesi.includes(m)).map(nomeMese).join(', ')}`}); in giallo quelle dovute e non versate.</p>
+            <p class="nota-r">Totale quote della stagione: <b>{euroEsatto(raccoltePerMese.reduce((t, r) => t + r, 0) + (conRiporto ? riportiVersati : 0))}</b>{conRiporto && riportiVersati > 0 && <> (di cui {euroEsatto(riportiVersati)} di riporto)</>}. In grigio le quote non dovute (prima dell'ingresso o dopo l'uscita dal coro, esoneri{senza.size > 0 && `, mesi senza quota: ${[...senza].filter((m) => mesi.includes(m)).map(nomeMese).join(', ')}`}); in giallo quelle dovute e non versate.{conRiporto && <> Colonna «Rip.»: il riporto della stagione {nomeStagioneLungo(anno - 1)}, cioè le quote rimaste da pagare e il riporto non versato di quella stagione, con la cifra versata; in giallo se è ancora da versare, in grigio se non c'erano debiti.</>}</p>
           </div>
 
           <div class="foglio">
