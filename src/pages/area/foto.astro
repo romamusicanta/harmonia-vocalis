@@ -1,6 +1,6 @@
 ---
 // Area coristi: foto dei concerti (/area/foto, src/area/fotoConcerti.ts). In alto il caricamento:
-// si sceglie un concerto già fatto (di base il più recente) e una o più foto; il browser le riduce
+// si sceglie un concerto già fatto, anche vecchio (di base il più recente) e una o più foto; il browser le riduce
 // (lato lungo 2400 px, JPEG) e le carica una dopo l'altra (/area/foto/carica). Sotto, per concerto,
 // le foto che vedono i coristi (miniature da /area/foto/miniatura, la foto intera da /area/file),
 // con chi le ha caricate e "Sul sito" per quelle che i redattori hanno messo nel sito pubblico; chi
@@ -10,8 +10,7 @@ import Icona from '../../componenti/Icona.astro';
 import Errore from '../../area/Errore.astro';
 import { vesteCorrente } from '../../motore/url';
 import { parti } from '../../motore/concerti';
-import { nomeEvento, type Evento } from '../../area/dati';
-import { concertiPerFoto, configurato, fotoDeiConcerti, type ConcertoConFoto } from '../../area/fotoConcerti';
+import { concertiPerFoto, configurato, fotoDeiConcerti, type ConcertoConFoto, type ConcertoScelta } from '../../area/fotoConcerti';
 import { normalizza } from '../../area/servizio';
 
 export const prerender = false;
@@ -19,7 +18,7 @@ const veste = vesteCorrente(undefined);
 const email = normalizza(Astro.locals.corista!.email);
 
 let errore: unknown;
-let concerti: Evento[] = [];
+let concerti: ConcertoScelta[] = [];
 let gallerie: ConcertoConFoto[] = [];
 if (!configurato()) errore = 'Le foto dei concerti non sono ancora collegate: manca la cartella su Drive (variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server).';
 else {
@@ -53,7 +52,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
           <div class="cc">
             <label>Concerto
               <select name="evento" required>
-                {concerti.map((e) => <option value={e.id}>{quando(e.data)} · {nomeEvento(e)}</option>)}
+                {concerti.map((e) => <option value={e.id}>{quando(e.data)} · {e.titolo}</option>)}
               </select>
             </label>
             <label class="scegli-foto">
@@ -67,7 +66,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
           </div>
         </form>
       )}
-      {configurato() && !errore && concerti.length === 0 && <p class="tenue">Nessun concerto nell'ultimo anno: le foto si caricano dopo il concerto.</p>}
+      {configurato() && !errore && concerti.length === 0 && <p class="tenue">Nessun concerto già fatto: le foto si caricano dopo il concerto.</p>}
 
       {gallerie.map((g) => (
         <div class="carta galleria" id={`c-${g.evento?.id ?? g.data}`}>

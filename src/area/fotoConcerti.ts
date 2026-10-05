@@ -8,7 +8,8 @@
 // redattori (Amministrazione → Foto dei concerti); ogni corista può togliere le sue.
 import { DRIVE_CARTELLA_FOTO_CONCERTI } from 'astro:env/server';
 import { CARTELLA, cartellaIn, cestina, fileIn, leggiFile, rispondiCaricamento } from './drive';
-import { coristi, eventi, nomeBreve, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
+import { coristi, eventi, nomeBreve, nomeEvento, oggi, piuGiorni } from './dati';
+import { archivio } from '../motore/concerti';
 import { google, normalizza } from './servizio';
 import { dimentica } from './file';
 
@@ -26,15 +27,29 @@ export interface FotoConcerto {
   caricata: string;        // quando (ISO)
 }
 
-export interface ConcertoConFoto { data: string; titolo: string; evento?: Evento; foto: FotoConcerto[] }
+// Un concerto a cui si possono legare le foto: uno recente del calendario (id dell'evento) o uno
+// dell'archivio del sito pubblico (id "archivio-AAAA-MM-GG")
+export interface ConcertoScelta { id: string; data: string; titolo: string }
+export interface ConcertoConFoto { data: string; titolo: string; evento?: ConcertoScelta; foto: FotoConcerto[] }
 
-// I concerti per cui si possono caricare foto: quelli già fatti nell'ultimo anno (e oggi), il più recente prima
-export const concertiPerFoto = async () => (await eventi(piuGiorni(oggi(), -400), oggi())).filter((e) => e.tipo === 'concerto').reverse();
+// I concerti per cui si possono caricare foto, il più recente prima: quelli già fatti (anche oggi)
+// dell'ultimo anno dal calendario, compresi quelli non pubblici, e tutti quelli dell'archivio del sito
+// pubblico con una data precisa (calendario e coro/concerti.ts), anche i più vecchi
+export async function concertiPerFoto(): Promise<ConcertoScelta[]> {
+  const recenti = (await eventi(piuGiorni(oggi(), -400), oggi()).catch(() => []))
+    .filter((e) => e.tipo === 'concerto')
+    .map((e) => ({ id: e.id, data: e.data, titolo: nomeEvento(e) }));
+  const giorni = new Set(recenti.map((c) => c.data));
+  const vecchi = archivio
+    .filter((c) => !c.dataIncerta && /^\d{4}-\d{2}-\d{2}/.test(c.data) && c.data.slice(0, 10) <= oggi() && !giorni.has(c.data.slice(0, 10)))
+    .map((c) => ({ id: `archivio-${c.data.slice(0, 10)}`, data: c.data.slice(0, 10), titolo: [c.autore?.split(/\s+/).at(-1), c.titolo].filter(Boolean).join(' · ') }));
+  return [...recenti, ...vecchi].sort((a, b) => b.data.localeCompare(a.data));
+}
 
 // Tutte le foto, per concerto, il più recente prima. Senza "tutte", solo quelle che vedono i coristi
 export async function fotoDeiConcerti(tutte = false): Promise<ConcertoConFoto[]> {
   if (!configurato()) return [];
-  const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristi().catch(() => []), concertiPerFoto().catch(() => [] as Evento[])]);
+  const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristi().catch(() => []), concertiPerFoto().catch(() => [] as ConcertoScelta[])]);
   const dentro = await Promise.all(cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name)).map(async (c) => ({ c, file: await fileIn(c.id) })));
   const perConcerto = new Map<string, ConcertoConFoto>();
   for (const { c, file } of dentro) {
@@ -45,7 +60,7 @@ export async function fotoDeiConcerti(tutte = false): Promise<ConcertoConFoto[]>
       const data = p.data ?? c.name.slice(0, 10);
       const evento = concerti.find((e) => e.id === p.evento) ?? concerti.find((e) => e.data === data);
       const k = `${data}|${evento?.id ?? c.name}`;
-      if (!perConcerto.has(k)) perConcerto.set(k, { data, titolo: evento ? nomeEvento(evento) : c.name.slice(11) || 'Concerto', evento, foto: [] });
+      if (!perConcerto.has(k)) perConcerto.set(k, { data, titolo: evento?.titolo ?? (c.name.slice(11) || 'Concerto'), evento, foto: [] });
       const email = p.caricatoDa ?? '';
       const cc = elenco.find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
       perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime });
@@ -60,7 +75,7 @@ export const rispondiFotoCorista = (request: Request, email: string) => rispondi
   if (!/^image\/(jpeg|png|webp|avif|heic|heif)$/.test(String(d.tipo))) throw new Error(`«${d.nome}» non è una foto (JPEG, PNG, WebP).`);
   const concerto = (await concertiPerFoto()).find((e) => e.id === String(d.evento));
   if (!concerto) throw new Error('Concerto non trovato: si caricano le foto dei concerti già fatti.');
-  const cartella = await cartellaIn(DRIVE_CARTELLA_FOTO_CONCERTI!, `${concerto.data} ${nomeEvento(concerto)}`.slice(0, 120));
+  const cartella = await cartellaIn(DRIVE_CARTELLA_FOTO_CONCERTI!, `${concerto.data} ${concerto.titolo}`.slice(0, 120));
   return { cartella, nome: d.nome, appProperties: { caricatoDa: email, evento: concerto.id, data: concerto.data, visibilita: 'coristi' } };
 });
 
