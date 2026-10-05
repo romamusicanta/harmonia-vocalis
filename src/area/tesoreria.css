@@ -1,0 +1,57 @@
+/* Area del tesoriere (src/pages/tesoriere/): cifre in evidenza, scelta del mese e della stagione,
+   tabelle dei report, stato delle quote */
+.cifre-t { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 8px; }
+.cifra-t { background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); padding: 14px 16px; display: grid; gap: 4px; }
+.cifra-t b { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 30px; line-height: 1.05; color: var(--primario); }
+.cifra-t span { font-size: 14px; color: var(--tenue); }
+.cifra-t small { font-size: 13px; color: var(--tenue); }
+.cifra-t.forte { background: var(--primario); border-color: var(--primario); }
+.cifra-t.forte b { color: var(--accento); }
+.cifra-t.forte :is(span, small) { color: rgb(255 255 255 / .75); }
+.cifra-t.rosso b { color: var(--rosso); }
+.cifra-t.verde b { color: #2e7d4f; }
+
+.scelta-t { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 20px; }
+.scelta-t a { padding: 7px 12px; border: 2px solid var(--linea); border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--primario); text-decoration: none; background: var(--bianco); }
+.scelta-t a.on { background: var(--primario); border-color: var(--primario); color: #fff; }
+.scelta-t a.futuro { color: var(--tenue); }
+
+.titolo-t { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 36px 0 14px; }
+.tabella .neg { color: var(--rosso); }
+.tabella .pos { color: #2e7d4f; }
+.tabella tfoot td { font-weight: 700; border-top: 2px solid var(--linea); }
+.tabella tr.futuro td { color: var(--tenue); }
+
+/* Stato di una quota: tre pulsanti attaccati */
+.stati-quota { display: inline-flex; border: 2px solid var(--linea); border-radius: var(--raggio); overflow: hidden; flex-shrink: 0; }
+.stati-quota button { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 10px; border: 0; background: var(--bianco); color: var(--tenue); cursor: pointer; min-height: 40px; }
+.stati-quota button + button { border-left: 2px solid var(--linea); }
+.stati-quota button[aria-pressed='true'][data-stato='pagata'] { background: #2e7d4f; color: #fff; }
+.stati-quota button[aria-pressed='true'][data-stato='esonerato'] { background: var(--primario); color: #fff; }
+.stati-quota button[aria-pressed='true'][data-stato='da-pagare'] { background: var(--accento); color: var(--testo); }
+.stati-quota.in-corso { opacity: .55; pointer-events: none; }
+
+.quote-mese { list-style: none; margin: 0; padding: 0; }
+.quote-mese li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--linea); }
+.quote-mese li:last-child { border-bottom: 0; }
+.quote-mese .chi { min-width: 0; display: grid; }
+.quote-mese .chi b { color: var(--primario); }
+.quote-mese .chi small { color: var(--tenue); font-size: 13px; }
+@media (max-width: 559.98px) {
+  .quote-mese li { flex-wrap: wrap; }
+  .stati-quota { width: 100%; }
+  .stati-quota button { flex: 1; }
+}
+
+/* Tutta la stagione: una riga per corista, una colonna per mese */
+.griglia-quote th, .griglia-quote td { text-align: center; padding: 6px 4px; }
+.griglia-quote th:first-child, .griglia-quote td:first-child { text-align: left; white-space: nowrap; padding-left: 12px; position: sticky; left: 0; background: var(--bianco); }
+.cella-quota { width: 34px; height: 34px; border-radius: 8px; border: 2px solid var(--linea); background: var(--bianco); font: inherit; font-weight: 700; font-size: 14px; color: var(--tenue); cursor: pointer; }
+.cella-quota[data-stato='pagata'] { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
+.cella-quota[data-stato='esonerato'] { background: var(--primario); border-color: var(--primario); color: #fff; }
+.cella-quota[data-stato='da-pagare'].dovuta { border-color: var(--accento); background: color-mix(in srgb, var(--accento) 18%, var(--bianco)); color: var(--testo); }
+.cella-quota:disabled { border-style: dashed; cursor: default; opacity: .4; }
+.cella-quota.in-corso { opacity: .5; pointer-events: none; }
+.legenda-t { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--tenue); padding: 12px 18px; border-top: 1px solid var(--linea); }
+.legenda-t span { display: inline-flex; align-items: center; gap: 6px; }
+.legenda-t .cella-quota { width: 22px; height: 22px; font-size: 11px; cursor: default; border-radius: 6px; }

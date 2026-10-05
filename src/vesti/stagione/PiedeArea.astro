@@ -1,17 +1,17 @@
 ---
-// Veste Stagione: piè di pagina ridotto dell'area coristi e dell'area del Maestro.
+// Veste Stagione: piè di pagina ridotto dell'area coristi, dell'area del Maestro e di quella del tesoriere.
 import { coro } from '../../motore/coro';
 import { link } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
 
-interface Props { veste: Veste; maestro?: boolean }
-const { veste, maestro = false } = Astro.props;
+interface Props { veste: Veste; maestro?: boolean; tesoriere?: boolean }
+const { veste, maestro = false, tesoriere = false } = Astro.props;
 ---
 
 <footer class="piede-sito" style="padding:40px 0">
   <div class="w">
     <div class="fondo-piede" style="margin-top:0;padding-top:0;border:0">
-      <span>{maestro ? `Area del Maestro · ${coro.nome} · I dati stanno nel foglio «Coristi e assenze» del Drive` : `Area coristi · ${coro.nome} · I file stanno nel Drive del coro`}</span>
+      <span>{tesoriere ? `Area del tesoriere · ${coro.nome} · I dati stanno nel foglio «Tesoreria – quote e cassa» del Drive` : maestro ? `Area del Maestro · ${coro.nome} · I dati stanno nel foglio «Coristi e assenze» del Drive` : `Area coristi · ${coro.nome} · I file stanno nel Drive del coro`}</span>
       <span><a href={`mailto:${coro.email}`}>Problemi di accesso?</a> · <a href={link(veste, '/')}>Sito pubblico</a></span>
     </div>
   </div>

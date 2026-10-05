@@ -1,6 +1,7 @@
 // Accesso all'area coristi: si entra con un account Google qualunque (anche personale), purché
 // l'indirizzo faccia parte del gruppo dei coristi (coro.coristi.gruppo) o di quello della direzione
-// (coro.coristi.direzione: il Maestro e gli amministratori, che hanno la loro area, /maestro). A Google si chiedono solo
+// (coro.coristi.direzione: il Maestro e gli amministratori, che hanno la loro area, /maestro) o di quelli
+// del tesoriere (coro.coristi.tesoreria.gruppi, area /tesoriere). A Google si chiedono solo
 // nome ed email, con il client OAuth "Sito - area coristi" del progetto Google Cloud
 // harmonia-vocalis-coristi (consenso Esterno: quello dell'area Amministrazione è Interno e
 // lascerebbe entrare solo gli account @romamusicanta.org).
@@ -19,15 +20,20 @@ export interface Corista {
   verificato: number; // quando si è controllato l'ultima volta che è nel gruppo (ms)
   coro?: boolean;      // nel gruppo dei coristi (le sessioni di prima del 3/10/2026 non lo hanno: sì)
   direzione?: boolean; // nel gruppo della direzione
+  tesoreria?: boolean; // in uno dei gruppi dell'area del tesoriere (coro.coristi.tesoreria.gruppi; le sessioni di prima del 5/10/2026 non lo hanno)
 }
 
 export const eCorista = (c: Corista) => c.coro !== false;
 
 // In quali gruppi è l'indirizzo
 async function gruppiDi(email: string) {
-  const { gruppo, direzione } = coro.coristi!;
-  const [inCoro, inDirezione] = await Promise.all([nelGruppo(email, gruppo), direzione ? nelGruppo(email, direzione) : false]);
-  return { coro: inCoro, direzione: inDirezione };
+  const { gruppo, direzione, tesoreria } = coro.coristi!;
+  const [inCoro, inDirezione, inTesoreria] = await Promise.all([
+    nelGruppo(email, gruppo),
+    direzione ? nelGruppo(email, direzione) : false,
+    Promise.all((tesoreria?.gruppi ?? []).map((g) => nelGruppo(email, g).catch(() => false))).then((x) => x.some(Boolean)),
+  ]);
+  return { coro: inCoro, direzione: inDirezione, tesoreria: inTesoreria };
 }
 
 const NOME = 'hv-coro';
@@ -65,7 +71,7 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${access_token}` } })).json();
   if (!io.email_verified) return { errore: 'L’indirizzo di questo account Google non è verificato.' };
   const gruppi = await gruppiDi(io.email);
-  if (!gruppi.coro && !gruppi.direzione) {
+  if (!gruppi.coro && !gruppi.direzione && !gruppi.tesoreria) {
     return { errore: `L’indirizzo ${io.email} non è nell’elenco dei coristi. Entra con il tuo account dell’associazione (nome.cognome@${coro.amministrazione?.dominio ?? 'romamusicanta.org'}); se non lo hai, chiedi al direttivo.` };
   }
   return { corista: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', verificato: Date.now(), ...gruppi } };
@@ -88,11 +94,11 @@ export function chiudiCorista(cookies: AstroCookies) {
 // Il corista della sessione, ricontrollato nel gruppo se è passato un giorno; undefined se non
 // è più nel gruppo. Se Google non risponde, per non chiudere fuori nessuno vale l'ultimo controllo.
 export async function coristaValido(c: Corista): Promise<Corista | undefined> {
-  // Le sessioni di prima del gruppo della direzione (senza il campo) si ricontrollano subito
-  if (Date.now() - c.verificato < RICONTROLLO && c.direzione !== undefined) return c;
+  // Le sessioni di prima del gruppo della direzione o della tesoreria (senza il campo) si ricontrollano subito
+  if (Date.now() - c.verificato < RICONTROLLO && c.direzione !== undefined && c.tesoreria !== undefined) return c;
   try {
     const gruppi = await gruppiDi(c.email);
-    return gruppi.coro || gruppi.direzione ? { ...c, verificato: Date.now(), ...gruppi } : undefined;
+    return gruppi.coro || gruppi.direzione || gruppi.tesoreria ? { ...c, verificato: Date.now(), ...gruppi } : undefined;
   } catch {
     return c;
   }

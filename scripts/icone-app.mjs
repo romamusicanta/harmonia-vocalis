@@ -15,6 +15,7 @@ const app = {
   coristi: [giallo, blu, '#fff'],
   maestro: [chiaro, blu, giallo],
   admin: [blu, giallo, '#fff'],
+  tesoriere: ['#fff', blu, giallo],
 };
 
 // Il diapason di public/favicon.svg, in un riquadro di 64

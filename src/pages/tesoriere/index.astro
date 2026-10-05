@@ -1,0 +1,125 @@
+---
+// Area del tesoriere (/tesoriere): riepilogo della stagione (dal 1 settembre al 31 agosto; ?stagione=2025
+// per quelle passate). Quote: raccolte, dovute fino a oggi, situazione del mese in corso e mese per
+// mese; cassa: saldo iniziale, entrate, uscite, saldo, mese per mese; chi deve ancora pagare, con il
+// sollecito. Dati in src/area/tesoreria.ts.
+import Base from '../../layouts/Base.astro';
+import Errore from '../../area/Errore.astro';
+import Sollecito from '../../area/Sollecito.astro';
+import { vesteCorrente } from '../../motore/url';
+import { coristi, type SchedaCorista } from '../../area/dati';
+import {
+  arretrati, cassa, configurata, euro, indice, meseEsteso, mesiDelleQuote, mesiDovuti, movimenti, nomeMese, nomeStagione, questoMese,
+  quote, situazioneMese, stagioneCorrente, stagioniConDati, type Arretrato, type Cassa, type SituazioneMese,
+} from '../../area/tesoreria';
+import '../../area/tesoreria.css';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+
+const corrente = configurata() ? stagioneCorrente() : 0;
+const chiesta = Number(Astro.url.searchParams.get('stagione'));
+const anno = chiesta >= 2000 && chiesta <= corrente ? chiesta : corrente;
+const passata = anno < corrente;
+
+let errore: unknown;
+let stagioni: number[] = [];
+let mesi: SituazioneMese[] = [];
+let conti: Cassa | undefined;
+let debitori: Arretrato[] = [];
+let elenco: SchedaCorista[] = [];
+if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
+else {
+  try {
+    const [c, q, m] = await Promise.all([coristi(), quote(), movimenti()]);
+    elenco = c;
+    const idx = indice(q);
+    stagioni = stagioniConDati(q, m);
+    mesi = mesiDelleQuote(anno).map((mese) => situazioneMese(mese, c, idx));
+    conti = cassa(anno, q, m);
+    debitori = arretrati(passata ? mesiDelleQuote(anno) : mesiDovuti(anno), c, idx);
+  } catch (e) {
+    errore = e;
+  }
+}
+const dovuti = mesi.filter((m) => passata || m.mese <= questoMese());
+const raccolte = dovuti.reduce((t, m) => t + m.raccolto, 0);
+const attese = dovuti.reduce((t, m) => t + m.dovuto, 0);
+const meseOra = mesi.find((m) => m.mese === questoMese());
+const inRegola = elenco.length - debitori.length;
+const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+---
+
+<Base veste={veste} titolo="Riepilogo · Area del tesoriere" area={{ tesoriere: true, sezione: 'riepilogo' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
+        <h1>Riepilogo</h1>
+        <p>Quote dei coristi e cassa del coro, dal 1 settembre al 31 agosto. Le quote si segnano in <a href="/tesoriere/quote">Quote</a>, le altre entrate e le uscite in <a href="/tesoriere/cassa">Entrate e uscite</a>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {errore && <Errore e={errore} />}
+      {stagioni.length > 1 && (
+        <nav class="scelta-t" aria-label="Stagione">
+          {stagioni.map((s) => <a href={s === corrente ? '/tesoriere' : `/tesoriere?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}</a>)}
+        </nav>
+      )}
+
+      {conti && (
+        <>
+          <h2 class="titolo-t" style="margin-top:0">Quote {passata ? 'della stagione' : 'fino a oggi'}</h2>
+          <div class="cifre-t">
+            <div class="cifra-t forte"><b>{euro(raccolte)}</b><span>raccolte su {euro(attese)} dovute</span></div>
+            <div class="cifra-t verde"><b>{inRegola}</b><span>coristi in regola</span></div>
+            <div class:list={['cifra-t', { rosso: debitori.length }]}><b>{debitori.length}</b><span>con quote da pagare</span><small>{euro(debitori.reduce((t, a) => t + a.importo, 0))} in tutto</small></div>
+            {meseOra && !passata && <div class="cifra-t"><b>{meseOra.pagate}/{meseOra.attesi.length - meseOra.esonerati}</b><span>hanno pagato {nomeMese(meseOra.mese)}</span><small>{meseOra.esonerati} esonerati · {meseOra.daPagare} da pagare</small></div>}
+          </div>
+
+          <h2 class="titolo-t">Cassa</h2>
+          <div class="cifre-t">
+            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>saldo di inizio stagione</span></div>
+            <div class="cifra-t"><b>{euro(conti.quote + conti.entrate)}</b><span>entrate</span><small>{euro(conti.quote)} di quote · {euro(conti.entrate)} altre</small></div>
+            <div class="cifra-t"><b>{euro(conti.uscite)}</b><span>uscite</span></div>
+            <div class="cifra-t forte"><b>{euro(conti.saldoFinale)}</b><span>{passata ? 'saldo di fine stagione' : 'saldo di oggi'}</span></div>
+          </div>
+
+          <Sollecito elenco={passata ? [] : debitori} />
+
+          <h2 class="titolo-t">Mese per mese</h2>
+          <div class="carta">
+            <div class="tabella-wrap">
+              <table class="tabella">
+                <thead><tr><th>Mese</th><th class="num">Hanno pagato</th><th class="num">Esonerati</th><th class="num">Da pagare</th><th class="num">Quote incassate</th><th class="num">Altre entrate</th><th class="num">Uscite</th><th class="num">Saldo del mese</th></tr></thead>
+                <tbody>
+                  {conti.mesi.map((c) => {
+                    const q = mesi.find((m) => m.mese === c.mese);
+                    const futuro = !passata && c.mese > questoMese();
+                    return (
+                      <tr class:list={{ futuro }}>
+                        <td><a href={`/tesoriere/quote?mese=${c.mese}`} style={q ? '' : 'pointer-events:none;color:inherit;text-decoration:none'}>{meseEsteso(c.mese)}</a></td>
+                        <td class="num">{q ? `${q.pagate}/${q.attesi.length - q.esonerati}` : '—'}</td>
+                        <td class="num">{q ? q.esonerati : '—'}</td>
+                        <td class="num">{q ? (futuro ? '—' : q.daPagare) : '—'}</td>
+                        <td class="num">{c.quote ? euro(c.quote) : '—'}</td>
+                        <td class="num">{c.entrate ? euro(c.entrate) : '—'}</td>
+                        <td class="num">{c.uscite ? euro(c.uscite) : '—'}</td>
+                        <td class:list={['num', segno(c.saldo)]}>{c.saldo ? euro(c.saldo) : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot><tr><td>Stagione</td><td class="num"></td><td class="num"></td><td class="num">{debitori.reduce((t, a) => t + a.mesi.length, 0) || '—'}</td><td class="num">{euro(conti.quote)}</td><td class="num">{euro(conti.entrate)}</td><td class="num">{euro(conti.uscite)}</td><td class:list={['num', segno(conti.quote + conti.entrate - conti.uscite)]}>{euro(conti.quote + conti.entrate - conti.uscite)}</td></tr></tfoot>
+              </table>
+            </div>
+          </div>
+          <p class="tenue" style="font-size:14px;margin-top:10px">«Hanno pagato» conta le quote di quel mese, chiunque e in qualunque giorno le abbia pagate; «Quote incassate» conta i soldi entrati quel mese (anche quote di altri mesi pagate insieme). Il saldo del mese è incassi meno uscite.</p>
+        </>
+      )}
+    </div>
+  </div>
+</Base>

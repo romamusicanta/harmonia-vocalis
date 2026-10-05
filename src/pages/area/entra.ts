@@ -1,4 +1,4 @@
-// Accesso all'area coristi e a quella del Maestro (dopo=/maestro): si va da Google e si torna su
+// Accesso all'area coristi, a quella del Maestro (dopo=/maestro) e a quella del tesoriere (dopo=/tesoriere): si va da Google e si torna su
 // /area/callback. Con silenzioso=1 (dal middleware, per chi è già dentro ma senza la foto) si
 // chiede a Google senza mostrare niente. Un valore casuale
 // (state) in un cookie protegge il ritorno da richieste estranee.
@@ -14,6 +14,6 @@ export const GET: APIRoute = ({ url, cookies, redirect }) => {
   const dopo = url.searchParams.get('dopo') ?? '/area';
   const stato = randomBytes(16).toString('hex');
   const silenzioso = url.searchParams.has('silenzioso') ? leggiCorista(cookies)?.email : undefined;
-  cookies.set('hv-stato-area', cifra({ stato, silenzioso, dopo: /^\/(area|maestro)(\/|$)/.test(dopo) ? dopo : '/area' }), { httpOnly: true, secure: url.protocol === 'https:', sameSite: 'lax', path: '/area', maxAge: 600 });
+  cookies.set('hv-stato-area', cifra({ stato, silenzioso, dopo: /^\/(area|maestro|tesoriere)(\/|$)/.test(dopo) ? dopo : '/area' }), { httpOnly: true, secure: url.protocol === 'https:', sameSite: 'lax', path: '/area', maxAge: 600 });
   return redirect(urlAccesso(`${url.origin}/area/callback`, stato, silenzioso));
 };

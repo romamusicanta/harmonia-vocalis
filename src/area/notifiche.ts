@@ -12,7 +12,7 @@ import webpush, { type PushSubscription } from 'web-push';
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import { adesso, cancellaRiga, idScheda, leggiScheda, scriviRiga } from './dati';
-import { nelGruppo } from './servizio';
+import { nelGruppo, normalizza } from './servizio';
 import { spiegaTesto } from './errori';
 
 const SCHEDA = 'Notifiche';
@@ -75,6 +75,26 @@ async function invia(n: Notifica) {
   const altri = esiti.filter((e) => e.status === 'rejected').length - scadute.length;
   if (altri) console.warn(`[notifiche] ${altri} invii non riusciti`, esiti.filter((e) => e.status === 'rejected').map((e) => String((e as PromiseRejectedResult).reason?.statusCode ?? (e as PromiseRejectedResult).reason)).join(', '));
   return { ...conteggio(arrivate), nonArrivate: altri };
+}
+
+// Notifiche personali (il sollecito delle quote, src/area/tesoreria.ts): a ogni persona la sua, sui
+// dispositivi iscritti con uno dei suoi indirizzi. Restituisce quante persone ne hanno almeno uno
+// iscritto e a quante è arrivata; con prova = true non manda niente (per contare prima dell'invio)
+export async function inviaPersonali(messaggi: { indirizzi: string[]; notifica: Notifica }[], prova = false) {
+  const tutte = await iscrizioni();
+  const conIscrizioni = messaggi.map((m) => ({ ...m, suoi: tutte.filter((i) => i.email && m.indirizzi.includes(normalizza(i.email))) })).filter((m) => m.suoi.length);
+  if (prova) return { conNotifiche: conIscrizioni.length, raggiunte: 0 };
+  if (!configurate()) throw new Error('mancano le chiavi VAPID sul server');
+  webpush.setVapidDetails(`mailto:${coro.email}`, VAPID_PUBLIC_KEY!, VAPID_PRIVATE_KEY!);
+  let raggiunte = 0;
+  const scadute: Iscrizione[] = [];
+  await Promise.all(conIscrizioni.map(async (m) => {
+    const esiti = await Promise.allSettled(m.suoi.map((i) => webpush.sendNotification({ endpoint: i.indirizzo, keys: { p256dh: i.p256dh, auth: i.auth } }, JSON.stringify(m.notifica), { TTL: 24 * 3600, urgency: 'normal' })));
+    if (esiti.some((e) => e.status === 'fulfilled')) raggiunte++;
+    esiti.forEach((e, k) => { if (e.status === 'rejected' && [404, 410].includes((e.reason as { statusCode?: number }).statusCode ?? 0)) scadute.push(m.suoi[k]); });
+  }));
+  for (const i of [...new Set(scadute)].sort((a, b) => b.riga - a.riga)) await cancellaRiga(SCHEDA, i.riga).catch(() => {});
+  return { conNotifiche: conIscrizioni.length, raggiunte };
 }
 
 // La notifica ricavata da un messaggio WhatsApp del sito (bacheca.ts, prove.ts, convocazioni.ts,

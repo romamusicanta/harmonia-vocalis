@@ -9,6 +9,7 @@ const app = {
   sito: { nome: coro.nome, breve: coro.sigla, avvio: '/', descrizione: coro.descrizione },
   coristi: { nome: `Area coristi · ${coro.nome}`, breve: `${coro.sigla} Coristi`, avvio: '/area', descrizione: 'Calendario delle prove e dei concerti, assenze, materiali del coro.' },
   maestro: { nome: `Area del Maestro · ${coro.nome}`, breve: `${coro.sigla} Maestro`, avvio: '/maestro', descrizione: 'Chi c’è e chi manca alle prove e ai concerti.' },
+  tesoriere: { nome: `Area del tesoriere · ${coro.nome}`, breve: `${coro.sigla} Tesoriere`, avvio: '/tesoriere', descrizione: 'Quote dei coristi e cassa del coro.' },
   admin: { nome: `Amministrazione · ${coro.nome}`, breve: `${coro.sigla} Admin`, avvio: '/admin', descrizione: 'Concerti, prove, foto e assenze del sito.' },
 };
 export type App = keyof typeof app;

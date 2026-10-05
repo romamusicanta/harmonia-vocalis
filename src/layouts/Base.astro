@@ -23,8 +23,8 @@ interface Props {
   titolo?: string;
   descrizione?: string;
   pagina?: Pagina;
-  // Area coristi (o del Maestro, maestro: true): testata e piè di pagina ridotti; sezione attiva nella barra
-  area?: { sezione?: string; conBarra?: boolean; maestro?: boolean };
+  // Area coristi (o del Maestro, maestro: true, o del tesoriere, tesoriere: true): testata e piè di pagina ridotti; sezione attiva nella barra
+  area?: { sezione?: string; conBarra?: boolean; maestro?: boolean; tesoriere?: boolean };
   // Immagine dell'anteprima nei link condivisi (WhatsApp, social), da coro/immagini; senza, la foto di apertura
   anteprima?: string;
   // Dati strutturati per Google (src/motore/seo.ts); nella home quelli del coro si aggiungono da soli.
@@ -92,7 +92,7 @@ const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immag
     )}
     {dati.map((d) => <script type="application/ld+json" set:html={JSON.stringify(d).replace(/</g, '\\u003c')} />)}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    {!DEMO && <TestaApp app={area?.maestro ? 'maestro' : area ? 'coristi' : 'sito'} />}
+    {!DEMO && <TestaApp app={area?.maestro ? 'maestro' : area?.tesoriere ? 'tesoriere' : area ? 'coristi' : 'sito'} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href={urlCaratteri(caratteri, coro.aspetto.caratteriLogo)} />
@@ -102,11 +102,11 @@ const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immag
   </head>
   <body class:list={{ area: Boolean(area) }}>
     <a class="salta" href="#contenuto">{lingua === 'en' ? 'Skip to content' : 'Vai al contenuto'}</a>
-    {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} maestro={area.maestro} /> : <Testata veste={veste} pagina={pagina} />}
+    {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} maestro={area.maestro} tesoriere={area.tesoriere} /> : <Testata veste={veste} pagina={pagina} />}
     <main id="contenuto" tabindex="-1">
       <slot />
     </main>
-    {area ? <PiedeArea veste={veste} maestro={area.maestro} /> : <Piede veste={veste} />}
+    {area ? <PiedeArea veste={veste} maestro={area.maestro} tesoriere={area.tesoriere} /> : <Piede veste={veste} />}
     {DEMO && <Pannello veste={veste} />}
     {prova && <PannelloProva veste={veste} />}
     <script>

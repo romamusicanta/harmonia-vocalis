@@ -12,7 +12,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const atteso = decifra<{ stato: string; dopo: string; silenzioso?: string }>(cookies.get('hv-stato-area')?.value);
   cookies.delete('hv-stato-area', { path: '/area' });
   const maestro = atteso?.dopo.startsWith('/maestro');
-  const errore = (m: string) => redirect(`${maestro ? '/maestro/accesso' : '/area/accesso'}?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/area' })}`);
+  const tesoriere = atteso?.dopo.startsWith('/tesoriere');
+  const errore = (m: string) => redirect(`${maestro ? '/maestro/accesso' : tesoriere ? '/tesoriere/accesso' : '/area/accesso'}?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/area' })}`);
 
   const sessione = leggiCorista(cookies);
   if (atteso?.silenzioso && sessione?.email === atteso.silenzioso) {
@@ -37,8 +38,12 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   }
   if (!esito.corista) return errore(esito.errore ?? 'Accesso non riuscito.');
   salvaCorista(cookies, esito.corista, url.protocol === 'https:');
-  // Chi è solo nella direzione va nell'area del Maestro, chi è solo corista nell'area coristi
-  if (maestro && !esito.corista.direzione) return redirect('/area');
-  if (!maestro && !esito.corista.coro) return redirect('/maestro');
+  // Ognuno va nella sua area: chi chiede un'area che non è sua finisce in una delle sue (coristi,
+  // Maestro, tesoriere, in quest'ordine)
+  const c = esito.corista;
+  const sua = c.coro ? '/area' : c.direzione ? '/maestro' : '/tesoriere';
+  if (maestro && !c.direzione) return redirect(sua);
+  if (tesoriere && !c.tesoreria) return redirect(sua);
+  if (!maestro && !tesoriere && !c.coro) return redirect(sua);
   return redirect(atteso.dopo);
 };

@@ -4,6 +4,7 @@
 // Area coristi: le pagine sotto /area (non prerenderizzate fuori dalla demo, vedi astro.config.mjs)
 // si aprono solo a chi è entrato ed è nel gruppo dei coristi. Area del Maestro (/maestro, i
 // report): solo al gruppo della direzione, con lo stesso accesso con Google e la stessa sessione.
+// Area del tesoriere (/tesoriere, quote e cassa): solo ai gruppi della tesoreria, idem.
 import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
 import { conFoto, tokenValido } from './admin/google';
@@ -12,6 +13,7 @@ import { chiudiCorista, coristaValido, eCorista, leggiCorista, salvaCorista } fr
 const libere = ['/admin/accedi', '/admin/callback', '/admin/esci'];
 const libereArea = ['/area/accesso', '/area/entra', '/area/callback', '/area/esci'];
 const libereMaestro = ['/maestro/accesso'];
+const libereTesoriere = ['/tesoriere/accesso'];
 
 const riservata = (risposta: Response) => {
   risposta.headers.set('Cache-Control', 'no-store');
@@ -27,9 +29,10 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   if (pathname === '/area/direzione' || pathname.startsWith('/area/direzione/')) return ctx.redirect('/maestro', 301);
   const area = /^\/area(\/|$)/.test(pathname);
   const maestro = /^\/maestro(\/|$)/.test(pathname);
-  if (area || maestro) {
-    if ((area ? libereArea : libereMaestro).includes(pathname.replace(/\/$/, ''))) return riservata(await avanti());
-    const accesso = maestro ? '/maestro/accesso' : '/area/accesso';
+  const tesoriere = /^\/tesoriere(\/|$)/.test(pathname);
+  if (area || maestro || tesoriere) {
+    if ((area ? libereArea : maestro ? libereMaestro : libereTesoriere).includes(pathname.replace(/\/$/, ''))) return riservata(await avanti());
+    const accesso = maestro ? '/maestro/accesso' : tesoriere ? '/tesoriere/accesso' : '/area/accesso';
     const letto = leggiCorista(ctx.cookies);
     const corista = letto && (await coristaValido(letto));
     if (!corista) {
@@ -44,7 +47,9 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     // L'area del Maestro è solo per la direzione, l'area coristi solo per i coristi
     if (maestro && !corista.direzione) return ctx.redirect(`/maestro/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del Maestro.` })}`);
     // /area/notifiche anche per la direzione: lì si iscrivono i telefoni di tutte e due le aree
-    if (area && !eCorista(corista) && pathname !== '/area/notifiche') return ctx.redirect('/maestro');
+    if (area && !eCorista(corista) && pathname !== '/area/notifiche') return ctx.redirect(corista.direzione ? '/maestro' : '/tesoriere');
+    // L'area del tesoriere solo ai gruppi della tesoreria
+    if (tesoriere && !corista.tesoreria) return ctx.redirect(`/tesoriere/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del tesoriere.` })}`);
     // Le sessioni aperte prima della foto del profilo la prendono da Google, senza chiedere niente
     if (corista.foto === undefined && ctx.request.method === 'GET' && ctx.request.headers.get('sec-fetch-mode') === 'navigate') {
       return ctx.redirect(`/area/entra?${new URLSearchParams({ silenzioso: '1', dopo: pathname + ctx.url.search })}`);

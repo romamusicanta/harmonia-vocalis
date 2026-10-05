@@ -48,6 +48,8 @@ export default defineConfig({
       // Area coristi: foglio "Coristi e assenze" e calendario privato "Prove"
       FOGLIO_CORISTI_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       CALENDARIO_PROVE_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Area del tesoriere: foglio "Tesoreria – quote e cassa" (cartella Tesoreria del Drive condiviso)
+      FOGLIO_TESORERIA_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       // Notifiche push ai coristi (src/area/notifiche.ts)
       VAPID_PUBLIC_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
       VAPID_PRIVATE_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),

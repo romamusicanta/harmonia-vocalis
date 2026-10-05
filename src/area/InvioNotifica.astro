@@ -9,7 +9,7 @@ import { configurate, daWhatsapp } from './notifiche';
 interface Props { messaggio: string; classe?: string }
 const { messaggio, classe = 'btn o piccolo' } = Astro.props;
 const n = daWhatsapp(messaggio, Astro.url.origin);
-const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' : '/admin/notifiche';
+const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' : Astro.url.pathname.startsWith('/tesoriere') ? '/tesoriere/notifiche' : '/admin/notifiche';
 ---
 
 {configurate() && (
@@ -18,19 +18,6 @@ const invio = Astro.url.pathname.startsWith('/maestro') ? '/maestro/notifiche' :
   </button>
 )}
 
-<style is:global>
-  .finestra-notifica { margin: auto; border: 0; border-radius: var(--raggio); padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); background: var(--bianco); color: var(--testo); box-shadow: 0 20px 60px rgb(0 0 0 / .3); }
-  .finestra-notifica::backdrop { background: rgb(0 0 0 / .45); }
-  .finestra-notifica form { display: grid; gap: 14px; padding: 22px; }
-  .finestra-notifica h2 { margin: 0; font-family: var(--f-titoli); font-size: 21px; color: var(--primario); }
-  .finestra-notifica label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
-  .finestra-notifica :is(input, textarea) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
-  .finestra-notifica .nota { margin: 0; font-size: 14px; color: var(--tenue); }
-  .finestra-notifica .esito { margin: 0; font-weight: 700; }
-  .finestra-notifica .esito.errore { color: #b3261e; }
-  .finestra-notifica .esito.ok { color: #2e7d4f; }
-  .finestra-notifica .pulsanti { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
-</style>
 
 <script>
   // Una sola finestra per pagina, creata al primo tocco e riempita dal pulsante toccato

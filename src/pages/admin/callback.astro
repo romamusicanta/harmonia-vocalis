@@ -20,7 +20,7 @@ try {
   return errore(`Accesso non riuscito: ${(e as Error).message}`);
 }
 // Il Maestro (solo nel gruppo della direzione) non entra nell'Amministrazione: va nella sua area
-if (esito.maestro) return Astro.redirect('/maestro');
+if (esito.altrove) return Astro.redirect(esito.altrove);
 if (!esito.sessione) return errore(esito.errore ?? 'Accesso non riuscito.');
 salvaSessione(Astro.cookies, esito.sessione, Astro.url.protocol === 'https:');
 return Astro.redirect(atteso.dopo);

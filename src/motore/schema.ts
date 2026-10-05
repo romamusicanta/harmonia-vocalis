@@ -89,6 +89,13 @@ export const schemaCoro = z.object({
       // Chi è in questo gruppo non ha il ruolo (es. gli amministratori, dentro maestro@ per controllare l'area)
       tranne: z.string().optional(),
     })).default([]),
+    // Area del tesoriere (/tesoriere): chi la vede (gruppi Google), la quota mensile dei coristi in
+    // euro e i mesi in cui si paga (numeri dei mesi, nell'ordine della stagione)
+    tesoreria: z.object({
+      gruppi: z.array(z.string()),
+      quota: z.number(),
+      mesi: z.array(z.number().int().min(1).max(12)),
+    }).optional(),
   }).optional(),
 
   foto: z.object({

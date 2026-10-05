@@ -7,9 +7,9 @@ import Icona from '../../componenti/Icona.astro';
 import { areeRiservate, type AreaRiservata } from './aree';
 import type { Veste } from '../../motore/aspetto';
 
-interface Props { veste: Veste; en?: boolean; corrente?: AreaRiservata }
-const { veste, en = false, corrente } = Astro.props;
-const aree = areeRiservate(veste, en);
+interface Props { veste: Veste; en?: boolean; corrente?: AreaRiservata; tesoreria?: boolean }
+const { veste, en = false, corrente, tesoreria = false } = Astro.props;
+const aree = areeRiservate(veste, en, tesoreria);
 ---
 
 {aree.length > 0 && (

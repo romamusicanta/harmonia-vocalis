@@ -20,9 +20,9 @@ import { corista } from '../../demo/area';
 import { ruoliDi } from '../../area/bacheca';
 import type { Veste } from '../../motore/aspetto';
 
-interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; admin?: boolean }
-const { veste, sezione, conBarra = true, maestro = false, admin = false } = Astro.props;
-const tipo = admin ? 'admin' : maestro ? 'maestro' : 'coristi';
+interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; tesoriere?: boolean; admin?: boolean }
+const { veste, sezione, conBarra = true, maestro = false, tesoriere = false, admin = false } = Astro.props;
+const tipo = admin ? 'admin' : maestro ? 'maestro' : tesoriere ? 'tesoriere' : 'coristi';
 
 // Chi è entrato (src/middleware.ts), con la foto dell'account Google se c'è (altrimenti, o se non si
 // carica, l'icona della persona); nella demo il corista di esempio
@@ -32,13 +32,16 @@ const utente = admin
   : Astro.locals.corista
     ? { nome: Astro.locals.corista.nome, dettaglio: Astro.locals.corista.email, foto: Astro.locals.corista.foto }
     : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}`, foto: undefined as string | undefined };
-const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : '/area/esci';
+const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : tesoriere ? '/area/esci?da=tesoriere' : '/area/esci';
 
-const aree = areeRiservate(veste);
-const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', admin: 'Amministrazione' }[tipo];
+// L'area del tesoriere compare tra le aree riservate solo a chi la può aprire
+const tesoreria = Boolean(Astro.locals.corista?.tesoreria);
+const aree = areeRiservate(veste, false, tesoreria);
+const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', tesoriere: 'Area del tesoriere', admin: 'Amministrazione' }[tipo];
 const info = {
   coristi: `Area coristi · accesso riservato ai coristi del ${coro.nome}`,
   maestro: `Area del Maestro · accesso riservato alla direzione del ${coro.nome}`,
+  tesoriere: `Area del tesoriere · accesso riservato al tesoriere del ${coro.nome}`,
   admin: `Amministrazione · accesso riservato ai redattori del sito del ${coro.nome}`,
 }[tipo];
 const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
@@ -66,6 +69,12 @@ const sezioni = ({
     { id: 'repertorio', testo: 'Note sul repertorio', breve: 'Note', icona: 'libro', href: '/maestro/repertorio', tab: true },
     { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi', tab: true },
   ],
+  tesoriere: [
+    { id: 'riepilogo', testo: 'Riepilogo', icona: 'grafico', href: '/tesoriere', tab: true },
+    { id: 'quote', testo: 'Quote', icona: 'euro', href: '/tesoriere/quote', tab: true },
+    { id: 'cassa', testo: 'Entrate e uscite', breve: 'Cassa', icona: 'cassa', href: '/tesoriere/cassa', tab: true },
+    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/tesoriere/avvisi', tab: true },
+  ],
   admin: [
     // Due gruppi: quello che cambia il sito pubblico (va pubblicato) e quello dell'area coristi (vale subito)
     { id: 'pubblicazione', testo: 'Pubblicazione', href: '/admin', gruppo: 'Sito pubblico' },
@@ -87,7 +96,7 @@ const primaPagina = sezione === sezioni[0]?.id;
     <span class="info">{info}</span>
     <span class="dx">
       <a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a>
-      {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} />}
+      {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} tesoreria={tesoreria} />}
     </span>
   </div>
 </div>
@@ -152,7 +161,7 @@ const primaPagina = sezione === sezioni[0]?.id;
   </nav>
 )}
 {conBarra && !DEMO && primaPagina && <InvitoApp area={tipo} />}
-{conBarra && !DEMO && primaPagina && tipo !== 'admin' && <InterruttoreNotifiche area={tipo} />}
+{conBarra && !DEMO && primaPagina && (tipo === 'coristi' || tipo === 'maestro') && <InterruttoreNotifiche area={tipo} />}
 
 <script>
   // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che

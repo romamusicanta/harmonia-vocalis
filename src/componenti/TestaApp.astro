@@ -7,7 +7,7 @@ import type { App } from '../pages/app/[app].webmanifest';
 
 interface Props { app: App }
 const { app } = Astro.props;
-const titolo = { sito: coro.sigla, coristi: `${coro.sigla} Coristi`, maestro: `${coro.sigla} Maestro`, admin: `${coro.sigla} Admin` }[app];
+const titolo = { sito: coro.sigla, coristi: `${coro.sigla} Coristi`, maestro: `${coro.sigla} Maestro`, tesoriere: `${coro.sigla} Tesoriere`, admin: `${coro.sigla} Admin` }[app];
 ---
 
 <link rel="manifest" href={`/app/${app}.webmanifest`} />

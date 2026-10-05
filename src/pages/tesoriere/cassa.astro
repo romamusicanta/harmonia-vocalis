@@ -1,0 +1,207 @@
+---
+// Area del tesoriere: entrate e uscite del coro (/tesoriere/cassa, ?stagione=2025 per le passate).
+// Modulo per un movimento nuovo o da modificare (?modifica=id): entrata, uscita o saldo di inizio
+// stagione, con data, categoria, descrizione, importo e note; POST alla pagina stessa
+// (gestisciMovimento in src/area/tesoreria.ts). Sotto: cifre della stagione, mesi dal più recente con
+// i movimenti e i totali (le quote pagate entrano da sole, una riga per mese), totali per categoria.
+import Base from '../../layouts/Base.astro';
+import Errore from '../../area/Errore.astro';
+import Icona from '../../componenti/Icona.astro';
+import { vesteCorrente } from '../../motore/url';
+import { oggi } from '../../area/dati';
+import { spiegaTesto } from '../../area/errori';
+import {
+  CATEGORIE, cassa, configurata, euro, gestisciMovimento, meseEsteso, movimenti, nomeStagione, questoMese, quote, stagioneCorrente, stagioneDi,
+  stagioniConDati, type Cassa, type Movimento,
+} from '../../area/tesoreria';
+import '../../area/tesoreria.css';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+const email = Astro.locals.corista!.email;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const r = await gestisciMovimento(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, data: undefined }));
+  const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
+  if (r.data) p.set('stagione', String(stagioneDi(r.data)));
+  if (!r.ok && f.get('azione') === 'salva') for (const k of ['id', 'tipo', 'data', 'categoria-entrata', 'categoria-uscita', 'descrizione', 'importo', 'note']) if (f.get(k)) p.set(k === 'id' ? 'modifica' : k, String(f.get(k)));
+  return Astro.redirect(`/tesoriere/cassa?${p}${r.ok && r.data ? `#m-${r.data.slice(0, 7)}` : '#modulo'}`);
+}
+
+const q = Astro.url.searchParams;
+const corrente = configurata() ? stagioneCorrente() : 0;
+const chiesta = Number(q.get('stagione'));
+const anno = chiesta >= 2000 && chiesta <= corrente ? chiesta : corrente;
+
+let errore: unknown;
+let tutti: Movimento[] = [];
+let conti: Cassa | undefined;
+let stagioni: number[] = [];
+if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
+else {
+  try {
+    const [qq, m] = await Promise.all([quote(), movimenti()]);
+    tutti = m;
+    conti = cassa(anno, qq, m);
+    stagioni = stagioniConDati(qq, m);
+  } catch (e) {
+    errore = e;
+  }
+}
+const inModifica = tutti.find((m) => m.id === q.get('modifica'));
+// Il modulo: il movimento in modifica, o quanto scritto prima di un errore
+const val = (k: string, v?: string) => (inModifica ? v : undefined) ?? q.get(k) ?? '';
+const tipo = val('tipo', inModifica?.tipo) || 'Uscita';
+const importoInModifica = inModifica ? String(inModifica.importo).replace('.', ',') : undefined;
+const mesiConQualcosa = (conti?.mesi ?? []).filter((m) => m.movimenti.length || m.quote).reverse();
+const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
+---
+
+<Base veste={veste} titolo="Entrate e uscite · Area del tesoriere" area={{ tesoriere: true, sezione: 'cassa' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
+        <h1>Entrate e uscite</h1>
+        <p>Tutti i movimenti di cassa del coro. Le quote dei coristi entrano da sole da <a href="/tesoriere/quote">Quote</a>, nel mese in cui sono state pagate: non scriverle anche qui.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+      {errore && <Errore e={errore} />}
+
+      {configurata() && !errore && (
+        <form method="post" class="carta modulo-cassa" id="modulo">
+          <div class="ct"><h2>{inModifica ? 'Modifica il movimento' : 'Nuovo movimento'}</h2>{inModifica && <a class="link-freccia" href="/tesoriere/cassa">Annulla</a>}</div>
+          <div class="cc">
+            <input type="hidden" name="azione" value="salva" />
+            {inModifica && <input type="hidden" name="id" value={inModifica.id} />}
+            <fieldset class="tipo-movimento">
+              <legend>Tipo</legend>
+              {(['Uscita', 'Entrata', 'Saldo iniziale'] as const).map((t) => (
+                <label><input type="radio" name="tipo" value={t} checked={tipo === t} />{t === 'Saldo iniziale' ? 'Saldo di inizio stagione' : t}</label>
+              ))}
+            </fieldset>
+            <div class="riga-campi">
+              <label>Data<input type="date" name="data" required value={val('data', inModifica?.data) || oggi()} /></label>
+              <label>Importo (€)<input name="importo" inputmode="decimal" required pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="Es. 150 o 12,50" value={val('importo', importoInModifica)} /></label>
+            </div>
+            <label class="per-entrata">Categoria<select name="categoria-entrata">{CATEGORIE.Entrata.map((c) => <option selected={val('categoria-entrata', inModifica?.categoria) === c}>{c}</option>)}</select></label>
+            <label class="per-uscita">Categoria<select name="categoria-uscita">{CATEGORIE.Uscita.map((c) => <option selected={val('categoria-uscita', inModifica?.categoria) === c}>{c}</option>)}</select></label>
+            <label class="non-saldo">Descrizione<input name="descrizione" maxlength="200" placeholder="Es. Compenso del Maestro di ottobre" value={val('descrizione', inModifica?.descrizione)} /></label>
+            <label>Note <small>(facoltative: numero di ricevuta, chi ha pagato…)</small><textarea name="note" rows="2" maxlength="500">{val('note', inModifica?.note)}</textarea></label>
+            <div class="bottoni">
+              <button class="btn" type="submit"><Icona nome="spunta" />{inModifica ? 'Salva le modifiche' : 'Registra'}</button>
+            </div>
+          </div>
+        </form>
+      )}
+      {inModifica && (
+        <form method="post" onsubmit="return confirm('Cancellare questo movimento? Sparisce anche dal foglio.')" style="margin:-8px 0 24px">
+          <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={inModifica.id} />
+          <button class="btn o piccolo cancella" type="submit">Cancella il movimento</button>
+        </form>
+      )}
+
+      {stagioni.length > 1 && (
+        <nav class="scelta-t" aria-label="Stagione" style="margin-top:28px">
+          {stagioni.map((s) => <a href={s === corrente ? '/tesoriere/cassa' : `/tesoriere/cassa?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}</a>)}
+        </nav>
+      )}
+
+      {conti && (
+        <>
+          <h2 class="titolo-t">Stagione {nomeStagione(anno)}</h2>
+          <div class="cifre-t">
+            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>saldo di inizio stagione</span></div>
+            <div class="cifra-t"><b>{euro(conti.quote + conti.entrate)}</b><span>entrate</span><small>{euro(conti.quote)} di quote · {euro(conti.entrate)} altre</small></div>
+            <div class="cifra-t"><b>{euro(conti.uscite)}</b><span>uscite</span></div>
+            <div class="cifra-t forte"><b>{euro(conti.saldoFinale)}</b><span>{anno < corrente ? 'saldo di fine stagione' : 'saldo di oggi'}</span></div>
+          </div>
+
+          {mesiConQualcosa.length === 0 && <p class="tenue">Nessun movimento in questa stagione.</p>}
+          {mesiConQualcosa.map((m) => (
+            <div class="carta mese-cassa" id={`m-${m.mese}`}>
+              <div class="ct"><h2>{meseEsteso(m.mese).replace(/^./, (x) => x.toUpperCase())}{m.mese === questoMese() && <span class="tag" style="margin-left:10px">In corso</span>}</h2>
+                <span class="totali-mese">+{euro(m.quote + m.entrate)} · −{euro(m.uscite)} · <b class={segno(m.saldo)}>{euro(m.saldo)}</b></span></div>
+              <div class="tabella-wrap">
+                <table class="tabella">
+                  <tbody>
+                    {m.movimenti.map((x) => (
+                      <tr>
+                        <td class="data">{giorno(x.data)}</td>
+                        <td>{x.tipo === 'Saldo iniziale' ? <b>Saldo di inizio stagione</b> : x.descrizione}<small class="tenue">{[x.categoria, x.note].filter(Boolean).join(' · ')}</small></td>
+                        <td class:list={['num', x.tipo === 'Uscita' ? 'neg' : 'pos']}>{x.tipo === 'Uscita' ? '−' : '+'}{euro(x.importo)}</td>
+                        <td class="num"><a class="btn o piccolo" href={`/tesoriere/cassa?modifica=${x.id}${anno !== corrente ? `&stagione=${anno}` : ''}#modulo`}>Modifica</a></td>
+                      </tr>
+                    ))}
+                    {m.quote > 0 && (
+                      <tr class="riga-quote">
+                        <td class="data"></td>
+                        <td>Quote dei coristi<small class="tenue">{m.numeroQuote} {m.numeroQuote === 1 ? 'quota pagata' : 'quote pagate'} in questo mese · da Quote</small></td>
+                        <td class="num pos">+{euro(m.quote)}</td>
+                        <td class="num"><a class="btn o piccolo" href={`/tesoriere/quote`}>Quote</a></td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+
+          {conti.perCategoria.length > 0 && (
+            <>
+              <h2 class="titolo-t">Per categoria</h2>
+              <div class="carta">
+                <div class="tabella-wrap">
+                  <table class="tabella">
+                    <thead><tr><th>Categoria</th><th class="num">Entrate</th><th class="num">Uscite</th></tr></thead>
+                    <tbody>
+                      {conti.quote > 0 && <tr><td>Quote dei coristi</td><td class="num pos">{euro(conti.quote)}</td><td class="num">—</td></tr>}
+                      {conti.perCategoria.map((c) => <tr><td>{c.categoria}</td><td class="num pos">{c.tipo === 'Entrata' ? euro(c.totale) : '—'}</td><td class="num neg">{c.tipo === 'Uscita' ? euro(c.totale) : '—'}</td></tr>)}
+                    </tbody>
+                    <tfoot><tr><td>Totale</td><td class="num">{euro(conti.quote + conti.entrate)}</td><td class="num">{euro(conti.uscite)}</td></tr></tfoot>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .modulo-cassa { margin: 0 0 24px; }
+  .modulo-cassa .cc { display: grid; gap: 16px; }
+  .modulo-cassa label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
+  .modulo-cassa label small { font-weight: 400; color: var(--tenue); }
+  .modulo-cassa :is(input:not([type='radio']), textarea, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .modulo-cassa .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .modulo-cassa .riga-campi input { height: 48px; }
+  .tipo-movimento { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .tipo-movimento legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 6px; padding: 0; }
+  .tipo-movimento label { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; padding: 9px 14px; border: 2px solid var(--linea); border-radius: var(--raggio); cursor: pointer; font-weight: 600; background: var(--bianco); }
+  .tipo-movimento label:has(input:checked) { border-color: var(--primario); background: var(--primario); color: #fff; }
+  .tipo-movimento input { accent-color: var(--accento); margin: 0; }
+  /* Categoria e descrizione secondo il tipo scelto */
+  .modulo-cassa:has(input[value='Entrata']:checked) .per-uscita,
+  .modulo-cassa:has(input[value='Uscita']:checked) .per-entrata,
+  .modulo-cassa:has(input[value='Saldo iniziale']:checked) :is(.per-entrata, .per-uscita, .non-saldo) { display: none; }
+  .mese-cassa { margin: 0 0 16px; }
+  .mese-cassa .ct { flex-wrap: wrap; gap: 6px 16px; }
+  .totali-mese { font-size: 14px; color: var(--tenue); }
+  .mese-cassa td small { display: block; font-size: 13px; }
+  .mese-cassa td.data { width: 56px; color: var(--tenue); white-space: nowrap; }
+  .mese-cassa .riga-quote td { background: color-mix(in srgb, var(--accento) 10%, var(--bianco)); }
+  .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
+  .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 0 0 20px; border: 2px solid var(--linea); background: var(--bianco); }
+  .messaggio.ok { border-color: #2e7d4f; }
+  .messaggio.errore { border-color: #b3261e; color: #b3261e; }
+</style>

@@ -1,7 +1,8 @@
 // Accesso con Google all'area Amministrazione e chiamate alle API di Google a nome di chi è entrato.
 // Il client OAuth "web" sta nel progetto Google Cloud harmonia-vocalis-510406 (consenso Interno:
 // solo account del dominio). Entrano i redattori (gruppo coro.amministrazione.gruppo) e, per i soli
-// avvisi della bacheca, chi ha un ruolo in coro.coristi.bacheca (presidente, tesoriere…): per loro
+// avvisi della bacheca, chi ha un ruolo in coro.coristi.bacheca (il presidente; Maestro e tesoriere
+// vanno invece nella loro area): per loro
 // la sessione ha redattore = false e il middleware apre solo /admin/avvisi. Il Maestro no: ha la
 // sua area, e chi è solo nel gruppo della direzione viene mandato lì.
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from 'astro:env/server';
@@ -48,7 +49,7 @@ async function token(corpo: Record<string, string>): Promise<Token> {
 }
 
 // Dopo il ritorno da Google: chi è, e se è un amministratore
-export async function completaAccesso(codice: string, ritorno: string): Promise<{ sessione?: Sessione; errore?: string; maestro?: boolean }> {
+export async function completaAccesso(codice: string, ritorno: string): Promise<{ sessione?: Sessione; errore?: string; altrove?: string }> {
   const t = await token({ code: codice, redirect_uri: ritorno, grant_type: 'authorization_code' });
   const mancanti = AMBITI.filter((a) => a.startsWith('https://www.googleapis.com/auth/') && !t.scope.split(' ').includes(a));
   if (mancanti.length) return { errore: 'Per usare l’area servono tutti i permessi richiesti (calendario, Drive, gruppi): riprova e lasciali selezionati.' };
@@ -57,11 +58,15 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
   const suoi = await gruppiDi(t.access_token, io.email);
   const redattore = suoi.has(gruppo.toLowerCase());
-  // Il Maestro scrive gli avvisi dalla sua area (/maestro/avvisi): il suo ruolo nella bacheca non
-  // apre l'Amministrazione, dove entra solo se è anche redattore o amministratore
+  // Il Maestro e il tesoriere scrivono gli avvisi dalla loro area (/maestro/avvisi, /tesoriere/avvisi):
+  // il loro ruolo nella bacheca non apre l'Amministrazione, dove entrano solo se sono anche redattori
+  // o amministratori
   const direzione = coro.coristi?.direzione?.toLowerCase();
-  const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => r.gruppo.toLowerCase() !== direzione && suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
-  if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { maestro: true };
+  const tesoreria = (coro.coristi?.tesoreria?.gruppi ?? []).map((g) => g.toLowerCase());
+  const conAreaPropria = (g: string) => g === direzione || tesoreria.includes(g);
+  const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => !conAreaPropria(r.gruppo.toLowerCase()) && suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
+  if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { altrove: '/maestro' };
+  if (!redattore && !conRuolo && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere' };
   if (!redattore && !conRuolo) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };
   return {
     sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000, redattore },

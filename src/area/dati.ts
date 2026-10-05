@@ -35,7 +35,7 @@ const oraDi = (d: Date) => formatoOra.format(d);
 export const piuGiorni = (giorno: string, n: number) => giornoDi(new Date(Date.parse(`${giorno}T12:00:00Z`) + n * 86_400_000));
 
 // Le date del foglio arrivano come le mostra (gg/mm/aaaa); accettate anche AAAA-MM-GG
-function dataFoglio(v?: string) {
+export function dataFoglio(v?: string) {
   if (!v) return undefined;
   const it = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (it) return `${it[3]}-${it[2].padStart(2, '0')}-${it[1].padStart(2, '0')}`;
@@ -49,10 +49,12 @@ export const inizioStagione = (giorno: string) => {
 };
 
 // ——— Foglio ———
+// Tutte le funzioni lavorano sul foglio "Coristi e assenze"; con l'ultimo argomento su un altro
+// foglio (la tesoreria, src/area/tesoreria.ts)
 
-export async function leggiScheda(scheda: string) {
+export async function leggiScheda(scheda: string, foglio = FOGLIO_CORISTI_ID!) {
   const p = new URLSearchParams({ valueRenderOption: 'FORMATTED_VALUE' });
-  const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${scheda}!A1:Z`)}?${p}`);
+  const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${scheda}!A1:Z`)}?${p}`);
   const [intestazioni = [], ...righe] = values;
   // Ogni riga come { intestazione: valore }, con il numero di riga del foglio (la prima è 2)
   return righe.map((r, i) => ({ riga: i + 2, ...Object.fromEntries(intestazioni.map((t, j) => [t.trim(), (r[j] ?? '').trim()])) })) as ({ riga: number } & Record<string, string>)[];
@@ -254,48 +256,50 @@ export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da
 // L'identificativo numerico di una scheda del foglio (serve per cancellare righe); se la scheda
 // non c'è e si danno le intestazioni, la crea
 const idSchede = new Map<string, number>();
-export async function idScheda(nome: string, intestazioni?: string[]) {
-  if (idSchede.has(nome)) return idSchede.get(nome)!;
-  const { sheets } = await google<{ sheets: { properties: { sheetId: number; title: string } }[] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}?fields=sheets.properties`);
+export async function idScheda(nome: string, intestazioni?: string[], foglio = FOGLIO_CORISTI_ID!) {
+  const chiave = `${foglio}/${nome}`;
+  if (idSchede.has(chiave)) return idSchede.get(chiave)!;
+  const { sheets } = await google<{ sheets: { properties: { sheetId: number; title: string } }[] }>(`${SHEETS}/${foglio}?fields=sheets.properties`);
   let id = sheets.find((s) => s.properties.title === nome)?.properties.sheetId;
   if (id === undefined) {
     if (!intestazioni) throw new Error(`manca la scheda ${nome} nel foglio`);
-    const r = await google<{ replies: { addSheet: { properties: { sheetId: number } } }[] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}:batchUpdate`, {
+    const r = await google<{ replies: { addSheet: { properties: { sheetId: number } } }[] }>(`${SHEETS}/${foglio}:batchUpdate`, {
       method: 'POST',
       body: JSON.stringify({ requests: [{ addSheet: { properties: { title: nome, gridProperties: { frozenRowCount: 1 } } } }] }),
     });
     id = r.replies[0].addSheet.properties.sheetId;
-    await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [intestazioni] }) });
+    await google(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [intestazioni] }) });
   }
   else if (intestazioni) {
     // Colonne aggiunte dopo la creazione della scheda: si scrivono in fondo all'intestazione (le
     // colonne nuove si aggiungono sempre alla fine dell'elenco, mai in mezzo)
-    const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!1:1`)}`);
+    const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${nome}!1:1`)}`);
     const presenti = (values[0] ?? []).map((t) => t.trim());
     const mancanti = intestazioni.filter((t) => !presenti.includes(t));
-    if (mancanti.length) await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [[...presenti, ...mancanti]] }) });
+    if (mancanti.length) await google(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${nome}!A1`)}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: [[...presenti, ...mancanti]] }) });
   }
-  idSchede.set(nome, id);
+  idSchede.set(chiave, id);
   return id;
 }
 
 // Scrive una riga (numero di riga del foglio) o la aggiunge in fondo (riga assente)
-export async function scriviRiga(scheda: string, valori: string[], riga?: number) {
+// I numeri (importi) si passano come numeri: arrivano al foglio come numeri qualunque sia la sua lingua
+export async function scriviRiga(scheda: string, valori: (string | number)[], riga?: number, foglio = FOGLIO_CORISTI_ID!) {
   const fine = String.fromCharCode(64 + valori.length);
   const p = new URLSearchParams({ valueInputOption: 'USER_ENTERED' });
   if (riga) {
-    await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${scheda}!A${riga}:${fine}${riga}`)}?${p}`, { method: 'PUT', body: JSON.stringify({ values: [valori] }) });
+    await google(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${scheda}!A${riga}:${fine}${riga}`)}?${p}`, { method: 'PUT', body: JSON.stringify({ values: [valori] }) });
     return;
   }
   p.set('insertDataOption', 'OVERWRITE');
-  await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`${scheda}!A:${fine}`)}:append?${p}`, { method: 'POST', body: JSON.stringify({ values: [valori] }) });
+  await google(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${scheda}!A:${fine}`)}:append?${p}`, { method: 'POST', body: JSON.stringify({ values: [valori] }) });
 }
 
 // Cancella una riga del foglio
-export async function cancellaRiga(scheda: string, riga: number) {
-  await google(`${SHEETS}/${FOGLIO_CORISTI_ID}:batchUpdate`, {
+export async function cancellaRiga(scheda: string, riga: number, foglio = FOGLIO_CORISTI_ID!) {
+  await google(`${SHEETS}/${foglio}:batchUpdate`, {
     method: 'POST',
-    body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: await idScheda(scheda), dimension: 'ROWS', startIndex: riga - 1, endIndex: riga } } }] }),
+    body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: await idScheda(scheda, undefined, foglio), dimension: 'ROWS', startIndex: riga - 1, endIndex: riga } } }] }),
   });
 }
 
