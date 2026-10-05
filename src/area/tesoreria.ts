@@ -462,6 +462,10 @@ export function onorariPerMese(prove: ProvaMaestro[]): MeseMaestri[] {
   return [...mesi.values()].sort((a, b) => a.mese.localeCompare(b.mese));
 }
 
+// La sede di un affitto, dalla descrizione (coro.coristi.tesoreria.sedi); senza corrispondenza, "Altre sedi"
+export const sedeDi = (m: Movimento) => conf().sedi.find((s) => s.parole.some((p) => m.descrizione.toLowerCase().includes(p.toLowerCase())))?.nome ?? 'Altre sedi';
+export const nomiSedi = () => conf().sedi.map((s) => s.nome);
+
 // Quanto è stato pagato per gli onorari nella stagione, dalle uscite della cassa
 export const pagatoPer = (c: Cassa, categoria: string) => c.movimenti.filter((m) => m.tipo === 'Uscita' && m.categoria === categoria).reduce((t, m) => t + m.importo, 0);
 

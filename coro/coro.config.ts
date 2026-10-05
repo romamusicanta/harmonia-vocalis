@@ -107,6 +107,13 @@ export default {
       mesi: [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
       onorari: { prova: 90, sostituto: 80, vocalitaSingola: 25, vocalitaDoppia: 50 },
       codiceFiscale: '97968110581', // dal rendiconto 2025-26
+      iban: 'IT06G0306909606100000409035',
+      intestatario: 'ROMA MUSICANTA',
+      // Come nel prospetto delle spese fisse 2025-26: il canone alla Città Metropolitana è per la sede del Liceo
+      sedi: [
+        { nome: 'Liceo E. Rossi', parole: ['Enzo Rossi', 'E. Rossi', 'Liceo', 'Città Metropolitana', 'Frantoio'] },
+        { nome: 'CS Intifada', parole: ['Intifada'] },
+      ],
     },
   },
 

@@ -99,6 +99,12 @@ export const schemaCoro = z.object({
       // vocalità di gruppo singola e doppia (prospetti "Onorario maestri" e "Spese gestione prove")
       // Codice fiscale dell'associazione, nell'intestazione del rendiconto
       codiceFiscale: z.string().optional(),
+      // Conto per i bonifici delle quote, mostrato ai coristi in Bacheca
+      iban: z.string().optional(),
+      intestatario: z.string().optional(),
+      // Sedi delle prove, per dividere gli affitti nel rendiconto: un'uscita della categoria «Affitto
+      // sala prove» va alla prima sede con una delle parole nella descrizione
+      sedi: z.array(z.object({ nome: z.string(), parole: z.array(z.string()) })).default([]),
       onorari: z.object({
         prova: z.number(),
         sostituto: z.number(),

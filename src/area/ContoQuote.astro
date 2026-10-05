@@ -1,0 +1,41 @@
+---
+// Area coristi, Bacheca: il conto per pagare le quote con un bonifico (coro.coristi.tesoreria.iban e
+// .intestatario), con il pulsante per copiare l'IBAN.
+import Icona from '../componenti/Icona.astro';
+
+interface Props { iban: string; intestatario: string }
+const { iban, intestatario } = Astro.props;
+// L'IBAN a gruppi di quattro, più facile da leggere e da ricopiare
+const leggibile = iban.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
+---
+
+<div class="cc conto-quote">
+  <span class="eti">Per il bonifico</span>
+  <dl>
+    <dt>IBAN</dt><dd><code>{leggibile}</code></dd>
+    <dt>Intestatario</dt><dd>{intestatario}</dd>
+  </dl>
+  <button type="button" class="btn o piccolo copia-iban" data-iban={iban.replace(/\s+/g, '')}><Icona nome="documento" /><span>Copia l'IBAN</span></button>
+</div>
+
+<style>
+  .conto-quote { display: grid; gap: 8px; border-top: 1px solid var(--linea); }
+  .conto-quote dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 14px; }
+  .conto-quote dt { color: var(--tenue); }
+  .conto-quote dd { margin: 0; color: var(--primario); font-weight: 600; overflow-wrap: anywhere; }
+  .conto-quote code { font-family: inherit; letter-spacing: .02em; }
+  .copia-iban { justify-self: start; }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.copia-iban').forEach((b) => b.addEventListener('click', async () => {
+    const scritta = b.querySelector('span')!;
+    try {
+      await navigator.clipboard.writeText(b.dataset.iban!);
+      scritta.textContent = 'IBAN copiato';
+    } catch {
+      scritta.textContent = 'Non copiato: selezionalo a mano';
+    }
+    setTimeout(() => { scritta.textContent = 'Copia l’IBAN'; }, 2500);
+  }));
+</script>

@@ -14,7 +14,7 @@ import { vesteCorrente } from '../../motore/url';
 import { oggi } from '../../area/dati';
 import { spiegaTesto } from '../../area/errori';
 import {
-  CATEGORIE, PARTITE_DI_GIRO, cassa, configurata, euro, euroEsatto, gestisciMovimento, gestisciVerifica, giornoBreve, meseEsteso, movimenti, nomeStagione, questoMese, quote,
+  CATEGORIE, PARTITE_DI_GIRO, nomiSedi, cassa, configurata, euro, euroEsatto, gestisciMovimento, gestisciVerifica, giornoBreve, meseEsteso, movimenti, nomeStagione, questoMese, quote,
   stagioneCorrente, stagioneDi, stagioniConDati, verifiche, type Cassa, type Movimento, type Quota, type Verifica,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
@@ -109,7 +109,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
             </div>
             <label class="per-entrata">Categoria<select name="categoria-entrata">{CATEGORIE.Entrata.map((c) => <option selected={val('categoria-entrata', inModifica?.categoria) === c}>{c}</option>)}</select></label>
             <label class="per-uscita">Categoria<select name="categoria-uscita">{CATEGORIE.Uscita.map((c) => <option selected={val('categoria-uscita', inModifica?.categoria) === c}>{c}</option>)}</select></label>
-            <p class="tenue per-entrata per-uscita" style="font-size:13px;margin:-8px 0 0">«{PARTITE_DI_GIRO[0]}» e «{PARTITE_DI_GIRO[1]}» sono partite di giro (spartiti comprati per i coristi e da loro rimborsati): nel rendiconto si tolgono dalle spese di gestione.</p>
+            <p class="tenue per-entrata per-uscita" style="font-size:13px;margin:-8px 0 0">«{PARTITE_DI_GIRO[0]}» e «{PARTITE_DI_GIRO[1]}» sono partite di giro (spartiti comprati per i coristi e da loro rimborsati): nel rendiconto si tolgono dalle spese di gestione.{nomiSedi().length > 0 && ` Per l'affitto della sala scrivi la sede nella descrizione (${nomiSedi().join(', ')}): nel rendiconto gli affitti sono divisi per sede.`}</p>
             <p class="tenue non-uscita non-entrata" style="font-size:13px;margin:-8px 0 0">L'avanzo di cassa della stagione prima, al 1 settembre. Se non lo scrivi, il sito riporta il saldo finale della stagione prima, quando ci sono i suoi dati.</p>
             <label class="non-saldo">Descrizione<input name="descrizione" maxlength="200" placeholder="Es. Compenso del Maestro di ottobre" value={val('descrizione', inModifica?.descrizione)} /></label>
             <label>Note <small>(facoltative: numero di ricevuta, chi ha pagato…)</small><textarea name="note" rows="2" maxlength="500">{val('note', inModifica?.note)}</textarea></label>

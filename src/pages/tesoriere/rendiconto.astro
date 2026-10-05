@@ -12,7 +12,7 @@ import { coro } from '../../motore/coro';
 import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
 import {
   attiviNelMese, cassa, COMPENSI_CONCERTI, configurata, exCoristi, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
-  nomeStagioneLungo, onorari, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
+  nomeStagioneLungo, nomiSedi, onorari, sedeDi, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
   verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
@@ -58,6 +58,11 @@ const rimborsiConcerti = perCategoria('Rimborsi concerti') - perCategoria(COMPEN
 // Spese fisse gestione prove
 const affitti = uscite.filter((m) => m.categoria === 'Affitto sala prove');
 const mesiStagione = conti?.mesi.map((m) => m.mese) ?? [];
+// Gli affitti per sede (coro.coristi.tesoreria.sedi, dalla descrizione), come il prospetto delle spese
+// fisse: le sedi configurate, più "Altre sedi" se c'è qualcosa che non corrisponde; i mesi da settembre a
+// giugno, più luglio e agosto se ci sono affitti
+const sediAffitti = [...nomiSedi(), 'Altre sedi'].filter((x, i, tutte) => i < tutte.length - 1 ? true : affitti.some((a) => sedeDi(a) === x));
+const mesiAffitto = mesiStagione.filter((m) => !['07', '08'].includes(m.slice(5)) || affitti.some((a) => meseDi(a.data) === m));
 const perMese = onorariPerMese(prove);
 const conDirettore = prove.filter((p) => p.maestro === direttore());
 const sostituti = prove.filter((p) => p.maestro && p.maestro !== direttore());
@@ -165,13 +170,20 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
             <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>3 · Spese fisse gestione prove {nomeStagioneLungo(anno)}</h2></div>
             <div class="due-colonne">
               <div>
-                <h3>Affitto sala prove</h3>
-                <table class="tabella">
-                  <thead><tr><th>Mese</th><th class="num">Canone</th></tr></thead>
-                  <tbody>{mesiStagione.map((m) => { const t = affitti.filter((a) => meseDi(a.data) === m).reduce((x, a) => x + a.importo, 0); return <tr><td>{nomeMese(m)}</td><td class="num">{t ? euro(t) : ''}</td></tr>; })}</tbody>
-                  <tfoot><tr><td>Totale</td><td class="num">{euro(affitti.reduce((x, a) => x + a.importo, 0))}</td></tr></tfoot>
-                </table>
-                {affitti.length > 0 && <p class="nota-r">{affitti.map((a) => `${giornoBreve(a.data)} ${a.descrizione} (${euro(a.importo)})`).join(' · ')}</p>}
+                {sediAffitti.map((sede, i) => {
+                  const suoi = affitti.filter((x) => sedeDi(x) === sede);
+                  return (
+                    <>
+                      <h3 style={i === 0 ? 'margin-top:0' : undefined}>Affitto sala prove {sede}</h3>
+                      <table class="tabella">
+                        <thead><tr><th>Mese</th><th class="num">Canone</th></tr></thead>
+                        <tbody>{mesiAffitto.map((m) => { const t = suoi.filter((x) => meseDi(x.data) === m).reduce((y, x) => y + x.importo, 0); return <tr><td>{nomeMese(m)}</td><td class="num">{t ? euro(t) : ''}</td></tr>; })}</tbody>
+                        <tfoot><tr><td>Totale</td><td class="num">{euro(suoi.reduce((y, x) => y + x.importo, 0))}</td></tr></tfoot>
+                      </table>
+                    </>
+                  );
+                })}
+                {sediAffitti.length > 1 && <p class="nota-r">Affitto delle sale in tutto: <b>{euro(affitti.reduce((y, x) => y + x.importo, 0))}</b>.</p>}
               </div>
               <div>
                 <h3>Onorario annuo maestri</h3>
