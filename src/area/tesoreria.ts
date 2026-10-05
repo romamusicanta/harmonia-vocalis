@@ -30,7 +30,7 @@
 import { randomBytes } from 'node:crypto';
 import { FOGLIO_TESORERIA_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { adesso, cancellaRiga, coristi, dataFoglio, eventi, idScheda, inizioStagione, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { adesso, cancellaRiga, coristi, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
 import { normalizza } from './servizio';
 
 const QUOTE = 'Quote';
@@ -131,6 +131,15 @@ export interface Quota { riga: number; mese: string; email: string; nome: string
 const diSettembre = (mese: string) => mese.slice(5, 7) === '09';
 // Le quote che entrano in cassa: quelle pagate e i riporti versati
 const incassata = (q: Quota) => q.email !== TUTTI && (q.stato === 'pagata' || (q.stato === 'riporto' && Boolean(q.versato)));
+
+// Scrive una riga della scheda Quote, con i valori nell'ordine di COLONNE_QUOTE: ognuno va nella
+// colonna con quel nome, ovunque sia nel foglio (colonne spostate o aggiunte a mano non fanno danni)
+async function scriviQuota(valori: (string | number)[], riga?: number) {
+  const intestazione = await intestazioneScheda(QUOTE, FOGLIO_TESORERIA_ID);
+  const perNome = new Map(COLONNE_QUOTE.map((c, i) => [c, valori[i] ?? '']));
+  if (COLONNE_QUOTE.some((c) => !intestazione.includes(c))) throw new Error('Nella scheda Quote manca una colonna: ricarica la pagina e riprova.');
+  await scriviRiga(QUOTE, intestazione.map((t) => perNome.get(t) ?? ''), riga, FOGLIO_TESORERIA_ID);
+}
 
 export async function quote(): Promise<Quota[]> {
   await idScheda(QUOTE, COLONNE_QUOTE, FOGLIO_TESORERIA_ID);
@@ -244,10 +253,10 @@ export async function segnaRiporto(email: string, anno: number, d: { cifra?: num
     return;
   }
   const giorno = versato ? (d.versatoIl && /^\d{4}-\d{2}-\d{2}$/.test(d.versatoIl) ? d.versatoIl : r.versatoIl ?? oggi()) : '';
-  await scriviRiga(QUOTE, [
+  await scriviQuota([
     testo(`${anno}-09`), testo(`${c.nome} ${c.cognome}`), c.email, versato ? 'Riporto versato' : 'Riporto',
     versato ? importo : '', giorno ? perFoglio(giorno) : '', testo(r.nota), da, adesso(), scritto ?? '',
-  ], r.riga || undefined, FOGLIO_TESORERIA_ID);
+  ], r.riga || undefined);
 }
 
 export interface SituazioneMese {
@@ -306,7 +315,7 @@ export async function segnaQuotaBase(mese: string, importo: number, da: string) 
     if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
     return;
   }
-  await scriviRiga(QUOTE, [testo(mese), 'Tutti i coristi', TUTTI, 'Quota base', cifra, '', '', da, adesso()], esistente?.riga, FOGLIO_TESORERIA_ID);
+  await scriviQuota([testo(mese), 'Tutti i coristi', TUTTI, 'Quota base', cifra, '', '', da, adesso()], esistente?.riga);
 }
 
 // Segna la quota di un corista per un mese: pagata (oggi, o il giorno dato; la quota intera, o
@@ -331,7 +340,7 @@ export async function segnaQuota(email: string, mese: string, stato: StatoQuota,
     giorno ? perFoglio(giorno) : '',
     testo(nota.trim().slice(0, 300)), da, adesso(),
   ];
-  await scriviRiga(QUOTE, valori, esistente?.riga, FOGLIO_TESORERIA_ID);
+  await scriviQuota(valori, esistente?.riga);
 }
 
 // Un mese senza quota per nessuno (sì) o di nuovo con la quota (no)
@@ -342,7 +351,7 @@ export async function segnaMeseSenzaQuota(mese: string, senza: boolean, nota: st
     if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
     return;
   }
-  await scriviRiga(QUOTE, [testo(mese), 'Tutti i coristi', TUTTI, 'Nessuna quota', 0, '', testo(nota.trim().slice(0, 300)), da, adesso()], esistente?.riga, FOGLIO_TESORERIA_ID);
+  await scriviQuota([testo(mese), 'Tutti i coristi', TUTTI, 'Nessuna quota', 0, '', testo(nota.trim().slice(0, 300)), da, adesso()], esistente?.riga);
 }
 
 // ——— Movimenti di cassa ———

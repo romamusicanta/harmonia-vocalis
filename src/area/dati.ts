@@ -282,6 +282,12 @@ export async function idScheda(nome: string, intestazioni?: string[], foglio = F
   return id;
 }
 
+// L'intestazione di una scheda, com'è ora nel foglio
+export async function intestazioneScheda(scheda: string, foglio = FOGLIO_CORISTI_ID!) {
+  const { values = [] } = await google<{ values?: string[][] }>(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${scheda}!1:1`)}`);
+  return (values[0] ?? []).map((t) => t.trim());
+}
+
 // Scrive una riga (numero di riga del foglio) o la aggiunge in fondo (riga assente)
 // I numeri (importi) si passano come numeri: arrivano al foglio come numeri qualunque sia la sua lingua
 export async function scriviRiga(scheda: string, valori: (string | number)[], riga?: number, foglio = FOGLIO_CORISTI_ID!) {
