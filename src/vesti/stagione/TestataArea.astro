@@ -18,6 +18,7 @@ import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
 import { ruoliDi } from '../../area/bacheca';
+import { nelGruppo } from '../../area/servizio';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; tesoriere?: boolean; admin?: boolean }
@@ -34,8 +35,13 @@ const utente = admin
     : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}`, foto: undefined as string | undefined };
 const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : tesoriere ? '/area/esci?da=tesoriere' : '/area/esci';
 
-// L'area del tesoriere compare tra le aree riservate solo a chi la può aprire
-const tesoreria = Boolean(Astro.locals.corista?.tesoreria);
+// L'area del tesoriere compare tra le aree riservate solo a chi la può aprire: nell'area coristi e in
+// quella del Maestro lo dice la sessione; nell'Amministrazione (altra sessione) si guardano i gruppi
+// della tesoreria (letti al più ogni 5 minuti)
+const gruppiTesoreria = coro.coristi?.tesoreria?.gruppi ?? [];
+const tesoreria = admin
+  ? Boolean(sessione && !DEMO && (await Promise.all(gruppiTesoreria.map((g) => nelGruppo(sessione.email, g).catch(() => false)))).some(Boolean))
+  : Boolean(Astro.locals.corista?.tesoreria);
 const aree = areeRiservate(veste, false, tesoreria);
 const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', tesoriere: 'Area del tesoriere', admin: 'Amministrazione' }[tipo];
 const info = {
