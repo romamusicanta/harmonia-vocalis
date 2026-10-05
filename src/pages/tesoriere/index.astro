@@ -154,17 +154,26 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
             </table>
           </div>
           <div class="legenda-t">
+            {conRiporto && <b class="gruppo-legenda">Mesi</b>}
             <span><span class="cella-quota" data-stato="pagata">✓</span>pagata</span>
             <span><span class="cella-quota" data-stato="esonerato">E</span>esonerato</span>
             <span><span class="cella-quota dovuta" data-stato="da-pagare"></span>da pagare</span>
             <span><span class="cella-quota" data-stato="da-pagare"></span>mese non ancora arrivato</span>
             <span><span class="cella-quota" style="border-style:dashed;opacity:.4">–</span>non dovuta</span>
             <span><span class="cella-quota diversa" data-stato="pagata">✓</span>importo diverso</span>
-            {conRiporto && <span><span class="riporto debito legenda-riporto">20</span>riporto da versare (✓ = versato)</span>}
           </div>
+          {conRiporto && (
+            <div class="legenda-t" aria-hidden="true">
+              <b class="gruppo-legenda">Riporto</b>
+              <span><span class="riporto debito mini"><span class="cifra-mini">20</span><span class="spunta-mini"></span></span>da versare</span>
+              <span><span class="riporto versato mini"><span class="cifra-mini fissa">20</span><span class="spunta-mini on">✓</span></span>versato</span>
+              <span><span class="riporto mini"><span class="cifra-mini">0</span><span class="spunta-mini off"></span></span>nessun debito</span>
+              <span><span class="riporto debito mini"><span class="cifra-mini mano">25</span><span class="spunta-mini"></span></span>cifra scritta a mano</span>
+            </div>
+          )}
         </div>
       )}
-      <p class="tenue" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati. Un tocco sul mese: le sue cifre, la quota base, il sollecito per quel mese, «Nessuna quota». Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
+      <p class="tenue" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base, il sollecito per quel mese, «Nessuna quota». Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
     </div>
   </div>
 
@@ -222,7 +231,16 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   .cifra-riporto.mano { font-weight: 700; color: var(--primario); }
   .cifra-riporto:disabled { color: var(--testo); background: transparent; border-color: transparent; }
   .versato-riporto { width: 20px; height: 20px; accent-color: #2e7d4f; margin: 0; }
-  .legenda-riporto { font-size: 11px; font-weight: 700; padding: 0 6px; }
+  /* La legenda del riporto riproduce in piccolo le caselle vere */
+  .legenda-t + .legenda-t { border-top: 0; padding-top: 0; }
+  .gruppo-legenda { color: var(--testo); font-weight: 700; min-width: 64px; }
+  .riporto.mini { padding: 1px 3px; gap: 3px; border-radius: 6px; }
+  .cifra-mini { min-width: 26px; padding: 1px 3px; font-size: 11px; text-align: right; border: 1px solid var(--linea); border-radius: 4px; background: var(--bianco); color: var(--testo); }
+  .cifra-mini.fissa { border-color: transparent; background: transparent; }
+  .cifra-mini.mano { font-weight: 700; color: var(--primario); }
+  .spunta-mini { width: 13px; height: 13px; border: 1px solid #767676; border-radius: 3px; background: var(--bianco); display: grid; place-items: center; font-size: 9px; color: #fff; }
+  .spunta-mini.on { background: #2e7d4f; border-color: #2e7d4f; }
+  .spunta-mini.off { opacity: .4; }
   .griglia-quote .cella-riporto, .griglia-quote .tot-riporto, .testa-riporto { border-right: 2px solid var(--linea); }
   .base-m { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
   .base-m label { flex: 1 1 160px; }
