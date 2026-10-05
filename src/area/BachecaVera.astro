@@ -7,6 +7,7 @@
 import Icona from '../componenti/Icona.astro';
 import { coro } from '../motore/coro';
 import ContoQuote from './ContoQuote.astro';
+import { configurato as fotoConfigurate, ultimeFoto } from './fotoConcerti';
 import { parti } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
@@ -31,6 +32,8 @@ const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte] = awa
   nulla(coristi(), []),
   nulla(assenze(), []),
 ]);
+// Le ultime foto dei concerti (se Drive non risponde il riquadro non compare)
+const foto = fotoConfigurate() ? await nulla(ultimeFoto(6), []) : [];
 // Le quote: solo se la tesoreria è collegata; se il foglio non risponde il riquadro non compare
 const leQuote = tesoreriaConfigurata() && io ? await nulla(quote(), undefined as Quota[] | undefined) : undefined;
 const adesso = Date.now() - 3 * 3600 * 1000;
@@ -209,6 +212,19 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
             <ContoQuote {...conto} />
           </article>
         )}
+        {fotoConfigurate() && (
+          <article class="carta">
+            <div class="ct"><h2>Ultime foto</h2><a class="link-freccia" href="/area/foto">Tutte <Icona nome="freccia" /></a></div>
+            <div class="cc" style="display:grid;gap:12px">
+              {foto.length > 0 ? (
+                <ul class="ultime-foto">
+                  {foto.map((f) => <li><a href={`/area/foto#c-${f.evento ?? f.data}`} title={`${f.titolo} · ${f.chi}`}><img src={`/area/foto/miniatura/${f.id}`} alt={`${f.titolo}, foto di ${f.chi}`} loading="lazy" /></a></li>)}
+                </ul>
+              ) : <span class="tenue" style="font-size:14px">Ancora nessuna foto dei concerti.</span>}
+              <a class="btn o piccolo" style="justify-self:start" href="/area/foto#carica"><Icona nome="fotocamera" />Carica le tue foto</a>
+            </div>
+          </article>
+        )}
         {ultima && (
           <article class="carta">
             <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href="/area/registrazioni">Tutte <Icona nome="freccia" /></a></div>
@@ -238,6 +254,10 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
 </script>
 
 <style>
+  /* Ultime foto dei concerti: miniature quadrate, tre per riga */
+  .ultime-foto { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .ultime-foto a { display: block; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: var(--fondo); }
+  .ultime-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
   /* Le tue quote: un pallino per mese (verde pagata, blu esonerato, giallo da versare, vuoto non ancora dovuta) */
   .mesi-quota { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 6px; }
   .mesi-quota li { display: grid; justify-items: center; gap: 3px; font-size: 12px; color: var(--tenue); width: 34px; }

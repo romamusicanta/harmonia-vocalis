@@ -46,9 +46,22 @@ export async function concertiPerFoto(): Promise<ConcertoScelta[]> {
   return [...recenti, ...vecchi].sort((a, b) => b.data.localeCompare(a.data));
 }
 
-// Tutte le foto, per concerto, il più recente prima. Senza "tutte", solo quelle che vedono i coristi
+// Tutte le foto, per concerto, il più recente prima. Senza "tutte", solo quelle che vedono i coristi.
+// L'elenco si tiene un minuto (la Bacheca lo chiede a ogni apertura); dopo un cambio si rilegge
+let inCache: { elenco: ConcertoConFoto[]; letto: number } | undefined;
+const svuota = () => { inCache = undefined; };
 export async function fotoDeiConcerti(tutte = false): Promise<ConcertoConFoto[]> {
   if (!configurato()) return [];
+  if (!inCache || Date.now() - inCache.letto > 60 * 1000) inCache = { elenco: await leggiFoto(), letto: Date.now() };
+  return tutte ? inCache.elenco : inCache.elenco.map((g) => ({ ...g, foto: g.foto.filter((f) => f.visibilita !== 'nascosta') })).filter((g) => g.foto.length);
+}
+
+// Le ultime foto caricate che vedono i coristi (Bacheca), la più recente prima
+export const ultimeFoto = async (quante = 6) =>
+  (await fotoDeiConcerti()).flatMap((g) => g.foto.map((f) => ({ ...f, titolo: g.titolo }))).sort((a, b) => b.caricata.localeCompare(a.caricata)).slice(0, quante);
+
+// Tutte le foto da Drive, anche nascoste, per concerto
+async function leggiFoto(): Promise<ConcertoConFoto[]> {
   const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristi().catch(() => []), concertiPerFoto().catch(() => [] as ConcertoScelta[])]);
   const dentro = await Promise.all(cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name)).map(async (c) => ({ c, file: await fileIn(c.id) })));
   const perConcerto = new Map<string, ConcertoConFoto>();
@@ -56,7 +69,6 @@ export async function fotoDeiConcerti(tutte = false): Promise<ConcertoConFoto[]>
     for (const f of file.filter((x) => x.mimeType !== CARTELLA && x.mimeType.startsWith('image/'))) {
       const p = f.appProperties ?? {};
       const visibilita = (VISIBILITA.find((v) => v === p.visibilita) ?? 'coristi') as Visibilita;
-      if (!tutte && visibilita === 'nascosta') continue;
       const data = p.data ?? c.name.slice(0, 10);
       const evento = concerti.find((e) => e.id === p.evento) ?? concerti.find((e) => e.data === data);
       const k = `${data}|${evento?.id ?? c.name}`;
@@ -77,7 +89,7 @@ export const rispondiFotoCorista = (request: Request, email: string) => rispondi
   if (!concerto) throw new Error('Concerto non trovato: si caricano le foto dei concerti già fatti.');
   const cartella = await cartellaIn(DRIVE_CARTELLA_FOTO_CONCERTI!, `${concerto.data} ${concerto.titolo}`.slice(0, 120));
   return { cartella, nome: d.nome, appProperties: { caricatoDa: email, evento: concerto.id, data: concerto.data, visibilita: 'coristi' } };
-});
+}, async () => svuota());
 
 // La foto deve stare in una sottocartella della cartella Foto dei concerti
 async function controlla(id: string) {
@@ -93,6 +105,7 @@ export async function togliFoto(id: string, email: string, redattore = false) {
   if (!redattore && normalizza(f.appProperties?.caricatoDa ?? '') !== normalizza(email)) throw new Error('Puoi togliere solo le foto che hai caricato tu.');
   await cestina(id);
   dimentica(id);
+  svuota();
 }
 
 // I redattori decidono chi la vede
@@ -104,4 +117,5 @@ export async function cambiaVisibilita(id: string, visibilita: Visibilita, email
     body: JSON.stringify({ appProperties: { visibilita, decisaDa: email } }),
   });
   dimentica(id);
+  svuota();
 }
