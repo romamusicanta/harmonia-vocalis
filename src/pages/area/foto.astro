@@ -139,10 +139,13 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
       let fatte = 0;
       const errori: string[] = [];
       for (const [i, originale] of file.entries()) {
-        stato.textContent = `Foto ${i + 1} di ${file.length}…`;
+        const quale = file.length > 1 ? ` ${i + 1} di ${file.length}` : '';
+        stato.textContent = `Preparo la foto${quale}…`;
         try {
-          // Ridotta prima di partire: più veloce e leggera da vedere
+          // Ridotta prima di partire: più veloce e leggera da vedere. Se il browser non la sa leggere
+          // (alcune foto HEIC), parte così com'è
           const ridotta = await riduci(originale).catch(() => originale);
+          stato.textContent = `Carico la foto${quale}…`;
           await carica('/area/foto/carica', ridotta, { evento }, (q) => { barra.value = Math.round(((i + q) / file.length) * 100); });
           fatte++;
         } catch (err) {
