@@ -6,6 +6,7 @@ import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
 import Foto from '../componenti/Foto.astro';
+import Galleria from '../componenti/Galleria.astro';
 import Video from '../componenti/Video.astro';
 import NotaVideo from '../componenti/NotaVideo.astro';
 import { fotoDelConcerto, immagine } from '../motore/coro';
@@ -192,11 +193,7 @@ const altri = [
     <section id="foto" style="scroll-margin-top:80px">
       <div class="w">
         <div class="testa"><h2>{en ? 'Photos' : 'Le foto'}</h2></div>
-        <ul class="foto-concerto">
-          {fotoCoristi.map((nome, i) => (
-            <li><a href={immagine(nome).src} target="_blank" rel="noopener"><Foto nome={nome} alt={en ? `${titoloBreve}: photo ${i + 1}` : `${titoloBreve}: foto ${i + 1}`} sizes="(min-width: 980px) 320px, 50vw" /></a></li>
-          ))}
-        </ul>
+        <Galleria foto={fotoCoristi.map((nome, n) => ({ nome, alt: en ? `${titoloBreve}: photo ${n + 1}` : `${titoloBreve}: foto ${n + 1}`, didascalia: `${titoloBreve} · ${quando}` }))} en={en} />
         <p class="tenue" style="font-size:14px;margin-top:12px">{en ? 'Photos taken by our choir members.' : 'Foto dei nostri coristi.'}</p>
       </div>
     </section>
@@ -216,7 +213,4 @@ const altri = [
 </Base>
 
 <style>
-  .foto-concerto { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
-  .foto-concerto a { display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--raggio); background: var(--fondo); }
-  .foto-concerto :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
 </style>

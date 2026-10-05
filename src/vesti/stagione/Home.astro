@@ -1,6 +1,6 @@
 ---
 // Veste Stagione: pagina iniziale. Sigla della stagione a tutta altezza, prossimo concerto
-// sulla foto, schede dei concerti, foto dei concerti in home, fascia video, porte verso le pagine del coro.
+// sulla foto, schede dei concerti, le foto più belle dei concerti, fascia video, porte verso le pagine del coro.
 import Icona from '../../componenti/Icona.astro';
 import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
@@ -11,7 +11,8 @@ import { concertoIn, videoIn } from '../../motore/inglese';
 import { archivio, linkIscrizioneCalendario, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
 import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
 import type { Veste } from '../../motore/aspetto';
-import { fotoDelConcerto } from '../../motore/coro';
+import { fotoInHome } from '../../motore/coro';
+import Galleria from '../../componenti/Galleria.astro';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
@@ -35,13 +36,24 @@ const schede = [
   ...passatiInHome.map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `${en ? 'Season' : 'Stagione'} ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? (en ? 'In the archive' : "Nell'archivio") : (en ? 'Details' : 'Dettagli') })),
 ];
 
-// Le foto dei coristi messe nel sito pubblico (src/area/fotoConcerti.ts) dei concerti delle schede, dal
-// concerto più recente; al più 8, ognuna porta alla pagina del suo concerto
-const fotoHome = schede
-  .filter((s) => !s.c.dataIncerta)
-  .sort((a, b) => b.c.data.localeCompare(a.c.data))
-  .flatMap((s) => fotoDelConcerto(s.c.data.slice(0, 10)).map((nome) => ({ nome, c: s.c, href: `${l(`/concerti/${slug(s.c)}`)}#foto` })))
-  .slice(0, 8);
+// Le foto scelte per la home tra quelle dei coristi (src/area/fotoConcerti.ts, visibilità «home»): le più
+// belle di tutti i concerti, dal più recente; al più 9 (una grande e otto piccole), ognuna con il nome
+// del concerto e il link alla sua pagina
+const tuttiConcerti = [...prossimi, ...archivio];
+const fotoHome = fotoInHome().slice(0, 9).map((f, n) => {
+  const c = tuttiConcerti.find((x) => !x.dataIncerta && x.data.slice(0, 10) === f.data);
+  const t = c && concertoIn(c, lingua);
+  const nome = t ? [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ') : '';
+  const pd = c && parti(c, lingua);
+  const giorno = pd ? `${Number(pd.giorno)} ${en ? pd.mese : pd.mese.toLowerCase()} ${pd.anno}` : '';
+  return {
+    nome: f.nome,
+    alt: nome ? (en ? `Photo from the concert: ${nome}` : `Foto dal concerto: ${nome}`) : (en ? `Concert photo ${n + 1}` : `Foto di un concerto ${n + 1}`),
+    didascalia: [nome, giorno].filter(Boolean).join(' · ') || undefined,
+    href: c ? `${l(`/concerti/${slug(c)}`)}#foto` : undefined,
+    testoLink: en ? 'The concert →' : 'Il concerto →',
+  };
+});
 
 const evidenza = videoIn(coro.funzioni.ascolta ? await videoInEvidenza() : undefined, lingua);
 const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3).map((v) => videoIn(v, lingua));
@@ -98,14 +110,8 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
   <section style="padding-top:0">
     <div class="w">
       <div class="testa"><h2>{en ? 'From our concerts' : 'Dai nostri concerti'}</h2></div>
-      <!-- Dati: foto dei coristi dei concerti delle schede, scelte dai redattori per il sito pubblico -->
-      <ul class="foto-home">
-        {fotoHome.map((f) => {
-          const t = concertoIn(f.c, lingua);
-          const nome = [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ');
-          return <li><a href={f.href} title={nome}><Foto nome={f.nome} alt={en ? `Photo from the concert: ${nome}` : `Foto dal concerto: ${nome}`} sizes="(min-width: 980px) 300px, 50vw" /></a></li>;
-        })}
-      </ul>
+      <!-- Dati: foto dei coristi scelte una per una dai redattori per la home -->
+      <Galleria foto={fotoHome} mosaico en={en} />
     </div>
   </section>
 )}
@@ -211,9 +217,4 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 </script>
 
 <style>
-  .foto-home { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .foto-home a { display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--raggio); background: var(--fondo); }
-  .foto-home :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
-  .foto-home a:hover :global(img) { transform: scale(1.03); }
-  @media (max-width: 759.98px) { .foto-home { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
 </style>

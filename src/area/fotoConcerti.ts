@@ -2,10 +2,12 @@
 // nella cartella "Foto dei concerti" del Drive condiviso (DRIVE_CARTELLA_FOTO_CONCERTI), una
 // sottocartella per concerto ("AAAA-MM-GG Titolo"), con l'account di servizio. Chi ha caricato, il
 // concerto e la visibilità stanno nelle proprietà del file su Drive (appProperties: caricatoDa,
-// evento, data, visibilita), niente foglio. Visibilità: "coristi" (di base: la vedono subito tutti i
-// coristi), "pubblica" (anche nella pagina del concerto del sito pubblico, dopo la pubblicazione:
-// scripts/scarica-allegati.mjs le scarica alla build) o "nascosta" (solo i redattori). La decidono i
-// redattori (Amministrazione → Foto dei concerti); ogni corista può togliere le sue.
+// evento, data, visibilita), niente foglio. Visibilità, ognuna comprende quella prima: "coristi" (di
+// base: la vedono subito tutti i coristi), "pubblica" (anche i visitatori, nella pagina del concerto),
+// "home" (anche nella raccolta "Dai nostri concerti" della home: le più belle, scelte una per una);
+// più "nascosta" (solo i redattori). Pubblica e home valgono dopo la pubblicazione:
+// scripts/scarica-allegati.mjs le scarica alla build. Le decidono i redattori (Amministrazione → Foto
+// dei concerti); ogni corista può togliere le sue.
 import { DRIVE_CARTELLA_FOTO_CONCERTI } from 'astro:env/server';
 import { CARTELLA, cartellaIn, cestina, fileIn, leggiFile, rispondiCaricamento } from './drive';
 import { coristi, eventi, nomeBreve, nomeEvento, oggi, piuGiorni } from './dati';
@@ -14,8 +16,10 @@ import { google, normalizza } from './servizio';
 import { dimentica } from './file';
 
 export const configurato = () => Boolean(DRIVE_CARTELLA_FOTO_CONCERTI);
-export type Visibilita = 'coristi' | 'pubblica' | 'nascosta';
-export const VISIBILITA: Visibilita[] = ['pubblica', 'coristi', 'nascosta'];
+export type Visibilita = 'coristi' | 'pubblica' | 'home' | 'nascosta';
+export const VISIBILITA: Visibilita[] = ['nascosta', 'coristi', 'pubblica', 'home'];
+// Sul sito pubblico: nella pagina del concerto (e, per home, anche nella home)
+export const sulSito = (v: Visibilita) => v === 'pubblica' || v === 'home';
 
 export interface FotoConcerto {
   id: string;

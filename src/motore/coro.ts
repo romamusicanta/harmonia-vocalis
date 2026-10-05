@@ -38,6 +38,15 @@ export function immagine(nome: string) {
 
 export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in immagini;
 
+// Le foto scelte per la home (le più belle dei concerti), dall'elenco scritto da scripts/scarica-allegati.mjs:
+// dal concerto più recente, come nomi per immagine() con la data del concerto
+const elencoHome = import.meta.glob<{ file: string; data: string; caricata?: string }[]>('/coro/immagini/drive/concerti/home.json', { eager: true, import: 'default' });
+export const fotoInHome = () =>
+  DEMO ? [] : (Object.values(elencoHome)[0] ?? [])
+    .filter((f) => `/coro/immagini/${f.file}` in immagini)
+    .sort((a, b) => b.data.localeCompare(a.data) || (b.caricata ?? '').localeCompare(a.caricata ?? ''))
+    .map((f) => ({ nome: f.file, data: f.data }));
+
 // Le foto dei coristi del concerto di quel giorno (AAAA-MM-GG) messe nel sito pubblico, come nomi per immagine()
 export const fotoDelConcerto = (data: string) =>
   DEMO ? [] : Object.keys(immagini).filter((k) => k.startsWith(`/coro/immagini/drive/concerti/${data}/`)).sort().map((k) => k.slice('/coro/immagini/'.length));

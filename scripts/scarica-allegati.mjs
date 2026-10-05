@@ -6,8 +6,9 @@
 //   src/motore/coro.ts le usa al posto di quelle di coro.config.ts;
 // - le foto dei concerti caricate dai coristi che i redattori hanno messo nel sito pubblico
 //   (cartella Foto dei concerti, DRIVE_CARTELLA_FOTO_CONCERTI, una sottocartella per concerto, proprietà
-//   visibilita = pubblica, vedi src/area/fotoConcerti.ts) in coro/immagini/drive/concerti/<data>/<id>.jpg:
-//   la pagina del concerto di quella data le mostra. Quelle non più pubbliche si cancellano.
+//   visibilita = pubblica o home, vedi src/area/fotoConcerti.ts) in coro/immagini/drive/concerti/<data>/<id>.jpg:
+//   la pagina del concerto di quella data le mostra; l'elenco di quelle scelte per la home (le più belle)
+//   va in coro/immagini/drive/concerti/home.json. Quelle non più pubbliche si cancellano.
 // Astro poi le ottimizza come le altre foto.
 //
 // Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
@@ -18,7 +19,7 @@
 //
 // Non blocca mai la build: se qualcosa manca o non risponde lo scrive con [drive] e il sito
 // usa la locandina generata.
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import ical from 'node-ical';
 
 const cartella = new URL('../coro/immagini/drive/', import.meta.url);
@@ -126,21 +127,27 @@ async function fotoConcerti(token) {
   };
   const cartelle = await elenco(`'${radice}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`, 'id,name');
   const volute = new Set();
+  const home = [];
   for (const c of cartelle) {
-    const foto = await elenco(`'${c.id}' in parents and trashed = false and appProperties has { key='visibilita' and value='pubblica' }`, 'id,name,mimeType,appProperties');
+    const foto = await elenco(`'${c.id}' in parents and trashed = false and (appProperties has { key='visibilita' and value='pubblica' } or appProperties has { key='visibilita' and value='home' })`, 'id,name,mimeType,appProperties,createdTime');
     for (const f of foto) {
       const data = f.appProperties?.data ?? c.name.slice(0, 10);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !estensioni[f.mimeType]) continue;
       const dove = new URL(`${data}/`, cartellaConcerti);
       const file = new URL(`${f.id}.${estensioni[f.mimeType]}`, dove);
       volute.add(file.pathname);
+      if (f.appProperties?.visibilita === 'home') home.push({ file: `drive/concerti/${data}/${f.id}.${estensioni[f.mimeType]}`, data, caricata: f.createdTime });
       if (existsSync(file)) continue;
       mkdirSync(dove, { recursive: true });
       await scarica(token, f.id, `Foto dei concerti/${c.name}/${f.name}`, file);
     }
   }
-  if (!existsSync(cartellaConcerti)) return;
+  mkdirSync(cartellaConcerti, { recursive: true });
+  const elencoHome = new URL('home.json', cartellaConcerti);
+  writeFileSync(elencoHome, JSON.stringify(home, null, 2));
+  volute.add(elencoHome.pathname);
   for (const giorno of readdirSync(cartellaConcerti)) {
+    if (!statSync(new URL(giorno, cartellaConcerti)).isDirectory()) continue;
     const dove = new URL(`${giorno}/`, cartellaConcerti);
     for (const nome of readdirSync(dove)) if (!volute.has(new URL(nome, dove).pathname)) rmSync(new URL(nome, dove));
     if (!readdirSync(dove).length) rmSync(dove, { recursive: true });

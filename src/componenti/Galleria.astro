@@ -1,0 +1,124 @@
+---
+// Galleria di foto del sito pubblico (foto dei concerti, src/area/fotoConcerti.ts): miniature e, al
+// tocco, il visore a schermo intero con la foto grande (1600 px), didascalia, link al concerto, frecce,
+// tastiera (← → Esc) e scorrimento col dito. Nella pagina del concerto una griglia regolare; in home
+// (mosaico) la prima foto è più grande e ognuna ha sotto il nome del concerto.
+import { getImage } from 'astro:assets';
+import Foto from './Foto.astro';
+import Icona from './Icona.astro';
+import { immagine } from '../motore/coro';
+
+export interface FotoGalleria { nome: string; alt: string; didascalia?: string; href?: string; testoLink?: string }
+interface Props { foto: FotoGalleria[]; mosaico?: boolean; en?: boolean }
+const { foto, mosaico = false, en = false } = Astro.props;
+const grandi = await Promise.all(foto.map((f) => getImage({ src: immagine(f.nome), width: 1600 })));
+const dati = foto.map((f, i) => ({ src: grandi[i].src, alt: f.alt, didascalia: f.didascalia, href: f.href, testoLink: f.testoLink }));
+---
+
+<ul class:list={['galleria-foto', { mosaico }]} data-galleria={JSON.stringify(dati)}>
+  {foto.map((f, i) => (
+    <li>
+      <button type="button" class="apri-foto" data-indice={i} aria-label={en ? `Enlarge: ${f.alt}` : `Ingrandisci: ${f.alt}`}>
+        <Foto nome={f.nome} alt={f.alt} sizes={mosaico && i === 0 ? '(min-width: 980px) 600px, 100vw' : '(min-width: 980px) 300px, 50vw'} />
+      </button>
+      {mosaico && f.didascalia && (f.href ? <a class="didascalia" href={f.href}>{f.didascalia}</a> : <span class="didascalia">{f.didascalia}</span>)}
+    </li>
+  ))}
+</ul>
+
+<dialog class="visore" aria-label={en ? 'Photo' : 'Foto'}>
+  <div class="visore-testa">
+    <span class="conta"></span>
+    <button type="button" class="chiudi-visore" aria-label={en ? 'Close' : 'Chiudi'}><Icona nome="chiudi" classe="" /></button>
+  </div>
+  <div class="visore-corpo">
+    <button type="button" class="vai prec" aria-label={en ? 'Previous photo' : 'Foto precedente'}><Icona nome="indietro" classe="" /></button>
+    <img alt="" />
+    <button type="button" class="vai succ" aria-label={en ? 'Next photo' : 'Foto successiva'}><Icona nome="freccia" classe="" /></button>
+  </div>
+  <p class="visore-piede"><span class="testo"></span> <a class="link"></a></p>
+</dialog>
+
+<style>
+  .galleria-foto { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .galleria-foto.mosaico { grid-template-columns: repeat(4, 1fr); }
+  .galleria-foto.mosaico li:first-child { grid-column: span 2; grid-row: span 2; }
+  .galleria-foto li { display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .galleria-foto.mosaico li:first-child { grid-template-rows: 1fr auto; }
+  .apri-foto { display: block; width: 100%; padding: 0; border: 0; cursor: zoom-in; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--raggio); background: var(--fondo); }
+  .mosaico li:first-child .apri-foto { aspect-ratio: auto; height: 100%; min-height: 0; }
+  .apri-foto :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .apri-foto:hover :global(img) { transform: scale(1.03); }
+  .apri-foto:focus-visible { outline: 3px solid var(--accento); outline-offset: 2px; }
+  .didascalia { font-size: 13px; color: var(--tenue); text-decoration: none; line-height: 1.35; }
+  a.didascalia:hover { color: var(--primario); text-decoration: underline; }
+  @media (max-width: 759.98px) {
+    .galleria-foto { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .galleria-foto.mosaico { grid-template-columns: repeat(2, 1fr); }
+    .galleria-foto.mosaico li:first-child { grid-row: auto; }
+    .mosaico li:first-child .apri-foto { aspect-ratio: 4 / 3; height: auto; }
+  }
+
+  .visore { border: 0; padding: 0; margin: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: rgb(8 12 16 / .96); color: #fff; }
+  .visore::backdrop { background: rgb(8 12 16 / .96); }
+  .visore[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); }
+  .visore-testa { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
+  .conta { font-size: 14px; opacity: .75; }
+  .visore-corpo { position: relative; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; min-height: 0; min-width: 0; padding: 0 8px; touch-action: pan-y; }
+  .visore-corpo img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; user-select: none; }
+  .visore button { background: rgb(255 255 255 / .12); color: #fff; border: 0; border-radius: 50%; width: 48px; height: 48px; display: grid; place-items: center; cursor: pointer; }
+  .visore button:hover { background: rgb(255 255 255 / .25); }
+  .visore button :global(svg) { width: 22px; height: 22px; }
+  .vai { position: absolute; top: 50%; transform: translateY(-50%); }
+  .vai.prec { left: 14px; }
+  .vai.succ { right: 14px; }
+  .vai[hidden] { display: none; }
+  .visore-piede { margin: 0; padding: 12px 16px 18px; text-align: center; font-size: 15px; opacity: .9; }
+  .visore-piede .link { color: var(--accento); margin-left: 8px; }
+  .visore-piede .link:empty { display: none; }
+  @media (max-width: 759.98px) { .vai { display: none; } }
+</style>
+
+<script>
+  // Il visore: uno per galleria, riempito dai dati della galleria (data-galleria)
+  type Dato = { src: string; alt: string; didascalia?: string; href?: string; testoLink?: string };
+  document.querySelectorAll<HTMLUListElement>('ul[data-galleria]').forEach((ul) => {
+    const dati: Dato[] = JSON.parse(ul.dataset.galleria!);
+    const v = ul.nextElementSibling as HTMLDialogElement;
+    const img = v.querySelector('img')!;
+    const conta = v.querySelector<HTMLElement>('.conta')!;
+    const testo = v.querySelector<HTMLElement>('.testo')!;
+    const link = v.querySelector<HTMLAnchorElement>('.link')!;
+    const prec = v.querySelector<HTMLButtonElement>('.prec')!;
+    const succ = v.querySelector<HTMLButtonElement>('.succ')!;
+    let i = 0;
+    const mostra = (n: number) => {
+      i = (n + dati.length) % dati.length;
+      const d = dati[i];
+      img.src = d.src;
+      img.alt = d.alt;
+      conta.textContent = dati.length > 1 ? `${i + 1} / ${dati.length}` : '';
+      testo.textContent = d.didascalia ?? '';
+      link.textContent = d.href ? d.testoLink ?? '' : '';
+      if (d.href) link.href = d.href; else link.removeAttribute('href');
+      prec.hidden = succ.hidden = dati.length < 2;
+      // La successiva si prepara subito, così lo scorrimento è immediato
+      if (dati.length > 1) new Image().src = dati[(i + 1) % dati.length].src;
+    };
+    ul.querySelectorAll<HTMLButtonElement>('.apri-foto').forEach((b) => b.addEventListener('click', () => { mostra(Number(b.dataset.indice)); v.showModal(); }));
+    v.querySelector('.chiudi-visore')!.addEventListener('click', () => v.close());
+    prec.addEventListener('click', () => mostra(i - 1));
+    succ.addEventListener('click', () => mostra(i + 1));
+    v.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') mostra(i - 1); if (e.key === 'ArrowRight') mostra(i + 1); });
+    // Un tocco sullo sfondo chiude; lo scorrimento col dito cambia foto
+    v.addEventListener('click', (e) => { if (e.target === v || (e.target as Element).classList.contains('visore-corpo')) v.close(); });
+    let x0: number | undefined;
+    v.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    v.addEventListener('touchend', (e) => {
+      if (x0 === undefined) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      x0 = undefined;
+      if (Math.abs(dx) > 50) mostra(dx < 0 ? i + 1 : i - 1);
+    });
+  });
+</script>

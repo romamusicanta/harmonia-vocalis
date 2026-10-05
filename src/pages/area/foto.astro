@@ -37,7 +37,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
       <div>
         <span class="eti" style="margin-bottom:12px">Foto dei concerti</span>
         <h1>Foto</h1>
-        <p>Carica le tue foto dei concerti: le vedono subito tutti i coristi. I redattori scelgono quali mettere anche nel sito pubblico.</p>
+        <p>Carica le tue foto dei concerti: le vedono subito tutti i coristi. I redattori scelgono quali mettere anche nel sito pubblico, nella pagina del concerto, e le più belle nella home.</p>
       </div>
     </div>
   </div>
@@ -75,7 +75,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
             {g.foto.map((f) => (
               <li>
                 <a href={`/area/file/${f.id}`} target="_blank" rel="noopener"><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
-                <span class="chi">{f.chi}{f.visibilita === 'pubblica' && <span class="tag">Sul sito</span>}</span>
+                <span class="chi">{f.chi}{f.visibilita === 'home' ? <span class="tag">In home</span> : f.visibilita === 'pubblica' && <span class="tag grigio">Sul sito</span>}</span>
                 {normalizza(f.caricatoDa) === email && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
               </li>
             ))}
