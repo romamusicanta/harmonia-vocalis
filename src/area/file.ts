@@ -18,6 +18,8 @@ interface Dati { name: string; mimeType: string; size?: string; parents?: string
 // Il controllo di ogni file vale 10 minuti: un lettore audio fa molte richieste parziali di seguito
 const controllati = new Map<string, { dati: Dati; letti: number }>();
 const DURATA = 10 * 60 * 1000;
+// Dopo un cambio (foto nascosta o tolta) il controllo si rifà subito
+export const dimentica = (id: string) => controllati.delete(id);
 
 const meta = (id: string) =>
   google<Dati>(`${DRIVE}/files/${encodeURIComponent(id)}?${new URLSearchParams({ fields: 'name,mimeType,size,parents,trashed,appProperties,thumbnailLink', supportsAllDrives: 'true' })}`);

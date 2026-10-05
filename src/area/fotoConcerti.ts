@@ -10,6 +10,7 @@ import { DRIVE_CARTELLA_FOTO_CONCERTI } from 'astro:env/server';
 import { CARTELLA, cartellaIn, cestina, fileIn, leggiFile, rispondiCaricamento } from './drive';
 import { coristi, eventi, nomeBreve, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
 import { google, normalizza } from './servizio';
+import { dimentica } from './file';
 
 export const configurato = () => Boolean(DRIVE_CARTELLA_FOTO_CONCERTI);
 export type Visibilita = 'coristi' | 'pubblica' | 'nascosta';
@@ -76,6 +77,7 @@ export async function togliFoto(id: string, email: string, redattore = false) {
   const f = await controlla(id);
   if (!redattore && normalizza(f.appProperties?.caricatoDa ?? '') !== normalizza(email)) throw new Error('Puoi togliere solo le foto che hai caricato tu.');
   await cestina(id);
+  dimentica(id);
 }
 
 // I redattori decidono chi la vede
@@ -86,4 +88,5 @@ export async function cambiaVisibilita(id: string, visibilita: Visibilita, email
     method: 'PATCH',
     body: JSON.stringify({ appProperties: { visibilita, decisaDa: email } }),
   });
+  dimentica(id);
 }
