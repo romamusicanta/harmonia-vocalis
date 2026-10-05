@@ -2,6 +2,7 @@
 import configGrezza from '../../coro/coro.config';
 import { schemaCoro } from './schema';
 import inglese from '../../coro/coro.en';
+import { applicaTestiCoro } from './testiSito';
 import type { Lingua } from './lingua';
 
 const esito = schemaCoro.safeParse(configGrezza);
@@ -11,6 +12,9 @@ if (!esito.success) {
 }
 
 export const coro = esito.data;
+
+// I testi principali cambiati dall'Amministrazione (src/motore/testiSito.ts), in italiano e in inglese
+applicaTestiCoro(coro, inglese);
 
 // Demo di vendita: pannello di scelta, area coristi aperta con dati di esempio, vesti alternative.
 // Si attiva con DEMO=1 (npm run dev, npm run build:demo).

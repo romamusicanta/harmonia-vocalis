@@ -1,0 +1,157 @@
+---
+// Testi del sito: i testi principali del sito pubblico (src/motore/testiSito.ts), una scheda per
+// pagina. Ogni testo in italiano e accanto in inglese: salvando, l'inglese dei testi italiani cambiati
+// si riscrive da solo (src/admin/testi.ts); se si corregge a mano l'inglese, resta quello. I testi
+// vanno nel file "Testi del sito.json" della cartella Sito del Drive condiviso e sul sito compaiono
+// con la prossima pubblicazione.
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import Errore from '../../area/Errore.astro';
+import { testiSuDrive } from '../../admin/operazioni';
+import { pubblicato, salvaGruppo } from '../../admin/testi';
+import { CAMPI_TESTO, GRUPPI_TESTO, type TestiSalvati } from '../../motore/testiSito';
+import { spiega } from '../../area/errori';
+
+export const prerender = false;
+const s = Astro.locals.sessione!;
+const ancora = (g: string) => `g-${g.toLowerCase().normalize('NFD').replace(/[^a-z]+/g, '-')}`;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const gruppo = String(f.get('gruppo') ?? '');
+  const p = new URLSearchParams({ gruppo });
+  try {
+    const r = await salvaGruppo(s, f, gruppo);
+    p.set('salvati', String(r.salvati));
+    p.set('tradotti', String(r.tradotti ?? 0));
+    if (r.avviso) p.set('avviso', r.avviso);
+  } catch (e) {
+    p.set('errore', spiega(e).testo);
+  }
+  return Astro.redirect(`/admin/testi?${p}#${ancora(gruppo)}`, 303);
+}
+
+let suDrive: TestiSalvati = {};
+let errore: unknown;
+try {
+  suDrive = await testiSuDrive(s);
+} catch (e) {
+  errore = e;
+}
+const build = new Date(__ORA_BUILD__);
+const valore = (id: string, lingua: 'it' | 'en') => suDrive[id]?.[lingua] ?? pubblicato(CAMPI_TESTO.find((c) => c.id === id)!, lingua);
+const daPubblicare = (id: string) => suDrive[id] && new Date(suDrive[id].modificato) > build;
+const quando = (iso: string) => new Date(iso).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+const righe = (t: string, minimo: number) => Math.min(28, Math.max(minimo, t.split('\n').length + Math.ceil(t.length / 90)));
+const q = Astro.url.searchParams;
+const inAttesa = CAMPI_TESTO.filter((c) => daPubblicare(c.id)).length;
+---
+
+<LayoutAdmin titolo="Testi del sito" sezione="testi">
+  <h1>Testi del sito</h1>
+  <p class="tenue" style="max-width:68ch">I testi principali del sito pubblico, pagina per pagina. A sinistra l'italiano, a destra l'inglese: salvando, l'inglese dei testi italiani cambiati si riscrive da solo; se correggi a mano l'inglese, resta il tuo. I testi cambiati compaiono sul sito con la prossima pubblicazione.</p>
+
+  {errore && <Errore e={errore} />}
+  {q.get('errore') && <p class="messaggio errore">Non salvato: {q.get('errore')}</p>}
+  {q.get('salvati') && (
+    <div class="messaggio ok">
+      {q.get('salvati') === '0' ? 'Nessun testo cambiato.' : `Salvato: ${q.get('salvati') === '1' ? 'un testo' : `${q.get('salvati')} testi`} di «${q.get('gruppo')}»${Number(q.get('tradotti')) ? `, ${q.get('tradotti') === '1' ? 'tradotto' : 'tradotti'} in inglese` : ''}. Sul sito con la prossima pubblicazione.`}
+      {q.get('avviso') && <p style="margin:8px 0 0;color:#b3261e">{q.get('avviso')}</p>}
+    </div>
+  )}
+  {inAttesa > 0 && (
+    <div class="messaggio" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+      <span>{inAttesa === 1 ? 'Un testo salvato non è ancora' : `${inAttesa} testi salvati non sono ancora`} sul sito.</span>
+      <form method="post" action="/admin/pubblica"><button class="btn g piccolo" type="submit">Pubblica ora</button></form>
+    </div>
+  )}
+
+  <nav class="indice-testi" aria-label="Pagine">
+    {GRUPPI_TESTO.map((g) => <a href={`#${ancora(g)}`}>{g}</a>)}
+  </nav>
+
+  {GRUPPI_TESTO.map((g) => (
+    <form method="post" class="scheda-admin gruppo-testi" id={ancora(g)}>
+      <input type="hidden" name="gruppo" value={g} />
+      <h2>{g}</h2>
+      {CAMPI_TESTO.filter((c) => c.gruppo === g).map((c) => {
+        const it = valore(c.id, 'it');
+        const en = valore(c.id, 'en');
+        const salvato = suDrive[c.id];
+        return (
+          <div class="campo-testo">
+            <div class="testa-campo">
+              <b>{c.etichetta}</b>
+              {daPubblicare(c.id) && <span class="tag">da pubblicare</span>}
+              {c.dove && <span class="tenue">{c.dove}</span>}
+              {salvato && <span class="tenue piccolo">Cambiato il {quando(salvato.modificato)} da {salvato.da.split('@')[0]}.</span>}
+            </div>
+            <input type="hidden" name={`prima-it:${c.id}`} value={it} />
+            <input type="hidden" name={`prima-en:${c.id}`} value={en} />
+            <div class="due-lingue">
+              <label><span>Italiano</span>
+                {c.tipo === 'riga'
+                  ? <input name={`it:${c.id}`} value={it} required data-id={c.id} class="testo-it" />
+                  : <textarea name={`it:${c.id}`} rows={righe(it, c.tipo === 'markdown' ? 8 : 3)} required data-id={c.id} class="testo-it">{it}</textarea>}
+              </label>
+              {c.traduci === false
+                ? <p class="tenue piccolo" style="align-self:end">Uguale in inglese.</p>
+                : (
+                  <label><span>English <small class="rifare" data-id={c.id} hidden>· si riscrive salvando</small></span>
+                    {c.tipo === 'riga'
+                      ? <input name={`en:${c.id}`} value={en} lang="en" data-id={c.id} class="testo-en" />
+                      : <textarea name={`en:${c.id}`} rows={righe(en, c.tipo === 'markdown' ? 8 : 3)} lang="en" data-id={c.id} class="testo-en">{en}</textarea>}
+                  </label>
+                )}
+            </div>
+          </div>
+        );
+      })}
+      {CAMPI_TESTO.some((c) => c.gruppo === g && c.tipo === 'markdown') && (
+        <p class="tenue piccolo">Nei testi lunghi: una riga vuota tra i paragrafi, «## Titolo» per un capitolo, **grassetto**, *corsivo*, [testo del link](https://…).</p>
+      )}
+      <p><button class="btn g" type="submit">Salva {g === 'Home' ? 'i testi della home' : `«${g}»`}</button></p>
+    </form>
+  ))}
+
+  <style>
+    .indice-testi { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; }
+    .indice-testi a { padding: 6px 12px; border: 1px solid var(--linea); border-radius: 999px; background: var(--bianco); text-decoration: none; color: var(--primario); font-size: 15px; }
+    .gruppo-testi { margin-top: 20px; scroll-margin-top: 90px; }
+    .gruppo-testi h2 { margin-top: 0 !important; }
+    .campo-testo { display: grid; gap: 8px; padding: 16px 0; border-top: 1px solid var(--linea); }
+    .testa-campo { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+    .testa-campo b { color: var(--primario); }
+    .testa-campo .tenue { font-size: 14px; flex-basis: 100%; }
+    .piccolo { font-size: 13px; }
+    .due-lingue { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .due-lingue label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--tenue); }
+    .due-lingue input, .due-lingue textarea { width: 100%; font: inherit; font-size: 15px; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); line-height: 1.5; }
+    .due-lingue textarea { resize: vertical; }
+    .due-lingue .da-rifare { background: var(--fondo); color: var(--tenue); }
+    .rifare { color: var(--primario); font-weight: 700; }
+    @media (max-width: 760px) { .due-lingue { grid-template-columns: 1fr; } }
+  </style>
+
+  <script>
+    // Cambiando l'italiano, l'inglese non toccato a mano si riscriverà salvando: lo si mostra
+    document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('.testo-it').forEach((it) => {
+      const id = it.dataset.id!;
+      const en = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`.testo-en[data-id="${CSS.escape(id)}"]`);
+      const nota = document.querySelector<HTMLElement>(`.rifare[data-id="${CSS.escape(id)}"]`);
+      if (!en || !nota) return;
+      const aggiorna = () => {
+        const rifare = it.value !== it.defaultValue && en.value === en.defaultValue;
+        nota.hidden = !rifare;
+        en.classList.toggle('da-rifare', rifare);
+      };
+      it.addEventListener('input', aggiorna);
+      en.addEventListener('input', aggiorna);
+    });
+    // Durante il salvataggio (la traduzione richiede qualche secondo)
+    document.querySelectorAll<HTMLFormElement>('.gruppo-testi').forEach((f) => f.addEventListener('submit', () => {
+      const b = f.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      b.disabled = true;
+      b.textContent = 'Salvo e traduco…';
+    }));
+  </script>
+</LayoutAdmin>

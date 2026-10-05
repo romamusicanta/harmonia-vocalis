@@ -9,6 +9,10 @@
 //   visibilita = pubblica o home, vedi src/area/fotoConcerti.ts) in coro/immagini/drive/concerti/<data>/<id>.jpg:
 //   la pagina del concerto di quella data le mostra; l'elenco di quelle scelte per la home (le più belle)
 //   va in coro/immagini/drive/concerti/home.json. Quelle non più pubbliche si cancellano.
+// - i testi del sito cambiati dall'Amministrazione (file "Testi del sito.json" della cartella Sito,
+//   quella che contiene Sito/Foto; vedi src/motore/testiSito.ts) in coro/immagini/drive/testi/testi.json,
+//   più i corpi in Markdown in coro/immagini/drive/testi/<nome>.md e en/<nome>.md, con l'intestazione
+//   del file di coro/testi.
 // Astro poi le ottimizza come le altre foto.
 //
 // Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
@@ -19,7 +23,7 @@
 //
 // Non blocca mai la build: se qualcosa manca o non risponde lo scrive con [drive] e il sito
 // usa la locandina generata.
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import ical from 'node-ical';
 
 const cartella = new URL('../coro/immagini/drive/', import.meta.url);
@@ -154,6 +158,38 @@ async function fotoConcerti(token) {
   }
 }
 
+// Testi del sito: si riscaricano sempre; senza il file, restano quelli del codice
+async function testiSito(token) {
+  const foto = process.env.DRIVE_CARTELLA_FOTO;
+  if (!foto) return;
+  const cartellaTesti = new URL('testi/', cartella);
+  const intestazione = { Authorization: `Bearer ${token}` };
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${foto}?fields=parents&supportsAllDrives=true`, { headers: intestazione });
+  if (!r.ok) throw new Error(`cartella Sito non trovata (${r.status})`);
+  const [sito] = (await r.json()).parents ?? [];
+  if (!sito) return;
+  const p = new URLSearchParams({ q: `'${sito}' in parents and name = 'Testi del sito.json' and trashed = false`, fields: 'files(id)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true' });
+  const [file] = (await (await fetch(`https://www.googleapis.com/drive/v3/files?${p}`, { headers: intestazione })).json()).files ?? [];
+  rmSync(cartellaTesti, { recursive: true, force: true });
+  if (!file) return;
+  const d = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&supportsAllDrives=true`, { headers: intestazione });
+  if (!d.ok) throw new Error(`Testi del sito.json non scaricato (${d.status})`);
+  const testi = await d.json();
+  mkdirSync(new URL('en/', cartellaTesti), { recursive: true });
+  writeFileSync(new URL('testi.json', cartellaTesti), JSON.stringify(testi, null, 1));
+  // I corpi in Markdown: l'intestazione del file di coro/testi (in inglese quella di coro/testi/en, se c'è) e il corpo salvato
+  const testiCoro = new URL('../coro/testi/', import.meta.url);
+  const testa = (f) => (existsSync(f) ? readFileSync(f, 'utf8').match(/^---\n[\s\S]*?\n---\n/)?.[0] : undefined) ?? '---\n---\n';
+  for (const [id, t] of Object.entries(testi)) {
+    const nome = id.match(/^testo:([\w-]+)\.corpo$/)?.[1];
+    if (!nome || !existsSync(new URL(`${nome}.md`, testiCoro))) continue;
+    writeFileSync(new URL(`${nome}.md`, cartellaTesti), `${testa(new URL(`${nome}.md`, testiCoro))}\n${t.it.trim()}\n`);
+    const en = existsSync(new URL(`en/${nome}.md`, testiCoro)) ? new URL(`en/${nome}.md`, testiCoro) : new URL(`${nome}.md`, testiCoro);
+    writeFileSync(new URL(`en/${nome}.md`, cartellaTesti), `${testa(en)}\n${(t.en || t.it).trim()}\n`);
+  }
+  console.log(`[drive] Testi del sito.json: ${Object.keys(testi).length} testi`);
+}
+
 async function main() {
   if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO && !process.env.DRIVE_CARTELLA_FOTO_CONCERTI) return;
   const token = await accessoDrive();
@@ -161,6 +197,7 @@ async function main() {
   await allegatiCalendario(token).catch((err) => avviso(`allegati: ${err.message ?? err}`));
   await fotoSito(token).catch((err) => avviso(`foto del sito: ${err.message ?? err}`));
   await fotoConcerti(token).catch((err) => avviso(`foto dei concerti: ${err.message ?? err}`));
+  await testiSito(token).catch((err) => avviso(`testi del sito: ${err.message ?? err}`));
 }
 
 await main().catch((err) => avviso(`${err.message ?? err}`));

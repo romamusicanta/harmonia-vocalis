@@ -29,6 +29,6 @@ export default {
     { descrizione: 'The Italian national federation of regional choral associations.' },
   ],
   stagione: {
-    presentazione: 'It opens with Mozart’s Requiem. Masses, oratorios and great choral works with orchestra, in Rome and across Lazio.',
+    presentazione: 'It opened with Mozart’s Requiem. Masses, oratorios and great choral works with orchestra, in Rome and across Lazio.',
   },
 };

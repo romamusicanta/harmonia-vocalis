@@ -72,7 +72,7 @@ export default {
 
   stagione: {
     sigla: '26/27',
-    presentazione: 'Si apre con il Requiem di Mozart. Messe, oratori e grandi pagine corali con orchestra, a Roma e nel Lazio.',
+    presentazione: 'Si è aperta con il Requiem di Mozart. Messe, oratori e grandi pagine corali con orchestra, a Roma e nel Lazio.',
   },
 
   // Area Amministrazione (romamusicanta.org/admin): entrano i membri del gruppo redattori@, che contiene

@@ -4,6 +4,7 @@ import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, DRIVE_CARTELLA_CONCERTI, D
 import type ical from 'node-ical';
 import { api } from './google';
 import type { Sessione } from './sessione';
+import { FILE_TESTI, type TestiSalvati } from '../motore/testiSito';
 
 const CAL = 'https://www.googleapis.com/calendar/v3';
 const DRIVE = 'https://www.googleapis.com/drive/v3';
@@ -223,6 +224,36 @@ export async function immagineDrive(s: Sessione, id: string): Promise<Response> 
   const r = await fetch(url, { headers: { Authorization: `Bearer ${s.accesso}` } });
   if (!r.ok) throw new Error(`Google (${r.status})`);
   return new Response(r.body, { headers: { 'Content-Type': r.headers.get('Content-Type') ?? f.mimeType } });
+}
+
+// ——— Testi del sito ———
+
+// Il file "Testi del sito.json" nella cartella Sito (quella che contiene Sito/Foto): i testi
+// principali del sito pubblico cambiati dai redattori (src/motore/testiSito.ts)
+async function fileTesti(s: Sessione) {
+  const { parents = [] } = await api<{ parents?: string[] }>(s, `${DRIVE}/files/${DRIVE_CARTELLA_FOTO}?fields=parents&supportsAllDrives=true`);
+  if (!parents[0]) throw new Error('cartella Sito non trovata su Drive');
+  const p = new URLSearchParams({ q: `'${parents[0]}' in parents and name = '${virgolette(FILE_TESTI)}' and trashed = false`, fields: 'files(id,modifiedTime)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true' });
+  const [f] = (await api<{ files: { id: string; modifiedTime: string }[] }>(s, `${DRIVE}/files?${p}`)).files;
+  return { sito: parents[0], id: f?.id };
+}
+
+export async function testiSuDrive(s: Sessione): Promise<TestiSalvati> {
+  const { id } = await fileTesti(s);
+  if (!id) return {};
+  return api<TestiSalvati>(s, `${DRIVE}/files/${id}?alt=media&supportsAllDrives=true`);
+}
+
+// Riscrive il file (lo stesso, così resta la sua storia su Drive), oppure lo crea
+export async function salvaTestiSuDrive(s: Sessione, testi: TestiSalvati) {
+  const { sito, id } = await fileTesti(s);
+  const corpo = JSON.stringify(testi, null, 1);
+  if (!id) return caricaFile(s, new File([corpo], FILE_TESTI, { type: 'application/json' }), FILE_TESTI, sito);
+  return api<FileDrive>(s, `https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media&supportsAllDrives=true&fields=id,name,webViewLink`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: corpo,
+  });
 }
 
 // ——— Pubblicazione ———
