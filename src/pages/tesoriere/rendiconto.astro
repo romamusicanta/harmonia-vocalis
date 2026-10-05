@@ -1,0 +1,279 @@
+---
+// Area del tesoriere: il rendiconto della stagione (/tesoriere/rendiconto?stagione=2025), come i
+// prospetti che il tesoriere allegava alla relazione annuale (rendiconto 2025-26): sintesi per la
+// relazione, 1. Quote coristi, 2. Entrate-Uscite, 3. Spese fisse gestione prove, 4. Onorario
+// maestri, 5. Conto corrente bancario. Tutto ricavato dai dati delle altre pagine; "Stampa o salva in
+// PDF" usa la stampa del browser, con un prospetto per pagina e senza testata e menu del sito.
+import Base from '../../layouts/Base.astro';
+import Errore from '../../area/Errore.astro';
+import Icona from '../../componenti/Icona.astro';
+import { vesteCorrente } from '../../motore/url';
+import { coro } from '../../motore/coro';
+import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
+import {
+  attiviNelMese, cassa, configurata, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
+  nomeStagioneLungo, onorari, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
+  verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica,
+} from '../../area/tesoreria';
+import '../../area/tesoreria.css';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+
+const corrente = configurata() ? stagioneCorrente() : 0;
+const chiesta = Number(Astro.url.searchParams.get('stagione'));
+// Di base quella in corso; le passate dal selettore (a settembre si stampa quella appena chiusa)
+const anno = chiesta >= 2000 && chiesta <= corrente ? chiesta : corrente;
+
+let errore: unknown;
+let elenco: SchedaCorista[] = [];
+let tutte: Quota[] = [];
+let conti: Cassa | undefined;
+let prove: ProvaMaestro[] = [];
+let leVerifiche: Verifica[] = [];
+if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
+else {
+  try {
+    const [c, q, m, p, v] = await Promise.all([coristi(), quote(), movimenti(), proveDeiMaestri(anno), verifiche()]);
+    elenco = c; tutte = q; prove = p;
+    conti = cassa(anno, q, m);
+    leVerifiche = v.filter((x) => x.data >= `${anno}-09-01` && x.data <= `${anno + 1}-08-31`);
+  } catch (e) {
+    errore = e;
+  }
+}
+const idx = indice(tutte);
+const senza = mesiSenzaQuota(tutte);
+const mesi = anno ? tutteLeQuote(anno) : [];
+const nellaStagione = elenco.filter((c) => mesi.some((m) => attiviNelMese([c], m).length));
+const sezioni = sezioniDi(nellaStagione).filter((s) => nellaStagione.some((c) => c.sezione === s));
+const raccoltePerMese = mesi.map((m) => situazioneMese(m, elenco, idx, senza).raccolto);
+// Le quote nell'elenco Entrate-Uscite: una riga sola, come nel rendiconto (per data di pagamento)
+const totaleQuote = conti?.quote ?? 0;
+const entrate = conti?.movimenti.filter((m) => m.tipo === 'Entrata') ?? [];
+const uscite = conti?.movimenti.filter((m) => m.tipo === 'Uscita') ?? [];
+const totEntrate = (conti?.saldoIniziale ?? 0) + totaleQuote + (conti?.entrate ?? 0);
+const perCategoria = (cat: string) => conti?.perCategoria.find((c) => c.categoria === cat)?.totale ?? 0;
+const rimborsiConcerti = perCategoria('Rimborsi concerti');
+// Spese fisse gestione prove
+const affitti = uscite.filter((m) => m.categoria === 'Affitto sala prove');
+const mesiStagione = conti?.mesi.map((m) => m.mese) ?? [];
+const perMese = onorariPerMese(prove);
+const conDirettore = prove.filter((p) => p.maestro === direttore());
+const sostituti = prove.filter((p) => p.maestro && p.maestro !== direttore());
+const nomiSostituti = [...new Set(sostituti.map((p) => p.maestro))];
+const vocalita = prove.filter((p) => p.vocalita !== 'nessuna');
+const totale = (x: ProvaMaestro[], k: 'onorario' | 'importoVocalita') => x.reduce((t, p) => t + p[k], 0);
+// Conto corrente: l'ultima verifica della stagione
+const ultima = leVerifiche[0];
+const disponibile = ultima ? ultima.contoCorrente + ultima.contanti : undefined;
+const bancarie = uscite.filter((m) => m.categoria === 'Spese bancarie');
+const intestazione = { associazione: coro.associazione ?? coro.nome, cf: coro.coristi?.tesoreria?.codiceFiscale };
+const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); return `${['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][d.getUTCDay()]} ${d.getUTCDate()} ${maiuscola(nomeMese(iso.slice(0, 7)))}`; };
+---
+
+<Base veste={veste} titolo="Rendiconto · Area del tesoriere" area={{ tesoriere: true, sezione: 'rendiconto' }}>
+  <div class="area-intesta no-stampa">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del tesoriere</span>
+        <h1>Rendiconto {anno ? nomeStagioneLungo(anno) : ''}</h1>
+        <p>I prospetti da allegare alla relazione annuale, ricavati da quote, entrate e uscite, prove dei maestri e verifiche di cassa. Si stampano o si salvano in PDF dal browser.</p>
+      </div>
+      <button type="button" class="btn g" onclick="print()"><Icona nome="documento" />Stampa o salva in PDF</button>
+    </div>
+  </div>
+
+  <div class="area-main rendiconto">
+    <div class="w">
+      {errore && <Errore e={errore} />}
+      {corrente > 0 && (
+        <nav class="scelta-t no-stampa" aria-label="Stagione">
+          {[corrente, corrente - 1, corrente - 2].map((s) => <a href={s === corrente ? '/tesoriere/rendiconto' : `/tesoriere/rendiconto?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}</a>)}
+        </nav>
+      )}
+
+      {conti && (
+        <>
+          <div class="foglio">
+            <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>Rendiconto economico {nomeStagioneLungo(anno)} · Sintesi</h2></div>
+            <table class="tabella">
+              <tbody>
+                <tr><td>Avanzo di cassa {nomeStagioneLungo(anno - 1)}</td><td class="num">{euroEsatto(conti.saldoIniziale)}</td></tr>
+                <tr><td>Quote versate dai coristi</td><td class="num">{euroEsatto(conti.quote)}</td></tr>
+                <tr><td>Rimborsi per i concerti</td><td class="num">{euroEsatto(rimborsiConcerti)}</td></tr>
+                <tr><td>Altre entrate{conti.partiteDiGiro.entrate > 0 && ` (di cui ${euroEsatto(conti.partiteDiGiro.entrate)} di partite di giro)`}</td><td class="num">{euroEsatto(conti.entrate - rimborsiConcerti)}</td></tr>
+                <tr><td>Uscite</td><td class="num">{euroEsatto(conti.uscite)}</td></tr>
+                <tr><td>di cui partite di giro (spartiti per i coristi)</td><td class="num">{euroEsatto(conti.partiteDiGiro.uscite)}</td></tr>
+                <tr><td><b>Spese di gestione</b> (uscite meno partite di giro)</td><td class="num"><b>{euroEsatto(conti.speseDiGestione)}</b></td></tr>
+                <tr><td>Quote e rimborsi dei concerti, rispetto alle spese di gestione</td><td class:list={['num', conti.quote + rimborsiConcerti - conti.speseDiGestione < 0 ? 'neg' : 'pos']}>{euroEsatto(conti.quote + rimborsiConcerti - conti.speseDiGestione)}</td></tr>
+              </tbody>
+              <tfoot><tr><td>Saldo {anno < corrente ? 'di fine stagione' : 'a oggi'}</td><td class="num">{euroEsatto(conti.saldoFinale)}</td></tr></tfoot>
+            </table>
+            {ultima && <p class="nota-r">Verifica di cassa del {giornoBreve(ultima.data)}: disponibilità {euroEsatto(disponibile!)} (conto corrente {euroEsatto(ultima.contoCorrente)}, contanti {euroEsatto(ultima.contanti)}).</p>}
+          </div>
+
+          <div class="foglio">
+            <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>1 · Versamento quote {nomeStagioneLungo(anno)}</h2></div>
+            <div class="tabella-wrap">
+              <table class="tabella griglia-r">
+                <thead><tr><th>Corista</th>{mesi.map((m) => <th class="num">{meseBreve(m)}</th>)}</tr></thead>
+                <tbody>
+                  {sezioni.map((s) => (
+                    <>
+                      <tr class="sezione-r"><td colspan={mesi.length + 1}>{s}</td></tr>
+                      {nellaStagione.filter((c) => c.sezione === s).map((c) => (
+                        <tr>
+                          <td>{c.nome} {c.cognome}</td>
+                          {mesi.map((m) => {
+                            const dovuta = attiviNelMese([c], m).length > 0 && !senza.has(m);
+                            const stato = statoDi(idx, c.email, m);
+                            const q = quotaDi(idx, c.email, m);
+                            return <td class:list={['num', { 'non-dovuta': !dovuta || stato === 'esonerato', mancante: dovuta && stato === 'da-pagare' && m <= questoMese() }]}>{stato === 'pagata' && q ? euro(q.importo).replace(' €', '') : ''}</td>;
+                          })}
+                        </tr>
+                      ))}
+                    </>
+                  ))}
+                </tbody>
+                <tfoot><tr><td>Totali mensili</td>{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(' €', '') : '0'}</td>)}</tr></tfoot>
+              </table>
+            </div>
+            <p class="nota-r">Totale quote della stagione: <b>{euroEsatto(raccoltePerMese.reduce((t, r) => t + r, 0))}</b>. In grigio le quote non dovute (prima dell'ingresso o dopo l'uscita dal coro, esoneri{senza.size > 0 && `, mesi senza quota: ${[...senza].filter((m) => mesi.includes(m)).map(nomeMese).join(', ')}`}); in giallo quelle dovute e non versate.</p>
+          </div>
+
+          <div class="foglio">
+            <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>2 · Rendiconto entrate-uscite {nomeStagioneLungo(anno)}</h2></div>
+            <table class="tabella">
+              <thead><tr><th>Data</th><th>Voce</th><th class="num">Entrate</th><th class="num">Uscite</th></tr></thead>
+              <tbody>
+                <tr class="evidenza-r"><td></td><td>Avanzo di cassa {nomeStagioneLungo(anno - 1)}</td><td class="num">{euroEsatto(conti.saldoIniziale)}</td><td></td></tr>
+                {entrate.map((m) => <tr class="evidenza-r"><td>{giornoBreve(m.data)}</td><td>{m.descrizione}{PARTITE_DI_GIRO.includes(m.categoria) && ' *'}</td><td class="num">{euroEsatto(m.importo)}</td><td></td></tr>)}
+                <tr class="evidenza-r"><td></td><td>Quote coristi</td><td class="num">{euroEsatto(totaleQuote)}</td><td></td></tr>
+                {uscite.map((m) => <tr><td>{giornoBreve(m.data)}</td><td>{m.descrizione}{PARTITE_DI_GIRO.includes(m.categoria) && ' *'}</td><td></td><td class="num">{euroEsatto(m.importo)}</td></tr>)}
+              </tbody>
+              <tfoot><tr><td></td><td>Totali · saldo {euroEsatto(totEntrate - conti.uscite)}</td><td class="num">{euroEsatto(totEntrate)}</td><td class="num">{euroEsatto(conti.uscite)}</td></tr></tfoot>
+            </table>
+            <p class="nota-r">Rendiconto per cassa: fanno fede le date di accredito e di pagamento. (*) Partite di giro: spartiti comprati per i coristi e da loro rimborsati ({euroEsatto(conti.partiteDiGiro.uscite)} in uscita, {euroEsatto(conti.partiteDiGiro.entrate)} in entrata). Spese di gestione: {euroEsatto(conti.uscite)} − {euroEsatto(conti.partiteDiGiro.uscite)} = <b>{euroEsatto(conti.speseDiGestione)}</b>.</p>
+          </div>
+
+          <div class="foglio">
+            <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>3 · Spese fisse gestione prove {nomeStagioneLungo(anno)}</h2></div>
+            <div class="due-colonne">
+              <div>
+                <h3>Affitto sala prove</h3>
+                <table class="tabella">
+                  <thead><tr><th>Mese</th><th class="num">Canone</th></tr></thead>
+                  <tbody>{mesiStagione.map((m) => { const t = affitti.filter((a) => meseDi(a.data) === m).reduce((x, a) => x + a.importo, 0); return <tr><td>{nomeMese(m)}</td><td class="num">{t ? euro(t) : ''}</td></tr>; })}</tbody>
+                  <tfoot><tr><td>Totale</td><td class="num">{euro(affitti.reduce((x, a) => x + a.importo, 0))}</td></tr></tfoot>
+                </table>
+                {affitti.length > 0 && <p class="nota-r">{affitti.map((a) => `${giornoBreve(a.data)} ${a.descrizione} (${euro(a.importo)})`).join(' · ')}</p>}
+              </div>
+              <div>
+                <h3>Onorario annuo maestri</h3>
+                <table class="tabella">
+                  <thead><tr><th>Maestro</th><th class="num">Prove</th><th class="num">Onorario</th><th class="num">Totale</th></tr></thead>
+                  <tbody>
+                    <tr><td>{direttore()}</td><td class="num">{conDirettore.length}</td><td class="num">{euro(onorari().prova)}</td><td class="num">{euro(totale(conDirettore, 'onorario'))}</td></tr>
+                    {nomiSostituti.map((n) => { const x = sostituti.filter((p) => p.maestro === n); const pagate = x.filter((p) => p.onorario > 0); return <tr><td>{n}</td><td class="num">{x.length}{pagate.length < x.length && ` (${x.length - pagate.length} gratuite)`}</td><td class="num">{pagate[0] ? euro(pagate[0].onorario) : '—'}</td><td class="num">{euro(totale(x, 'onorario'))}</td></tr>; })}
+                  </tbody>
+                  <tfoot><tr><td>Totale</td><td></td><td></td><td class="num">{euro(totale(prove, 'onorario'))}</td></tr></tfoot>
+                </table>
+                <h3>Onorario mensile Direttore</h3>
+                <table class="tabella">
+                  <tbody>{perMese.map((m) => <tr><td>{nomeMese(m.mese)}</td><td class="num">{m.direttore ? euro(m.direttore) : ''}</td></tr>)}</tbody>
+                  <tfoot><tr><td>Totale</td><td class="num">{euro(totale(conDirettore, 'onorario'))}</td></tr></tfoot>
+                </table>
+                <h3>Lezioni di vocalità di gruppo</h3>
+                <table class="tabella">
+                  <thead><tr><th>Tipo</th><th class="num">Lezioni</th><th class="num">Onorario</th><th class="num">Totale</th></tr></thead>
+                  <tbody>
+                    <tr><td>Singola</td><td class="num">{vocalita.filter((p) => p.vocalita === 'singola').length}</td><td class="num">{euro(onorari().vocalitaSingola)}</td><td class="num">{euro(totale(vocalita.filter((p) => p.vocalita === 'singola'), 'importoVocalita'))}</td></tr>
+                    <tr><td>Doppia</td><td class="num">{vocalita.filter((p) => p.vocalita === 'doppia').length}</td><td class="num">{euro(onorari().vocalitaDoppia)}</td><td class="num">{euro(totale(vocalita.filter((p) => p.vocalita === 'doppia'), 'importoVocalita'))}</td></tr>
+                  </tbody>
+                  <tfoot><tr><td>Totale</td><td></td><td></td><td class="num">{euro(totale(vocalita, 'importoVocalita'))}</td></tr></tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="foglio">
+            <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>4 · Onorario maestri {nomeStagioneLungo(anno)}</h2></div>
+            <h3>Elenco prove e lezioni · M° {direttore()}</h3>
+            <table class="tabella">
+              <thead><tr><th class="num">N.</th><th>Giorno di prova</th><th class="num">Prove coro</th><th class="num">Lezioni vocalità</th></tr></thead>
+              <tbody>{conDirettore.map((p, i) => <tr><td class="num">{i + 1}</td><td>{giornoMese(p.data)}</td><td class="num">{euroEsatto(p.onorario)}</td><td class="num">{p.importoVocalita ? euroEsatto(p.importoVocalita) : ''}</td></tr>)}</tbody>
+              <tfoot><tr><td></td><td>Totale periodo</td><td class="num">{euroEsatto(totale(conDirettore, 'onorario'))}</td><td class="num">{euroEsatto(totale(conDirettore, 'importoVocalita'))}</td></tr></tfoot>
+            </table>
+            {nomiSostituti.map((n) => {
+              const x = sostituti.filter((p) => p.maestro === n);
+              return (
+                <>
+                  <h3>Elenco prove · M° {n}</h3>
+                  <table class="tabella">
+                    <tbody>{x.map((p, i) => <tr><td class="num">{i + 1}</td><td>{giornoMese(p.data)}</td><td class="num">{euroEsatto(p.onorario)}</td><td class="num">{p.importoVocalita ? euroEsatto(p.importoVocalita) : ''}</td></tr>)}</tbody>
+                    <tfoot><tr><td></td><td>Totale periodo</td><td class="num">{euroEsatto(totale(x, 'onorario'))}</td><td class="num">{totale(x, 'importoVocalita') ? euroEsatto(totale(x, 'importoVocalita')) : ''}</td></tr></tfoot>
+                  </table>
+                </>
+              );
+            })}
+            {prove.some((p) => !p.maestro) && <p class="nota-r">Prove senza onorario: {prove.filter((p) => !p.maestro).map((p) => giornoBreve(p.data)).join(', ')}.</p>}
+          </div>
+
+          <div class="foglio">
+            <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>5 · Conto corrente bancario {nomeStagioneLungo(anno)}</h2></div>
+            <h3>Contabilizzato entrate-uscite</h3>
+            <table class="tabella">
+              <thead><tr><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Rimanenza {nomeStagioneLungo(anno)}</th></tr></thead>
+              <tbody><tr><td class="num">{euroEsatto(totEntrate)}</td><td class="num">{euroEsatto(conti.uscite)}</td><td class="num"><b>{euroEsatto(totEntrate - conti.uscite)}</b></td></tr></tbody>
+            </table>
+            <h3>Disponibilità {anno < corrente ? 'a fine esercizio' : 'all’ultima verifica'}</h3>
+            {ultima ? (
+              <table class="tabella">
+                <tbody>
+                  <tr><td>Disponibilità conto corrente</td><td class="num">{euroEsatto(ultima.contoCorrente)}</td></tr>
+                  <tr><td>Liquidità in cassa</td><td class="num">{euroEsatto(ultima.contanti)}</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><td>Totale al {giornoBreve(ultima.data)}</td><td class="num">{euroEsatto(disponibile!)}</td></tr>
+                  <tr><td>{disponibile! - (totEntrate - conti.uscite) >= 0 ? 'Avanzo' : 'Disavanzo'} rispetto ai conti</td><td class="num">{euroEsatto(Math.abs(Math.round((disponibile! - (totEntrate - conti.uscite)) * 100) / 100))}</td></tr>
+                </tfoot>
+              </table>
+            ) : <p class="nota-r">Nessuna verifica di cassa registrata in questa stagione: si registra in Entrate e uscite, con il saldo del conto corrente e i contanti.</p>}
+            <h3>Spese tenuta conto corrente</h3>
+            <table class="tabella">
+              <tbody>{bancarie.map((m) => <tr><td>{m.descrizione}</td><td class="num">{euroEsatto(m.importo)}</td></tr>)}</tbody>
+              <tfoot><tr><td>Totale</td><td class="num">{euroEsatto(bancarie.reduce((t, m) => t + m.importo, 0))}</td></tr></tfoot>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .area-intesta .w { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+  .foglio { background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); padding: 24px; margin: 0 0 24px; }
+  .intesta-r { display: grid; gap: 6px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--primario); }
+  .intesta-r span { font-size: 13px; color: var(--tenue); }
+  .intesta-r h2 { margin: 0; font-family: var(--f-titoli); font-size: 21px; color: var(--primario); }
+  .foglio h3 { font-size: 16px; color: var(--primario); margin: 20px 0 8px; }
+  .nota-r { font-size: 13px; color: var(--tenue); margin: 12px 0 0; }
+  .due-colonne { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; }
+  .due-colonne h3:first-child { margin-top: 0; }
+  .griglia-r td, .griglia-r th { padding: 4px 6px; font-size: 13px; }
+  .griglia-r td.non-dovuta { background: #e9e9e9; }
+  .griglia-r td.mancante { background: #fff3c4; }
+  .sezione-r td { font-weight: 700; color: var(--primario); background: var(--fondo); }
+  .evidenza-r td { background: #fff8dc; }
+  @media print {
+    :global(.servizio), :global(.testata), :global(.barra-area), :global(.barra-tab), :global(.piede-sito), :global(.invito-app), .no-stampa { display: none !important; }
+    :global(body) { background: #fff; }
+    .area-main { padding: 0; }
+    .foglio { border: 0; padding: 0; margin: 0; break-after: page; }
+    .foglio:last-child { break-after: auto; }
+    .tabella-wrap { overflow: visible; }
+    .griglia-r td.non-dovuta, .griglia-r td.mancante, .evidenza-r td, .sezione-r td { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>

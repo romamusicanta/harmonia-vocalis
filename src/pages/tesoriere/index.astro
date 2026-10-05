@@ -9,8 +9,8 @@ import Sollecito from '../../area/Sollecito.astro';
 import { vesteCorrente } from '../../motore/url';
 import { coristi, type SchedaCorista } from '../../area/dati';
 import {
-  arretrati, cassa, configurata, euro, indice, meseEsteso, mesiDelleQuote, mesiDovuti, movimenti, nomeMese, nomeStagione, questoMese,
-  quote, situazioneMese, stagioneCorrente, stagioniConDati, type Arretrato, type Cassa, type SituazioneMese,
+  arretrati, cassa, configurata, euro, indice, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeMese, nomeStagione, questoMese,
+  quote, situazioneMese, tutteLeQuote, stagioneCorrente, stagioniConDati, type Arretrato, type Cassa, type SituazioneMese,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -35,9 +35,10 @@ else {
     elenco = c;
     const idx = indice(q);
     stagioni = stagioniConDati(q, m);
-    mesi = mesiDelleQuote(anno).map((mese) => situazioneMese(mese, c, idx));
+    const senza = mesiSenzaQuota(q);
+    mesi = tutteLeQuote(anno).map((mese) => situazioneMese(mese, c, idx, senza));
     conti = cassa(anno, q, m);
-    debitori = arretrati(passata ? mesiDelleQuote(anno) : mesiDovuti(anno), c, idx);
+    debitori = arretrati(passata ? mesiDelleQuote(anno, q) : mesiDovuti(anno, q), c, idx);
   } catch (e) {
     errore = e;
   }
@@ -45,7 +46,7 @@ else {
 const dovuti = mesi.filter((m) => passata || m.mese <= questoMese());
 const raccolte = dovuti.reduce((t, m) => t + m.raccolto, 0);
 const attese = dovuti.reduce((t, m) => t + m.dovuto, 0);
-const meseOra = mesi.find((m) => m.mese === questoMese());
+const meseOra = mesi.find((m) => m.mese === questoMese() && !m.senzaQuota);
 const inRegola = elenco.length - debitori.length;
 const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
 ---
@@ -82,11 +83,12 @@ const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
 
           <h2 class="titolo-t">Cassa</h2>
           <div class="cifre-t">
-            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>saldo di inizio stagione</span></div>
+            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>avanzo di cassa {nomeStagione(anno - 1)}</span>{conti.saldoInizialeRiportato && <small>riportato dalla stagione prima</small>}</div>
             <div class="cifra-t"><b>{euro(conti.quote + conti.entrate)}</b><span>entrate</span><small>{euro(conti.quote)} di quote · {euro(conti.entrate)} altre</small></div>
-            <div class="cifra-t"><b>{euro(conti.uscite)}</b><span>uscite</span></div>
+            <div class="cifra-t"><b>{euro(conti.speseDiGestione)}</b><span>spese di gestione</span>{conti.partiteDiGiro.uscite > 0 && <small>uscite {euro(conti.uscite)}, meno {euro(conti.partiteDiGiro.uscite)} di partite di giro</small>}</div>
             <div class="cifra-t forte"><b>{euro(conti.saldoFinale)}</b><span>{passata ? 'saldo di fine stagione' : 'saldo di oggi'}</span></div>
           </div>
+          <p class="tenue" style="font-size:14px;margin-top:10px">Il rendiconto completo della stagione, da stampare o salvare in PDF, è in <a href="/tesoriere/rendiconto">Rendiconto</a>.</p>
 
           <Sollecito elenco={passata ? [] : debitori} />
 
@@ -102,8 +104,8 @@ const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
                     return (
                       <tr class:list={{ futuro }}>
                         <td><a href={`/tesoriere/quote?mese=${c.mese}`} style={q ? '' : 'pointer-events:none;color:inherit;text-decoration:none'}>{meseEsteso(c.mese)}</a></td>
-                        <td class="num">{q ? `${q.pagate}/${q.attesi.length - q.esonerati}` : '—'}</td>
-                        <td class="num">{q ? q.esonerati : '—'}</td>
+                        <td class="num">{q && !q.senzaQuota ? `${q.pagate}/${q.attesi.length - q.esonerati}` : q?.senzaQuota ? 'senza quota' : '—'}</td>
+                        <td class="num">{q && !q.senzaQuota ? q.esonerati : '—'}</td>
                         <td class="num">{q ? (futuro ? '—' : q.daPagare) : '—'}</td>
                         <td class="num">{c.quote ? euro(c.quote) : '—'}</td>
                         <td class="num">{c.entrate ? euro(c.entrate) : '—'}</td>

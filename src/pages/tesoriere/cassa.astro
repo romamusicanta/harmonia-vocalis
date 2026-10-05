@@ -1,9 +1,12 @@
 ---
 // Area del tesoriere: entrate e uscite del coro (/tesoriere/cassa, ?stagione=2025 per le passate).
-// Modulo per un movimento nuovo o da modificare (?modifica=id): entrata, uscita o saldo di inizio
-// stagione, con data, categoria, descrizione, importo e note; POST alla pagina stessa
+// Modulo per un movimento nuovo o da modificare (?modifica=id, o già scritto dai parametri: «Paga» della
+// pagina Maestri): entrata, uscita o avanzo di cassa (se manca, si riporta il saldo della stagione prima), con data, categoria, descrizione, importo e note; POST alla pagina stessa
 // (gestisciMovimento in src/area/tesoreria.ts). Sotto: cifre della stagione, mesi dal più recente con
-// i movimenti e i totali (le quote pagate entrano da sole, una riga per mese), totali per categoria.
+// i movimenti e i totali (le quote pagate entrano da sole, una riga per mese), totali per categoria,
+// spese di gestione (senza le partite di giro degli spartiti), verifica di cassa: saldo del conto
+// corrente più contanti, confrontati con il saldo dei conti a quella data (come il prospetto «Conto
+// corrente bancario» del rendiconto).
 import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
@@ -11,8 +14,8 @@ import { vesteCorrente } from '../../motore/url';
 import { oggi } from '../../area/dati';
 import { spiegaTesto } from '../../area/errori';
 import {
-  CATEGORIE, cassa, configurata, euro, gestisciMovimento, meseEsteso, movimenti, nomeStagione, questoMese, quote, stagioneCorrente, stagioneDi,
-  stagioniConDati, type Cassa, type Movimento,
+  CATEGORIE, PARTITE_DI_GIRO, cassa, configurata, euro, euroEsatto, gestisciMovimento, gestisciVerifica, giornoBreve, meseEsteso, movimenti, nomeStagione, questoMese, quote,
+  stagioneCorrente, stagioneDi, stagioniConDati, verifiche, type Cassa, type Movimento, type Quota, type Verifica,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -22,11 +25,12 @@ const email = Astro.locals.corista!.email;
 
 if (Astro.request.method === 'POST') {
   const f = await Astro.request.formData();
-  const r = await gestisciMovimento(f, email).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, data: undefined }));
+  const verifica = String(f.get('azione') ?? '').endsWith('verifica');
+  const r = await (verifica ? gestisciVerifica(f, email) : gestisciMovimento(f, email)).catch((e) => ({ ok: false, messaggio: `Non è stato possibile salvare. ${spiegaTesto(e)}`, data: undefined }));
   const p = new URLSearchParams({ esito: r.messaggio, ok: r.ok ? '1' : '0' });
   if (r.data) p.set('stagione', String(stagioneDi(r.data)));
   if (!r.ok && f.get('azione') === 'salva') for (const k of ['id', 'tipo', 'data', 'categoria-entrata', 'categoria-uscita', 'descrizione', 'importo', 'note']) if (f.get(k)) p.set(k === 'id' ? 'modifica' : k, String(f.get(k)));
-  return Astro.redirect(`/tesoriere/cassa?${p}${r.ok && r.data ? `#m-${r.data.slice(0, 7)}` : '#modulo'}`);
+  return Astro.redirect(`/tesoriere/cassa?${p}${verifica ? '#verifica' : r.ok && r.data ? `#m-${r.data.slice(0, 7)}` : '#modulo'}`);
 }
 
 const q = Astro.url.searchParams;
@@ -38,11 +42,15 @@ let errore: unknown;
 let tutti: Movimento[] = [];
 let conti: Cassa | undefined;
 let stagioni: number[] = [];
+let leQuote: Quota[] = [];
+let leVerifiche: Verifica[] = [];
 if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
 else {
   try {
-    const [qq, m] = await Promise.all([quote(), movimenti()]);
+    const [qq, m, v] = await Promise.all([quote(), movimenti(), verifiche()]);
     tutti = m;
+    leQuote = qq;
+    leVerifiche = v;
     conti = cassa(anno, qq, m);
     stagioni = stagioniConDati(qq, m);
   } catch (e) {
@@ -57,6 +65,14 @@ const importoInModifica = inModifica ? String(inModifica.importo).replace('.', '
 const mesiConQualcosa = (conti?.mesi ?? []).filter((m) => m.movimenti.length || m.quote).reverse();
 const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
 const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
+// Il saldo dei conti a un giorno: avanzo + quote pagate + entrate - uscite fino a quel giorno compreso
+const saldoAl = (g: string) => {
+  if (!conti) return 0;
+  const mov = conti.movimenti.filter((m) => m.data <= g && m.tipo !== 'Saldo iniziale');
+  const q = leQuote.filter((x) => x.stato === 'pagata' && x.email !== 'tutti' && (x.pagataIl ?? `${x.mese}-01`) <= g && (x.pagataIl ?? `${x.mese}-01`) >= `${anno}-09-01`);
+  return conti.saldoIniziale + q.reduce((t, x) => t + x.importo, 0) + mov.reduce((t, m) => t + (m.tipo === 'Uscita' ? -m.importo : m.importo), 0);
+};
+const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno);
 ---
 
 <Base veste={veste} titolo="Entrate e uscite · Area del tesoriere" area={{ tesoriere: true, sezione: 'cassa' }}>
@@ -84,7 +100,7 @@ const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
             <fieldset class="tipo-movimento">
               <legend>Tipo</legend>
               {(['Uscita', 'Entrata', 'Saldo iniziale'] as const).map((t) => (
-                <label><input type="radio" name="tipo" value={t} checked={tipo === t} />{t === 'Saldo iniziale' ? 'Saldo di inizio stagione' : t}</label>
+                <label><input type="radio" name="tipo" value={t} checked={tipo === t} />{t === 'Saldo iniziale' ? 'Avanzo di cassa (inizio stagione)' : t}</label>
               ))}
             </fieldset>
             <div class="riga-campi">
@@ -93,6 +109,8 @@ const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
             </div>
             <label class="per-entrata">Categoria<select name="categoria-entrata">{CATEGORIE.Entrata.map((c) => <option selected={val('categoria-entrata', inModifica?.categoria) === c}>{c}</option>)}</select></label>
             <label class="per-uscita">Categoria<select name="categoria-uscita">{CATEGORIE.Uscita.map((c) => <option selected={val('categoria-uscita', inModifica?.categoria) === c}>{c}</option>)}</select></label>
+            <p class="tenue per-entrata per-uscita" style="font-size:13px;margin:-8px 0 0">«{PARTITE_DI_GIRO[0]}» e «{PARTITE_DI_GIRO[1]}» sono partite di giro (spartiti comprati per i coristi e da loro rimborsati): nel rendiconto si tolgono dalle spese di gestione.</p>
+            <p class="tenue non-uscita non-entrata" style="font-size:13px;margin:-8px 0 0">L'avanzo di cassa della stagione prima, al 1 settembre. Se non lo scrivi, il sito riporta il saldo finale della stagione prima, quando ci sono i suoi dati.</p>
             <label class="non-saldo">Descrizione<input name="descrizione" maxlength="200" placeholder="Es. Compenso del Maestro di ottobre" value={val('descrizione', inModifica?.descrizione)} /></label>
             <label>Note <small>(facoltative: numero di ricevuta, chi ha pagato…)</small><textarea name="note" rows="2" maxlength="500">{val('note', inModifica?.note)}</textarea></label>
             <div class="bottoni">
@@ -118,9 +136,9 @@ const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
         <>
           <h2 class="titolo-t">Stagione {nomeStagione(anno)}</h2>
           <div class="cifre-t">
-            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>saldo di inizio stagione</span></div>
+            <div class="cifra-t"><b>{euro(conti.saldoIniziale)}</b><span>avanzo di cassa {nomeStagione(anno - 1)}</span>{conti.saldoInizialeRiportato && <small>riportato dalla stagione prima</small>}</div>
             <div class="cifra-t"><b>{euro(conti.quote + conti.entrate)}</b><span>entrate</span><small>{euro(conti.quote)} di quote · {euro(conti.entrate)} altre</small></div>
-            <div class="cifra-t"><b>{euro(conti.uscite)}</b><span>uscite</span></div>
+            <div class="cifra-t"><b>{euro(conti.uscite)}</b><span>uscite</span>{conti.partiteDiGiro.uscite > 0 && <small>spese di gestione {euro(conti.speseDiGestione)} (senza {euro(conti.partiteDiGiro.uscite)} di partite di giro)</small>}</div>
             <div class="cifra-t forte"><b>{euro(conti.saldoFinale)}</b><span>{anno < corrente ? 'saldo di fine stagione' : 'saldo di oggi'}</span></div>
           </div>
 
@@ -135,7 +153,7 @@ const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
                     {m.movimenti.map((x) => (
                       <tr>
                         <td class="data">{giorno(x.data)}</td>
-                        <td>{x.tipo === 'Saldo iniziale' ? <b>Saldo di inizio stagione</b> : x.descrizione}<small class="tenue">{[x.categoria, x.note].filter(Boolean).join(' · ')}</small></td>
+                        <td>{x.tipo === 'Saldo iniziale' ? <b>Avanzo di cassa</b> : x.descrizione}<small class="tenue">{[x.categoria, x.note].filter(Boolean).join(' · ')}</small></td>
                         <td class:list={['num', x.tipo === 'Uscita' ? 'neg' : 'pos']}>{x.tipo === 'Uscita' ? '−' : '+'}{euro(x.importo)}</td>
                         <td class="num"><a class="btn o piccolo" href={`/tesoriere/cassa?modifica=${x.id}${anno !== corrente ? `&stagione=${anno}` : ''}#modulo`}>Modifica</a></td>
                       </tr>
@@ -153,6 +171,43 @@ const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
               </div>
             </div>
           ))}
+
+          <h2 class="titolo-t" id="verifica">Verifica di cassa</h2>
+          <div class="carta">
+            <form method="post" class="cc modulo-verifica">
+              <input type="hidden" name="azione" value="verifica" />
+              <p class="tenue" style="margin:0;font-size:14px;flex-basis:100%">Ogni tanto, e a fine stagione: il saldo del conto corrente (dall'estratto conto o dall'app della banca) e i contanti in cassa, da confrontare con i conti.</p>
+              <label>Data<input type="date" name="data" required value={oggi()} /></label>
+              <label>Conto corrente (€)<input name="conto" inputmode="decimal" pattern="-?[0-9]+([.,][0-9]{1,2})?" placeholder="Es. 4352,46" /></label>
+              <label>Contanti (€)<input name="contanti" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="Es. 90" /></label>
+              <label style="flex:1 1 200px">Note<input name="note" maxlength="300" placeholder="Facoltative" /></label>
+              <button class="btn g piccolo" type="submit">Registra</button>
+            </form>
+            {verificheStagione.length > 0 && (
+              <div class="tabella-wrap" style="border-top:1px solid var(--linea)">
+                <table class="tabella">
+                  <thead><tr><th>Data</th><th class="num">Conto corrente</th><th class="num">Contanti</th><th class="num">Disponibilità</th><th class="num">Saldo dei conti</th><th class="num">Differenza</th><th></th></tr></thead>
+                  <tbody>
+                    {verificheStagione.map((v) => {
+                      const disponibile = v.contoCorrente + v.contanti;
+                      const diff = Math.round((disponibile - saldoAl(v.data)) * 100) / 100;
+                      return (
+                        <tr>
+                          <td>{giornoBreve(v.data)}{v.note && <small class="tenue" style="display:block">{v.note}</small>}</td>
+                          <td class="num">{euroEsatto(v.contoCorrente)}</td>
+                          <td class="num">{euroEsatto(v.contanti)}</td>
+                          <td class="num"><b>{euroEsatto(disponibile)}</b></td>
+                          <td class="num">{euroEsatto(saldoAl(v.data))}</td>
+                          <td class:list={['num', segno(diff)]}>{diff === 0 ? 'nessuna' : `${diff > 0 ? 'avanzo' : 'disavanzo'} ${euroEsatto(Math.abs(diff))}`}</td>
+                          <td class="num"><form method="post" onsubmit="return confirm('Cancellare questa verifica?')"><input type="hidden" name="azione" value="cancella-verifica" /><input type="hidden" name="id" value={v.id} /><button class="btn o piccolo cancella" type="submit">Togli</button></form></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           {conti.perCategoria.length > 0 && (
             <>
@@ -194,12 +249,18 @@ const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
   .modulo-cassa:has(input[value='Entrata']:checked) .per-uscita,
   .modulo-cassa:has(input[value='Uscita']:checked) .per-entrata,
   .modulo-cassa:has(input[value='Saldo iniziale']:checked) :is(.per-entrata, .per-uscita, .non-saldo) { display: none; }
+  .modulo-cassa:has(input[value='Entrata']:checked) p.per-uscita, .modulo-cassa:has(input[value='Uscita']:checked) p.per-entrata { display: block; }
+  .modulo-cassa:has(:is(input[value='Entrata'], input[value='Uscita']):checked) .non-uscita { display: none; }
   .mese-cassa { margin: 0 0 16px; }
   .mese-cassa .ct { flex-wrap: wrap; gap: 6px 16px; }
   .totali-mese { font-size: 14px; color: var(--tenue); }
   .mese-cassa td small { display: block; font-size: 13px; }
   .mese-cassa td.data { width: 56px; color: var(--tenue); white-space: nowrap; }
   .mese-cassa .riga-quote td { background: color-mix(in srgb, var(--accento) 10%, var(--bianco)); }
+  .modulo-verifica { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .modulo-verifica label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--primario); }
+  .modulo-verifica input { font: inherit; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); height: 44px; }
+  .modulo-verifica input[inputmode] { width: 150px; }
   .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
   .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 0 0 20px; border: 2px solid var(--linea); background: var(--bianco); }
   .messaggio.ok { border-color: #2e7d4f; }

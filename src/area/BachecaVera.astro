@@ -45,7 +45,7 @@ const coroQuota = coro.coristi?.tesoreria?.quota;
 // Le mie quote della stagione: un pallino per mese; dovute quelle fino al mese in corso
 const mieQuote = leQuote && io ? (() => {
   const idx = indice(leQuote);
-  const mesi = mesiDelleQuote(stagioneCorrente()).filter((m) => attiviNelMese([io], m).length);
+  const mesi = mesiDelleQuote(stagioneCorrente(), leQuote).filter((m) => attiviNelMese([io], m).length);
   const stati = mesi.map((m) => ({ mese: m, stato: statoDi(idx, io.email, m), dovuta: m <= questoMese(), nota: idx.get(`${io.email}|${m}`)?.nota }));
   const daVersare = stati.filter((x) => x.dovuta && x.stato === 'da-pagare');
   return { stati, daVersare, importo: daVersare.length * (coroQuota ?? 0) };

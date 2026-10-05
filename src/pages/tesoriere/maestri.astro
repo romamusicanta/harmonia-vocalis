@@ -1,0 +1,225 @@
+---
+// Area del tesoriere: prove e onorari dei maestri (/tesoriere/maestri, ?stagione=2025 per le passate),
+// come i prospetti "Onorario maestri" e "Spese gestione prove" del rendiconto. Le prove sono quelle
+// del calendario "Prove" fino a oggi: di base dirette dal Direttore, con il suo onorario. Per ogni
+// prova si cambia chi l'ha diretta (un sostituto), l'onorario (0 = gratuita o non pagata) e la lezione
+// di vocalità di gruppo (singola o doppia); le prove non in calendario si aggiungono a mano. Tutto si
+// salva subito (/tesoriere/maestri/salva). In alto quanto è maturato, quanto è già stato pagato (le
+// uscite della cassa con le categorie degli onorari) e quanto resta; mese per mese, con il link che
+// apre in Entrate e uscite il pagamento già scritto.
+import Base from '../../layouts/Base.astro';
+import Errore from '../../area/Errore.astro';
+import Icona from '../../componenti/Icona.astro';
+import { vesteCorrente } from '../../motore/url';
+import {
+  CATEGORIE_ONORARI, cassa, configurata, direttore, euro, giornoBreve, maiuscola, meseDi, meseEsteso, movimenti, nomeStagione, onorari, onorariPerMese, pagatoPer,
+  proveDeiMaestri, quote, stagioneCorrente, type Cassa, type ProvaMaestro,
+} from '../../area/tesoreria';
+import '../../area/tesoreria.css';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+
+const corrente = configurata() ? stagioneCorrente() : 0;
+const chiesta = Number(Astro.url.searchParams.get('stagione'));
+const anno = chiesta >= 2000 && chiesta <= corrente ? chiesta : corrente;
+
+let errore: unknown;
+let prove: ProvaMaestro[] = [];
+let conti: Cassa | undefined;
+if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
+else {
+  try {
+    const [p, q, m] = await Promise.all([proveDeiMaestri(anno), quote(), movimenti()]);
+    prove = p;
+    conti = cassa(anno, q, m);
+  } catch (e) {
+    errore = e;
+  }
+}
+const perMese = onorariPerMese(prove);
+const somma = (f: (m: (typeof perMese)[number]) => number) => perMese.reduce((t, m) => t + f(m), 0);
+const maturato = {
+  direttore: somma((m) => m.direttore),
+  sostituti: somma((m) => [...m.sostituti.values()].reduce((t, s) => t + s.totale, 0)),
+  vocalita: somma((m) => m.vocalita.totale),
+};
+const pagato = conti ? { direttore: pagatoPer(conti, CATEGORIE_ONORARI.direttore), sostituti: pagatoPer(conti, CATEGORIE_ONORARI.sostituti), vocalita: pagatoPer(conti, CATEGORIE_ONORARI.vocalita) } : { direttore: 0, sostituti: 0, vocalita: 0 };
+const totaleMaturato = maturato.direttore + maturato.sostituti + maturato.vocalita;
+const totalePagato = pagato.direttore + pagato.sostituti + pagato.vocalita;
+// I nomi già usati, per scegliere il maestro di una prova
+const nomi = [...new Set([direttore(), ...prove.map((p) => p.maestro).filter(Boolean)])];
+// Il pagamento già scritto nel modulo di Entrate e uscite
+const pagamento = (categoria: string, importo: number, descrizione: string) => `/tesoriere/cassa?${new URLSearchParams({ tipo: 'Uscita', 'categoria-uscita': categoria, importo: String(importo).replace('.', ','), descrizione })}#modulo`;
+const mesiProve = [...new Set(prove.map((p) => meseDi(p.data)))].reverse();
+---
+
+<Base veste={veste} titolo="Maestri · Area del tesoriere" area={{ tesoriere: true, sezione: 'maestri' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
+        <h1>Prove e maestri</h1>
+        <p>Le prove del calendario fino a oggi, di base dirette da {direttore()} ({euro(onorari().prova)} a prova). Segna i sostituti, le prove gratuite e le lezioni di vocalità: si salva subito. Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w">
+      {errore && <Errore e={errore} />}
+      {corrente > 0 && (
+        <nav class="scelta-t" aria-label="Stagione">
+          {[corrente, corrente - 1].map((s) => <a href={s === corrente ? '/tesoriere/maestri' : `/tesoriere/maestri?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}</a>)}
+        </nav>
+      )}
+
+      {conti && (
+        <>
+          <div class="cifre-t">
+            <div class="cifra-t forte"><b>{euro(totaleMaturato)}</b><span>maturati nella stagione</span><small>{prove.length} prove</small></div>
+            <div class="cifra-t"><b>{euro(maturato.direttore)}</b><span>Direttore</span><small>pagati {euro(pagato.direttore)}</small></div>
+            <div class="cifra-t"><b>{euro(maturato.sostituti)}</b><span>sostituti</span><small>pagati {euro(pagato.sostituti)}</small></div>
+            <div class="cifra-t"><b>{euro(maturato.vocalita)}</b><span>vocalità di gruppo</span><small>pagati {euro(pagato.vocalita)}</small></div>
+            <div class:list={['cifra-t', { rosso: totaleMaturato - totalePagato > 0 }]}><b>{euro(totaleMaturato - totalePagato)}</b><span>{totaleMaturato - totalePagato >= 0 ? 'ancora da pagare' : 'pagati in più'}</span></div>
+          </div>
+
+          <h2 class="titolo-t">Mese per mese</h2>
+          <div class="carta">
+            <div class="tabella-wrap">
+              <table class="tabella">
+                <thead><tr><th>Mese</th><th class="num">Prove del Direttore</th><th class="num">Onorario Direttore</th><th>Sostituti</th><th class="num">Vocalità</th><th class="num">Totale</th><th></th></tr></thead>
+                <tbody>
+                  {perMese.length === 0 && <tr><td colspan="7" class="tenue">Nessuna prova ancora fatta in questa stagione.</td></tr>}
+                  {perMese.map((m) => {
+                    const sost = [...m.sostituti.values()].reduce((t, s) => t + s.totale, 0);
+                    return (
+                      <tr>
+                        <td>{maiuscola(meseEsteso(m.mese))}</td>
+                        <td class="num">{m.proveDirettore || '—'}</td>
+                        <td class="num">{m.direttore ? euro(m.direttore) : '—'}</td>
+                        <td>{m.sostituti.size ? [...m.sostituti].map(([n, s]) => `${n}: ${s.prove} × ${euro(s.totale / (s.prove || 1))}`).join(' · ') : '—'}</td>
+                        <td class="num">{m.vocalita.totale ? `${euro(m.vocalita.totale)}` : '—'}</td>
+                        <td class="num"><b>{euro(m.direttore + sost + m.vocalita.totale)}</b></td>
+                        <td class="num">{m.direttore > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario Direttore – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {perMese.length > 0 && <tfoot><tr><td>Stagione</td><td class="num">{somma((m) => m.proveDirettore)}</td><td class="num">{euro(maturato.direttore)}</td><td>{maturato.sostituti ? euro(maturato.sostituti) : '—'}</td><td class="num">{euro(maturato.vocalita)}</td><td class="num">{euro(totaleMaturato)}</td><td></td></tr></tfoot>}
+              </table>
+            </div>
+          </div>
+          <p class="tenue" style="font-size:14px;margin-top:10px">«Paga» apre Entrate e uscite con il pagamento del Direttore per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>
+
+          <h2 class="titolo-t">Le prove</h2>
+          <form class="carta aggiungi-prova">
+            <div class="cc">
+              <b style="color:var(--primario)">Una prova che non è nel calendario?</b>
+              <div class="riga-aggiungi">
+                <label>Data<input type="date" name="data" required /></label>
+                <label>Maestro<input name="maestro" list="nomi-maestri" value={direttore()} required /></label>
+                <label>Onorario (€)<input name="onorario" inputmode="decimal" value={String(onorari().prova)} /></label>
+                <button class="btn g piccolo" type="submit">Aggiungi</button>
+              </div>
+            </div>
+          </form>
+          <datalist id="nomi-maestri">{nomi.map((n) => <option value={n} />)}</datalist>
+
+          {mesiProve.map((mese) => (
+            <div class="carta mese-prove">
+              <div class="ct"><h2>{maiuscola(meseEsteso(mese))}</h2></div>
+              <ul class="prove-maestri" data-direttore={direttore()} data-prova={String(onorari().prova)} data-sostituto={String(onorari().sostituto)}>
+                {prove.filter((p) => meseDi(p.data) === mese).reverse().map((p) => (
+                  <li class:list={{ cambiata: p.cambiata }} data-id={p.id} data-data={p.data}>
+                    <span class="quando"><b>{giornoBreve(p.data).slice(0, 5)}</b><small>{!p.inCalendario ? 'non in calendario' : /^prova( settimanale)?$/i.test(p.titolo) ? '' : p.titolo}</small></span>
+                    <label class="campo-m"><span>Maestro</span><input name="maestro" list="nomi-maestri" value={p.maestro} placeholder="Nessuno" /></label>
+                    <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={String(p.onorario).replace('.', ',')} /></label>
+                    <label class="campo-v"><span>Vocalità</span>
+                      <select name="vocalita">
+                        <option value="nessuna" selected={p.vocalita === 'nessuna'}>Nessuna</option>
+                        <option value="singola" selected={p.vocalita === 'singola'}>Singola · {euro(onorari().vocalitaSingola)}</option>
+                        <option value="doppia" selected={p.vocalita === 'doppia'}>Doppia · {euro(onorari().vocalitaDoppia)}</option>
+                      </select>
+                    </label>
+                    <span class="stato-m" aria-live="polite"></span>
+                    {(p.cambiata || !p.inCalendario) && <button type="button" class="btn o piccolo ripristina" title={p.inCalendario ? 'Torna al solito: Direttore, onorario pieno, niente vocalità' : 'Togli questa prova'}>{p.inCalendario ? 'Come al solito' : 'Togli'}</button>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .aggiungi-prova { margin-bottom: 20px; }
+  .aggiungi-prova .cc { display: grid; gap: 12px; }
+  .riga-aggiungi { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .riga-aggiungi label, .prove-maestri label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--primario); }
+  .riga-aggiungi input, .prove-maestri :is(input, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); height: 44px; }
+  .riga-aggiungi input[name='maestro'] { min-width: 220px; }
+  .riga-aggiungi input[name='onorario'] { width: 110px; }
+  .mese-prove { margin-bottom: 16px; }
+  .prove-maestri { list-style: none; margin: 0; padding: 0; }
+  .prove-maestri li { display: grid; grid-template-columns: 70px minmax(180px, 1.5fr) 110px minmax(150px, 1fr) auto auto; gap: 12px; align-items: end; padding: 12px 18px; border-bottom: 1px solid var(--linea); }
+  .prove-maestri li:last-child { border-bottom: 0; }
+  .prove-maestri li.cambiata { background: color-mix(in srgb, var(--accento) 10%, var(--bianco)); }
+  .prove-maestri .quando { display: grid; align-self: center; }
+  .prove-maestri .quando small { color: var(--tenue); font-size: 12px; }
+  .prove-maestri input, .prove-maestri select { width: 100%; }
+  .stato-m { font-size: 13px; color: var(--tenue); align-self: center; min-width: 60px; }
+  .stato-m.errore { color: var(--rosso); }
+  @media (max-width: 759.98px) {
+    .prove-maestri li { grid-template-columns: 1fr 1fr; }
+    .prove-maestri .quando, .prove-maestri .campo-m { grid-column: 1 / -1; }
+  }
+</style>
+
+<script>
+  // Ogni cambio si salva subito; "Come al solito" toglie la modifica, "Togli" la prova aggiunta a mano
+  const salva = (corpo: object) => fetch('/tesoriere/maestri/salva', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })
+    .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).errore ?? `Errore ${r.status}`); return r.json(); });
+
+  document.querySelectorAll<HTMLLIElement>('.prove-maestri li').forEach((li) => {
+    const stato = li.querySelector<HTMLElement>('.stato-m')!;
+    const campo = (n: string) => li.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${n}"]`)!;
+    let ultimo = '';
+    const invia = async () => {
+      const corpo = { id: li.dataset.id, data: li.dataset.data, maestro: campo('maestro').value, onorario: campo('onorario').value, vocalita: campo('vocalita').value };
+      const firma = JSON.stringify(corpo);
+      if (firma === ultimo) return;
+      stato.className = 'stato-m'; stato.textContent = 'Salvo…';
+      try {
+        await salva(corpo);
+        ultimo = firma;
+        li.classList.add('cambiata');
+        stato.textContent = 'Salvato';
+      } catch (e) {
+        stato.className = 'stato-m errore'; stato.textContent = (e as Error).message;
+      }
+    };
+    // Cambiando maestro, l'onorario di base: pieno per il Direttore, da sostituto per gli altri, 0 senza nessuno
+    const base = (li.parentElement as HTMLElement).dataset;
+    campo('maestro').addEventListener('change', () => {
+      const m = campo('maestro').value.trim();
+      campo('onorario').value = !m ? '0' : m === base.direttore ? base.prova! : base.sostituto!;
+      invia();
+    });
+    campo('onorario').addEventListener('change', invia);
+    campo('vocalita').addEventListener('change', invia);
+    li.querySelector('.ripristina')?.addEventListener('click', async () => {
+      try { await salva({ id: li.dataset.id, elimina: true }); location.reload(); } catch (e) { stato.className = 'stato-m errore'; stato.textContent = (e as Error).message; }
+    });
+  });
+
+  document.querySelector<HTMLFormElement>('.aggiungi-prova')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget as HTMLFormElement;
+    try { await salva({ data: f.data.value, maestro: f.maestro.value, onorario: f.onorario.value }); location.reload(); }
+    catch (err) { alert(`Non salvata: ${(err as Error).message}`); }
+  });
+</script>

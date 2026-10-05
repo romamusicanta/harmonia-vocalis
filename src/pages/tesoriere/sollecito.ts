@@ -14,8 +14,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!configurata()) return json({ errore: 'Manca il foglio della tesoreria sul server.' }, 500);
   try {
     const d = await request.json();
-    const mesi = d.mese && /^\d{4}-\d{2}$/.test(d.mese) ? [String(d.mese)] : mesiDovuti(stagioneCorrente());
     const [elenco, tutte] = await Promise.all([coristi(), quote()]);
+    const mesi = d.mese && /^\d{4}-\d{2}$/.test(d.mese) ? [String(d.mese)] : mesiDovuti(stagioneCorrente(), tutte);
     const chi = arretrati(mesi, elenco, indice(tutte));
     const modello = String(d.modello ?? '').trim().slice(0, 600) || MODELLO_SOLLECITO;
     const messaggi = chi.map((a) => ({ indirizzi: indirizziDi(a.corista), notifica: { titolo: 'Quota del coro', testo: testoSollecito(modello, a), link: '/area#quote' } }));

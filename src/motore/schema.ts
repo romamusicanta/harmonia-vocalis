@@ -95,6 +95,16 @@ export const schemaCoro = z.object({
       gruppi: z.array(z.string()),
       quota: z.number(),
       mesi: z.array(z.number().int().min(1).max(12)),
+      // Onorari dei maestri, in euro: a prova per il Direttore e per chi lo sostituisce, lezioni di
+      // vocalità di gruppo singola e doppia (prospetti "Onorario maestri" e "Spese gestione prove")
+      // Codice fiscale dell'associazione, nell'intestazione del rendiconto
+      codiceFiscale: z.string().optional(),
+      onorari: z.object({
+        prova: z.number(),
+        sostituto: z.number(),
+        vocalitaSingola: z.number(),
+        vocalitaDoppia: z.number(),
+      }),
     }).optional(),
   }).optional(),
 
