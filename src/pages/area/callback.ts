@@ -2,7 +2,7 @@
 // faccia parte del gruppo dei coristi. Dopo una richiesta silenziosa (solo per la foto) qualunque
 // problema lascia la sessione com'era, con la foto vuota per non riprovare a ogni pagina.
 import type { APIRoute } from 'astro';
-import { completaAccesso, leggiCorista, salvaCorista } from '../../area/accesso';
+import { apreMaestro, apreTesoriere, areaDi, completaAccesso, leggiCorista, salvaCorista } from '../../area/accesso';
 import { decifra } from '../../admin/sessione';
 
 export const prerender = false;
@@ -41,9 +41,9 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   // Ognuno va nella sua area: chi chiede un'area che non è sua finisce in una delle sue (coristi,
   // Maestro, tesoriere, in quest'ordine)
   const c = esito.corista;
-  const sua = c.coro ? '/area' : c.direzione ? '/maestro' : '/tesoriere';
-  if (maestro && !c.direzione) return redirect(sua);
-  if (tesoriere && !c.tesoreria) return redirect(sua);
-  if (!maestro && !tesoriere && !c.coro) return redirect(sua);
+  const sua = areaDi(c);
+  if (maestro && !apreMaestro(c)) return redirect(sua);
+  if (tesoriere && !apreTesoriere(c)) return redirect(sua);
+  if (!maestro && !tesoriere && !c.coro && !c.amministratore) return redirect(sua);
   return redirect(atteso.dopo);
 };

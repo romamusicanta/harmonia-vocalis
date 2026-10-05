@@ -78,6 +78,8 @@ export const schemaCoro = z.object({
     gruppo: z.string(),
     // Chi vede i report su prove e assenze (/maestro, l’area del Maestro): il Maestro e gli amministratori
     direzione: z.string().optional(),
+    // Gli amministratori del sito: aprono tutte le aree (coristi, Maestro, tesoriere), senza essere nei loro gruppi
+    amministratori: z.string().optional(),
     // Chi scrive gli avvisi della bacheca dell'area coristi: ogni ruolo è un gruppo Google, con la
     // firma che compare sotto l'avviso e la chat WhatsApp dove inoltrarlo
     bacheca: z.array(z.object({

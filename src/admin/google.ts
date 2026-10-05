@@ -49,7 +49,7 @@ async function token(corpo: Record<string, string>): Promise<Token> {
 }
 
 // Dopo il ritorno da Google: chi è, e se è un amministratore
-export async function completaAccesso(codice: string, ritorno: string): Promise<{ sessione?: Sessione; errore?: string; altrove?: string }> {
+export async function completaAccesso(codice: string, ritorno: string): Promise<{ sessione?: Sessione; errore?: string; altrove?: string; persona?: { email: string; nome: string; foto?: string } }> {
   const t = await token({ code: codice, redirect_uri: ritorno, grant_type: 'authorization_code' });
   const mancanti = AMBITI.filter((a) => a.startsWith('https://www.googleapis.com/auth/') && !t.scope.split(' ').includes(a));
   if (mancanti.length) return { errore: 'Per usare l’area servono tutti i permessi richiesti (calendario, Drive, gruppi): riprova e lasciali selezionati.' };
@@ -65,8 +65,9 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const tesoreria = (coro.coristi?.tesoreria?.gruppi ?? []).map((g) => g.toLowerCase());
   const conAreaPropria = (g: string) => g === direzione || tesoreria.includes(g);
   const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => !conAreaPropria(r.gruppo.toLowerCase()) && suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
-  if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { altrove: '/maestro' };
-  if (!redattore && !conRuolo && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere' };
+  const persona = { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '' };
+  if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { altrove: '/maestro', persona };
+  if (!redattore && !conRuolo && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere', persona };
   if (!redattore && !conRuolo) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };
   return {
     sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000, redattore },

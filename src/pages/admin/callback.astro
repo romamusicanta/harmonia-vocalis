@@ -1,8 +1,10 @@
 ---
 // Ritorno da Google: si controlla lo state, si scambia il codice e si verifica che chi entra
-// faccia parte del gruppo dei redattori.
+// faccia parte del gruppo dei redattori. Con lo stesso accesso si apre anche la sessione delle altre aree
+// a cui ha diritto (apriSessioneAree): un solo passaggio da Google.
 import { completaAccesso } from '../../admin/google';
 import { decifra, salvaSessione } from '../../admin/sessione';
+import { apriSessioneAree } from '../../area/accesso';
 
 export const prerender = false;
 
@@ -20,8 +22,13 @@ try {
   return errore(`Accesso non riuscito: ${(e as Error).message}`);
 }
 // Il Maestro (solo nel gruppo della direzione) non entra nell'Amministrazione: va nella sua area
-if (esito.altrove) return Astro.redirect(esito.altrove);
+const sicuro = Astro.url.protocol === 'https:';
+if (esito.altrove) {
+  if (esito.persona) await apriSessioneAree(Astro.cookies, esito.persona, sicuro);
+  return Astro.redirect(esito.altrove);
+}
 if (!esito.sessione) return errore(esito.errore ?? 'Accesso non riuscito.');
-salvaSessione(Astro.cookies, esito.sessione, Astro.url.protocol === 'https:');
+salvaSessione(Astro.cookies, esito.sessione, sicuro);
+await apriSessioneAree(Astro.cookies, esito.sessione, sicuro);
 return Astro.redirect(atteso.dopo);
 ---

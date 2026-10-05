@@ -19,6 +19,7 @@ import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
 import { ruoliDi } from '../../area/bacheca';
 import { nelGruppo } from '../../area/servizio';
+import { apreTesoriere } from '../../area/accesso';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; tesoriere?: boolean; admin?: boolean }
@@ -38,10 +39,11 @@ const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maest
 // L'area del tesoriere compare tra le aree riservate solo a chi la può aprire: nell'area coristi e in
 // quella del Maestro lo dice la sessione; nell'Amministrazione (altra sessione) si guardano i gruppi
 // della tesoreria (letti al più ogni 5 minuti)
-const gruppiTesoreria = coro.coristi?.tesoreria?.gruppi ?? [];
+// (e gli amministratori del sito, che aprono tutte le aree)
+const gruppiTesoreria = [...(coro.coristi?.tesoreria?.gruppi ?? []), ...(coro.coristi?.amministratori ? [coro.coristi.amministratori] : [])];
 const tesoreria = admin
   ? Boolean(sessione && !DEMO && (await Promise.all(gruppiTesoreria.map((g) => nelGruppo(sessione.email, g).catch(() => false)))).some(Boolean))
-  : Boolean(Astro.locals.corista?.tesoreria);
+  : Boolean(Astro.locals.corista && apreTesoriere(Astro.locals.corista));
 const aree = areeRiservate(veste, false, tesoreria);
 const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', tesoriere: 'Area del tesoriere', admin: 'Amministrazione' }[tipo];
 const info = {

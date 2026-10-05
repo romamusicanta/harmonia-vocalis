@@ -88,21 +88,23 @@ export default {
   coristi: {
     gruppo: 'coro@romamusicanta.org',
     direzione: 'maestro@romamusicanta.org',
+    // Dal 5/10/2026 gli amministratori aprono tutte le aree per regola, non perché admin@ è dentro
+    // maestro@ (che ora contiene solo il Maestro)
+    amministratori: 'admin@romamusicanta.org',
     // Chi scrive in bacheca (gruppi presidente@ e tesoriere@: una persona ciascuno, si cambia il
     // membro quando cambia il ruolo)
     bacheca: [
-      // admin@ è dentro maestro@ per vedere l'area del Maestro, ma non firma come il Maestro
-      { id: 'maestro', firma: 'Il Maestro', gruppo: 'maestro@romamusicanta.org', tranne: 'admin@romamusicanta.org', chat: 'HV Maestro' },
+      { id: 'maestro', firma: 'Il Maestro', gruppo: 'maestro@romamusicanta.org', chat: 'HV Maestro' },
       { id: 'presidente', firma: 'Il presidente', gruppo: 'presidente@romamusicanta.org', chat: 'HV' },
       { id: 'tesoriere', firma: 'Il tesoriere', gruppo: 'tesoriere@romamusicanta.org', chat: 'HV' },
       { id: 'amministratori', firma: 'Gli amministratori del sito', gruppo: 'admin@romamusicanta.org', chat: 'HV', tutti: true },
     ],
     // Area del tesoriere (/tesoriere, dal 5/10/2026): quote dei coristi e cassa del coro. La vedono il
-    // tesoriere e gli amministratori del sito (per assistenza). Quota di 20 euro al mese, da
+    // tesoriere e, per regola, gli amministratori del sito (per assistenza). Quota di 20 euro al mese, da
     // settembre a giugno; onorari come nel rendiconto 2025-26 (90 € a prova per il Direttore, 80 €
     // per il sostituto, lezioni di vocalità di gruppo 25 € singola e 50 € doppia)
     tesoreria: {
-      gruppi: ['tesoriere@romamusicanta.org', 'admin@romamusicanta.org'],
+      gruppi: ['tesoriere@romamusicanta.org'],
       quota: 20,
       mesi: [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
       onorari: { prova: 90, sostituto: 80, vocalitaSingola: 25, vocalitaDoppia: 50 },
