@@ -1,6 +1,6 @@
 ---
 // Veste Stagione: pagina iniziale. Sigla della stagione a tutta altezza, prossimo concerto
-// sulla foto, schede dei concerti, fascia video, porte verso le pagine del coro.
+// sulla foto, schede dei concerti, foto dei concerti in home, fascia video, porte verso le pagine del coro.
 import Icona from '../../componenti/Icona.astro';
 import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
@@ -11,6 +11,7 @@ import { concertoIn, videoIn } from '../../motore/inglese';
 import { archivio, linkIscrizioneCalendario, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
 import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
 import type { Veste } from '../../motore/aspetto';
+import { fotoDelConcerto } from '../../motore/coro';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
@@ -33,6 +34,14 @@ const schede = [
   ...prossimiInHome.map((c, i) => ({ c, href: l(`/concerti/${slug(c)}`), etichetta: i === 0 && c === prossimi[0] ? (en ? 'Next' : 'Prossimo') : (en ? 'Upcoming' : 'In programma'), grigia: false, azione: en ? 'Details and calendar' : 'Dettagli e calendario' })),
   ...passatiInHome.map((c) => ({ c, href: l(c.dataIncerta ? `/concerti#${stagione(c).id}` : `/concerti/${slug(c)}`), etichetta: `${en ? 'Season' : 'Stagione'} ${stagione(c).sigla}`, grigia: true, azione: c.dataIncerta ? (en ? 'In the archive' : "Nell'archivio") : (en ? 'Details' : 'Dettagli') })),
 ];
+
+// Le foto dei coristi messe nel sito pubblico (src/area/fotoConcerti.ts) dei concerti delle schede, dal
+// concerto più recente; al più 8, ognuna porta alla pagina del suo concerto
+const fotoHome = schede
+  .filter((s) => !s.c.dataIncerta)
+  .sort((a, b) => b.c.data.localeCompare(a.c.data))
+  .flatMap((s) => fotoDelConcerto(s.c.data.slice(0, 10)).map((nome) => ({ nome, c: s.c, href: `${l(`/concerti/${slug(s.c)}`)}#foto` })))
+  .slice(0, 8);
 
 const evidenza = videoIn(coro.funzioni.ascolta ? await videoInEvidenza() : undefined, lingua);
 const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3).map((v) => videoIn(v, lingua));
@@ -84,6 +93,22 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
     </div>
   </div>
 </section>
+
+{fotoHome.length > 0 && (
+  <section style="padding-top:0">
+    <div class="w">
+      <div class="testa"><h2>{en ? 'From our concerts' : 'Dai nostri concerti'}</h2></div>
+      <!-- Dati: foto dei coristi dei concerti delle schede, scelte dai redattori per il sito pubblico -->
+      <ul class="foto-home">
+        {fotoHome.map((f) => {
+          const t = concertoIn(f.c, lingua);
+          const nome = [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ');
+          return <li><a href={f.href} title={nome}><Foto nome={f.nome} alt={en ? `Photo from the concert: ${nome}` : `Foto dal concerto: ${nome}`} sizes="(min-width: 980px) 300px, 50vw" /></a></li>;
+        })}
+      </ul>
+    </div>
+  </section>
+)}
 
 {evidenza && (
   <section class="fascia">
@@ -184,3 +209,11 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
     aggiorna();
   }
 </script>
+
+<style>
+  .foto-home { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .foto-home a { display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--raggio); background: var(--fondo); }
+  .foto-home :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .foto-home a:hover :global(img) { transform: scale(1.03); }
+  @media (max-width: 759.98px) { .foto-home { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
+</style>
