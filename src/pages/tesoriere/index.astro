@@ -3,7 +3,7 @@
 // ?stagione=2025 per le passate, la stagione dopo per gli anticipi). Una sola tabella, come il
 // prospetto "Quote coristi" del rendiconto, da cui si segnano anche i pagamenti (dal 5/10/2026, al
 // posto della pagina Quote, che rimanda qui): una riga per corista (in ordine alfabetico) e una
-// casella per mese. Un tocco su una casella: da pagare → pagata → esonerato (chiede il motivo) →
+// casella per mese. Un tocco su una casella: da pagare → pagata → esonerato →
 // da pagare; pressione lunga o doppio clic: importo, data del pagamento e nota (anticipi, pagamenti
 // di altri giorni). Un tocco sul nome del mese: le sue cifre, il sollecito per quel mese e "Nessuna
 // quota" (come settembre 2025). In alto tre cifre (quote raccolte, chi deve pagare, saldo di cassa)
@@ -222,12 +222,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   async function avanza(c: HTMLButtonElement) {
     const prima = c.dataset.stato ?? 'da-pagare';
     const stato = PROSSIMO[prima];
-    let nota = '';
-    if (stato === 'esonerato') {
-      const r = prompt(`Perché ${c.dataset.nome} è esonerato a ${meseLungo(c.dataset.mese!)}? (facoltativo)`, '');
-      if (r === null) return;
-      nota = r;
-    }
+    const nota = '';
     c.classList.add('in-corso');
     mostra(c, stato);
     try {
