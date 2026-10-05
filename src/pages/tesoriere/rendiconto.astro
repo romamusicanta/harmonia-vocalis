@@ -12,7 +12,7 @@ import { coro } from '../../motore/coro';
 import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
 import {
   attiviNelMese, cassa, COMPENSI_CONCERTI, configurata, exCoristi, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
-  nomeStagioneLungo, nomiSedi, onorari, sedeDi, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
+  nomeStagioneLungo, nomiSedi, onorari, riporti, riportoDi, sedeDi, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
   verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
@@ -42,12 +42,16 @@ else {
     errore = e;
   }
 }
-const idx = indice(tutte, elenco);
+const idx = indice(tutte);
+const rip = riporti(tutte, elenco);
 const senza = mesiSenzaQuota(tutte);
 const mesi = anno ? tutteLeQuote(anno) : [];
 const nellaStagione = elenco.filter((c) => mesi.some((m) => attiviNelMese([c], m).length));
 const sezioni = sezioniDi(nellaStagione).filter((s) => nellaStagione.some((c) => c.sezione === s));
 const raccoltePerMese = mesi.map((m) => situazioneMese(m, elenco, idx, senza).raccolto);
+// Il riporto della stagione prima (colonna prima dei mesi, solo se c'è per qualcuno)
+const conRiporto = nellaStagione.some((c) => { const r = riportoDi(rip, c.email, anno); return r && (r.importo > 0 || r.versato); });
+const riportiVersati = nellaStagione.reduce((t, c) => t + (riportoDi(rip, c.email, anno)?.pagato ?? 0), 0);
 // Le quote nell'elenco Entrate-Uscite: una riga sola, come nel rendiconto (per data di pagamento)
 const totaleQuote = conti?.quote ?? 0;
 const entrate = conti?.movimenti.filter((m) => m.tipo === 'Entrata') ?? [];
@@ -122,14 +126,15 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
             <div class="intesta-r"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>1 · Versamento quote {nomeStagioneLungo(anno)}</h2></div>
             <div class="tabella-wrap">
               <table class="tabella griglia-r">
-                <thead><tr><th>Corista</th>{mesi.map((m) => <th class="num">{meseBreve(m)}</th>)}</tr></thead>
+                <thead><tr><th>Corista</th>{conRiporto && <th class="num">rip.</th>}{mesi.map((m) => <th class="num">{meseBreve(m)}</th>)}</tr></thead>
                 <tbody>
                   {sezioni.map((s) => (
                     <>
-                      <tr class="sezione-r"><td colspan={mesi.length + 1}>{s}</td></tr>
+                      <tr class="sezione-r"><td colspan={mesi.length + 1 + (conRiporto ? 1 : 0)}>{s}</td></tr>
                       {nellaStagione.filter((c) => c.sezione === s).map((c) => (
                         <tr>
                           <td>{c.nome} {c.cognome}</td>
+                          {conRiporto && (() => { const r = riportoDi(rip, c.email, anno); return <td class:list={['num', { 'non-dovuta': !r || (!r.importo && !r.versato), mancante: r && !r.versato && r.importo > 0 }]}>{r?.versato ? euro(r.pagato).replace(/\s*€/, '') : ''}</td>; })()}
                           {mesi.map((m) => {
                             const dovuta = attiviNelMese([c], m).length > 0 && !senza.has(m);
                             const stato = statoDi(idx, c.email, m);
@@ -140,12 +145,12 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                       ))}
                     </>
                   ))}
-                  {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).length > 0 && <tr class="sezione-r"><td colspan={mesi.length + 1}>Non più nella scheda Coristi</td></tr>}
+                  {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).length > 0 && <tr class="sezione-r"><td colspan={mesi.length + 1 + (conRiporto ? 1 : 0)}>Non più nella scheda Coristi</td></tr>}
                   {exCoristi(tutte, elenco).filter((x) => mesi.some((m) => quotaDi(idx, x.email, m))).map((x) => (
-                    <tr><td>{x.nome}</td>{mesi.map((m) => { const q = quotaDi(idx, x.email, m); return <td class:list={['num', { 'non-dovuta': q?.stato !== 'pagata' }]}>{q?.stato === 'pagata' ? euro(q.importo).replace(/\s*€/, '') : ''}</td>; })}</tr>
+                    <tr><td>{x.nome}</td>{conRiporto && <td class="num non-dovuta"></td>}{mesi.map((m) => { const q = quotaDi(idx, x.email, m); return <td class:list={['num', { 'non-dovuta': q?.stato !== 'pagata' }]}>{q?.stato === 'pagata' ? euro(q.importo).replace(/\s*€/, '') : ''}</td>; })}</tr>
                   ))}
                 </tbody>
-                <tfoot><tr><td>Totali mensili</td>{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(/\s*€/, '') : '0'}</td>)}</tr></tfoot>
+                <tfoot><tr><td>Totali mensili</td>{conRiporto && <td class="num">{euro(riportiVersati).replace(/\s*€/, '')}</td>}{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(/\s*€/, '') : '0'}</td>)}</tr></tfoot>
               </table>
             </div>
             <p class="nota-r">Totale quote della stagione: <b>{euroEsatto(raccoltePerMese.reduce((t, r) => t + r, 0))}</b>. In grigio le quote non dovute (prima dell'ingresso o dopo l'uscita dal coro, esoneri{senza.size > 0 && `, mesi senza quota: ${[...senza].filter((m) => mesi.includes(m)).map(nomeMese).join(', ')}`}); in giallo quelle dovute e non versate.</p>

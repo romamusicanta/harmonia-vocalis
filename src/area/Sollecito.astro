@@ -19,7 +19,7 @@ import { configurate } from './notifiche';
     {configurate() && (
       <>
         <label class="solo-se-debitori">Messaggio della notifica<textarea name="modello" rows="4" maxlength="600">{MODELLO_SOLLECITO}</textarea></label>
-        <p class="nota solo-se-debitori">{'{nome}'}, {'{mesi}'} e {'{importo}'} diventano il nome, i mesi da pagare e l'importo di ciascuno. Arriva con il titolo «Quota del coro» solo a chi ha acceso le notifiche.</p>
+        <p class="nota solo-se-debitori">{'{nome}'}, {'{mesi}'} e {'{importo}'} diventano il nome, cosa deve pagare («la quota di ottobre», «il riporto della stagione prima») e l'importo di ciascuno. Arriva con il titolo «Quota del coro» solo a chi ha acceso le notifiche.</p>
       </>
     )}
     <p class="esito" hidden></p>
@@ -71,7 +71,7 @@ import { configurate } from './notifiche';
         const j = await chiama('quanti');
         for (const x of j.elenco as { nome: string; mesi: string[]; importo: string }[]) {
           const li = document.createElement('li');
-          li.append(Object.assign(document.createElement('b'), { textContent: x.nome }), Object.assign(document.createElement('span'), { textContent: `${mese ? '' : `${x.mesi.map((m) => m.slice(0, 3)).join(', ')} · `}${x.importo}` }));
+          li.append(Object.assign(document.createElement('b'), { textContent: x.nome }), Object.assign(document.createElement('span'), { textContent: `${mese ? '' : `${x.mesi.map((m) => (m === 'riporto' ? m : m.slice(0, 3))).join(', ')} · `}${x.importo}` }));
           lista.append(li);
         }
         d.classList.toggle('con-debitori', j.persone > 0);

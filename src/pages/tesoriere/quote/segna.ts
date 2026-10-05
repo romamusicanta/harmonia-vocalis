@@ -1,9 +1,10 @@
 // Area del tesoriere: segna la quota di un corista per un mese (pagata, esonerato, da pagare; per una
-// quota pagata anche importo e data, se diversi dal solito; a settembre anche la cifra da pagare),
+// quota pagata anche importo e data, se diversi dal solito), oppure (azione=riporto) il riporto della
+// stagione prima di un corista (cifra, vuota = quella calcolata; versato sì o no),
 // oppure (azione=senza-quota) un mese in cui la quota non si raccoglie, o (azione=quota-base) la quota
 // base di un mese per tutti (giugno, settembre). Dalla pagina Quote (src/pages/tesoriere/quote.astro); risponde in JSON.
 import type { APIRoute } from 'astro';
-import { configurata, numero, segnaMeseSenzaQuota, segnaQuota, segnaQuotaBase, type StatoQuota } from '../../../area/tesoreria';
+import { configurata, numero, segnaMeseSenzaQuota, segnaQuota, segnaQuotaBase, segnaRiporto, type StatoQuota } from '../../../area/tesoreria';
 import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
@@ -14,6 +15,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const d = await request.json();
     const da = locals.corista!.email;
+    if (d.azione === 'riporto') {
+      const cifra = d.cifra === undefined ? undefined : String(d.cifra).trim() === '' ? null : numero(String(d.cifra));
+      await segnaRiporto(String(d.email ?? ''), Number(d.anno), { cifra, versato: d.versato === undefined ? undefined : Boolean(d.versato) }, da);
+      return json({ ok: true });
+    }
     if (d.azione === 'quota-base') {
       await segnaQuotaBase(String(d.mese ?? ''), numero(String(d.importo ?? '')), da);
       return json({ ok: true });

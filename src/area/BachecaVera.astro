@@ -17,7 +17,7 @@ import { nomeCompleto, repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import { comeHtml } from './testo';
-import { configurata as tesoreriaConfigurata, dovutoDi, euro, indice, meseEsteso, meseBreve, mesiDelleQuote, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, type Quota } from './tesoreria';
+import { configurata as tesoreriaConfigurata, euro, indice, quotaBase, riporti, riportoDi, meseEsteso, meseBreve, mesiDelleQuote, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, type Quota } from './tesoreria';
 
 const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
@@ -50,11 +50,16 @@ const t = coro.coristi?.tesoreria;
 const conto = t?.iban ? { iban: t.iban, intestatario: t.intestatario ?? coro.associazione ?? coro.nome } : undefined;
 // Le mie quote della stagione: un pallino per mese; dovute quelle fino al mese in corso
 const mieQuote = leQuote && io ? (() => {
-  const idx = indice(leQuote, tutti);
+  const idx = indice(leQuote);
+  // Il riporto della stagione prima, se c'è qualcosa da versare (o è stato versato)
+  const r = riportoDi(riporti(leQuote, tutti), io.email, stagioneCorrente());
+  const riporto = r && (r.importo > 0 || r.versato) ? r : undefined;
   const mesi = mesiDelleQuote(stagioneCorrente(), leQuote).filter((m) => attiviNelMese([io], m).length);
   const stati = mesi.map((m) => ({ mese: m, stato: statoDi(idx, io.email, m), dovuta: m <= questoMese(), nota: idx.get(`${io.email}|${m}`)?.nota }));
   const daVersare = stati.filter((x) => x.dovuta && x.stato === 'da-pagare');
-  return { stati, daVersare, importo: daVersare.reduce((t, x) => t + dovutoDi(idx, io.email, x.mese), 0) };
+  const riportoDaVersare = riporto && !riporto.versato ? riporto.importo : 0;
+  const voci = [...(riportoDaVersare ? [`riporto della stagione prima (${euro(riportoDaVersare)})`] : []), ...daVersare.map((x) => nomeMese(x.mese))];
+  return { stati, daVersare, riporto, voci, importo: daVersare.reduce((t, x) => t + quotaBase(idx, x.mese), 0) + riportoDaVersare };
 })() : undefined;
 
 // "Scrivi un avviso": il Maestro e il tesoriere li scrivono dalla loro area, gli altri ruoli dall'Amministrazione
@@ -187,25 +192,30 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
       </article>
 
       <div class="c-5" style="display:grid;gap:24px;align-content:start">
-        {mieQuote && mieQuote.stati.length > 0 && (
+        {mieQuote && (mieQuote.stati.length > 0 || mieQuote.riporto) && (
           <article class="carta" id="quote">
-            <div class="ct"><h2>Le tue quote</h2>{mieQuote.daVersare.length ? <span class="tag">{euro(mieQuote.importo)} da versare</span> : <span class="tag grigio">In regola</span>}</div>
+            <div class="ct"><h2>Le tue quote</h2>{mieQuote.voci.length ? <span class="tag">{euro(mieQuote.importo)} da versare</span> : <span class="tag grigio">In regola</span>}</div>
             <div class="cc" style="display:grid;gap:12px">
               <ol class="mesi-quota" aria-label="Quote della stagione">
+                {mieQuote.riporto && (
+                  <li class:list={['riporto', mieQuote.riporto.versato ? 'pagata' : 'da-pagare', 'dovuta']} title={`Riporto della stagione prima, ${euro(mieQuote.riporto.importo)}: ${mieQuote.riporto.versato ? 'versato' : 'da versare'}`}>
+                    <span class="pallino">{mieQuote.riporto.versato ? '✓' : ''}</span>rip.
+                  </li>
+                )}
                 {mieQuote.stati.map((x) => (
                   <li class:list={[x.stato, { dovuta: x.dovuta }]} title={`${meseEsteso(x.mese)}: ${x.stato === 'pagata' ? 'pagata' : x.stato === 'esonerato' ? `esonerato${x.nota ? ` (${x.nota})` : ''}` : x.dovuta ? 'da versare' : 'non ancora dovuta'}`}>
                     <span class="pallino">{x.stato === 'pagata' ? '✓' : x.stato === 'esonerato' ? 'E' : ''}</span>{meseBreve(x.mese)}
                   </li>
                 ))}
               </ol>
-              <span class="tenue" style="font-size:14px">{mieQuote.daVersare.length
-                ? `Da versare: ${mieQuote.daVersare.map((x) => nomeMese(x.mese)).join(', ')}. Puoi ${mieQuote.daVersare.length === 1 ? 'darla' : 'darle'} al tesoriere alla prossima prova${conto ? ' o fare un bonifico' : ''}.`
+              <span class="tenue" style="font-size:14px">{mieQuote.voci.length
+                ? `Da versare: ${mieQuote.voci.join(', ')}. Puoi ${mieQuote.voci.length === 1 ? 'darla' : 'darle'} al tesoriere alla prossima prova${conto ? ' o fare un bonifico' : ''}.`
                 : `Hai versato tutte le quote dovute fino a ${nomeMese(questoMese())}. Grazie!`}</span>
             </div>
             {conto && <ContoQuote {...conto} />}
           </article>
         )}
-        {!(mieQuote && mieQuote.stati.length > 0) && conto && (
+        {!(mieQuote && (mieQuote.stati.length > 0 || mieQuote.riporto)) && conto && (
           <article class="carta" id="quote">
             <div class="ct"><h2>Quote del coro</h2></div>
             <ContoQuote {...conto} />
