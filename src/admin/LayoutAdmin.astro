@@ -42,6 +42,17 @@ const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k
       .messaggio.ok { border-color: #2e7d4f; }
       .messaggio.errore { border-color: #b3261e; color: #b3261e; }
       .scheda-admin { background: var(--bianco); border: 1px solid var(--linea); padding: 22px; border-radius: var(--raggio); }
+      /* "Pubblica ora" in corso (src/admin/pubblicazione-client.ts): rotella nel pulsante e riquadro in basso a destra */
+      .rotella { display: inline-block; width: 30px; height: 30px; flex: none; border-radius: 50%; border: 4px solid color-mix(in srgb, var(--primario) 15%, transparent); border-top-color: var(--accento); animation: gira 0.9s linear infinite; }
+      .rotella.piccola { width: 16px; height: 16px; border-width: 3px; border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; }
+      @keyframes gira { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .rotella { animation-duration: 3s; } }
+      button.in-attesa, button.in-attesa:disabled { display: inline-flex; align-items: center; gap: 8px; opacity: 1; cursor: progress; }
+      button.in-attesa [data-tempo] { font-variant-numeric: tabular-nums; }
+      .pubblicazione-in-corso { position: fixed; right: 16px; bottom: 16px; z-index: 50; display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bianco); border: 2px solid var(--accento); border-radius: var(--raggio); box-shadow: 0 6px 24px rgb(0 0 0 / .15); color: var(--primario); max-width: calc(100vw - 32px); }
+      .pubblicazione-in-corso[hidden] { display: none; }
+      .pubblicazione-in-corso div { display: grid; gap: 2px; }
+      .pubblicazione-in-corso [data-tempo] { font-size: 14px; color: var(--tenue); font-variant-numeric: tabular-nums; }
     </style>
   </head>
   <body class="area">
@@ -55,6 +66,8 @@ const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k
     <script>
       // Menu a tendina con la grafica del sito, come nelle altre pagine
       import '../motore/tendine';
+      // "Pubblica ora": rotella e attesa della nuova versione, in tutte le pagine
+      import './pubblicazione-client';
     </script>
   </body>
 </html>

@@ -29,8 +29,7 @@ const conAvvisi = righe.filter((r) => r.avvisi.length).length;
   <p class="tenue">Il sito si ricostruisce da solo ogni notte con i dati del calendario "Concerti", di Drive e di YouTube. Per non aspettare, usa "Pubblica ora".</p>
 
   {mancanti.length > 0 && <p class="messaggio errore">Configurazione incompleta sul server: manca {mancanti.join(', ')}.</p>}
-  {p.get('pubblicato') && <p class="messaggio ok">Pubblicazione avviata: tra due o tre minuti il sito è aggiornato. Ricarica questa pagina: quando cambia l'ora della versione online, è fatto.</p>}
-  {p.get('completata') && <p class="messaggio ok">Pubblicazione completata: il sito è aggiornato.</p>}
+  {p.get('pubblicato') && <p class="messaggio ok">Pubblicazione avviata: tra due o tre minuti il sito è aggiornato.</p>}
   {p.get('errore') && <p class="messaggio errore">{p.get('errore')}</p>}
 
   <div class="scheda-admin" style="display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between;margin-top:24px">
@@ -43,13 +42,8 @@ const conAvvisi = righe.filter((r) => r.avvisi.length).length;
     </div>
     <div id="pubblicazione" data-build={__ORA_BUILD__}>
       <form id="pubblica" method="post" action="/admin/pubblica"><button class="btn g" type="submit">Pubblica ora</button></form>
-      <div class="in-corso" hidden>
-        <span class="rotella" aria-hidden="true"></span>
-        <div><b>Pubblicazione in corso…</b><span class="tenue" data-durata>di solito due o tre minuti</span></div>
-      </div>
     </div>
   </div>
-  <p id="esito-pubblicazione" role="status" aria-live="polite" hidden></p>
 
   {erroreCalendario ? <Errore e={erroreCalendario} /> : (
     <div class="scheda-admin" style="display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;justify-content:space-between;margin-top:16px">
@@ -59,105 +53,5 @@ const conAvvisi = righe.filter((r) => r.avvisi.length).length;
   )}
 
 
-  <style>
-    #pubblicazione .in-corso { display: flex; align-items: center; gap: 14px; color: var(--primario); }
-    #pubblicazione .in-corso[hidden] { display: none; }
-    #pubblicazione .in-corso div { display: grid; gap: 2px; }
-    #pubblicazione .in-corso span.tenue { font-size: 14px; }
-    .rotella { width: 30px; height: 30px; flex: none; border-radius: 50%; border: 4px solid color-mix(in srgb, var(--primario) 15%, transparent); border-top-color: var(--accento); animation: gira 0.9s linear infinite; }
-    @keyframes gira { to { transform: rotate(360deg); } }
-    @media (prefers-reduced-motion: reduce) { .rotella { animation-duration: 3s; } }
-  </style>
-
-  <script>
-    // Dopo "Pubblica ora" la pagina chiede ogni 5 secondi quando è stata costruita la versione che
-    // risponde (/admin/stato): quando cambia, la nuova è online e la pagina si ricarica con i dati
-    // aggiornati. L'avvio resta nel browser, così ricaricando o tornando qui la rotella continua.
-    const CHIAVE = 'hv-pubblicazione';
-    const OGNI = 5000, LENTA = 10 * 60_000, MASSIMO = 20 * 60_000;
-    const box = document.getElementById('pubblicazione')!;
-    const modulo = document.getElementById('pubblica') as HTMLFormElement;
-    const inCorso = box.querySelector<HTMLElement>('.in-corso')!;
-    const durata = box.querySelector<HTMLElement>('[data-durata]')!;
-    const esito = document.getElementById('esito-pubblicazione')!;
-    const buildAttuale = box.dataset.build!;
-
-    const leggi = (): { avviata: number; build: string } | undefined => {
-      try { return JSON.parse(localStorage.getItem(CHIAVE) ?? 'null') ?? undefined; } catch { return undefined; }
-    };
-    const scrivi = (v?: { avviata: number; build: string }) => {
-      try { v ? localStorage.setItem(CHIAVE, JSON.stringify(v)) : localStorage.removeItem(CHIAVE); } catch {}
-    };
-    function messaggio(testo: string, classe: string) {
-      esito.hidden = false;
-      esito.className = `messaggio ${classe}`;
-      esito.textContent = testo;
-    }
-    const mmss = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
-
-    function attendi(avvio: { avviata: number; build: string }) {
-      modulo.hidden = true;
-      inCorso.hidden = false;
-      esito.hidden = true;
-      const orologio = setInterval(() => {
-        const passato = Date.now() - avvio.avviata;
-        durata.textContent = `${mmss(passato)} · di solito due o tre minuti`;
-        if (passato > LENTA) messaggio('La pubblicazione sta impiegando più del solito. Se non finisce, la ricostruzione potrebbe essere fallita: riprova tra qualche minuto, o avvisa Mario.', 'errore');
-      }, 1000);
-      const controlla = async () => {
-        if (Date.now() - avvio.avviata > MASSIMO) {
-          clearInterval(orologio);
-          scrivi();
-          inCorso.hidden = true;
-          modulo.hidden = false;
-          messaggio('La pubblicazione non si è conclusa entro 20 minuti: probabilmente è fallita. Riprova, e se succede ancora avvisa Mario.', 'errore');
-          return;
-        }
-        try {
-          const r = await fetch('/admin/stato', { cache: 'no-store' });
-          if (r.redirected && r.url.includes('/admin/accedi')) {
-            messaggio('La sessione è scaduta: ricarica la pagina per rientrare (la pubblicazione intanto continua).', 'errore');
-            return;
-          }
-          const { build } = await r.json();
-          if (build !== avvio.build) {
-            scrivi();
-            location.replace('/admin?completata=1');
-            return;
-          }
-        } catch {
-          // Durante il passaggio alla nuova versione una richiesta può fallire: si riprova
-        }
-        setTimeout(controlla, OGNI);
-      };
-      setTimeout(controlla, OGNI);
-    }
-
-    modulo.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      const pulsante = modulo.querySelector('button')!;
-      pulsante.disabled = true;
-      try {
-        const r = await fetch('/admin/pubblica', { method: 'POST', headers: { Accept: 'application/json' } });
-        const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
-        if (!j.ok) throw new Error(j.errore);
-        const avvio = { avviata: Date.now(), build: buildAttuale };
-        scrivi(avvio);
-        attendi(avvio);
-      } catch (e) {
-        messaggio(`Pubblicazione non avviata: ${(e as Error).message}`, 'errore');
-      } finally {
-        pulsante.disabled = false;
-      }
-    });
-
-    // Il messaggio "completata" si vede una volta: ricaricando non torna
-    if (location.search.includes('completata')) history.replaceState(null, '', '/admin');
-
-    // Una pubblicazione avviata prima di ricaricare: se la versione è ancora quella, si continua ad aspettare
-    const avvio = leggi();
-    if (avvio && avvio.build === buildAttuale && Date.now() - avvio.avviata < MASSIMO) attendi(avvio);
-    else if (avvio) scrivi();
-  </script>
 
 </LayoutAdmin>

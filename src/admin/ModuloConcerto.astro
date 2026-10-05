@@ -253,26 +253,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     esito.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // "Pubblica ora" direttamente dal messaggio: avvia la ricostruzione e porta a Pubblicazione, che
-  // mostra l'avanzamento (stesso promemoria nel browser della pagina Pubblicazione)
-  esito.addEventListener('click', async (ev) => {
-    const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-pubblica]');
-    if (!b) return;
-    b.disabled = true;
-    b.textContent = 'Avvio la pubblicazione…';
-    try {
-      const r = await fetch('/admin/pubblica', { method: 'POST', headers: { Accept: 'application/json' } });
-      const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
-      if (!j.ok) throw new Error(j.errore);
-      const { build } = await (await fetch('/admin/stato', { cache: 'no-store' })).json();
-      try { localStorage.setItem('hv-pubblicazione', JSON.stringify({ avviata: Date.now(), build })); } catch {}
-      location.href = '/admin';
-    } catch (e) {
-      b.disabled = false;
-      b.textContent = 'Pubblica ora';
-      alert(`Pubblicazione non avviata: ${(e as Error).message}`);
-    }
-  });
+  // "Pubblica ora" nel messaggio (data-pubblica): lo gestisce src/admin/pubblicazione-client.ts
 
   modulo.addEventListener('submit', async (ev) => {
     ev.preventDefault();
