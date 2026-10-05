@@ -2,8 +2,10 @@
 // Area coristi, Bacheca nel sito vero: tutto quello che serve per la settimana, dai dati veri.
 // Prossima prova (pezzi, passi, "Non ci sarò"), prossimo concerto (convocazione e prova
 // generale), avvisi (src/area/bacheca.ts), ultima registrazione (src/area/registrazioni.ts),
-// attesi alla prossima prova. Spartiti e tracce stanno nella pagina Repertorio. Ogni parte che non risponde resta vuota senza bloccare le altre.
+// attesi alla prossima prova, le proprie quote della stagione (src/area/tesoreria.ts: solo le sue, dal
+// 5/10/2026). Spartiti e tracce stanno nella pagina Repertorio. Ogni parte che non risponde resta vuota senza bloccare le altre.
 import Icona from '../componenti/Icona.astro';
+import { coro } from '../motore/coro';
 import { parti } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
@@ -13,6 +15,7 @@ import { nomeCompleto, repertorio, type Pezzo, trovaPezzo } from './repertorio';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import { comeHtml } from './testo';
+import { configurata as tesoreriaConfigurata, euro, indice, meseEsteso, meseBreve, mesiDelleQuote, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, type Quota } from './tesoreria';
 
 const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
@@ -27,6 +30,8 @@ const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte] = awa
   nulla(coristi(), []),
   nulla(assenze(), []),
 ]);
+// Le quote: solo se la tesoreria è collegata; se il foglio non risponde il riquadro non compare
+const leQuote = tesoreriaConfigurata() && io ? await nulla(quote(), undefined as Quota[] | undefined) : undefined;
 const adesso = Date.now() - 3 * 3600 * 1000;
 const prova = prossimi.find((e) => e.tipo === 'prova' && e.inizioMs > adesso);
 const concerto = prossimi.find((e) => e.tipo === 'concerto' && e.inizioMs > adesso);
@@ -36,7 +41,18 @@ const mie = new Map(tutte.filter((a) => a.email === io?.email).map((a) => [a.idE
 const bacheca = inBacheca(elencoAvvisi);
 const sezione = io?.sezione;
 const ultima = regs.find((g) => g.tracce.length || g.link);
+const coroQuota = coro.coristi?.tesoreria?.quota;
+// Le mie quote della stagione: un pallino per mese; dovute quelle fino al mese in corso
+const mieQuote = leQuote && io ? (() => {
+  const idx = indice(leQuote);
+  const mesi = mesiDelleQuote(stagioneCorrente()).filter((m) => attiviNelMese([io], m).length);
+  const stati = mesi.map((m) => ({ mese: m, stato: statoDi(idx, io.email, m), dovuta: m <= questoMese(), nota: idx.get(`${io.email}|${m}`)?.nota }));
+  const daVersare = stati.filter((x) => x.dovuta && x.stato === 'da-pagare');
+  return { stati, daVersare, importo: daVersare.length * (coroQuota ?? 0) };
+})() : undefined;
 
+// "Scrivi un avviso": il Maestro e il tesoriere li scrivono dalla loro area, gli altri ruoli dall'Amministrazione
+const scriviAvvisi = ruoli.some((r) => r.id === 'maestro') ? '/maestro/avvisi' : ruoli.some((r) => r.id === 'tesoriere') && !ruoli.some((r) => r.id === 'amministratori' || r.id === 'presidente') ? '/tesoriere/avvisi' : '/admin/avvisi';
 const riga = (e: Evento, k: string) => e.righe.find(([x]) => x === k)?.[1];
 const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
@@ -148,7 +164,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
       })() : null}
 
       <article class="carta c-7 su">
-        <div class="ct"><h2>Avvisi</h2>{bacheca.filter(nuovo).length > 0 && <span class="tag grigio">{bacheca.filter(nuovo).length === 1 ? '1 nuovo' : `${bacheca.filter(nuovo).length} nuovi`}</span>}{ruoli.length > 0 && <a class="link-freccia" href="/admin/avvisi">Scrivi un avviso <Icona nome="freccia" /></a>}</div>
+        <div class="ct"><h2>Avvisi</h2>{bacheca.filter(nuovo).length > 0 && <span class="tag grigio">{bacheca.filter(nuovo).length === 1 ? '1 nuovo' : `${bacheca.filter(nuovo).length} nuovi`}</span>}{ruoli.length > 0 && <a class="link-freccia" href={scriviAvvisi}>Scrivi un avviso <Icona nome="freccia" /></a>}</div>
         {bacheca.length === 0 && <div class="cc tenue">Nessun avviso in bacheca.</div>}
         <ul class="avvisi">
           {bacheca.map((a) => {
@@ -165,6 +181,23 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
       </article>
 
       <div class="c-5" style="display:grid;gap:24px;align-content:start">
+        {mieQuote && mieQuote.stati.length > 0 && (
+          <article class="carta" id="quote">
+            <div class="ct"><h2>Le tue quote</h2>{mieQuote.daVersare.length ? <span class="tag">{euro(mieQuote.importo)} da versare</span> : <span class="tag grigio">In regola</span>}</div>
+            <div class="cc" style="display:grid;gap:12px">
+              <ol class="mesi-quota" aria-label="Quote della stagione">
+                {mieQuote.stati.map((x) => (
+                  <li class:list={[x.stato, { dovuta: x.dovuta }]} title={`${meseEsteso(x.mese)}: ${x.stato === 'pagata' ? 'pagata' : x.stato === 'esonerato' ? `esonerato${x.nota ? ` (${x.nota})` : ''}` : x.dovuta ? 'da versare' : 'non ancora dovuta'}`}>
+                    <span class="pallino">{x.stato === 'pagata' ? '✓' : x.stato === 'esonerato' ? 'E' : ''}</span>{meseBreve(x.mese)}
+                  </li>
+                ))}
+              </ol>
+              <span class="tenue" style="font-size:14px">{mieQuote.daVersare.length
+                ? `Da versare: ${mieQuote.daVersare.map((x) => nomeMese(x.mese)).join(', ')}. Puoi ${mieQuote.daVersare.length === 1 ? 'darla' : 'darle'} al tesoriere alla prossima prova.`
+                : `Hai versato tutte le quote dovute fino a ${nomeMese(questoMese())}. Grazie!`}</span>
+            </div>
+          </article>
+        )}
         {ultima && (
           <article class="carta">
             <div class="ct"><h2>Ultima registrazione</h2><a class="link-freccia" href="/area/registrazioni">Tutte <Icona nome="freccia" /></a></div>
@@ -194,6 +227,14 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
 </script>
 
 <style>
+  /* Le tue quote: un pallino per mese (verde pagata, blu esonerato, giallo da versare, vuoto non ancora dovuta) */
+  .mesi-quota { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 6px; }
+  .mesi-quota li { display: grid; justify-items: center; gap: 3px; font-size: 12px; color: var(--tenue); width: 34px; }
+  .mesi-quota .pallino { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--linea); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .mesi-quota .pagata .pallino { background: #2e7d4f; border-color: #2e7d4f; }
+  .mesi-quota .esonerato .pallino { background: var(--primario); border-color: var(--primario); }
+  .mesi-quota .da-pagare.dovuta .pallino { border-color: var(--accento); background: color-mix(in srgb, var(--accento) 25%, var(--bianco)); }
+  .mesi-quota .da-pagare.dovuta { color: var(--testo); font-weight: 700; }
   /* Il concerto in testa: bordo giallo per farlo notare */
   .concerto-in-testa { border: 2px solid var(--accento); }
   .cruscotto > :not([style*="order"]) { order: 2; }

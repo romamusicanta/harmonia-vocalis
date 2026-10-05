@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const [elenco, tutte] = await Promise.all([coristi(), quote()]);
     const chi = arretrati(mesi, elenco, indice(tutte));
     const modello = String(d.modello ?? '').trim().slice(0, 600) || MODELLO_SOLLECITO;
-    const messaggi = chi.map((a) => ({ indirizzi: indirizziDi(a.corista), notifica: { titolo: 'Quota del coro', testo: testoSollecito(modello, a), link: '/area' } }));
+    const messaggi = chi.map((a) => ({ indirizzi: indirizziDi(a.corista), notifica: { titolo: 'Quota del coro', testo: testoSollecito(modello, a), link: '/area#quote' } }));
     const prova = d.azione !== 'invia';
     if (!prova) console.log(`[tesoreria] sollecito da ${locals.corista!.email} a ${chi.length} coristi`);
     const r = await inviaPersonali(messaggi, prova);
