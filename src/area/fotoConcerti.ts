@@ -109,10 +109,12 @@ async function controlla(id: string) {
   return f;
 }
 
-// Un corista toglie una sua foto; i redattori qualunque (cestino del Drive condiviso, si recupera per 30 giorni)
+// Un corista toglie una sua foto, ma non se è già sul sito pubblico (Sito o Home: lì decidono i redattori);
+// i redattori qualunque (cestino del Drive condiviso, si recupera per 30 giorni)
 export async function togliFoto(id: string, email: string, redattore = false) {
   const f = await controlla(id);
   if (!redattore && normalizza(f.appProperties?.caricatoDa ?? '') !== normalizza(email)) throw new Error('Puoi togliere solo le foto che hai caricato tu.');
+  if (!redattore && sulSito((f.appProperties?.visibilita ?? 'coristi') as Visibilita)) throw new Error('Questa foto è sul sito pubblico: per toglierla scrivi ai redattori.');
   await cestina(id);
   dimentica(id);
   svuota();

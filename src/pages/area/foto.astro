@@ -4,13 +4,13 @@
 // (lato lungo 2400 px, JPEG) e le carica una dopo l'altra (/area/foto/carica). Sotto, per concerto,
 // le foto che vedono i coristi (miniature da /area/foto/miniatura, la foto intera da /area/file),
 // con chi le ha caricate e "Sul sito" per quelle che i redattori hanno messo nel sito pubblico; chi
-// ha caricato una foto la può togliere.
+// ha caricato una foto la può togliere, finché non è sul sito pubblico (poi solo i redattori).
 import Base from '../../layouts/Base.astro';
 import Icona from '../../componenti/Icona.astro';
 import Errore from '../../area/Errore.astro';
 import { vesteCorrente } from '../../motore/url';
 import { parti } from '../../motore/concerti';
-import { concertiPerFoto, configurato, fotoDeiConcerti, type ConcertoConFoto, type ConcertoScelta } from '../../area/fotoConcerti';
+import { concertiPerFoto, configurato, fotoDeiConcerti, sulSito, type ConcertoConFoto, type ConcertoScelta } from '../../area/fotoConcerti';
 import { normalizza } from '../../area/servizio';
 
 export const prerender = false;
@@ -76,7 +76,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
               <li>
                 <a href={`/area/file/${f.id}`} target="_blank" rel="noopener"><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
                 <span class="chi">{f.chi}{f.visibilita === 'home' ? <span class="tag">In home</span> : f.visibilita === 'pubblica' && <span class="tag grigio">Sul sito</span>}</span>
-                {normalizza(f.caricatoDa) === email && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
+                {normalizza(f.caricatoDa) === email && !sulSito(f.visibilita) && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
               </li>
             ))}
           </ul>
