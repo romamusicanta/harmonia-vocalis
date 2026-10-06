@@ -96,8 +96,7 @@ const voce = (nome: string) => {
       const parole = semplice(input.value).split(/\s+/).filter(Boolean);
       const gia = giaScelti();
       opzioni.forEach((o) => {
-        // I brani di un'opera compaiono solo cercando (il titolo dell'opera o il nome del brano)
-        o.hidden = !parole.every((p) => o.dataset.cerca!.includes(p)) || (o.classList.contains('brano') && !parole.length);
+        o.hidden = !parole.every((p) => o.dataset.cerca!.includes(p));
         o.classList.toggle('gia', gia.has(o.dataset.titolo!));
       });
       nessuno.hidden = visibili().length > 0;

@@ -51,11 +51,12 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 
   <h2>Per i coristi</h2>
   <div class="campo"><label for="sezioni">Sezioni</label><input id="sezioni" name="sezioni" placeholder="Soprani e contralti" value={r?.Sezioni} /><span class="aiuto">Vuoto = tutto il coro.</span></div>
-  <div class="campo"><SceltaPezzi nome="repertorio" etichetta="Pezzi del repertorio" pezzi={pezzi} scelti={scelti} aiuto="Nell'area coristi diventano link a spartiti, tracce e note del pezzo. Di un'opera si può scegliere anche un solo brano (cercando l'opera o il brano), se nel Repertorio ha il suo spartito tra i brani separati: il link apre quello." /></div>
+  <div class="campo"><SceltaPezzi nome="repertorio" etichetta="Spartiti" pezzi={pezzi} scelti={scelti} aiuto="Dal Repertorio: un pezzo intero oppure, sotto un'opera o una raccolta, un solo brano. Nell'area coristi il pezzo porta a spartito, tracce e note, il brano apre direttamente il suo spartito." /></div>
   <div class="campo"><label for="brani">Brani e passi</label><input id="brani" name="brani" placeholder="Lacrimosa, Domine Jesu: dalla battuta 20" value={r?.Brani} /><span class="aiuto">Cosa si prova in dettaglio, se il Maestro l'ha detto.</span></div>
-  <div class="campo"><label for="portare">Portare</label><input id="portare" name="portare" placeholder="Spartito del Requiem, matita" value={r?.Portare} /></div>
   <div class="campo"><label for="note">Note</label><input id="note" name="note" placeholder="Si inizia puntuali: c'è il pianista" value={r?.Note} /></div>
-  <div class="campo"><label for="registrazione">Registrazione su YouTube o altro sito <small>(facoltativo)</small></label><input id="registrazione" name="registrazione" type="url" placeholder="https://…" value={r?.Registrazione} /><span class="aiuto">Solo per un link esterno. I file registrati si caricano qui sotto{conRegistrazioni ? '' : ', quando la prova è stata fatta'}.</span></div>
+  {/* Portare e il link a una registrazione esterna non si scrivono più (6/10/2026): quelli già scritti restano */}
+  {r?.Portare && <input type="hidden" name="portare" value={r.Portare} />}
+  {r?.Registrazione && <input type="hidden" name="registrazione" value={r.Registrazione} />}
   {prova?.altro && <input type="hidden" name="altro" value={prova.altro} />}
 
   <div class="bottoni" style="margin-top:12px">
