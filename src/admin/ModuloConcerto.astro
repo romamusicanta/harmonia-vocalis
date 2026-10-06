@@ -116,7 +116,17 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   </div>
   <p><button class="btn o" type="button" data-aggiungi="interpreti">+ Un altro interprete</button></p>
 
-  <div class="campo"><label for="video">Video su YouTube</label><input id="video" name="video" placeholder="https://www.youtube.com/watch?v=…" value={v?.video} /><span class="aiuto">Per un concerto passato con la registrazione sul canale: l'indirizzo del video. Facoltativo.</span></div>
+  <h2>Video</h2>
+  <p class="tenue" style="font-size:15px">Dopo il concerto: l'indirizzo su YouTube della registrazione (il primo) ed eventualmente di altri video del concerto, come gli estratti. Si vedono nella pagina del concerto e nella pagina Ascolta portano al concerto. Nella pagina Ascolta ci sono comunque tutti i video del canale, anche quelli che non sono di un concerto.</p>
+  <div id="video" style="display:grid;gap:10px">
+    {(v?.video.length ? v.video : ['']).map((id, i) => (
+      <div class="riga-video">
+        <img class="anteprima-video" src={id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : undefined} alt="" hidden={!id} />
+        <div class="campo"><label>{i === 0 ? 'Registrazione del concerto' : 'Altro video'}<input name="video" placeholder="https://www.youtube.com/watch?v=…" value={id ? `https://www.youtube.com/watch?v=${id}` : ''} /></label></div>
+      </div>
+    ))}
+  </div>
+  <p><button class="btn o" type="button" data-aggiungi="video">+ Un altro video</button></p>
 
   <h2>Immagini</h2>
   <div class="riga-campi">
@@ -172,6 +182,9 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   #opere .opera { display: grid; gap: 10px; padding: 14px; background: var(--fondo); border-radius: var(--raggio); }
   #opere .opera .campo { margin: 0; }
   input[lang="en"] { font-style: italic; }
+  .riga-video { display: flex; gap: 12px; align-items: flex-end; }
+  .riga-video .campo { flex: 1; margin: 0; min-width: 0; }
+  .anteprima-video { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 </style>
 
 <script>
@@ -199,9 +212,22 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     const contenitore = document.getElementById(id)!;
     const copia = contenitore.firstElementChild!.cloneNode(true) as HTMLElement;
     copia.querySelectorAll('input').forEach((i) => { i.value = ''; i.required = false; });
+    copia.querySelectorAll('img').forEach((i) => { i.hidden = true; i.removeAttribute('src'); });
+    const etichetta = copia.querySelector('.riga-video label');
+    if (etichetta?.firstChild) etichetta.firstChild.textContent = 'Altro video';
     contenitore.append(copia);
     return copia;
   }
+  // Anteprima del video scritto: la miniatura di YouTube
+  document.getElementById('video')!.addEventListener('input', (e) => {
+    const input = e.target as HTMLInputElement;
+    const img = input.closest('.riga-video')?.querySelector('img');
+    if (!img) return;
+    const v = input.value.trim();
+    const id = v.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(v) ? v : '');
+    img.hidden = !id;
+    if (id) img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+  });
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-aggiungi]')) {
     b.addEventListener('click', () => aggiungiRiga(b.dataset.aggiungi!).querySelector('input')!.focus());
   }

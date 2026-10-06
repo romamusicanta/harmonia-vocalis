@@ -57,6 +57,8 @@ const interpreti = c.interpreti?.filter((i, n) => n !== posDirettore && i.nome !
 // programma, se c'è nell'archivio (la più recente)
 const giaEseguito = passato ? (c.video ? c : undefined) : archivio.find((a) => a.video && a.titolo === originale.titolo);
 const video = videoIn(await trovaVideo(giaEseguito?.video), lingua);
+// Gli altri video del concerto (estratti, altre parti), solo per un concerto passato
+const altriVideo = passato ? (await Promise.all((c.altriVideo ?? []).map(trovaVideo))).filter((v): v is NonNullable<typeof v> => Boolean(v)).map((v) => videoIn(v, lingua)) : [];
 // Le foto dei coristi messe nel sito pubblico dai redattori (src/area/fotoConcerti.ts), per la data del concerto
 const fotoCoristi = originale.dataIncerta ? [] : fotoDelConcerto(originale.data.slice(0, 10));
 const pg = giaEseguito && parti(giaEseguito, lingua);
@@ -183,6 +185,11 @@ const altri = [
         </div>
         <div>
           <Video video={video} />
+          {altriVideo.length > 0 && (
+            <div class="altri-video">
+              {altriVideo.map((v) => <Video video={v} piccolo />)}
+            </div>
+          )}
           <NotaVideo />
         </div>
       </div>
@@ -213,4 +220,5 @@ const altri = [
 </Base>
 
 <style>
+  .altri-video { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; margin-top: 12px; }
 </style>

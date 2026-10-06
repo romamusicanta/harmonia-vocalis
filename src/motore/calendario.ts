@@ -26,7 +26,7 @@ const etichettaRiga = /^([\p{L}' ]{2,30}):\s*(.*)$/u;
 function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
   const righe = senzaHtml(descrizione).split('\n').map((r) => r.trim()).filter(Boolean);
   const programma: Brano[] = [];
-  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza' | 'home' | 'en' | 'dataIncerta'> = {};
+  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'altriVideo' | 'evidenza' | 'home' | 'en' | 'dataIncerta'> = {};
   const interpreti: NonNullable<Concerto['interpreti']> = [];
   for (const riga of righe) {
     // Le opere vengono prima di tutte le etichette, ognuna seguita dalle sue righe Organico, Brani,
@@ -44,7 +44,9 @@ function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
     const [, nome, valore] = m;
     const chiave = nome.trim().toLowerCase();
     const ultima = programma.at(-1);
-    if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
+    // Più righe "Video:": la prima è la registrazione del concerto, le altre si aggiungono
+    if (chiave === 'video' && dati.video && valore) (dati.altriVideo ??= []).push(valore);
+    else if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
     else if (/ en$/.test(chiave)) {
       // Traduzioni inglesi: "Opera EN" e "Organico EN" dell'opera appena sopra, "Evidenza EN",
       // "Ingresso EN"; "Titolo EN" (righe di prima, in fondo) vale per la prima opera

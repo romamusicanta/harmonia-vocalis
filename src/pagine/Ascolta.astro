@@ -37,7 +37,7 @@ const dataBreve = new Intl.DateTimeFormat(en ? 'en-GB' : 'it-IT', { day: 'numeri
 const pubblicato = (v: TipoVideo) => `${en ? 'published' : 'pubblicato il'} ${dataBreve.format(new Date(v.pubblicato))}`;
 const canale = coro.link.youtubeCanale;
 // Il concerto di ogni video (solo quelli con una data precisa hanno una pagina)
-const concertoDi = new Map(archivio.filter((c) => c.video && !c.dataIncerta).map((c) => [c.video!, c]));
+const concertoDi = new Map(archivio.filter((c) => c.video && !c.dataIncerta).flatMap((c) => [c.video!, ...(c.altriVideo ?? [])].map((v) => [v, c] as const)));
 ---
 
 <Base veste={veste} titolo={en ? 'Listen' : 'Ascolta'} pagina="ascolta" descrizione={en ? `Live recordings of the ${coro.nome}: full concerts and excerpts.` : `Registrazioni dal vivo del ${coro.nome}: concerti integrali ed estratti.`}>

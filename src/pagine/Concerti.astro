@@ -4,6 +4,8 @@ import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
 import Foto from '../componenti/Foto.astro';
+import { Image } from 'astro:assets';
+import { immagine } from '../motore/coro';
 import { DEMO } from '../motore/coro';
 import { contesto } from '../motore/url';
 import { archivio, chiaveAutore, linkIscrizioneCalendario, luogoCompleto, parti, perStagione, prossimiConcerti, slug } from '../motore/concerti';
@@ -134,10 +136,18 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
                   {p.incerta
                     ? <span class="quando anno">{p.anno}<small>{en ? 'date to be confirmed' : 'data da precisare'}</small></span>
                     : <span class="quando">{p.giorno}<small>{p.meseBreve} {p.anno}</small></span>}
-                  <div class="cosa">
-                    {c.autore && <span class="aut">{c.autore}</span>}
-                    {p.incerta ? <b>{c.titolo}</b> : <b><a href={l(`/concerti/${slug(c)}`)}>{c.titolo}</a></b>}
-                    {c.evidenza && <span class="tag" style="margin-top:8px">{c.evidenza}</span>}
+                  <div class="cosa con-mini">
+                    {/* Miniatura della locandina: Astro ne fa alla build un file piccolo (64 e 128 px di larghezza, WebP) */}
+                    {c.locandina
+                      ? (p.incerta
+                        ? <span class="mini"><Image src={immagine(c.locandina)} alt="" width={128} widths={[64, 128]} sizes="64px" loading="lazy" /></span>
+                        : <a class="mini" href={l(`/concerti/${slug(c)}`)} tabindex="-1" aria-hidden="true"><Image src={immagine(c.locandina)} alt="" width={128} widths={[64, 128]} sizes="64px" loading="lazy" /></a>)
+                      : <span class="mini vuota" aria-hidden="true"></span>}
+                    <div>
+                      {c.autore && <span class="aut">{c.autore}</span>}
+                      {p.incerta ? <b>{c.titolo}</b> : <b><a href={l(`/concerti/${slug(c)}`)}>{c.titolo}</a></b>}
+                      {c.evidenza && <span class="tag" style="margin-top:8px">{c.evidenza}</span>}
+                    </div>
                   </div>
                   <span class="dove">{dove ? <><Icona nome="luogo" />{dove}</> : <span class="tenue" style="font-size:14px">{en ? 'Venue not given' : 'Luogo non indicato'}</span>}</span>
                   <span class="azione">{c.video && <a href={p.incerta ? linkVideo(c.video) : l(`/concerti/${slug(c)}#registrazione`)}><Icona nome="play" />{en ? 'Watch the video' : 'Guarda il video'}</a>}</span>
@@ -157,3 +167,13 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
     </section>
   )}
 </Base>
+
+<style>
+  /* Miniatura della locandina accanto al titolo, intera (le locandine non si ritagliano) */
+  .con-mini { display: flex; gap: 14px; align-items: flex-start; }
+  .con-mini > div { min-width: 0; }
+  .mini { flex: 0 0 auto; width: 52px; aspect-ratio: 3 / 4; border-radius: 4px; overflow: hidden; background: var(--bianco); box-shadow: 0 1px 3px rgb(0 0 0 / .12); display: block; }
+  .mini :global(img) { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .mini.vuota { background: transparent; box-shadow: inset 0 0 0 1px var(--linea); }
+  @media (max-width: 520px) { .mini { width: 44px; } }
+</style>

@@ -28,7 +28,7 @@ export interface DatiConcerto {
   organizza: string;
   ingresso: string;
   ingressoEn: string;
-  video: string;
+  video: string[];       // ID YouTube: il primo è la registrazione del concerto, gli altri estratti o parti
   interpreti: Interprete[];
   // Righe "Foto:" e "Locandina:" già nell'evento (file in coro/immagini): si conservano
   rigaFoto: string;
@@ -72,10 +72,13 @@ export function datiDalModulo(f: FormData): DatiConcerto | { errore: string } {
     if (riservate.includes(x.ruolo.toLowerCase()) || !/^[\p{L}' ]{2,30}$/u.test(x.ruolo)) return { errore: `"${x.ruolo}" non va bene come ruolo` };
   }
 
-  // Video: l'indirizzo di YouTube o il solo ID
-  const indirizzoVideo = pulisci(f.get('video'));
-  const video = indirizzoVideo.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(indirizzoVideo) ? indirizzoVideo : '');
-  if (indirizzoVideo && !video) return { errore: 'indirizzo del video non riconosciuto' };
+  // Video: l'indirizzo di YouTube o il solo ID, uno per riga
+  const video: string[] = [];
+  for (const indirizzoVideo of tutti(f, 'video').filter(Boolean)) {
+    const id = indirizzoVideo.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(indirizzoVideo) ? indirizzoVideo : '');
+    if (!id) return { errore: `indirizzo del video non riconosciuto: ${indirizzoVideo}` };
+    if (!video.includes(id)) video.push(id);
+  }
 
   return {
     data, ora: dataIncerta ? '' : ora, dataIncerta, citta, sala: pulisci(f.get('sala')), indirizzo, rassegna: pulisci(f.get('rassegna')),
@@ -154,7 +157,7 @@ export function corpoEvento(d: DatiConcerto) {
       o.autore ? `${o.autore} · ${o.opera}` : o.opera,
       ...etichette([['Opera EN', o.operaEn], ['Organico', o.organico], ['Organico EN', o.organicoEn], ['Brani', o.brani]]),
     ]),
-    ...etichette([['Data', d.dataIncerta ? "solo l'anno" : ''], ['Evidenza', d.evidenza], ['Evidenza EN', d.evidenzaEn], ['Organizza', d.organizza], ['Ingresso', d.ingresso], ['Ingresso EN', d.ingressoEn], ['Video', d.video], ['Foto', d.rigaFoto], ['Locandina', d.rigaLocandina], ['Home', d.rigaHome]]),
+    ...etichette([['Data', d.dataIncerta ? "solo l'anno" : ''], ['Evidenza', d.evidenza], ['Evidenza EN', d.evidenzaEn], ['Organizza', d.organizza], ['Ingresso', d.ingresso], ['Ingresso EN', d.ingressoEn], ...d.video.map((v) => ['Video', v]), ['Foto', d.rigaFoto], ['Locandina', d.rigaLocandina], ['Home', d.rigaHome]]),
     ...d.interpreti.map((x) => `${x.ruolo}: ${x.nome}`.trim()),
   ];
   // Con il CAP nell'indirizzo il luogo è "Sala, indirizzo" (come quelli scelti da Google Maps) e la
@@ -216,7 +219,7 @@ export function datiDaEvento(e: EventoApi): DatiConcerto {
     organizza: c.organizza ?? '',
     ingresso: c.ingresso ?? '',
     ingressoEn: inglese(c.ingresso, c.en?.ingresso),
-    video: c.video ?? '',
+    video: [c.video, ...(c.altriVideo ?? [])].filter((v): v is string => Boolean(v)),
     interpreti: (c.interpreti ?? []).map((i) => ({ ruolo: i.ruolo, nome: [i.nome, i.nota && `(${i.nota})`].filter(Boolean).join(' ') })),
     rigaFoto: riga('foto'),
     rigaLocandina: riga('locandina'),

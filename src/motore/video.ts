@@ -47,4 +47,24 @@ export const eFinto = (v: Pick<Video, 'id'>) => v.id.startsWith('demo-');
 // "W. A. Mozart · Requiem K 626"
 export const titoloCompleto = (v: Video) => [v.autore && v.autore !== 'Il coro' ? v.autore.split(' ').at(-1) : undefined, v.titolo].filter(Boolean).join(' · ');
 
-export const trovaVideo = async (id?: string) => (id ? (await elencoVideo()).find((v) => v.id === id) : undefined);
+// Il video di un concerto: dal feed (gli ultimi 15) o da coro/video.ts; un video più vecchio del
+// canale si trova lo stesso, con il titolo chiesto a YouTube (oEmbed, senza chiave), una volta per build
+const fuoriElenco = new Map<string, Promise<Video | undefined>>();
+async function daYoutube(id: string): Promise<Video | undefined> {
+  try {
+    const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`, { signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = (await r.json()) as { title?: string };
+    return { id, titolo: j.title ?? 'Video', pubblicato: '' };
+  } catch (err) {
+    console.warn(`[youtube] video ${id} non trovato: ${err}`);
+    return undefined;
+  }
+}
+export async function trovaVideo(id?: string): Promise<Video | undefined> {
+  if (!id) return undefined;
+  const noto = (await elencoVideo()).find((v) => v.id === id);
+  if (noto) return noto;
+  if (!fuoriElenco.has(id)) fuoriElenco.set(id, daYoutube(id));
+  return fuoriElenco.get(id);
+}
