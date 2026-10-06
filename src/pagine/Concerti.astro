@@ -90,8 +90,8 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
               <a class="btn o" href={l(`/concerti/${slug(prossimo)}#calendario`)}><Icona nome="calendario-piu" />{en ? 'Add to calendar' : 'Aggiungi al calendario'}</a>
             </div>
           </div>
-          {/* Senza "Foto:" nell'evento, la locandina intera; senza nemmeno quella, la foto di apertura del coro */}
-          <div class:list={['foto', { locandina: !prossimo.foto && prossimo.locandina }]}><Foto nome={prossimo.foto ?? prossimo.locandina ?? coro.foto.apertura} alt={!prossimo.foto && prossimo.locandina ? `${en ? 'Poster' : 'Locandina'}: ${prossimo.titolo}, ${d!.giorno} ${d!.mese} ${d!.anno}${luogoCompleto(prossimo) ? `, ${luogoCompleto(prossimo)}` : ''}` : undefined} sizes="(min-width: 900px) 40vw, 100vw" /></div>
+          {/* La locandina intera; senza, la foto del concerto; senza nemmeno quella, la foto di apertura del coro */}
+          <div class:list={['foto', { locandina: Boolean(prossimo.locandina) }]}><Foto nome={prossimo.locandina ?? prossimo.foto ?? coro.foto.apertura} alt={prossimo.locandina ? `${en ? 'Poster' : 'Locandina'}: ${prossimo.titolo}, ${d!.giorno} ${d!.mese} ${d!.anno}${luogoCompleto(prossimo) ? `, ${luogoCompleto(prossimo)}` : ''}` : undefined} sizes="(min-width: 900px) 40vw, 100vw" /></div>
         </article>
       ) : (
         <p class="tenue" style="font-size:19px;padding:24px 0">{en ? 'No concerts scheduled yet: the new season is being prepared.' : 'Nessun concerto in calendario per ora: la nuova stagione è in preparazione.'}</p>

@@ -18,8 +18,9 @@ const { concerto, href, etichetta, grigia, azione, conFoto = true } = Astro.prop
 const lingua = linguaDi(Astro.url);
 const c = concertoIn(concerto, lingua);
 const d = parti(c, lingua);
-// Senza foto del concerto, la locandina intera (non ritagliata) sul fondo della scheda
-const anteprima = c.foto ?? c.locandina;
+// La locandina intera (non ritagliata) sul fondo della scheda; senza, la foto del concerto (dal 6/10/2026
+// la locandina ha la precedenza)
+const anteprima = c.locandina ?? c.foto;
 ---
 
 <a class="sc" href={href}>
@@ -27,7 +28,7 @@ const anteprima = c.foto ?? c.locandina;
     <span class="data-grande">{d.incerta ? d.anno : d.giorno}<small>{d.incerta ? (lingua === 'en' ? 'date to be confirmed' : 'data da precisare') : `${d.meseBreve} ${d.anno}`}</small></span>
     <span class:list={['tag', { grigio: grigia }]}>{etichetta}</span>
   </div>
-  {conFoto && anteprima && <div class:list={['img', { locandina: !c.foto }]}><Foto nome={anteprima} alt={c.foto ? '' : `${lingua === 'en' ? 'Poster' : 'Locandina'}: ${c.titolo}`} sizes="(min-width: 1000px) 25vw, 100vw" /></div>}
+  {conFoto && anteprima && <div class:list={['img', { locandina: Boolean(c.locandina) }]}><Foto nome={anteprima} alt={c.locandina ? `${lingua === 'en' ? 'Poster' : 'Locandina'}: ${c.titolo}` : ''} sizes="(min-width: 1000px) 25vw, 100vw" /></div>}
   <div class="corpo">
     {c.autore && <span class="aut">{c.autore}</span>}
     <h3>{c.titolo}</h3>
