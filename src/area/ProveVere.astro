@@ -3,6 +3,7 @@
 // "Concerti", con il link alla convocazione nella pagina Concerti) dei prossimi tre mesi, con "Non ci sarò" che scrive nel foglio delle assenze
 // (/area/assenze). Chi tace è presente. Nelle prove i pezzi della riga "Repertorio:" portano alla
 // pagina Repertorio, "Registrazione:" diventa un pulsante; in fondo il link alla pagina Registrazioni.
+import ConLink from '../componenti/ConLink.astro';
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { aperto, assenze, configurati, coristaDi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, type Evento, etichettaStato, linkCalendarioProve } from './dati';
@@ -98,7 +99,7 @@ const righe = (e: Evento) => e.righe.filter(([k]) => k !== 'Registrazione');
                   {e.tipo === 'prova' && righe(e).length > 0 && (
                     <div class="elenco-brani">{righe(e).map(([k, v], i) => <>{i > 0 && <br />}<b>{k}:</b> {k === 'Repertorio'
                       ? v.split(SEPARATORE_PEZZI).map((t, j) => <>{j > 0 && ', '}<LinkPezzo pezzi={pezzi} nome={t} stile="text-decoration:underline" /></>)
-                      : v}</>)}</div>
+                      : <ConLink testo={v} />}</>)}</div>
                   )}
                   {valore(e, 'Registrazione') && <a class="btn o piccolo" style="margin-top:10px" href={linkDelSito(valore(e, 'Registrazione'))} target="_blank" rel="noopener"><Icona nome="microfono" />Registrazione della prova</a>}
                   {luogoBreveDi(e) && <div class="meta"><span><Icona nome="luogo" />{luogoBreveDi(e)}</span></div>}

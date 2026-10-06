@@ -43,3 +43,8 @@
 .tendina-elenco [aria-disabled=true] { color: var(--tenue); cursor: default; }
 .tendina-elenco .tendina-gruppo { padding: 10px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
 @media (max-width: 760px) { .tendina-elenco [role=option] { min-height: 44px; display: flex; align-items: center; } }
+
+/* Link scritti nei testi dei redattori (src/motore/testoLink.ts): sottolineati, del colore del testo,
+   e gli indirizzi lunghi vanno a capo invece di allargare la pagina */
+.link-testo { color: inherit; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.link-testo:hover { text-decoration-thickness: 2px; }

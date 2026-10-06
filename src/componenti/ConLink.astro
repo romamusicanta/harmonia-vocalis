@@ -1,0 +1,8 @@
+---
+// Un testo scritto dai redattori con i link (https://…, www.…, email) cliccabili, dentro l'elemento
+// che lo contiene: <p><ConLink testo={…} /></p>
+import { inLinea } from '../motore/testoLink';
+
+interface Props { testo?: string }
+---
+<Fragment set:html={inLinea(Astro.props.testo)} />

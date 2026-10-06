@@ -1,5 +1,6 @@
 ---
 // Pagina "Canta con noi": audizioni, prove, candidatura e domande frequenti.
+import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
@@ -45,7 +46,7 @@ const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((
         <span class="eti">{en ? 'Open auditions · Season' : 'Audizioni aperte · Stagione'} {coro.stagione.sigla}</span>
         <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{en ? 'Sing with us' : 'Canta con noi'}<span>.</span></h1>
         <div>
-          <p>{dati.presentazione}</p>
+          <p><ConLink testo={dati.presentazione} /></p>
           <div class="bottoni" style="margin-top:24px"><a class="btn g" href="#candidatura">{en ? 'Apply' : 'Candidati'}</a><a class="btn o" href="#prove">{en ? 'When we rehearse' : 'Quando proviamo'}</a></div>
         </div>
       </div>

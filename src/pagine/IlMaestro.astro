@@ -1,6 +1,7 @@
 ---
 // Pagina "Il Maestro": presentazione con i ruoli, indice delle sottosezioni, biografia dal curriculum
 // (un capitolo per ogni "## titolo" di coro/testi/maestro.md), repertorio, critica con un video, lavori.
+import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Foto from '../componenti/Foto.astro';
@@ -73,7 +74,7 @@ const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(
       <div class="due-col">
         {/* Dati: coro/testi/maestro.md (attacco, corpo, lavori) */}
         <div class="testo-lungo maestro-testo">
-          {dati.attacco && <p class="apertura-testo">{dati.attacco}</p>}
+          {dati.attacco && <p class="apertura-testo"><ConLink testo={dati.attacco} /></p>}
           {indice.length > 0 && (
             <nav class="indice" aria-label={en ? 'On this page' : 'In questa pagina'}>
               <span class="eti">{en ? 'On this page' : 'In questa pagina'}</span>

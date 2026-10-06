@@ -1,5 +1,6 @@
 ---
 // Concerti: prossimi concerti dal calendario, archivio con filtri per autore e anno.
+import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
@@ -82,8 +83,8 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
             <ul class="fatti">
               {luogoCompleto(prossimo) && <li><Icona nome="luogo" />{luogoCompleto(prossimo)}</li>}
               <li><Icona nome="orologio" />{d.ora ? (en ? d.ora : `Ore ${d.ora}`) : (en ? 'Time to be confirmed' : 'Orario da definire')}</li>
-              {prossimo.organizza && <li><Icona nome="persone" />{en ? 'Organised by' : 'Organizza'}: {prossimo.organizza}</li>}
-              {prossimo.ingresso && <li><Icona nome="biglietto" />{prossimo.ingresso}</li>}
+              {prossimo.organizza && <li><Icona nome="persone" />{en ? 'Organised by' : 'Organizza'}: <ConLink testo={prossimo.organizza} /></li>}
+              {prossimo.ingresso && <li><Icona nome="biglietto" /><ConLink testo={prossimo.ingresso} /></li>}
             </ul>
             <div class="bottoni" style="margin-top:auto">
               <a class="btn" href={l(`/concerti/${slug(prossimo)}`)}>{en ? 'Details' : 'Dettagli'} <Icona nome="freccia" /></a>

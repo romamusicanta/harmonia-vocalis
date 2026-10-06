@@ -1,4 +1,5 @@
 ---
+import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 // Scheda di un concerto, in programma o passato (tutti quelli con una data precisa): locandina
 // ufficiale o generata, dati, calendario e condivisione, programma, interpreti, registrazione
@@ -119,8 +120,8 @@ const altri = [
             <dt>{en ? 'When' : 'Quando'}</dt><dd>{d.esteso}{(d.ora || !passato) && <><br /><span class="tenue" style="font-weight:500">{d.ora ? (en ? d.ora : `Ore ${d.ora}`) : (en ? 'Time to be confirmed' : 'Orario da definire')}</span></>}</dd>
             {dove && <><dt>{en ? 'Where' : 'Dove'}</dt><dd>{dove}<br /><a class="link-freccia" style="margin-top:6px" href={linkMappa(indirizzoMappa)} target="_blank" rel="noopener"><Icona nome="mappa" />{en ? 'Open the map' : 'Apri la mappa'}</a></dd></>}
             {c.rassegna && <><dt>{en ? 'Series' : 'Rassegna'}</dt><dd>{c.rassegna}</dd></>}
-            {c.organizza && <><dt>{en ? 'Organised by' : 'Organizza'}</dt><dd>{c.organizza}</dd></>}
-            {c.ingresso ? <><dt>{en ? 'Admission' : 'Ingresso'}</dt><dd>{c.ingresso}</dd></> : !passato && <><dt>{en ? 'Admission' : 'Ingresso'}</dt><dd class="tenue" style="font-weight:500">{en ? 'Details coming soon' : 'Informazioni in arrivo'}</dd></>}
+            {c.organizza && <><dt>{en ? 'Organised by' : 'Organizza'}</dt><dd><ConLink testo={c.organizza} /></dd></>}
+            {c.ingresso ? <><dt>{en ? 'Admission' : 'Ingresso'}</dt><dd><ConLink testo={c.ingresso} /></dd></> : !passato && <><dt>{en ? 'Admission' : 'Ingresso'}</dt><dd class="tenue" style="font-weight:500">{en ? 'Details coming soon' : 'Informazioni in arrivo'}</dd></>}
           </dl>
 
           <div class="bottoni" id="calendario">

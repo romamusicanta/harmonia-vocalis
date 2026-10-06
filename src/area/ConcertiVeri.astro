@@ -4,6 +4,7 @@
 // generale, programma della giornata, abito e cosa portare, come arrivare, pezzi del repertorio in
 // programma, note. "Non ci sarò" come nel Calendario (scheda Assenze); la disponibilità per sezione
 // è chi è atteso meno chi ha segnalato l'assenza.
+import ConLink from '../componenti/ConLink.astro';
 import Icona from '../componenti/Icona.astro';
 import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato } from './dati';
@@ -79,7 +80,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
                   {c.programma.length > 0 && (
                     <>
                       <h3 style="margin-top:20px">Programma della giornata</h3>
-                      <ul class="orari">{c.programma.map((p) => <li><b>{p.ora}</b><span>{p.cosa}</span></li>)}</ul>
+                      <ul class="orari">{c.programma.map((p) => <li><b>{p.ora}</b><span><ConLink testo={p.cosa} /></span></li>)}</ul>
                     </>
                   )}
                 </>
@@ -87,7 +88,7 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
             </div>
             <div class="blocco">
               {c?.abito && <><h3>Abito</h3><p style="font-size:15px">{c.abito}</p></>}
-              {c && c.portare.length > 0 && <><h3 style="margin-top:20px">Cosa portare</h3><ul class="elenco-puntato" style="font-size:15px">{c.portare.map((x) => <li>{x}</li>)}</ul></>}
+              {c && c.portare.length > 0 && <><h3 style="margin-top:20px">Cosa portare</h3><ul class="elenco-puntato" style="font-size:15px">{c.portare.map((x) => <li><ConLink testo={x} /></li>)}</ul></>}
               {c && c.repertorio.length > 0 && (
                 <>
                   <h3 style="margin-top:20px">In programma</h3>
@@ -101,9 +102,9 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
                 </>
               )}
               {(c?.arrivare || luogo) && <h3 style="margin-top:20px">Come arrivare</h3>}
-              {c?.arrivare && <p style="font-size:15px">{c.arrivare}</p>}
+              {c?.arrivare && <p style="font-size:15px"><ConLink testo={c.arrivare} /></p>}
               {luogo && <a class="link-freccia" style="margin-top:8px" href={linkMappa(luogo)} target="_blank" rel="noopener"><Icona nome="mappa" />Mappa</a>}
-              {c?.note && <div class="nota-maestro"><span class="eti">Note</span><p>{c.note}</p></div>}
+              {c?.note && <div class="nota-maestro"><span class="eti">Note</span><p><ConLink testo={c.note} /></p></div>}
             </div>
             <div class="blocco">
               <h3>Chi c'è, per sezione</h3>

@@ -1,6 +1,7 @@
 ---
 // Veste Stagione: pagina iniziale. Sigla della stagione a tutta altezza, prossimo concerto
 // sulla foto, schede dei concerti, le foto più belle dei concerti, fascia video, porte verso le pagine del coro.
+import ConLink from '../../componenti/ConLink.astro';
 import Icona from '../../componenti/Icona.astro';
 import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
@@ -70,7 +71,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
           a vista; il nome del coro nel titolo aiuta Google a mostrare questa pagina a chi cerca il coro */}
       <h1><span class="sr">{en ? `${coro.nome}, concert season ` : `${coro.nome}, stagione concertistica `}</span>{sigla1}{sigla2 && <><span aria-hidden="true">/</span><span class="sr"> </span>{sigla2}</>}<span aria-hidden="true">.</span></h1>
       <div>
-        <p>{coro.stagione.presentazione}</p>
+        <p><ConLink testo={coro.stagione.presentazione} /></p>
         <div class="bottoni" style="margin-top:24px">
           <a class="btn" href={l('/concerti')}>{en ? 'All concerts' : 'Tutti i concerti'}</a>
           {iscrizione

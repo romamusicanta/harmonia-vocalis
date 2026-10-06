@@ -1,5 +1,6 @@
 ---
 // Pagina "Il Coro": storia, organico, numeri, direttivo, associazioni.
+import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
@@ -30,7 +31,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
         <span class="eti" style="margin-bottom:20px">{en ? 'The Choir' : 'Il Coro'}</span>
         <h1>{titolo}<span>.</span></h1>
       </div>
-      {dati.lead && <p class="lead">{dati.lead}</p>}
+      {dati.lead && <p class="lead"><ConLink testo={dati.lead} /></p>}
     </div>
   </header>
 
@@ -44,7 +45,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
       <div class="due-col">
         {/* Dati: coro/testi/storia.md (attacco + corpo) */}
         <div class="testo-lungo">
-          {dati.attacco && <p class="apertura-testo">{dati.attacco}</p>}
+          {dati.attacco && <p class="apertura-testo"><ConLink testo={dati.attacco} /></p>}
           <Contenuto />
         </div>
         {/* Dati: coro.config.ts → organico */}

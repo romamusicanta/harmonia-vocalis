@@ -1,5 +1,6 @@
 ---
 // Veste Stagione: piè di pagina a colonne, con la firma del modello.
+import ConLink from '../../componenti/ConLink.astro';
 import Marchio from './Marchio.astro';
 import { contesto, linkArea } from '../../motore/url';
 import type { Veste } from '../../motore/aspetto';
@@ -16,7 +17,7 @@ const l = coro.link;
     <div class="colonne">
       <div>
         <Marchio href={link('/')} />
-        <p>{coro.descrizione}</p>
+        <p><ConLink testo={coro.descrizione} /></p>
       </div>
       <div>
         <h2 class="titolo-piede">{en ? 'The Choir' : 'Il Coro'}</h2>

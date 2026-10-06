@@ -1,5 +1,6 @@
 ---
 // Pagina "Per gli organizzatori": numeri, chi siamo, repertorio pronto, video, luoghi, contatti per ingaggi.
+import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
@@ -86,7 +87,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
         <h1>{en ? 'We bring the choir to you' : 'Portiamo il coro da voi'}<span>.</span></h1>
       </div>
       <div>
-        <p class="lead">{dati.presentazione}</p>
+        <p class="lead"><ConLink testo={dati.presentazione} /></p>
         <div class="bottoni" style="margin-top:24px">
           <a class="btn g" href="#contatti-ingaggi"><Icona nome="email" />{en ? 'Ask for a proposal' : 'Chiedi una proposta'}</a>
           {schedaPdf ? (
@@ -137,7 +138,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
   {inScheda.length > 0 && (
     <section style="background:var(--fondo)">
       <div class="w">
-        <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2>{dati.repertorio && <p>{dati.repertorio}</p>}</div>
+        <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2>{dati.repertorio && <p><ConLink testo={dati.repertorio} /></p>}</div>
         {/* Dati: archivio (calendario "Concerti") (un'opera per autore e titolo) e canale YouTube */}
         <div class="schede">
           {inScheda.map((o) => {

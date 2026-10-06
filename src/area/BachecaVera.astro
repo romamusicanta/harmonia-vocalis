@@ -4,6 +4,7 @@
 // generale), avvisi (src/area/bacheca.ts), ultima registrazione (src/area/registrazioni.ts),
 // attesi alla prossima prova, le proprie quote della stagione (src/area/tesoreria.ts: solo le sue, dal
 // 5/10/2026). Spartiti e tracce stanno nella pagina Repertorio. Ogni parte che non risponde resta vuota senza bloccare le altre.
+import ConLink from '../componenti/ConLink.astro';
 import Icona from '../componenti/Icona.astro';
 import { coro } from '../motore/coro';
 import ContoQuote from './ContoQuote.astro';
@@ -122,8 +123,8 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
                       </ul>
                     </>
                   )}
-                  {riga(prova, 'Portare') && <p style="margin-top:12px;color:var(--primario-chiaro);font-size:15px"><b style="color:#fff">Portare:</b> {riga(prova, 'Portare')}</p>}
-                  {riga(prova, 'Note') && <p style="margin-top:6px;color:var(--primario-chiaro);font-size:15px">{riga(prova, 'Note')}</p>}
+                  {riga(prova, 'Portare') && <p style="margin-top:12px;color:var(--primario-chiaro);font-size:15px"><b style="color:#fff">Portare:</b> <ConLink testo={riga(prova, 'Portare')} /></p>}
+                  {riga(prova, 'Note') && <p style="margin-top:6px;color:var(--primario-chiaro);font-size:15px"><ConLink testo={riga(prova, 'Note')} /></p>}
                 </div>
               </div>
               {io && aperto(prova) && (
