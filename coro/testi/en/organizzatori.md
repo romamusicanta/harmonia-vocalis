@@ -2,6 +2,7 @@
 # "For organisers" page, English version of coro/testi/organizzatori.md.
 # DA VERIFICARE: translation to be reviewed by a fluent English speaker.
 presentazione: "Concert series, seasons, patronal feasts, Christmas and charity concerts: a polyphonic choir with a ready symphonic repertoire, used to working with orchestra and soloists."
+repertorio: "Works already performed in concert, available again, also with orchestra. The recordings are on our channel."
 daSapere:
   - Date, venue and type of event
   - The programme you have in mind, or a free hand

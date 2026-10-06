@@ -3,6 +3,8 @@
 # La prima frase di "Chi siamo, in breve" (nome, associazione, direttore) si genera dalla configurazione;
 # il corpo di questo file la completa.
 presentazione: "Rassegne, stagioni, feste patronali, concerti di Natale e di beneficenza: un coro polifonico con repertorio sinfonico già pronto, abituato a lavorare con orchestra e solisti."
+# Sottotitolo della sezione «Repertorio pronto»
+repertorio: "Opere già eseguite in concerto, riproponibili anche con orchestra. Le registrazioni sono sul nostro canale."
 daSapere:
   - Data, luogo e tipo di evento
   - Programma desiderato, o carta bianca

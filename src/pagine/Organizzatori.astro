@@ -17,7 +17,7 @@ interface Props { veste: Veste }
 const { veste } = Astro.props;
 const { en, l, lingua, coro } = contesto(Astro.url, veste);
 
-type Testi = { presentazione: string; daSapere: string[] };
+type Testi = { presentazione: string; repertorio?: string; daSapere: string[] };
 const { dati, Contenuto } = testo<Testi>('organizzatori', lingua);
 // L'archivio nella lingua della pagina
 const arch = archivio.map((c) => concertoIn(c, lingua));
@@ -137,7 +137,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
   {inScheda.length > 0 && (
     <section style="background:var(--fondo)">
       <div class="w">
-        <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2><p>{en ? 'Works already performed in concert, available again, also with orchestra.' : 'Opere già eseguite in concerto, riproponibili anche con orchestra.'}{conAscolta && coro.link.youtube && (en ? ' The recordings are on our channel.' : ' Le registrazioni sono sul nostro canale.')}</p></div>
+        <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2>{dati.repertorio && <p>{dati.repertorio}</p>}</div>
         {/* Dati: archivio (calendario "Concerti") (un'opera per autore e titolo) e canale YouTube */}
         <div class="schede">
           {inScheda.map((o) => {

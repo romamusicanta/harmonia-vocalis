@@ -32,6 +32,7 @@ export const CAMPI_TESTO: CampoTesto[] = [
   { id: 'testo:maestro.corpo', gruppo: 'Il Maestro', etichetta: 'Biografia', tipo: 'markdown', dove: 'Ogni «## titolo» è un capitolo e compare nell’indice in testa alla pagina.' },
   { id: 'testo:canta-con-noi.presentazione', gruppo: 'Canta con noi', etichetta: 'Presentazione', tipo: 'paragrafo', dove: 'In alto nella pagina «Canta con noi».' },
   { id: 'testo:organizzatori.presentazione', gruppo: 'Per gli organizzatori', etichetta: 'Presentazione', tipo: 'paragrafo', dove: 'In alto nella pagina «Per gli organizzatori».' },
+  { id: 'testo:organizzatori.repertorio', gruppo: 'Per gli organizzatori', etichetta: 'Repertorio pronto', tipo: 'paragrafo', dove: 'Sotto il titolo «Repertorio pronto», sopra l’elenco delle opere.' },
   { id: 'testo:organizzatori.corpo', gruppo: 'Per gli organizzatori', etichetta: 'Chi siamo, in breve', tipo: 'markdown', dove: 'Continua la prima frase, che si scrive da sola con nome, associazione e direttore.' },
   { id: 'testo:privacy.corpo', gruppo: 'Privacy', etichetta: 'Informativa', tipo: 'markdown' },
 ];
