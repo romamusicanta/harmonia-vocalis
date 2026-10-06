@@ -185,7 +185,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
   .solo-stampa { display: none; }
   /* Stampa: solo la tabella «Mese per mese», con l'intestazione dell'associazione */
   @media print {
-    :global(.servizio), :global(.testata), :global(.barra-area), :global(.barra-tab), :global(.piede-sito), :global(.invito-app), :global(.interruttore-notifiche), .no-stampa, .testa-riepilogo { display: none !important; }
+    :global(.salta), :global(.servizio), :global(.testata), :global(.barra-area), :global(.barra-tab), :global(.piede-sito), :global(.invito-app), :global(.interruttore-notifiche), .no-stampa, .testa-riepilogo { display: none !important; }
     :global(body) { background: #fff; }
     .area-main { padding: 0; }
     .solo-stampa { display: block; }

@@ -280,29 +280,35 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   .testa-tabella + .solo-stampa + .carta { margin-top: 12px; }
   .solo-stampa { display: none; }
   /* Stampa: solo la tabella delle quote (con tutti i mesi, anche quelli chiusi) e la sua legenda, su un
-     foglio orizzontale, con l'intestazione dell'associazione */
-  @page { size: A4 landscape; margin: 12mm; }
+     solo foglio A4 verticale, con l'intestazione dell'associazione: righe basse, caselle piccole */
+  @page { size: A4 portrait; margin: 10mm; }
   @media print {
-    :global(.servizio), :global(.testata), :global(.barra-area), :global(.barra-tab), :global(.piede-sito), :global(.invito-app), .no-stampa, .mostra-passati, .torna-calcolo { display: none !important; }
+    :global(.salta), :global(.servizio), :global(.testata), :global(.barra-area), :global(.barra-tab), :global(.piede-sito), :global(.invito-app), .no-stampa, .mostra-passati, .torna-calcolo { display: none !important; }
     :global(body) { background: #fff; }
     .area-main { padding: 0; }
+    .area-main :global(.w) { padding: 0; max-width: none; }
     .solo-stampa { display: block; }
-    .intesta-stampa { margin-bottom: 12px; }
-    .intesta-stampa h2 { margin: 4px 0; font-size: 20px; }
+    .intesta-stampa { margin-bottom: 6px; font-size: 10px; }
+    .intesta-stampa h2 { margin: 2px 0; font-size: 14px; }
     .intesta-stampa small { color: var(--tenue); }
     .compatta .passato { display: table-cell; }
-    .tabella-stampa { border: 0; box-shadow: none; }
+    .tabella-stampa { border: 0; box-shadow: none; margin: 0; }
     .tabella-wrap { overflow: visible; }
-    .griglia-quote { font-size: 11px; width: 100%; }
-    .griglia-quote :global(:is(th, td)) { padding: 3px 4px; }
-    .griglia-quote :global(.cella-quota), .riporto, .legenda-t :global(.cella-quota) { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .griglia-quote { font-size: 10px; width: 100%; border-collapse: collapse; }
+    .griglia-quote :global(:is(th, td)) { padding: 0 2px; height: auto; line-height: 1.15; letter-spacing: 0; }
+    .griglia-quote :global(th) { font-size: 9px; }
+    .griglia-quote :global(:is(th, td):first-child) { position: static; white-space: nowrap; font-size: 10px; padding-left: 0; min-width: 0; max-width: none; }
+    .griglia-quote :global(tfoot td) { font-size: 9px; }
     .griglia-quote tr { break-inside: avoid; }
-    .griglia-quote :global(.cella-quota) { width: 20px; height: 20px; min-width: 0; min-height: 0; font-size: 11px; border-radius: 4px; }
-    .griglia-quote td { line-height: 1.2; }
-    .riporto { border-width: 1px; padding: 0 2px; }
-    .cifra-riporto { width: 36px; padding: 0 2px; border-color: transparent; background: transparent; font-size: 11px; }
-    .versato-riporto { width: 12px; height: 12px; }
-    .testa-mese { padding: 0 2px; font-size: 11px; }
+    .griglia-quote :global(.cella-quota) { width: 15px; height: 15px; min-width: 0; min-height: 0; padding: 0; font-size: 9px; line-height: 1; border-width: 1px; border-radius: 3px; vertical-align: middle; }
+    .griglia-quote :global(.cella-quota), .riporto, .legenda-t :global(.cella-quota) { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .testa-mese { padding: 0 1px; font-size: 9px; }
+    .testa-mese small { font-size: 7px; }
+    .riporto { border-width: 1px; padding: 0 1px; gap: 2px; border-radius: 3px; }
+    .cifra-riporto { width: 28px; height: 13px; padding: 0 1px; border: 0; background: transparent; font-size: 9px; }
+    .versato-riporto { width: 9px; height: 9px; }
+    .legenda-t { font-size: 8px; gap: 4px 10px; padding: 4px 0 0; margin: 0; }
+    .legenda-t :global(.cella-quota) { width: 11px; height: 11px; font-size: 7px; }
   }
 </style>
 
