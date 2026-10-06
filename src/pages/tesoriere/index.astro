@@ -17,6 +17,7 @@ import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import Sollecito from '../../area/Sollecito.astro';
 import { vesteCorrente } from '../../motore/url';
+import { coro } from '../../motore/coro';
 import { coristi, oggi, type SchedaCorista } from '../../area/dati';
 import {
   arretrati, attiviNelMese, cassa, configurata, euro, indice, quotaBase, riporti, riportoDi, meseBreve, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeStagione, questoMese,
@@ -69,12 +70,15 @@ const cifra = (n: number) => euro(n).replace(/\s*€/, '');
 const passati = anno === corrente ? mesi.filter((m) => m < questoMese()) : [];
 const richiudibili = passati.length > 0;
 const etichettaPassati = [...(conRiporto ? ['riporto'] : []), ...(passati.length ? [passati.length > 1 ? `${meseBreve(passati[0])}–${meseBreve(passati.at(-1)!)}` : meseBreve(passati[0])] : [])].join(', ');
+// Intestazione della stampa della tabella, come nei prospetti del rendiconto
+const intestazione = { associazione: coro.associazione ?? coro.nome, cf: coro.coristi?.tesoreria?.codiceFiscale };
+const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' }).format(new Date());
 const ETICHETTA = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' } as const;
 const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
 ---
 
 <Base veste={veste} titolo="Riepilogo · Area del tesoriere" area={{ tesoriere: true, sezione: 'riepilogo' }}>
-  <div class="area-intesta">
+  <div class="area-intesta no-stampa">
     <div class="w">
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
@@ -88,24 +92,27 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
     <div class="w">
       {errore && <Errore e={errore} />}
       {stagioni.length > 1 && (
-        <nav class="scelta-t" aria-label="Stagione">
+        <nav class="scelta-t no-stampa" aria-label="Stagione">
           {stagioni.map((s) => <a href={s === corrente ? '/tesoriere' : `/tesoriere?stagione=${s}`} class:list={{ on: s === anno }}>{nomeStagione(s)}{s > corrente && ' · anticipi'}</a>)}
         </nav>
       )}
 
       {conti && (
         <>
-          <div class="cifre-t">
+          <div class="cifre-t no-stampa">
             <div class="cifra-t forte"><b>{euro(raccolte)}</b><span>quote raccolte {passata ? 'nella stagione' : 'fino a oggi'}</span><small>su {euro(attese)} dovute</small></div>
             <div class:list={['cifra-t', { rosso: debitori.length }]}><b>{debitori.length}</b><span>{debitori.length === 1 ? 'corista deve' : 'coristi devono'} ancora pagare</span><small>{euro(debitori.reduce((t, a) => t + a.importo, 0))} in tutto</small></div>
             <a class="cifra-t" href={passata ? `/tesoriere/cassa?stagione=${anno}` : '/tesoriere/cassa'}><b>{euro(conti.saldoFinale)}</b><span>{passata ? 'saldo di fine stagione' : 'saldo di cassa'}</span><small>Entrate e uscite →</small></a>
           </div>
-          {!passata && anno <= corrente && debitori.length > 0 && <p style="margin:12px 0 0"><button type="button" class="btn g apri-sollecito"><Icona nome="campanella" />Sollecita chi non ha pagato</button></p>}
+          {!passata && anno <= corrente && debitori.length > 0 && <p class="no-stampa" style="margin:12px 0 0"><button type="button" class="btn g apri-sollecito"><Icona nome="campanella" />Sollecita chi non ha pagato</button></p>}
         </>
       )}
 
       {nellaStagione.length > 0 && (
-        <div class="carta" style="margin-top:24px">
+        <>
+        <div class="testa-tabella no-stampa"><button type="button" class="btn o piccolo" onclick="print()"><Icona nome="documento" />Stampa la tabella</button></div>
+        <div class="solo-stampa intesta-stampa"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>Quote dei coristi · Stagione {nomeStagione(anno)}</h2><small>Situazione al {oggiStampa}</small></div>
+        <div class="carta tabella-stampa">
           <div class="tabella-wrap">
             <table class:list={['tabella griglia-quote', { compatta: richiudibili }]}>
               <thead>
@@ -182,8 +189,9 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
             </div>
           )}
         </div>
+        </>
       )}
-      <p class="tenue" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
+      <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
     </div>
   </div>
 
@@ -268,6 +276,34 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   .cifre-mese :global(div) { border: 1px solid var(--linea); border-radius: var(--raggio); padding: 10px 12px; display: grid; }
   .cifre-mese :global(b) { font-size: 22px; color: var(--primario); }
   .cifre-mese :global(span) { font-size: 13px; color: var(--tenue); }
+  .testa-tabella { display: flex; justify-content: flex-end; margin-top: 24px; }
+  .testa-tabella + .solo-stampa + .carta { margin-top: 12px; }
+  .solo-stampa { display: none; }
+  /* Stampa: solo la tabella delle quote (con tutti i mesi, anche quelli chiusi) e la sua legenda, su un
+     foglio orizzontale, con l'intestazione dell'associazione */
+  @page { size: A4 landscape; margin: 12mm; }
+  @media print {
+    :global(.servizio), :global(.testata), :global(.barra-area), :global(.barra-tab), :global(.piede-sito), :global(.invito-app), .no-stampa, .mostra-passati, .torna-calcolo { display: none !important; }
+    :global(body) { background: #fff; }
+    .area-main { padding: 0; }
+    .solo-stampa { display: block; }
+    .intesta-stampa { margin-bottom: 12px; }
+    .intesta-stampa h2 { margin: 4px 0; font-size: 20px; }
+    .intesta-stampa small { color: var(--tenue); }
+    .compatta .passato { display: table-cell; }
+    .tabella-stampa { border: 0; box-shadow: none; }
+    .tabella-wrap { overflow: visible; }
+    .griglia-quote { font-size: 11px; width: 100%; }
+    .griglia-quote :global(:is(th, td)) { padding: 3px 4px; }
+    .griglia-quote :global(.cella-quota), .riporto, .legenda-t :global(.cella-quota) { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .griglia-quote tr { break-inside: avoid; }
+    .griglia-quote :global(.cella-quota) { width: 20px; height: 20px; min-width: 0; min-height: 0; font-size: 11px; border-radius: 4px; }
+    .griglia-quote td { line-height: 1.2; }
+    .riporto { border-width: 1px; padding: 0 2px; }
+    .cifra-riporto { width: 36px; padding: 0 2px; border-color: transparent; background: transparent; font-size: 11px; }
+    .versato-riporto { width: 12px; height: 12px; }
+    .testa-mese { padding: 0 2px; font-size: 11px; }
+  }
 </style>
 
 <script>
