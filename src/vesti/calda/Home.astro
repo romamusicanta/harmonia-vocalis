@@ -70,7 +70,7 @@ const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
         <div><span class="eti">Stagione {coro.stagione.sigla}</span><h2>Ci vediamo ai concerti</h2></div>
         <a class="btn o" href={l('/concerti')}>Tutti i concerti<Icona nome="freccia" /></a>
       </div>
-      {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+      {/* Dati: calendario "Concerti" (passati e in programma) */}
       <div class="schede">
         {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}
       </div>

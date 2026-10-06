@@ -6,6 +6,7 @@ import Icona from '../componenti/Icona.astro';
 import Foto from '../componenti/Foto.astro';
 
 import { contesto } from '../motore/url';
+import { archivio } from '../motore/concerti';
 import { testo } from '../motore/testi';
 
 interface Props { veste: Veste }
@@ -67,7 +68,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
       {/* Dati: coro.config.ts → numeri */}
       <div class="w">
         <div class="numeri">
-          {coro.numeri.map((n) => <div class="numero"><b>{n.valore}</b><span>{n.testo}</span></div>)}
+          {coro.numeri.map((n) => <div class="numero"><b>{n.valore === 'archivio' ? archivio.length : n.valore}</b><span>{n.testo}</span></div>)}
         </div>
       </div>
     </section>

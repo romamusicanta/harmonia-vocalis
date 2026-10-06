@@ -38,7 +38,7 @@ export interface ConcertoConFoto { data: string; titolo: string; evento?: Concer
 
 // I concerti per cui si possono caricare foto, il più recente prima: quelli già fatti (anche oggi)
 // dell'ultimo anno dal calendario, compresi quelli non pubblici, e tutti quelli dell'archivio del sito
-// pubblico con una data precisa (calendario e coro/concerti.ts), anche i più vecchi
+// pubblico con una data precisa (calendario "Concerti"), anche i più vecchi
 export async function concertiPerFoto(): Promise<ConcertoScelta[]> {
   const recenti = (await eventi(piuGiorni(oggi(), -400), oggi()).catch(() => []))
     .filter((e) => e.tipo === 'concerto')

@@ -2,7 +2,7 @@
 // descrizione dell'evento e, se arrivano, carica la nuova locandina o la nuova foto principale
 // nella cartella del concerto e le allega al posto delle precedenti (che restano su Drive).
 import type { APIRoute } from 'astro';
-import { corpoEvento, datiDalModulo, eLocandina, nomeCartella, stagione } from '../../../admin/concerto';
+import { completaInglese, ingleseScritto, corpoEvento, datiDalModulo, eLocandina, nomeCartella, stagione } from '../../../admin/concerto';
 import { caricaImmagini, cartellaConcerto, cartellaDelFile } from '../../../admin/operazioni';
 import { leggiConcerto, salvaConcerto, statoValido } from '../../../admin/stati';
 import { spiegaTesto } from '../../../area/errori';
@@ -36,9 +36,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       allegati = [...allegati, ...caricati.nuovi];
     }
 
+    const avvisoInglese = await completaInglese(d);
     // Lo stato decide se il concerto è (o resta) anche nel calendario pubblico
     const aggiornato = await salvaConcerto(s, id, { ...corpoEvento(d), attachments: allegati.map(({ fileUrl, title, mimeType }) => ({ fileUrl, title, mimeType })) }, statoValido(f.get('stato')));
-    return json({ ok: true, evento: aggiornato.htmlLink, cartella: cartella && `https://drive.google.com/drive/folders/${cartella}` });
+    return json({ ok: true, evento: aggiornato.htmlLink, cartella: cartella && `https://drive.google.com/drive/folders/${cartella}`, avviso: avvisoInglese, inglese: ingleseScritto(d) });
   } catch (e) {
     return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }

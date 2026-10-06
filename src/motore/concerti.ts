@@ -1,7 +1,10 @@
-// Concerti: tutti dal calendario Google "Concerti" (iCal pubblico, letto in fase di build).
-// Gli eventi futuri sono "in programma", quelli passati entrano da soli nell'archivio.
-// coro/concerti.ts tiene l'archivio storico e i prossimi di riserva, usati se il calendario
-// non è configurato o non risponde.
+// Concerti: tutti e solo dal calendario Google "Concerti" (iCal pubblico, letto in fase di build),
+// che si scrive dall'area Amministrazione (Concerti → Modifica): è l'unico posto dei dati dei
+// concerti del sito. Gli eventi futuri sono "in programma", quelli passati l'archivio.
+// Dal 6/10/2026 non ci sono più dati di riserva nel codice (coro/concerti.ts). Nella build il
+// calendario è la copia scaricata da scripts/scarica-allegati.mjs, che ferma la pubblicazione se il
+// calendario non risponde (resta online il sito di prima); le aree riservate, a ogni avvio, lo
+// leggono dall'indirizzo e se non risponde hanno zero concerti.
 //
 // Convenzione per chi inserisce gli eventi nel calendario:
 //   Data         → "Tutto il giorno" finché l'orario non è deciso (il sito scrive "Orario da definire")
@@ -22,9 +25,12 @@
 //                    Locandina: locandina-rignano.jpg          (file in coro/immagini, al posto di
 //                                                               quella generata dal sito)
 //                    Video: 43p4ArVIS_Q                        (ID YouTube, dopo il concerto)
+//                    Data: solo l'anno                         (concerti vecchi senza data precisa: il
+//                                                               sito mostra solo l'anno, niente pagina)
 //                    Evidenza: Il primo concerto del coro
-//                    Evidenza EN: For the 800th anniversary…    (traduzione inglese scritta a mano; anche
-//                                                               Titolo EN, Organico EN, Ingresso EN; senza,
+//                    Evidenza EN: For the 800th anniversary…    (traduzione inglese; anche Ingresso EN, e
+//                                                               dopo ogni opera Opera EN e Organico EN; le
+//                                                               scrive il modulo dell'Amministrazione; senza,
 //                                                               traduce src/motore/inglese.ts)
 //                    Home: sì                                  (in home page anche se è passato;
 //                                                               "Home: no" lo toglie anche se è in programma;
@@ -38,24 +44,27 @@
 //                  con "copertina" nel nome); vedi il documento LEGGIMI nella cartella Concerti;
 //                  le righe Locandina:/Foto: della descrizione, se ci sono, hanno la precedenza.
 //                  Le scarica scripts/scarica-allegati.mjs prima della build.
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import ical from 'node-ical';
 import { coro } from './coro';
 import { daEvento, giornoIso, semplifica, stagione } from './calendario';
 import type { Concerto } from './tipi';
 import { localeDi, type Lingua } from './lingua';
-import { archivio as archivioCoro, prossimi as prossimiCoro } from '../../coro/concerti';
 
-async function carica(): Promise<Concerto[] | undefined> {
+const COPIA = join(process.cwd(), 'coro/immagini/drive/concerti.ics');
+
+async function carica(): Promise<Concerto[]> {
   const ics = coro.calendario.ics;
-  if (!ics) return undefined;
   try {
-    const dati = await ical.async.fromURL(ics);
+    const dati = existsSync(COPIA) ? await ical.async.parseFile(COPIA) : ics ? await ical.async.fromURL(ics) : undefined;
+    if (!dati) throw new Error('CALENDARIO_CONCERTI_ICS non impostata');
     return Object.values(dati)
       .filter((c): c is ical.VEvent => c?.type === 'VEVENT' && (c as ical.VEvent).status !== 'CANCELLED')
       .map((e) => daEvento(e));
   } catch (err) {
-    console.warn(`[calendario] non raggiungibile, uso i dati locali: ${err}`);
-    return undefined;
+    console.warn(`[calendario] non raggiungibile, nessun concerto: ${err}`);
+    return [];
   }
 }
 
@@ -64,25 +73,12 @@ const oggi = giornoIso(new Date());
 const giorno = (c: Concerto) => c.data.slice(0, 10);
 
 // In programma: dal più vicino
-const prossimi = (dalCalendario ?? prossimiCoro).filter((c) => giorno(c) >= oggi).sort((a, b) => a.data.localeCompare(b.data));
+const prossimi = dalCalendario.filter((c) => giorno(c) >= oggi).sort((a, b) => a.data.localeCompare(b.data));
 
 export const prossimiConcerti = async (): Promise<Concerto[]> => prossimi;
 
-// L'archivio, dal più recente: i concerti passati del calendario più quelli storici di
-// coro/concerti.ts. Se un giorno è in tutti e due vale il calendario, e il file completa solo i
-// dati che l'evento non ha (per esempio il video): così chi crea nel calendario un concerto vecchio
-// (anche dall'area Amministrazione) prende il posto della riga del file senza toccare il codice.
-const passatiCalendario = new Map((dalCalendario ?? []).filter((c) => giorno(c) < oggi).map((c) => [giorno(c), c]));
-const soloDefiniti = (c: Concerto) => Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined)) as Partial<Concerto>;
-export const archivio = [
-  ...archivioCoro.map((f) => {
-    const c = passatiCalendario.get(giorno(f));
-    if (!c) return f;
-    passatiCalendario.delete(giorno(f));
-    return { ...f, ...soloDefiniti(c) };
-  }),
-  ...passatiCalendario.values(),
-].sort((a, b) => b.data.localeCompare(a.data));
+// L'archivio, dal più recente: i concerti passati del calendario
+export const archivio = dalCalendario.filter((c) => giorno(c) < oggi).sort((a, b) => b.data.localeCompare(a.data));
 
 // ——— Formattazione ———
 

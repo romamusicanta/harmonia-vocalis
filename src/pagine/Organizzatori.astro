@@ -99,7 +99,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
     </div>
   </header>
 
-  {/* Dati: organico in coro.config.ts; opere, luoghi e primo concerto dall'archivio in coro/concerti.ts */}
+  {/* Dati: organico in coro.config.ts; opere, luoghi e primo concerto dall'archivio (calendario "Concerti") */}
   <section class="sezione stretta" style="background:var(--primario);padding-top:0">
     <div class="w">
       <div class="numeri" style="background:var(--primario-2);border-color:var(--primario-2)">
@@ -138,7 +138,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
     <section style="background:var(--fondo)">
       <div class="w">
         <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2><p>{en ? 'Works already performed in concert, available again, also with orchestra.' : 'Opere già eseguite in concerto, riproponibili anche con orchestra.'}{conAscolta && coro.link.youtube && (en ? ' The recordings are on our channel.' : ' Le registrazioni sono sul nostro canale.')}</p></div>
-        {/* Dati: archivio in coro/concerti.ts (un'opera per autore e titolo) e canale YouTube */}
+        {/* Dati: archivio (calendario "Concerti") (un'opera per autore e titolo) e canale YouTube */}
         <div class="schede">
           {inScheda.map((o) => {
             const conVideo = conAscolta && o.video;
@@ -184,7 +184,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
     <section>
       <div class="w">
         <div class="testa"><h2>{en ? 'Where we have sung' : 'Dove abbiamo cantato'}</h2></div>
-        {/* Dati: luoghi distinti dell'archivio in coro/concerti.ts */}
+        {/* Dati: luoghi distinti dell'archivio (calendario "Concerti") */}
         <div style="display:flex;flex-wrap:wrap;gap:10px 12px">
           {luoghi.map((luogo) => <span class="tag bordo" style="font-size:14px;padding:10px 14px">{luogo}</span>)}
         </div>

@@ -81,7 +81,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
         <a class="btn o" href={l('/concerti')}>Tutta la stagione</a>
       </div>
     </div>
-    {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+    {/* Dati: calendario "Concerti" (passati e in programma) */}
     {inScena.length > 0 && (
       <div class="pb-locandine">
         {inScena.map((c) => <SchedaConcerto concerto={c} href={l(`/concerti/${slug(c)}`)} etichetta="In programma" azione="Dettagli e calendario" />)}

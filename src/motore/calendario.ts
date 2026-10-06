@@ -26,11 +26,12 @@ const etichettaRiga = /^([\p{L}' ]{2,30}):\s*(.*)$/u;
 function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
   const righe = senzaHtml(descrizione).split('\n').map((r) => r.trim()).filter(Boolean);
   const programma: Brano[] = [];
-  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza' | 'home' | 'en'> = {};
+  const dati: Pick<Concerto, 'organizza' | 'ingresso' | 'foto' | 'locandina' | 'video' | 'evidenza' | 'home' | 'en' | 'dataIncerta'> = {};
   const interpreti: NonNullable<Concerto['interpreti']> = [];
   for (const riga of righe) {
-    // Le opere vengono prima di tutte le etichette; la prima riga è sempre un'opera, anche con i due punti
-    const inProgramma = !interpreti.length && !Object.keys(dati).length && programma.every((b) => !b.parti && !b.organico);
+    // Le opere vengono prima di tutte le etichette, ognuna seguita dalle sue righe Organico, Brani,
+    // Opera EN, Organico EN; la prima riga è sempre un'opera, anche con i due punti
+    const inProgramma = !interpreti.length && !Object.keys(dati).length;
     const m = inProgramma && (!programma.length || riga.includes('·')) ? null : riga.match(etichettaRiga);
     if (!m) {
       if (!inProgramma) avviso(`riga senza etichetta ignorata: "${riga}"`);
@@ -45,10 +46,15 @@ function leggiDescrizione(descrizione: string, avviso: (m: string) => void) {
     const ultima = programma.at(-1);
     if (chiave === 'organizza' || chiave === 'ingresso' || chiave === 'video' || chiave === 'evidenza') dati[chiave] = valore || undefined;
     else if (/ en$/.test(chiave)) {
-      // Traduzione inglese scritta a mano: "Titolo EN", "Evidenza EN", "Organico EN", "Ingresso EN"
+      // Traduzioni inglesi: "Opera EN" e "Organico EN" dell'opera appena sopra, "Evidenza EN",
+      // "Ingresso EN"; "Titolo EN" (righe di prima, in fondo) vale per la prima opera
       const campo = chiave.slice(0, -3);
-      if (campo === 'titolo' || campo === 'evidenza' || campo === 'organico' || campo === 'ingresso') (dati.en ??= {})[campo] = valore;
-      else avviso(`"${nome.trim()}" non riconosciuto: in inglese si scrivono Titolo EN, Evidenza EN, Organico EN, Ingresso EN`);
+      if ((campo === 'opera' || campo === 'organico') && ultima) (ultima.en ??= {})[campo] = valore;
+      else if (campo === 'titolo' || campo === 'evidenza' || campo === 'ingresso') (dati.en ??= {})[campo] = valore;
+      else avviso(`"${nome.trim()}" non riconosciuto: in inglese si scrivono Opera EN, Organico EN, Evidenza EN, Ingresso EN`);
+    } else if (chiave === 'data') {
+      if (/solo l.anno/i.test(valore)) dati.dataIncerta = true;
+      else avviso(`"Data: ${valore}" non riconosciuto: si scrive "Data: solo l'anno"`);
     } else if (chiave === 'home') {
       if (/^(s[iì]|yes)$/i.test(valore)) dati.home = true;
       else if (/^no$/i.test(valore)) dati.home = false;
@@ -129,6 +135,7 @@ export function daEvento(e: ical.VEvent, avvisa?: (m: string) => void): Concerto
   const { programma, dati, interpreti } = leggiDescrizione(testo(e.description), avviso);
   leggiAllegati(e, dati, avviso);
   const [principale] = programma;
+  if (principale?.en?.opera && programma.length === 1 && !principale.parti && !principale.organico) (dati.en ??= {}).titolo ??= principale.en.opera;
   return {
     data,
     autore: principale?.autore,
@@ -137,7 +144,8 @@ export function daEvento(e: ical.VEvent, avvisa?: (m: string) => void): Concerto
     rassegna: principale && titoloEvento !== principale.opera ? titoloEvento || undefined : undefined,
     ...leggiLuogo(testo(e.location)),
     ...dati,
-    // Il programma dettagliato serve solo se c'è più di un'opera o qualche dettaglio in più
+    // Il programma dettagliato serve solo se c'è più di un'opera o qualche dettaglio in più;
+    // altrimenti il titolo inglese dell'unica opera vale come titolo inglese del concerto
     programma: programma.length > 1 || principale?.parti || principale?.organico ? programma : undefined,
     interpreti: interpreti.length ? interpreti : undefined,
   };

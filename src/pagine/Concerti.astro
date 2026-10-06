@@ -67,7 +67,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
           ? <a class="btn o" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
           : DEMO && <a class="btn o" href="#" data-finto-avviso="Nel sito vero apre il calendario Google «Concerti»"><Icona nome="calendario-piu" />Iscriviti al calendario</a>}
       </div>
-      {/* Dati: Google Calendar "Concerti" (o coro/concerti.ts se il calendario non è configurato) */}
+      {/* Dati: Google Calendar "Concerti" */}
       {prossimo && d ? (
         <article class="in-programma">
           <div class="data">
@@ -121,7 +121,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
           {anni.map((a) => <button class="chip" type="button" data-filtro="anno" data-valore={a}>{a}</button>)}
         </div>
       </div>
-      {/* Dati: eventi passati del calendario "Concerti" e archivio storico in coro/concerti.ts, con gli ID dei video YouTube */}
+      {/* Dati: eventi passati del calendario "Concerti", con gli ID dei video YouTube (riga Video:) */}
       <div id="elenco-archivio">
         {stagioni.map(({ stagione: s, concerti }) => (
           <div class="stag" data-gruppo id={s.id}>

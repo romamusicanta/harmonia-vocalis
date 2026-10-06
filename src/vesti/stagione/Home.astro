@@ -95,7 +95,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 <section>
   <div class="w">
     <div class="testa"><h2>{en ? 'Upcoming and recent' : 'Prossimi e recenti'}</h2><a class="btn o" href={l('/concerti#archivio')}>{en ? 'Full archive' : 'Archivio completo'}</a></div>
-    <!-- Dati: calendario "Concerti" (con "Home: sì/no") + archivio in coro/concerti.ts -->
+    <!-- Dati: calendario "Concerti" (con "Home: sì/no") -->
     <div class="carosello-cont" data-carosello-cont>
       <div class="schede carosello" data-carosello tabindex="0" aria-label={en ? 'Concerts: scroll to see more' : 'Concerti: scorri per vederne altri'}>
         {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} />)}

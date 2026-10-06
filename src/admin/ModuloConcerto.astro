@@ -20,7 +20,7 @@ const giaPassato = Boolean(evento && valori && passato(valori.data));
 const v = valori;
 const modifica = Boolean(evento);
 const ruoli = ['Soprano', 'Mezzosoprano', 'Contralto', 'Tenore', 'Baritono', 'Basso', 'Solisti', 'Orchestra', 'Canta insieme a noi', 'Direttore', 'Maestro del coro', 'Pianoforte', 'Organo', 'Percussioni', 'Voce recitante'];
-const opere = v?.opere.length ? v.opere : [{ autore: '', opera: '' }];
+const opere = v?.opere.length ? v.opere : [{ autore: '', opera: '', operaEn: '', organico: '', organicoEn: '', brani: '' }];
 const interpreti = v?.interpreti.length ? v.interpreti : [{ ruolo: '', nome: '' }];
 // Anteprima di un allegato attuale, letta da Drive
 const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new URLSearchParams({ id: a.fileId })}`;
@@ -43,7 +43,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <input type="hidden" name="rigaFoto" value={v?.rigaFoto} />
   <input type="hidden" name="rigaLocandina" value={v?.rigaLocandina} />
   <input type="hidden" name="rigaHome" value={v?.rigaHome} />
-  <input type="hidden" name="righeEN" value={JSON.stringify(v?.righeEN ?? [])} />
+  <input type="hidden" name="prima" value={JSON.stringify(v?.prima ?? {})} />
 
   {giaPassato ? (
     <div class="campo stato-concerto">
@@ -66,6 +66,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     <div class="campo"><label for="data">Data</label><input id="data" name="data" type="date" required value={v?.data} /></div>
     <div class="campo"><label for="ora">Ora</label><input id="ora" name="ora" type="time" value={v?.ora} /><span class="aiuto">Vuota se l'orario non è ancora deciso: il sito scrive "Orario da definire".</span></div>
   </div>
+  <label class="spunta"><input type="checkbox" name="dataIncerta" checked={v?.dataIncerta} /><span><b>Si sa solo l'anno</b><br /><small class="tenue">Per i concerti vecchi: scegli un giorno qualsiasi della stagione giusta. Il sito mostra solo l'anno e non fa la pagina del concerto.</small></span></label>
   <div class="riga-campi">
     <div class="campo"><label for="citta">Città</label><input id="citta" name="citta" placeholder="Rignano Flaminio (RM)" value={v?.citta} /></div>
     <div class="campo"><label for="sala">Sala o chiesa</label><input id="sala" name="sala" placeholder="Chiesa di S. Giuseppe" value={v?.sala} /></div>
@@ -74,24 +75,33 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <div class="campo"><label for="rassegna">Rassegna o evento</label><input id="rassegna" name="rassegna" placeholder="Autunno Musicale 2026" value={v?.rassegna} /><span class="aiuto">Facoltativo: è il titolo dell'evento nel calendario; senza, si usa l'opera.</span></div>
 
   <h2>Programma</h2>
+  <p class="tenue" style="font-size:15px">I campi «in inglese» sono per la versione inglese del sito: se restano vuoti li scrive il sito al salvataggio, e se cambi l'italiano lasciando l'inglese com'era lo riscrive. Correggili pure a mano: la correzione resta.</p>
   <div id="opere" style="display:grid;gap:14px">
     {opere.map((o, i) => (
-      <div class="riga-campi opera">
-        <div class="campo"><label>Autore<input name="autore" placeholder="W. A. Mozart" value={o.autore} /></label></div>
-        <div class="campo"><label><span>Opera{i === 0 && <small> (obbligatoria)</small>}</span><input name="opera" required={i === 0} placeholder="Requiem in re minore K 626" value={o.opera} /></label></div>
+      <div class="opera">
+        <div class="riga-campi">
+          <div class="campo"><label>Autore<input name="autore" placeholder="W. A. Mozart" value={o.autore} /></label></div>
+          <div class="campo"><label><span>Opera{i === 0 && <small> (obbligatoria)</small>}</span><input name="opera" required={i === 0} placeholder="Requiem in re minore K 626" value={o.opera} /></label></div>
+        </div>
+        <div class="campo"><label>Opera in inglese<input name="operaEn" placeholder="Requiem in D minor K. 626" value={o.operaEn} lang="en" /></label></div>
+        <div class="riga-campi">
+          <div class="campo"><label>Organico <small>(facoltativo)</small><input name="organico" placeholder="per soli, coro e orchestra" value={o.organico} /></label></div>
+          <div class="campo"><label>Organico in inglese<input name="organicoEn" placeholder="for soloists, choir and orchestra" value={o.organicoEn} lang="en" /></label></div>
+        </div>
+        <div class="campo"><label>Brani <small>(facoltativi, separati da virgole)</small><input name="brani" placeholder="Introitus, Kyrie, Dies irae…" value={o.brani} /></label></div>
       </div>
     ))}
   </div>
   <p><button class="btn o" type="button" data-aggiungi="opere">+ Un'altra opera</button></p>
-  <div class="campo"><label for="organico">Organico</label><input id="organico" name="organico" placeholder="per soli, coro e orchestra" value={v?.organico} /><span class="aiuto">Dell'ultima opera dell'elenco. Facoltativo.</span></div>
-  <div class="campo"><label for="brani">Brani</label><input id="brani" name="brani" placeholder="Introitus, Kyrie, Dies irae…" value={v?.brani} /><span class="aiuto">Dell'ultima opera, separati da virgole. Facoltativo.</span></div>
 
   <h2>Dettagli</h2>
   <div class="riga-campi">
     <div class="campo"><label for="organizza">Organizza</label><input id="organizza" name="organizza" placeholder="Comune di Rignano Flaminio" value={v?.organizza} /></div>
     <div class="campo"><label for="ingresso">Ingresso</label><input id="ingresso" name="ingresso" placeholder="libero" value={v?.ingresso} /></div>
   </div>
+  <div class="campo"><label for="ingressoEn">Ingresso in inglese</label><input id="ingressoEn" name="ingressoEn" placeholder="Free admission" value={v?.ingressoEn} lang="en" /></div>
   <div class="campo"><label for="evidenza">In evidenza</label><input id="evidenza" name="evidenza" placeholder="Per gli 800 anni dalla morte di San Francesco d'Assisi" value={v?.evidenza} /><span class="aiuto">Una frase che compare in risalto. Facoltativa.</span></div>
+  <div class="campo"><label for="evidenzaEn">In evidenza in inglese</label><input id="evidenzaEn" name="evidenzaEn" placeholder="For the 800th anniversary of the death of Saint Francis of Assisi" value={v?.evidenzaEn} lang="en" /></div>
 
   <h2>Interpreti</h2>
   <p class="tenue" style="font-size:15px">Il M° {coro.maestro.nome} e il coro compaiono da soli. Aggiungi "Direttore" solo se dirige qualcun altro. Nome vuoto = "da annunciare".</p>
@@ -156,6 +166,12 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   .scelte-stato input { margin-top: 3px; }
   .scelte-stato b { display: block; color: var(--primario); }
   .scelte-stato small { color: var(--tenue); font-size: 13px; }
+  .spunta { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin: -4px 0 8px; }
+  .spunta b { color: var(--primario); font-size: 14px; }
+  .spunta input { margin-top: 4px; }
+  #opere .opera { display: grid; gap: 10px; padding: 14px; background: var(--fondo); border-radius: var(--raggio); }
+  #opere .opera .campo { margin: 0; }
+  input[lang="en"] { font-style: italic; }
 </style>
 
 <script>
@@ -222,11 +238,17 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
       if (!j.ok) throw new Error(j.errore);
       const d = j.dati;
       // Solo i campi vuoti: quello che si è già scritto non si perde
-      for (const campo of ['data', 'ora', 'citta', 'sala', 'indirizzo', 'rassegna', 'organico', 'brani', 'organizza', 'ingresso', 'evidenza']) {
+      for (const campo of ['data', 'ora', 'citta', 'sala', 'indirizzo', 'rassegna', 'organizza', 'ingresso', 'evidenza']) {
         const input = modulo.elements.namedItem(campo) as HTMLInputElement;
         if (!input.value.trim()) input.value = d[campo] ?? input.value;
       }
       if (righeVuote('opere')) riempiRighe('opere', d.opere);
+      // Organico e brani letti sono dell'ultima opera
+      const ultima = document.getElementById('opere')!.lastElementChild!;
+      for (const campo of ['organico', 'brani']) {
+        const input = ultima.querySelector<HTMLInputElement>(`[name="${campo}"]`)!;
+        if (!input.value.trim()) input.value = d[campo] ?? '';
+      }
       if (righeVuote('interpreti')) riempiRighe('interpreti', d.interpreti);
       const dt = new DataTransfer();
       dt.items.add(file);
@@ -306,13 +328,19 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
           scelta.after(nuova);
           scelta.classList.add('attuale');
         }
-        mostra(`Modifiche salvate. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}`, 'ok');
+        // L'inglese scritto dal sito torna nei campi
+        if (j.inglese) {
+          for (const nome of ['operaEn', 'organicoEn'] as const) modulo.querySelectorAll<HTMLInputElement>(`#opere [name="${nome}"]`).forEach((input, i) => (input.value = j.inglese[nome][i] ?? ''));
+          for (const nome of ['evidenzaEn', 'ingressoEn'] as const) (modulo.elements.namedItem(nome) as HTMLInputElement).value = j.inglese[nome];
+          (modulo.elements.namedItem('prima') as HTMLInputElement).value = JSON.stringify(j.inglese.prima);
+        }
+        mostra(`Modifiche salvate. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
       } else {
         modulo.reset();
         for (const campo of ['locandina', 'copertina']) aggiornaAnteprima(campo);
         letto.className = '';
         letto.textContent = '';
-        mostra(`Concerto creato. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}`, 'ok');
+        mostra(`Concerto creato. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
       }
     } catch (e) {
       mostra(`${modifica ? 'Non salvato' : 'Non creato'}: ${(e as Error).message}`, 'errore');

@@ -88,11 +88,40 @@ async function scarica(token, id, nome, destinazione) {
   console.log(`[drive] ${nome} → ${destinazione.pathname.replace(/.*\/coro\//, 'coro/')}`);
 }
 
+// Il calendario "Concerti", unica fonte dei concerti del sito, si legge una volta sola per tutta la
+// build e si salva in coro/immagini/drive/concerti.ics (lo legge src/motore/concerti.ts). Se non
+// risponde (tre tentativi), su Vercel la pubblicazione si ferma e resta online il sito di prima:
+// dal 6/10/2026 non ci sono più concerti di riserva nel codice.
+const fileCalendario = new URL('concerti.ics', cartella);
+async function copiaCalendario() {
+  const ics = process.env.CALENDARIO_CONCERTI_ICS;
+  rmSync(fileCalendario, { force: true });
+  let errore = 'CALENDARIO_CONCERTI_ICS non impostata';
+  for (let i = 0; ics && i < 3; i++) {
+    try {
+      const r = await fetch(ics);
+      const testo = await r.text();
+      if (!r.ok || !testo.includes('BEGIN:VCALENDAR')) throw new Error(`HTTP ${r.status}`);
+      mkdirSync(cartella, { recursive: true });
+      writeFileSync(fileCalendario, testo);
+      console.log(`[calendario] ${testo.split('BEGIN:VEVENT').length - 1} eventi → coro/immagini/drive/concerti.ics`);
+      return;
+    } catch (err) {
+      errore = err.message ?? String(err);
+      await new Promise((ok) => setTimeout(ok, 3000));
+    }
+  }
+  if (process.env.VERCEL) {
+    console.error(`[calendario] non raggiungibile (${errore}): pubblicazione annullata, resta online il sito di prima`);
+    process.exit(1);
+  }
+  console.warn(`[calendario] non raggiungibile (${errore}): il sito avrà zero concerti`);
+}
+
 // Allegati: un file allegato non cambia (cambia l'ID se lo si sostituisce), quindi si scarica una volta
 async function allegatiCalendario(token) {
-  const ics = process.env.CALENDARIO_CONCERTI_ICS;
-  if (!ics) return;
-  const eventi = Object.values(await ical.async.fromURL(ics)).filter((c) => c?.type === 'VEVENT' && c.status !== 'CANCELLED');
+  if (!existsSync(fileCalendario)) return;
+  const eventi = Object.values(ical.sync.parseFile(fileCalendario.pathname)).filter((c) => c?.type === 'VEVENT' && c.status !== 'CANCELLED');
   const daScaricare = eventi.flatMap(allegati).filter((a) => !existsSync(new URL(a.file, cartella)));
   if (daScaricare.length) mkdirSync(cartella, { recursive: true });
   for (const a of daScaricare) await scarica(token, a.id, a.nome, new URL(a.file, cartella));
@@ -191,6 +220,7 @@ async function testiSito(token) {
 }
 
 async function main() {
+  await copiaCalendario();
   if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO && !process.env.DRIVE_CARTELLA_FOTO_CONCERTI) return;
   const token = await accessoDrive();
   if (!token) return;

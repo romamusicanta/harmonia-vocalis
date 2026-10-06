@@ -1,5 +1,5 @@
 // Configurazione del coro. Tutto ciò che distingue un coro dall'altro sta nella cartella coro/:
-// questo file, i testi in coro/testi/, i concerti in coro/concerti.ts, le foto in coro/immagini/.
+// questo file, i testi in coro/testi/, i concerti nel calendario "Concerti" (dall'Amministrazione), le foto in coro/immagini/.
 //
 // Sono i dati del Coro Harmonia Vocalis (Associazione Culturale Musicale Roma Musicanta).
 // Le voci marcate "DA VERIFICARE" vanno confermate dal direttivo.
@@ -63,7 +63,8 @@ export default {
     { valore: '2019', testo: 'Anno di nascita, con la Missa in Angustiis di Haydn' },
     { valore: '44', testo: 'Voci, in quattro sezioni' },
     { valore: '70', testo: 'Coristi circa, insieme al Coro Ruggero Giovannelli' },
-    { valore: '26', testo: 'Concerti in archivio dal 2019 a oggi' },
+    // 'archivio': il numero dei concerti dell'archivio, contato a ogni pubblicazione
+    { valore: 'archivio', testo: 'Concerti in archivio dal 2019 a oggi' },
   ],
   associatoA: [
     { nome: 'ARCL Lazio', url: 'https://www.lazioincoro.it/', descrizione: 'Associazione Regionale Cori del Lazio APS: la rete dei cori della regione.' },

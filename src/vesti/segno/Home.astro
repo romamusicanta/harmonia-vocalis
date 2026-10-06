@@ -84,7 +84,7 @@ let n = 0;
       <h2>Stagione {coro.stagione.sigla}</h2>
       <a class="link-freccia" href={l('/concerti#archivio')}>Archivio completo <Icona nome="freccia" /></a>
     </header>
-    <!-- Dati: calendario "Concerti" + archivio in coro/concerti.ts -->
+    <!-- Dati: calendario "Concerti" (passati e in programma) -->
     <div class="schede sg-locandine">
       {schede.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} conFoto={false} />)}
     </div>
@@ -131,7 +131,7 @@ let n = 0;
         <p class="sg-dichiarazione">{coro.descrizione}</p>
         {coro.numeri.length > 0 && (
           <dl class="sg-cifre">
-            {coro.numeri.map((x) => <div><dt>{x.testo}</dt><dd>{x.valore}</dd></div>)}
+            {coro.numeri.map((x) => <div><dt>{x.testo}</dt><dd>{x.valore === 'archivio' ? archivio.length : x.valore}</dd></div>)}
           </dl>
         )}
       </div>

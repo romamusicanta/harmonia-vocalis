@@ -6,11 +6,14 @@ export type Brano = {
   opera: string;
   organico?: string;   // "per soli, coro e orchestra"
   parti?: string[];    // movimenti o brani, per il programma dettagliato
+  // Traduzioni inglesi dell'opera e dell'organico (righe "Opera EN:" e "Organico EN:" dopo l'opera)
+  en?: { opera?: string; organico?: string };
 };
 
 export type Concerto = {
   // Data ISO: "2026-10-18" (solo giorno) o "2026-10-18T18:00" (con orario, ora di Roma).
-  // Per i concerti di cui si conosce solo l'anno: "2019" con dataIncerta.
+  // Per i concerti di cui si conosce solo l'anno: un giorno qualsiasi di quella stagione con
+  // dataIncerta (riga "Data: solo l'anno" dell'evento), e il sito mostra solo l'anno.
   data: string;
   dataIncerta?: boolean;
   autore?: string;       // abbreviato, per le schede: "W. A. Mozart"
@@ -28,7 +31,9 @@ export type Concerto = {
   locandina?: string;    // locandina ufficiale (file in coro/immagini), al posto di quella generata
   evidenza?: string;     // etichetta speciale: "Il primo concerto del coro"
   home?: boolean;        // in home page (riga "Home: sì/no" dell'evento); senza, solo se è in programma
-  // Traduzioni scritte a mano nell'evento ("Evidenza EN: …"): hanno la precedenza su quelle automatiche
+  // Traduzioni nell'evento ("Evidenza EN: …", scritte dal modulo dell'Amministrazione): hanno la
+  // precedenza su quelle automatiche. Titolo e organico sono delle righe di prima del 6/10/2026, valgono
+  // per la prima e per l'ultima opera; quelle nuove stanno sulle opere (Brano.en)
   en?: Partial<Record<'titolo' | 'evidenza' | 'organico' | 'ingresso', string>>;
 };
 

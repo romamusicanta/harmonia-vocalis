@@ -137,7 +137,7 @@ const altri = [
       <div class="due-col metà">
         <div>
           <div class="testa"><h2>{en ? 'Programme' : 'Programma'}</h2></div>
-          {/* Dati: descrizione dell'evento nel calendario (opere, Organico:, Brani:) o coro/concerti.ts */}
+          {/* Dati: descrizione dell'evento nel calendario (opere, Organico:, Brani:) */}
           {programma.map((b) => (
             <>
               <div class="riga" style="grid-template-columns:minmax(0,1fr) auto;border-bottom:3px solid var(--primario)">
@@ -173,7 +173,7 @@ const altri = [
 
   {giaEseguito && video && pg && (
     <section class="fascia" id="registrazione" style="scroll-margin-top:80px">
-      {/* Dati: archivio in coro/concerti.ts (stesso titolo, con video) e canale YouTube */}
+      {/* Dati: archivio del calendario "Concerti" (stesso titolo, con video) e canale YouTube */}
       <div class="w due">
         <div>
           <span class="eti gialla" style="margin-bottom:16px">{passato ? (en ? 'The recording' : 'La registrazione') : (en ? 'From our archive' : 'Dal nostro archivio')}</span>
@@ -203,7 +203,7 @@ const altri = [
     <section>
       <div class="w">
         <div class="testa"><h2>{en ? 'Other concerts' : 'Altri concerti'}</h2><a class="btn o" href={l('/concerti')}>{en ? 'Season and archive' : 'Stagione e archivio'}</a></div>
-        {/* Dati: calendario "Concerti" + archivio in coro/concerti.ts */}
+        {/* Dati: calendario "Concerti" (passati e in programma) */}
         <div class="schede">
           {altri.map((s) => <SchedaConcerto concerto={s.c} href={s.href} etichetta={s.etichetta} grigia={s.grigia} azione={s.azione} conFoto={false} />)}
         </div>
