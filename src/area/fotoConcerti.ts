@@ -9,7 +9,7 @@
 // scripts/scarica-allegati.mjs le scarica alla build. Le decidono i redattori (Amministrazione → Foto
 // dei concerti); ogni corista può togliere le sue.
 import { DRIVE_CARTELLA_FOTO_CONCERTI } from 'astro:env/server';
-import { CARTELLA, cartellaIn, cestina, fileIn, leggiFile, rispondiCaricamento } from './drive';
+import { CARTELLA, cartellaIn, cestina, fileIn, fileInCartelle, leggiFile, rispondiCaricamento } from './drive';
 import { coristi, eventi, nomeBreve, nomeEvento, oggi, piuGiorni } from './dati';
 import { archivio } from '../motore/concerti';
 import { google, normalizza } from './servizio';
@@ -67,7 +67,9 @@ export const ultimeFoto = async (quante = 6) =>
 // Tutte le foto da Drive, anche nascoste, per concerto
 async function leggiFoto(): Promise<ConcertoConFoto[]> {
   const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristi().catch(() => []), concertiPerFoto().catch(() => [] as ConcertoScelta[])]);
-  const dentro = await Promise.all(cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name)).map(async (c) => ({ c, file: await fileIn(c.id) })));
+  const scelte = cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name));
+  const perCartella = await fileInCartelle(scelte.map((c) => c.id));
+  const dentro = scelte.map((c) => ({ c, file: perCartella.get(c.id) ?? [] }));
   const perConcerto = new Map<string, ConcertoConFoto>();
   for (const { c, file } of dentro) {
     for (const f of file.filter((x) => x.mimeType !== CARTELLA && x.mimeType.startsWith('image/'))) {

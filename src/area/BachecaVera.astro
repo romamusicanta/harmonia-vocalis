@@ -23,7 +23,8 @@ import { configurata as tesoreriaConfigurata, euro, indice, quotaBase, riporti, 
 
 const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
-const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte] = await Promise.all([
+// Tutto in parallelo, quote e foto comprese: la pagina aspetta solo la lettura più lenta
+const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte, foto, tutteLeQuote] = await Promise.all([
   nulla(coristaDi(email), undefined),
   nulla(eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 120)), [] as Evento[]),
   nulla(avvisi(), []),
@@ -33,11 +34,12 @@ const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte] = awa
   nulla(convocazioni(), new Map<string, Convocazione>()),
   nulla(coristi(), []),
   nulla(assenze(), []),
+  // Le ultime foto dei concerti (se Drive non risponde il riquadro non compare)
+  fotoConfigurate() ? nulla(ultimeFoto(6), []) : [],
+  // Le quote: solo se la tesoreria è collegata; se il foglio non risponde il riquadro non compare
+  tesoreriaConfigurata() ? nulla(quote(), undefined as Quota[] | undefined) : undefined,
 ]);
-// Le ultime foto dei concerti (se Drive non risponde il riquadro non compare)
-const foto = fotoConfigurate() ? await nulla(ultimeFoto(6), []) : [];
-// Le quote: solo se la tesoreria è collegata; se il foglio non risponde il riquadro non compare
-const leQuote = tesoreriaConfigurata() && io ? await nulla(quote(), undefined as Quota[] | undefined) : undefined;
+const leQuote = io ? tutteLeQuote : undefined;
 const adesso = Date.now() - 3 * 3600 * 1000;
 const prova = prossimi.find((e) => e.tipo === 'prova' && e.inizioMs > adesso);
 const concerto = prossimi.find((e) => e.tipo === 'concerto' && e.inizioMs > adesso);

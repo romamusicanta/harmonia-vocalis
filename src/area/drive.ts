@@ -31,6 +31,25 @@ export async function fileIn(cartella: string, soloCartelle = false): Promise<Fi
   return (await google<{ files: FileDrive[] }>(`${DRIVE}/files?${p}`)).files;
 }
 
+// I file dentro più cartelle insieme, per cartella: una richiesta ogni 40 cartelle invece di una per
+// cartella (le registrazioni e le foto dei concerti hanno una sottocartella per prova o concerto, e la
+// Bacheca le legge a ogni apertura)
+export async function fileInCartelle(cartelle: string[]): Promise<Map<string, FileDrive[]>> {
+  const perCartella = new Map(cartelle.map((c) => [c, [] as FileDrive[]]));
+  const gruppi = Array.from({ length: Math.ceil(cartelle.length / 40) }, (_, i) => cartelle.slice(i * 40, i * 40 + 40));
+  await Promise.all(gruppi.map(async (gruppo) => {
+    const q = `(${gruppo.map((c) => `'${c}' in parents`).join(' or ')}) and trashed = false`;
+    let pagina: string | undefined;
+    do {
+      const p = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,size,createdTime,description,appProperties,parents)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '1000', orderBy: 'createdTime', ...(pagina ? { pageToken: pagina } : {}) });
+      const r = await google<{ files: (FileDrive & { parents?: string[] })[]; nextPageToken?: string }>(`${DRIVE}/files?${p}`);
+      for (const f of r.files) for (const c of f.parents ?? []) perCartella.get(c)?.push(f);
+      pagina = r.nextPageToken;
+    } while (pagina);
+  }));
+  return perCartella;
+}
+
 // La sottocartella con quel nome (creata se manca)
 export async function cartellaIn(genitore: string, nome: string) {
   const pulito = nome.replace(/[/\\]/g, '-');

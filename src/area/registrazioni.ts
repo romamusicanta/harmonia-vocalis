@@ -6,7 +6,7 @@
 // titolo, evento): niente foglio. Si aggiungono i link "Registrazione:" scritti nelle prove del
 // calendario. Si ascoltano dal sito (src/area/file.ts); i redattori le tolgono (cestino del Drive condiviso).
 import { DRIVE_CARTELLA_REGISTRAZIONI } from 'astro:env/server';
-import { cartellaIn, cestina, fileIn, leggiFile, linkFile, rispondiCaricamento } from './drive';
+import { cartellaIn, cestina, fileIn, fileInCartelle, leggiFile, linkFile, rispondiCaricamento } from './drive';
 import { coristi, eventi, inizioStagione, nomeBreve, oggi, piuGiorni, type Evento } from './dati';
 import { normalizza } from './servizio';
 
@@ -48,7 +48,9 @@ export async function registrazioni(): Promise<GiornoRegistrato[]> {
     const link = riga(e, 'Registrazione');
     if (link) giorni.set(chiave(e.data, e.id), { data: e.data, titolo: e.titolo, evento: e.id, tracce: [], link });
   }
-  const dentro = await Promise.all(cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name) && c.name.slice(0, 10) >= da).map(async (c) => ({ c, file: await fileIn(c.id) })));
+  const scelte = cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name) && c.name.slice(0, 10) >= da);
+  const perCartella = await fileInCartelle(scelte.map((c) => c.id));
+  const dentro = scelte.map((c) => ({ c, file: perCartella.get(c.id) ?? [] }));
   for (const { c, file } of dentro) {
     for (const f of file.filter((x) => x.mimeType !== 'application/vnd.google-apps.folder')) {
       const data = c.name.slice(0, 10);
