@@ -1,0 +1,69 @@
+---
+// Le foto dei coristi di un concerto per i redattori: per ognuna chi la vede (Nascosta, Coristi, Sito,
+// Home: ogni livello comprende quello prima) e «Togli» (cestino del Drive condiviso). Si salva subito
+// (/admin/foto-concerti/stato). Lo usano Amministrazione → Foto dei concerti e la Modifica del concerto.
+import type { FotoConcerto } from '../area/fotoConcerti';
+
+interface Props { foto: FotoConcerto[] }
+const { foto } = Astro.props;
+const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', home: 'Home' } as const;
+---
+
+<ul class="foto-admin">
+  {foto.map((f) => (
+    <li class:list={[f.visibilita]} data-id={f.id}>
+      <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
+      <small class="tenue">{f.chi}</small>
+      <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
+        {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
+      </span>
+      <button type="button" class="togli">Togli</button>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .foto-admin { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .foto-admin li { display: grid; gap: 6px; align-content: start; }
+  .foto-admin a { display: block; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--fondo); outline: 3px solid transparent; }
+  .foto-admin li:is(.pubblica, .home) a { outline-color: var(--primario); }
+  .foto-admin li.home a { outline-color: var(--accento); outline-width: 4px; }
+  .foto-admin li.nascosta img { opacity: .35; }
+  .foto-admin img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scelta-visibilita { display: flex; border: 2px solid var(--linea); border-radius: var(--raggio); overflow: hidden; }
+  .scelta-visibilita button { flex: 1; font: inherit; font-size: 12px; font-weight: 600; padding: 7px 4px; border: 0; background: var(--bianco); color: var(--tenue); cursor: pointer; min-height: 36px; }
+  .scelta-visibilita button + button { border-left: 2px solid var(--linea); }
+  .scelta-visibilita button[aria-pressed='true'][data-v='pubblica'] { background: #2e7d4f; color: #fff; }
+  .scelta-visibilita button[aria-pressed='true'][data-v='home'] { background: var(--accento); color: var(--testo); }
+  .scelta-visibilita button[aria-pressed='true'][data-v='coristi'] { background: var(--primario); color: #fff; }
+  .scelta-visibilita button[aria-pressed='true'][data-v='nascosta'] { background: #6b6b6b; color: #fff; }
+  .foto-admin .in-corso { opacity: .5; pointer-events: none; }
+  .togli { justify-self: start; font: inherit; font-size: 13px; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 4px 0; }
+</style>
+
+<script>
+  const chiama = async (corpo: object) => {
+    const r = await fetch('/admin/foto-concerti/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(() => ({ ok: false }));
+    if (!j.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
+  };
+  document.querySelectorAll<HTMLLIElement>('.foto-admin li[data-id]').forEach((li) => {
+    const gruppo = li.querySelector<HTMLElement>('.scelta-visibilita')!;
+    gruppo.addEventListener('click', async (e) => {
+      const b = (e.target as Element).closest<HTMLButtonElement>('button');
+      if (!b || b.getAttribute('aria-pressed') === 'true') return;
+      const prima = gruppo.querySelector<HTMLElement>('[aria-pressed="true"]')?.dataset.v ?? 'coristi';
+      const mostra = (v: string) => { gruppo.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v))); li.className = v; };
+      mostra(b.dataset.v!);
+      gruppo.classList.add('in-corso');
+      try { await chiama({ id: li.dataset.id, visibilita: b.dataset.v }); }
+      catch (err) { mostra(prima); alert(`Non salvato: ${(err as Error).message}`); }
+      finally { gruppo.classList.remove('in-corso'); }
+    });
+    li.querySelector('.togli')!.addEventListener('click', async () => {
+      if (!confirm('Togliere questa foto? Va nel cestino del Drive condiviso (si recupera per 30 giorni).')) return;
+      try { await chiama({ id: li.dataset.id, togli: true }); li.remove(); }
+      catch (err) { alert(`Non tolta: ${(err as Error).message}`); }
+    });
+  });
+</script>

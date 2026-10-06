@@ -1,11 +1,16 @@
 ---
 // Modifica di un concerto: lo stesso modulo del nuovo, riempito con l'evento del calendario
 // (/admin/concerti/modifica?id=…). Serve soprattutto per aggiungere la locandina a un concerto
-// creato a mano e, dopo il concerto, la foto principale e il video.
+// creato a mano e, dopo il concerto, la foto principale e il video. Sotto, le foto dei coristi di
+// quel concerto (dal 6/10/2026): si caricano e si sceglie chi le vede, come in Foto dei concerti.
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import ModuloConcerto from '../../../admin/ModuloConcerto.astro';
 import { datiDaEvento, eLocandina } from '../../../admin/concerto';
 import { leggiConcerto, statoDi, type Stato } from '../../../admin/stati';
+import FotoAdmin from '../../../admin/FotoAdmin.astro';
+import Errore from '../../../area/Errore.astro';
+import { oggi } from '../../../area/dati';
+import { concertiPerFoto, configurato, fotoDeiConcerti, sulSito, type ConcertoScelta, type FotoConcerto } from '../../../area/fotoConcerti';
 
 export const prerender = false;
 
@@ -25,6 +30,21 @@ const immagini = (evento?.attachments ?? []).filter((a) => a.mimeType.startsWith
 const locandina = immagini.find((a) => eLocandina(a.title));
 const foto = immagini.filter((a) => !eLocandina(a.title));
 const copertina = foto.find((a) => /copertina/i.test(a.title)) ?? foto[0];
+// Le foto dei coristi: il concerto è quello dell'evento o, per quelli vecchi, quello dello stesso giorno
+let perFoto: ConcertoScelta | undefined;
+let fotoCoristi: FotoConcerto[] = [];
+let erroreFoto: unknown;
+// Le foto si caricano dal giorno del concerto
+const giaFatto = Boolean(valori && valori.data <= oggi());
+if (valori && configurato() && giaFatto) {
+  try {
+    const [concerti, gallerie] = await Promise.all([concertiPerFoto(), fotoDeiConcerti(true)]);
+    perFoto = concerti.find((c) => c.id === id) ?? concerti.find((c) => c.data === valori.data);
+    fotoCoristi = gallerie.filter((g) => (perFoto && g.evento?.id === perFoto.id) || g.data === valori.data).flatMap((g) => g.foto);
+  } catch (e) {
+    erroreFoto = e;
+  }
+}
 const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse().join('/')].filter(Boolean).join(', ') : 'Concerto';
 ---
 
@@ -35,5 +55,67 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
     : <>
         <p class="tenue" style="max-width:64ch">Coristi e Maestro vedono subito le modifiche; sul sito pubblico, se il concerto è in cartellone, si vedono con la prossima pubblicazione. Le righe della descrizione che il sito non riconosce vengono tolte.</p>
         <ModuloConcerto valori={valori} stato={stato} evento={{ id: evento.id, htmlLink: evento.htmlLink, locandina, copertina }} />
+
+        <section class="scheda-admin foto-concerto" id="foto">
+          <h2 style="margin-top:0">Foto dei coristi</h2>
+          {!configurato() ? <p class="tenue">Manca la cartella «Foto dei concerti» su Drive (variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server).</p>
+            : !giaFatto ? <p class="tenue">Le foto si caricano dopo il concerto: qui e, per i coristi, dalla pagina Foto della loro area.</p>
+            : erroreFoto ? <Errore e={erroreFoto} />
+            : <>
+                <p class="tenue" style="max-width:64ch;font-size:15px">Quelle caricate dai coristi e da qui. Per ognuna scegli chi la vede: <b>Coristi</b> (com'è appena caricata), <b>Sito</b> (anche nella pagina del concerto), <b>Home</b> (anche tra le foto più belle della home), oppure <b>Nascosta</b>. Si salva subito; Sito e Home valgono dopo la prossima pubblicazione.{fotoCoristi.length > 0 && <> Ora: {fotoCoristi.length} foto, {fotoCoristi.filter((f) => sulSito(f.visibilita)).length} sul sito.</>}</p>
+                {fotoCoristi.length ? <FotoAdmin foto={fotoCoristi} /> : <p class="tenue">Ancora nessuna foto.</p>}
+                {perFoto && (
+                  <form class="carica-foto" data-evento={perFoto.id}>
+                    <label class="carica">Carica foto <small>(anche più di una; si riducono prima di partire)</small><input type="file" accept="image/*,.heic,.heif" multiple /></label>
+                    <div class="avanza" hidden><progress max="100" value="0"></progress><p class="stato" role="status"></p></div>
+                  </form>
+                )}
+              </>}
+        </section>
       </>}
 </LayoutAdmin>
+
+<style>
+  .foto-concerto { max-width: 820px; margin-top: 28px; display: grid; gap: 14px; }
+  .carica-foto .carica { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); padding: 12px; border: 2px dashed var(--linea); border-radius: var(--raggio); }
+  .carica-foto .carica small { font-weight: 400; color: var(--tenue); }
+  .carica-foto progress { width: 100%; }
+  .carica-foto .stato { margin: 4px 0 0; font-weight: 600; color: var(--primario); }
+</style>
+
+<script>
+  // Caricamento a pezzi (src/area/caricamento-client.ts), una foto alla volta, ridotta prima; alla fine
+  // si ricarica la pagina sulle foto
+  import { carica } from '../../../area/caricamento-client';
+  import { riduci } from '../../../admin/immagini';
+
+  const f = document.querySelector<HTMLFormElement>('.carica-foto');
+  const input = f?.querySelector<HTMLInputElement>('input[type=file]');
+  input?.addEventListener('change', async () => {
+    const file = [...(input.files ?? [])];
+    if (!file.length || !f) return;
+    const avanza = f.querySelector<HTMLElement>('.avanza')!;
+    const barra = avanza.querySelector('progress')!;
+    const stato = avanza.querySelector<HTMLElement>('.stato')!;
+    input.disabled = true;
+    avanza.hidden = false;
+    let fatte = 0;
+    const errori: string[] = [];
+    for (const [i, originale] of file.entries()) {
+      const quale = file.length > 1 ? ` ${i + 1} di ${file.length}` : '';
+      stato.textContent = `Preparo la foto${quale}…`;
+      try {
+        const ridotta = await riduci(originale).catch(() => originale);
+        stato.textContent = `Carico la foto${quale}…`;
+        await carica('/admin/foto-concerti/carica', ridotta, { evento: f.dataset.evento! }, (q) => { barra.value = Math.round(((i + q) / file.length) * 100); });
+        fatte++;
+      } catch (err) {
+        errori.push(`${originale.name}: ${(err as Error).message}`);
+      }
+    }
+    barra.value = 100;
+    stato.textContent = `${fatte} ${fatte === 1 ? 'foto caricata' : 'foto caricate'}.${errori.length ? ` Non caricate: ${errori.join(' · ')}` : ''}`;
+    if (fatte) setTimeout(() => { location.hash = 'foto'; location.reload(); }, errori.length ? 4000 : 600);
+    input.disabled = false;
+  });
+</script>

@@ -6,6 +6,7 @@
 // condiviso). Si salva subito (/admin/foto-concerti/stato); Sito e Home valgono dopo la pubblicazione.
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
 import Errore from '../../area/Errore.astro';
+import FotoAdmin from '../../admin/FotoAdmin.astro';
 import { parti } from '../../motore/concerti';
 import { configurato, fotoDeiConcerti, sulSito, type ConcertoConFoto } from '../../area/fotoConcerti';
 
@@ -21,7 +22,6 @@ else {
   }
 }
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
-const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', home: 'Home' } as const;
 const inHome = gallerie.reduce((t, g) => t + g.foto.filter((f) => f.visibilita === 'home').length, 0);
 ---
 
@@ -34,25 +34,14 @@ const inHome = gallerie.reduce((t, g) => t + g.foto.filter((f) => f.visibilita =
     <li><b>Home</b>: anche nella home, tra le foto più belle dei nostri concerti (si vedono le 9 dei concerti più recenti).</li>
     <li><b>Nascosta</b>: la vedono solo i redattori.</li>
   </ul>
-  <p class="tenue" style="max-width:64ch">Sito e Home valgono dopo la prossima <a href="/admin">pubblicazione</a>.{inHome > 0 && <> Ora in home: <b>{inHome}</b> {inHome === 1 ? 'foto' : 'foto'}{inHome > 9 && ' (si vedono le 9 dei concerti più recenti)'}.</>}</p>
+  <p class="tenue" style="max-width:64ch">Sito e Home valgono dopo la prossima <a href="/admin">pubblicazione</a>. Le foto di un concerto si caricano e si gestiscono anche dalla sua Modifica (Concerti → Modifica, in fondo).{inHome > 0 && <> Ora in home: <b>{inHome}</b> {inHome === 1 ? 'foto' : 'foto'}{inHome > 9 && ' (si vedono le 9 dei concerti più recenti)'}.</>}</p>
   {errore && <Errore e={errore} />}
   {!errore && gallerie.length === 0 && <p class="tenue">Ancora nessuna foto.</p>}
 
   {gallerie.map((g) => (
     <section class="scheda-admin galleria-admin">
       <h2>{g.titolo} <small class="tenue">· {quando(g.data)} · {g.foto.length} foto, {g.foto.filter((f) => sulSito(f.visibilita)).length} sul sito, {g.foto.filter((f) => f.visibilita === 'home').length} in home</small></h2>
-      <ul class="foto-admin">
-        {g.foto.map((f) => (
-          <li class:list={[f.visibilita]} data-id={f.id}>
-            <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
-            <small class="tenue">{f.chi}</small>
-            <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
-              {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
-            </span>
-            <button type="button" class="togli">Togli</button>
-          </li>
-        ))}
-      </ul>
+      <FotoAdmin foto={g.foto} />
     </section>
   ))}
 </LayoutAdmin>
@@ -61,48 +50,5 @@ const inHome = gallerie.reduce((t, g) => t + g.foto.filter((f) => f.visibilita =
   .galleria-admin { margin: 24px 0; }
   .galleria-admin h2 { font-size: 19px; margin: 0 0 12px; }
   .galleria-admin h2 small { font-size: 14px; font-weight: 400; }
-  .foto-admin { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-  .foto-admin li { display: grid; gap: 6px; align-content: start; }
-  .foto-admin a { display: block; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--fondo); outline: 3px solid transparent; }
-  .foto-admin li:is(.pubblica, .home) a { outline-color: var(--primario); }
-  .foto-admin li.home a { outline-color: var(--accento); outline-width: 4px; }
   .legenda-foto { margin: 0 0 12px; padding-left: 20px; font-size: 14px; display: grid; gap: 2px; }
-  .foto-admin li.nascosta img { opacity: .35; }
-  .foto-admin img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .scelta-visibilita { display: flex; border: 2px solid var(--linea); border-radius: var(--raggio); overflow: hidden; }
-  .scelta-visibilita button { flex: 1; font: inherit; font-size: 12px; font-weight: 600; padding: 7px 4px; border: 0; background: var(--bianco); color: var(--tenue); cursor: pointer; min-height: 36px; }
-  .scelta-visibilita button + button { border-left: 2px solid var(--linea); }
-  .scelta-visibilita button[aria-pressed='true'][data-v='pubblica'] { background: #2e7d4f; color: #fff; }
-  .scelta-visibilita button[aria-pressed='true'][data-v='home'] { background: var(--accento); color: var(--testo); }
-  .scelta-visibilita button[aria-pressed='true'][data-v='coristi'] { background: var(--primario); color: #fff; }
-  .scelta-visibilita button[aria-pressed='true'][data-v='nascosta'] { background: #6b6b6b; color: #fff; }
-  .foto-admin .in-corso { opacity: .5; pointer-events: none; }
-  .togli { justify-self: start; font: inherit; font-size: 13px; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 4px 0; }
 </style>
-
-<script>
-  const chiama = async (corpo: object) => {
-    const r = await fetch('/admin/foto-concerti/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
-    const j = await r.json().catch(() => ({ ok: false }));
-    if (!j.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
-  };
-  document.querySelectorAll<HTMLLIElement>('.foto-admin li').forEach((li) => {
-    const gruppo = li.querySelector<HTMLElement>('.scelta-visibilita')!;
-    gruppo.addEventListener('click', async (e) => {
-      const b = (e.target as Element).closest<HTMLButtonElement>('button');
-      if (!b || b.getAttribute('aria-pressed') === 'true') return;
-      const prima = gruppo.querySelector<HTMLElement>('[aria-pressed="true"]')?.dataset.v ?? 'coristi';
-      const mostra = (v: string) => { gruppo.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v))); li.className = v; };
-      mostra(b.dataset.v!);
-      gruppo.classList.add('in-corso');
-      try { await chiama({ id: li.dataset.id, visibilita: b.dataset.v }); }
-      catch (err) { mostra(prima); alert(`Non salvato: ${(err as Error).message}`); }
-      finally { gruppo.classList.remove('in-corso'); }
-    });
-    li.querySelector('.togli')!.addEventListener('click', async () => {
-      if (!confirm('Togliere questa foto? Va nel cestino del Drive condiviso (si recupera per 30 giorni).')) return;
-      try { await chiama({ id: li.dataset.id, togli: true }); li.remove(); }
-      catch (err) { alert(`Non tolta: ${(err as Error).message}`); }
-    });
-  });
-</script>
