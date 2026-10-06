@@ -78,9 +78,20 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
       <div class="file-gruppo">
         <h3>Brani cantati separatamente</h3>
         {inModifica.brani.length ? inModifica.brani.map((b, i) => (
-          <div class="file-riga"><a href={b.link} target="_blank" rel="noopener"><Icona nome="documento" />{b.nome}</a>
-            <form method="post" onsubmit="return confirm('Togliere questo brano dal pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
+          <div class="file-riga riga-brano"><a href={b.link} target="_blank" rel="noopener"><Icona nome="documento" />{b.nome}</a>
+            <span class="azioni-file">
+              <button class="btn o piccolo apri-rinomina" type="button" aria-expanded="false">Rinomina</button>
+              <form method="post" onsubmit="return confirm('Togliere questo brano dal pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form>
+            </span>
+            <form class="rinomina-brano" method="post" hidden>
+              <input type="hidden" name="azione" value="rinomina-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} />
+              <input type="text" name="nome" value={b.nome} required maxlength="140" aria-label={`Nuovo nome di ${b.nome}`} />
+              <button class="btn piccolo" type="submit">Salva</button>
+              <button class="btn o piccolo chiudi-rinomina" type="button">Annulla</button>
+            </form>
+          </div>
         )) : <p class="tenue">Nessun brano. Il nome del file diventa il nome del brano.</p>}
+        {inModifica.brani.length > 0 && <p class="tenue" style="margin:0">Il nome del brano è quello che leggono i coristi nelle prove: con «Rinomina» si scrive per bene (per esempio «Va' pensiero (Nabucco)»). Le prove già scritte con il nome di prima continuano a trovarlo.</p>}
         <label class="carica">Aggiungi brani <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
       </div>
       <div class="file-gruppo">
@@ -139,6 +150,23 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
     </li>
   ))}
 </ul>
+
+<script>
+  // Brani: "Rinomina" apre sotto la riga il campo con il nome, "Annulla" lo richiude
+  document.querySelectorAll<HTMLElement>('.riga-brano').forEach((riga) => {
+    const apri = riga.querySelector<HTMLButtonElement>('.apri-rinomina')!;
+    const modulo = riga.querySelector<HTMLFormElement>('.rinomina-brano')!;
+    const campo = modulo.querySelector<HTMLInputElement>('input[name=nome]')!;
+    const mostra = (si: boolean) => {
+      modulo.hidden = !si;
+      apri.setAttribute('aria-expanded', String(si));
+      if (si) { campo.focus(); campo.select(); } else { campo.value = campo.defaultValue; apri.focus(); }
+    };
+    apri.addEventListener('click', () => mostra(modulo.hidden));
+    modulo.querySelector('.chiudi-rinomina')!.addEventListener('click', () => mostra(false));
+    campo.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); mostra(false); } });
+  });
+</script>
 
 <script>
   // Elenco: si apre il pezzo indicato nell'indirizzo (#p-<id>); ricerca per autore o titolo
@@ -244,6 +272,11 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .elenco-pezzi .dettagli { font-size: 14px; }
   .azioni-pezzo { display: flex; gap: 8px; }
   .azioni-pezzo form, .file-riga form { display: contents; }
+  .riga-brano { flex-wrap: wrap; }
+  .riga-brano .azioni-file { display: flex; gap: 8px; flex-shrink: 0; }
+  .riga-brano form.rinomina-brano { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
+  .riga-brano form.rinomina-brano[hidden] { display: none; }
+  .rinomina-brano input[type=text] { flex: 1 1 220px; min-width: 0; font: inherit; padding: 8px 10px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
   .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
   .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
   .messaggio.ok { border-color: #2e7d4f; }

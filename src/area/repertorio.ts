@@ -21,7 +21,9 @@ const COLONNE = ['ID', 'Autore', 'Titolo', 'Stato', 'Spartito', 'Brani separati'
 
 export const configurato = () => Boolean(DRIVE_CARTELLA_SPARTITI);
 
-export interface FileBrano { nome: string; link: string }
+// altri: i nomi che il brano aveva prima di essere rinominato, perché le prove e le convocazioni
+// che lo nominano così lo ritrovino
+export interface FileBrano { nome: string; link: string; altri?: string[] }
 export interface Pezzo {
   riga: number;
   id: string;
@@ -29,7 +31,7 @@ export interface Pezzo {
   titolo: string;
   stato: string;
   spartito?: string;                 // link a Drive
-  brani: FileBrano[];                // nel foglio: una riga per brano, "Nome | link"
+  brani: FileBrano[];                // nel foglio: una riga per brano, "Nome | link" (poi " | " e i nomi di prima)
   tracce: { sezione: string; link: string }[];
   esecuzione?: string;
   note: string;
@@ -60,12 +62,12 @@ export function trovaVoce<T extends Pick<Pezzo, 'autore' | 'titolo' | 'brani'>>(
   if (i < 0) return undefined;
   const opera = trovaPezzo(pezzi, nome.slice(0, i));
   const b = confrontabile(nome.slice(i + 1));
-  const brano = opera?.brani.find((x) => confrontabile(x.nome) === b);
+  const brano = opera?.brani.find((x) => [x.nome, ...(x.altri ?? [])].some((n) => confrontabile(n) === b));
   return opera && brano ? { pezzo: opera, brano } : undefined;
 }
 
-const aBrani = (v = '') => v.split('\n').map((r) => r.split(' | ')).filter(([, l]) => l).map(([nome, link]) => ({ nome: nome.trim(), link: link.trim() }));
-const daBrani = (b: FileBrano[]) => b.map((x) => `${x.nome} | ${x.link}`).join('\n');
+const aBrani = (v = '') => v.split('\n').map((r) => r.split(' | ')).filter(([, l]) => l).map(([nome, link, ...altri]) => ({ nome: nome.trim(), link: link.trim(), altri: altri.map((a) => a.trim()).filter(Boolean) }));
+const daBrani = (b: FileBrano[]) => b.map((x) => [x.nome, x.link, ...(x.altri ?? [])].join(' | ')).join('\n');
 
 // L'autore si scrive "W. A. Mozart" (iniziali puntate, poi il cognome), oppure "Anonimo" o
 // "Tradizionale": si ordina per cognome, poi per iniziali, poi per titolo
@@ -119,7 +121,8 @@ const link = (v: FormDataEntryValue | null) => {
   return s;
 };
 
-// Modulo del pezzo (POST): azione=salva (id per modificare), cancella, togli-brano (indice)
+// Modulo del pezzo (POST): azione=salva (id per modificare), cancella, togli-brano (indice),
+// rinomina-brano (indice, nome)
 export async function gestisci(f: FormData, email: string): Promise<{ ok: boolean; messaggio: string; id?: string }> {
   const azione = String(f.get('azione') ?? '');
   const id = String(f.get('id') ?? '');
@@ -136,6 +139,20 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
     const brani = esistente.brani.filter((_, j) => j !== i);
     await scrivi({ ...esistente, brani }, esistente.riga, email);
     return { ok: true, messaggio: 'Brano tolto dal pezzo (il file resta su Drive).', id: esistente.id };
+  }
+  if (azione === 'rinomina-brano' && esistente) {
+    const i = Number(f.get('indice'));
+    const brano = esistente.brani[i];
+    if (!brano) return { ok: false, messaggio: 'Brano non trovato: ricarica la pagina.', id: esistente.id };
+    // " | " separa i campi nel foglio, "›" separa opera e brano nelle prove
+    const nome = String(f.get('nome') ?? '').replace(/\s*\|\s*/g, ' - ').replace(/›/g, '-').replace(/\s+/g, ' ').trim().slice(0, 140);
+    if (!nome) return { ok: false, messaggio: 'Manca il nome del brano.', id: esistente.id };
+    if (esistente.brani.some((b, j) => j !== i && confrontabile(b.nome) === confrontabile(nome))) return { ok: false, messaggio: `C'è già un brano «${nome}» in questo pezzo.`, id: esistente.id };
+    // Il nome di prima resta tra quelli che il brano ha avuto: le prove che lo nominano lo ritrovano
+    const altri = [...(brano.altri ?? []), brano.nome].filter((n, k, t) => confrontabile(n) !== confrontabile(nome) && t.findIndex((m) => confrontabile(m) === confrontabile(n)) === k);
+    const brani = esistente.brani.map((b, j) => (j === i ? { ...b, nome, altri } : b));
+    await scrivi({ ...esistente, brani }, esistente.riga, email);
+    return { ok: true, messaggio: `Brano rinominato: «${nome}».`, id: esistente.id };
   }
   if (azione === 'togli-traccia' && esistente) {
     const sezione = String(f.get('sezione') ?? '');
