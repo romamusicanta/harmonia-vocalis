@@ -1,5 +1,5 @@
 ---
-// Prove: l'elenco del calendario "Prove", a nome di chi è entrato (src/admin/ElencoProve.astro)
+// Prove: l'elenco del calendario "Prove", letto dal sito (src/admin/ElencoProve.astro)
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import ElencoProve from '../../../admin/ElencoProve.astro';
 
@@ -9,5 +9,5 @@ export const prerender = false;
 <LayoutAdmin titolo="Prove" sezione="prove">
   <h1>Prove</h1>
   <p class="tenue" style="max-width:64ch">Le prove del calendario "Prove": i coristi le vedono nel loro Google Calendar e nell'area coristi, dove segnalano le assenze. La prova del mercoledì si ripete ogni settimana: modificare o cancellare una data cambia solo quella.</p>
-  <ElencoProve base="/admin" chi={Astro.locals.sessione!} />
+  <ElencoProve base="/admin" />
 </LayoutAdmin>

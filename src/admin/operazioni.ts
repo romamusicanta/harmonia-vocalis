@@ -1,12 +1,13 @@
-// Operazioni dell'area Amministrazione sul calendario "Concerti", sul Drive condiviso e su Vercel,
-// sempre a nome di chi è entrato (tranne la ripubblicazione, che usa il deploy hook).
+// Operazioni dell'area Amministrazione sui calendari, sul Drive condiviso e su Vercel. I calendari
+// li scrive solo il sito, con l'account di servizio (src/admin/calendari.ts); Drive a nome di chi è
+// entrato; la ripubblicazione con il deploy hook.
 import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, VERCEL_DEPLOY_HOOK } from 'astro:env/server';
 import type ical from 'node-ical';
 import { api } from './google';
+import { CAL, calendario } from './calendari';
 import type { Sessione } from './sessione';
 import { FILE_TESTI, type TestiSalvati } from '../motore/testiSito';
 
-const CAL = 'https://www.googleapis.com/calendar/v3';
 const DRIVE = 'https://www.googleapis.com/drive/v3';
 const CARTELLA = 'application/vnd.google-apps.folder';
 
@@ -40,46 +41,42 @@ export interface EventoApi {
 export type Calendario = 'prove' | 'concerti';
 const idCal = (c: Calendario) => encodeURIComponent((c === 'prove' ? CALENDARIO_PROVE_ID : CALENDARIO_CONCERTI_ID)!);
 
-export async function eventiIn(s: Sessione, c: Calendario, filtro: Record<string, string> = {}): Promise<EventoApi[]> {
+export async function eventiIn(c: Calendario, filtro: Record<string, string> = {}): Promise<EventoApi[]> {
   const p = new URLSearchParams({ singleEvents: 'true', orderBy: 'startTime', maxResults: '500', ...filtro });
-  const { items = [] } = await api<{ items?: EventoApi[] }>(s, `${CAL}/calendars/${idCal(c)}/events?${p}`);
+  const { items = [] } = await calendario<{ items?: EventoApi[] }>(`${CAL}/calendars/${idCal(c)}/events?${p}`);
   return items.filter((e) => e.status !== 'cancelled');
 }
 // I concerti del calendario "Prove"
-export const concertiInProve = (s: Sessione) => eventiIn(s, 'prove', { privateExtendedProperty: 'tipo=concerto' });
+export const concertiInProve = () => eventiIn('prove', { privateExtendedProperty: 'tipo=concerto' });
 
-export async function creaEventoIn(s: Sessione, c: Calendario, corpo: object): Promise<EventoApi> {
-  return api(s, `${CAL}/calendars/${idCal(c)}/events?supportsAttachments=true`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+export async function creaEventoIn(c: Calendario, corpo: object): Promise<EventoApi> {
+  return calendario(`${CAL}/calendars/${idCal(c)}/events?supportsAttachments=true`, { method: 'POST', body: JSON.stringify(corpo) });
 }
-export async function leggiEventoIn(s: Sessione, c: Calendario, id: string): Promise<EventoApi> {
-  return api(s, `${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`);
+export async function leggiEventoIn(c: Calendario, id: string): Promise<EventoApi> {
+  return calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`);
 }
-export async function aggiornaEventoIn(s: Sessione, c: Calendario, id: string, corpo: object): Promise<EventoApi> {
-  return api(s, `${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}?supportsAttachments=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+export async function aggiornaEventoIn(c: Calendario, id: string, corpo: object): Promise<EventoApi> {
+  return calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}?supportsAttachments=true`, { method: 'PATCH', body: JSON.stringify(corpo) });
 }
-export async function cancellaEventoIn(s: Sessione, c: Calendario, id: string) {
-  await api(s, `${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch((e) => {
+export async function cancellaEventoIn(c: Calendario, id: string) {
+  await calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch((e) => {
     if (!/\((404|410)\)/.test(String(e))) throw e; // già cancellato
   });
 }
 // Sposta un evento in un altro calendario (resta lo stesso id: convocazione e assenze restano legate)
-export async function spostaEvento(s: Sessione, da: Calendario, a: Calendario, id: string): Promise<EventoApi> {
-  return api(s, `${CAL}/calendars/${idCal(da)}/events/${encodeURIComponent(id)}/move?${new URLSearchParams({ destination: decodeURIComponent(idCal(a)) })}`, { method: 'POST' });
+export async function spostaEvento(da: Calendario, a: Calendario, id: string): Promise<EventoApi> {
+  return calendario(`${CAL}/calendars/${idCal(da)}/events/${encodeURIComponent(id)}/move?${new URLSearchParams({ destination: decodeURIComponent(idCal(a)) })}`, { method: 'POST' });
 }
 
-export async function eventiConcerti(s: Sessione): Promise<EventoApi[]> {
-  const p = new URLSearchParams({ singleEvents: 'true', orderBy: 'startTime', maxResults: '500' });
-  const { items = [] } = await api<{ items?: EventoApi[] }>(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events?${p}`);
-  return items.filter((e) => e.status !== 'cancelled');
-}
+export const eventiConcerti = () => eventiIn('concerti');
 
 // I concerti di un giorno (ora di Roma) nei due calendari, per non creare due volte lo stesso concerto
-export async function eventiDelGiorno(s: Sessione, data: string): Promise<EventoApi[]> {
+export async function eventiDelGiorno(data: string): Promise<EventoApi[]> {
   const giorno = (d: string) => new Date(`${d}T00:00:00+01:00`);
   const fine = giorno(data);
   fine.setUTCDate(fine.getUTCDate() + 1);
   const p = { timeMin: giorno(data).toISOString(), timeMax: fine.toISOString(), timeZone: 'Europe/Rome' };
-  const [inProve, pubblici] = await Promise.all([eventiIn(s, 'prove', { ...p, privateExtendedProperty: 'tipo=concerto' }), eventiIn(s, 'concerti', p)]);
+  const [inProve, pubblici] = await Promise.all([eventiIn('prove', { ...p, privateExtendedProperty: 'tipo=concerto' }), eventiIn('concerti', p)]);
   return [...inProve, ...pubblici.filter((e) => !e.extendedProperties?.private?.origine)];
 }
 
@@ -95,28 +92,6 @@ export function comeIcal(e: EventoApi): ical.VEvent {
     start,
     attach: (e.attachments ?? []).map((a) => ({ params: { FILENAME: a.title, FMTTYPE: a.mimeType }, val: a.fileUrl })),
   } as unknown as ical.VEvent;
-}
-
-export async function creaEvento(s: Sessione, corpo: object): Promise<EventoApi> {
-  const p = new URLSearchParams({ supportsAttachments: 'true' });
-  return api(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events?${p}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo),
-  });
-}
-
-export async function leggiEvento(s: Sessione, id: string): Promise<EventoApi> {
-  return api(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events/${encodeURIComponent(id)}`);
-}
-
-export async function aggiornaEvento(s: Sessione, id: string, corpo: object): Promise<EventoApi> {
-  const p = new URLSearchParams({ supportsAttachments: 'true' });
-  return api(s, `${CAL}/calendars/${encodeURIComponent(CALENDARIO_CONCERTI_ID!)}/events/${encodeURIComponent(id)}?${p}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo),
-  });
 }
 
 // ——— Drive ———

@@ -7,7 +7,6 @@ import { archivio, prossimiConcerti } from '../motore/concerti';
 import { statoDi, type Stato } from './stati';
 import { esisteImmagine } from '../motore/coro';
 import type { Concerto } from '../motore/tipi';
-import type { Sessione } from './sessione';
 
 const immagini = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 const estensione: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
@@ -18,8 +17,8 @@ const build = () => new Date(__ORA_BUILD__);
 const oggiIso = () => new Date().toISOString().slice(0, 10);
 
 // Pagina Pubblicazione: gli eventi del calendario pubblico "Concerti", come li legge la build
-export async function controllaConcerti(sessione: Sessione): Promise<Riga[]> {
-  return (await eventiConcerti(sessione)).map(controlla);
+export async function controllaConcerti(): Promise<Riga[]> {
+  return (await eventiConcerti()).map(controlla);
 }
 
 function controlla(e: EventoApi): Riga {
@@ -38,8 +37,8 @@ function controlla(e: EventoApi): Riga {
 // Pagina Concerti: tutti i concerti, quelli del calendario "Prove" (con il loro stato e la copia
 // pubblica, se in cartellone) e quelli scritti prima direttamente in "Concerti"
 export interface RigaConcerto extends Riga { calendario: Calendario; stato: Stato; pubblico?: EventoApi; sulSito: boolean }
-export async function elencoConcerti(sessione: Sessione): Promise<RigaConcerto[]> {
-  const [inProve, pubblici, online] = await Promise.all([concertiInProve(sessione), eventiConcerti(sessione), prossimiConcerti()]);
+export async function elencoConcerti(): Promise<RigaConcerto[]> {
+  const [inProve, pubblici, online] = await Promise.all([concertiInProve(), eventiConcerti(), prossimiConcerti()]);
   // Le pagine dei concerti nella versione del sito online
   const pagine = new Set([...online, ...archivio].filter((c) => !c.dataIncerta).map(slug));
   const copie = new Map(pubblici.filter((e) => e.extendedProperties?.private?.origine).map((e) => [e.extendedProperties!.private!.origine, e]));

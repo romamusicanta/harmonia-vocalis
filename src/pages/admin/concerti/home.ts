@@ -6,17 +6,16 @@ import { spiegaTesto } from '../../../area/errori';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const s = locals.sessione!;
+export const POST: APIRoute = async ({ request }) => {
   try {
     const f = await request.formData();
     const id = String(f.get('evento') ?? '');
     const home = f.get('home') === '1';
-    const { e } = await leggiConcerto(s, id);
+    const { e } = await leggiConcerto(id);
     const righe = (e.description ?? '').split('\n').filter((r) => !/^\s*home\s*:/i.test(r.replace(/<[^>]+>/g, '')));
     while (righe.length && !righe.at(-1)!.trim()) righe.pop();
     // Anche nella copia pubblica, se il concerto è in cartellone
-    await salvaConcerto(s, id, { description: [...righe, `Home: ${home ? 'sì' : 'no'}`].join('\n') }, undefined);
+    await salvaConcerto(id, { description: [...righe, `Home: ${home ? 'sì' : 'no'}`].join('\n') }, undefined);
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, errore: spiegaTesto(e) }, { status: 500 });

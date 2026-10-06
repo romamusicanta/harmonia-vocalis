@@ -16,7 +16,7 @@ const mancanti = configurazioneMancante();
 let righe: Riga[] = [];
 let erroreCalendario: unknown;
 try {
-  righe = await controllaConcerti(sessione);
+  righe = await controllaConcerti();
 } catch (err) {
   erroreCalendario = err;
 }

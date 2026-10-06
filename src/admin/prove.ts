@@ -1,32 +1,15 @@
 // Prove nell'area Amministrazione: lettura, creazione, modifica e cancellazione degli eventi del
-// calendario privato "Prove", a nome di chi è entrato (redattori@ ha "Apportare modifiche agli
-// eventi"). Convenzione degli eventi, la stessa che legge l'area coristi (src/area/dati.ts):
+// calendario privato "Prove", scritto solo dal sito con l'account di servizio (src/admin/calendari.ts).
+// Convenzione degli eventi, la stessa che legge l'area coristi (src/area/dati.ts):
 // titolo = tipo di prova; luogo vuoto = sala abituale; descrizione con righe "Sezioni:",
 // "Brani:", "Portare:", "Note:". La prova settimanale è un evento ricorrente: qui si modifica o si
 // cancella una data alla volta (le altre restano come sono).
-// Scrive chi è entrato nell'Amministrazione, con il suo accesso a Google ('servizio', l'account di
-// servizio, sul calendario Prove può solo leggere). Righe in più dal 3/10/2026: "Repertorio:" (i titoli dei pezzi, separati da " · ", che
+// Righe in più dal 3/10/2026: "Repertorio:" (i titoli dei pezzi, separati da " · ", che
 // l'area coristi collega alla pagina Repertorio) e "Registrazione:" (link).
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { tokenServizio } from '../area/servizio';
-import type { Sessione } from './sessione';
+import { CAL, calendario } from './calendari';
 
-export type Chi = Sessione | 'servizio';
-
-// Una chiamata al calendario a nome di chi scrive; risposta vuota (cancellazione) = undefined
-async function chiama<T>(chi: Chi, indirizzo: string, init: RequestInit = {}): Promise<T> {
-  const token = chi === 'servizio' ? await tokenServizio() : chi.accesso;
-  const r = await fetch(indirizzo, { ...init, headers: { Authorization: `Bearer ${token}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers ?? {}) } });
-  if (!r.ok && !(init.method === 'DELETE' && r.status === 410)) {
-    const testo = await r.text();
-    const messaggio = (() => { try { return JSON.parse(testo).error?.message; } catch { return undefined; } })();
-    throw new Error(`Google (${r.status}): ${messaggio ?? testo.slice(0, 200)}`);
-  }
-  return (r.status === 204 || r.status === 410 ? undefined : await r.json()) as T;
-}
-
-const CAL = 'https://www.googleapis.com/calendar/v3';
 const FUSO = 'Europe/Rome';
 const url = (resto = '') => `${CAL}/calendars/${encodeURIComponent(CALENDARIO_PROVE_ID!)}/events${resto}`;
 
@@ -90,17 +73,17 @@ function prova(e: EventoApi): Prova {
 }
 
 // Le prove tra due giorni, in ordine (le date della prova settimanale una per una)
-export async function elencoProve(s: Chi, da: string, a: string): Promise<Prova[]> {
+export async function elencoProve(da: string, a: string): Promise<Prova[]> {
   const p = new URLSearchParams({
     singleEvents: 'true', orderBy: 'startTime', maxResults: '500', timeZone: FUSO,
     timeMin: new Date(`${da}T00:00:00Z`).toISOString(), timeMax: new Date(`${a}T23:59:59Z`).toISOString(),
   });
-  const { items = [] } = await chiama<{ items?: EventoApi[] }>(s, url(`?${p}`));
+  const { items = [] } = await calendario<{ items?: EventoApi[] }>(url(`?${p}`));
   // Nel calendario ci sono anche i concerti (src/admin/stati.ts): qui solo le prove
   return items.filter((e) => e.status !== 'cancelled' && e.extendedProperties?.private?.tipo !== 'concerto').map(prova);
 }
 
-export const leggiProva = async (s: Chi, id: string) => prova(await chiama<EventoApi>(s, url(`/${encodeURIComponent(id)}`)));
+export const leggiProva = async (id: string) => prova(await calendario<EventoApi>(url(`/${encodeURIComponent(id)}`)));
 
 // Dal modulo (src/admin/ModuloProva.astro) al corpo dell'evento
 export function corpoDalModulo(f: FormData): { errore: string } | object {
@@ -123,11 +106,11 @@ export function corpoDalModulo(f: FormData): { errore: string } | object {
   };
 }
 
-export const creaProva = (s: Chi, corpo: object) =>
-  chiama<EventoApi>(s, url(), { method: 'POST', body: JSON.stringify(corpo) });
+export const creaProva = (corpo: object) =>
+  calendario<EventoApi>(url(), { method: 'POST', body: JSON.stringify(corpo) });
 
-export const aggiornaProva = (s: Chi, id: string, corpo: object) =>
-  chiama<EventoApi>(s, url(`/${encodeURIComponent(id)}`), { method: 'PATCH', body: JSON.stringify(corpo) });
+export const aggiornaProva = (id: string, corpo: object) =>
+  calendario<EventoApi>(url(`/${encodeURIComponent(id)}`), { method: 'PATCH', body: JSON.stringify(corpo) });
 
 // Il messaggio per il gruppo WhatsApp dei coristi, dopo aver creato, cambiato o cancellato una prova
 const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
@@ -154,4 +137,4 @@ export function provaPerWhatsapp(p: Pick<Prova, 'data' | 'inizio' | 'fine' | 'ti
 }
 
 // Per una data della prova settimanale cancella solo quella data
-export const cancellaProva = (s: Chi, id: string) => chiama<void>(s, url(`/${encodeURIComponent(id)}`), { method: 'DELETE' });
+export const cancellaProva = (id: string) => calendario<void>(url(`/${encodeURIComponent(id)}`), { method: 'DELETE' });

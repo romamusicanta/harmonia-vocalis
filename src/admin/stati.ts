@@ -3,7 +3,6 @@
 // cartellone" ha una copia nel calendario pubblico "Concerti" (proprietà origine), che il sito
 // pubblico legge. Vedi anche src/admin/operazioni.ts.
 import { aggiornaEventoIn, cancellaEventoIn, creaEventoIn, leggiEventoIn, spostaEvento, type Calendario, type EventoApi } from './operazioni';
-import type { Sessione } from './sessione';
 
 export const STATI = [
   { id: 'da-confermare', nome: 'Da confermare', aiuto: 'non visibile sul sito pubblico' },
@@ -24,14 +23,14 @@ export const nomeStatoMostrato = (s: Stato, data: string) => (passato(data) ? 'P
 export const statoDi = (e: EventoApi, c: Calendario): Stato => (c === 'concerti' ? 'in-cartellone' : statoValido(e.extendedProperties?.private?.stato) ?? 'da-confermare');
 
 // Un concerto per id: prima nel calendario "Prove", poi (concerti di prima) in "Concerti"
-export async function leggiConcerto(s: Sessione, id: string): Promise<{ e: EventoApi; calendario: Calendario }> {
+export async function leggiConcerto(id: string): Promise<{ e: EventoApi; calendario: Calendario }> {
   try {
-    const e = await leggiEventoIn(s, 'prove', id);
+    const e = await leggiEventoIn('prove', id);
     if (e.extendedProperties?.private?.tipo === 'concerto') return { e, calendario: 'prove' };
   } catch (err) {
     if (!/\((404|410)\)/.test(String(err))) throw err;
   }
-  return { e: await leggiEventoIn(s, 'concerti', id), calendario: 'concerti' };
+  return { e: await leggiEventoIn('concerti', id), calendario: 'concerti' };
 }
 
 const proprieta = (e: EventoApi) => ({ ...(e.extendedProperties?.private ?? {}) });
@@ -47,25 +46,25 @@ const campiPubblici = (e: EventoApi) => ({
 
 // Allinea il calendario pubblico allo stato del concerto (evento del calendario "Prove"): in
 // cartellone crea o aggiorna la copia, altrimenti la toglie. Restituisce l'evento aggiornato.
-export async function sincronizza(s: Sessione, e: EventoApi): Promise<EventoApi> {
+export async function sincronizza(e: EventoApi): Promise<EventoApi> {
   const p = proprieta(e);
   if (statoDi(e, 'prove') === 'in-cartellone') {
     const corpo = { ...campiPubblici(e), extendedProperties: { private: { origine: e.id } } };
     if (p.pubblico) {
       try {
-        await aggiornaEventoIn(s, 'concerti', p.pubblico, corpo);
+        await aggiornaEventoIn('concerti', p.pubblico, corpo);
         return e;
       } catch (err) {
         if (!/\((404|410)\)/.test(String(err))) throw err; // copia cancellata a mano: si ricrea
       }
     }
-    const copia = await creaEventoIn(s, 'concerti', corpo);
-    return aggiornaEventoIn(s, 'prove', e.id, { extendedProperties: { private: { ...p, pubblico: copia.id } } });
+    const copia = await creaEventoIn('concerti', corpo);
+    return aggiornaEventoIn('prove', e.id, { extendedProperties: { private: { ...p, pubblico: copia.id } } });
   }
   if (p.pubblico) {
-    await cancellaEventoIn(s, 'concerti', p.pubblico);
+    await cancellaEventoIn('concerti', p.pubblico);
     // Una proprietà omessa resta com'era: si svuota (vuota = nessuna copia)
-    return aggiornaEventoIn(s, 'prove', e.id, { extendedProperties: { private: { ...p, pubblico: '' } } });
+    return aggiornaEventoIn('prove', e.id, { extendedProperties: { private: { ...p, pubblico: '' } } });
   }
   return e;
 }
@@ -73,20 +72,20 @@ export async function sincronizza(s: Sessione, e: EventoApi): Promise<EventoApi>
 // Salva un concerto esistente con i nuovi campi e il nuovo stato, poi allinea la copia pubblica.
 // Un concerto di prima (in "Concerti") che esce dal cartellone si sposta nel calendario "Prove"
 // con lo stesso id; se resta in cartellone si aggiorna dov'è.
-export async function salvaConcerto(s: Sessione, id: string, corpo: object, stato: Stato | undefined): Promise<EventoApi> {
-  const { e, calendario } = await leggiConcerto(s, id);
+export async function salvaConcerto(id: string, corpo: object, stato: Stato | undefined): Promise<EventoApi> {
+  const { e, calendario } = await leggiConcerto(id);
   const nuovo = stato ?? statoDi(e, calendario);
   if (calendario === 'concerti') {
-    if (nuovo === 'in-cartellone') return aggiornaEventoIn(s, 'concerti', id, corpo);
-    await spostaEvento(s, 'concerti', 'prove', id);
-    return aggiornaEventoIn(s, 'prove', id, { ...corpo, extendedProperties: { private: { tipo: 'concerto', stato: nuovo } } });
+    if (nuovo === 'in-cartellone') return aggiornaEventoIn('concerti', id, corpo);
+    await spostaEvento('concerti', 'prove', id);
+    return aggiornaEventoIn('prove', id, { ...corpo, extendedProperties: { private: { tipo: 'concerto', stato: nuovo } } });
   }
-  const aggiornato = await aggiornaEventoIn(s, 'prove', id, { ...corpo, extendedProperties: { private: { ...proprieta(e), tipo: 'concerto', stato: nuovo } } });
-  return sincronizza(s, aggiornato);
+  const aggiornato = await aggiornaEventoIn('prove', id, { ...corpo, extendedProperties: { private: { ...proprieta(e), tipo: 'concerto', stato: nuovo } } });
+  return sincronizza(aggiornato);
 }
 
 // Crea un concerto nel calendario "Prove" con il suo stato (e, se in cartellone, la copia pubblica)
-export async function creaConcerto(s: Sessione, corpo: object, stato: Stato): Promise<EventoApi> {
-  const e = await creaEventoIn(s, 'prove', { ...corpo, extendedProperties: { private: { tipo: 'concerto', stato } } });
-  return sincronizza(s, e);
+export async function creaConcerto(corpo: object, stato: Stato): Promise<EventoApi> {
+  const e = await creaEventoIn('prove', { ...corpo, extendedProperties: { private: { tipo: 'concerto', stato } } });
+  return sincronizza(e);
 }

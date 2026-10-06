@@ -19,7 +19,7 @@ let errore: string | undefined;
 let evento;
 let stato: Stato | undefined;
 try {
-  const letto = await leggiConcerto(Astro.locals.sessione!, id);
+  const letto = await leggiConcerto(id);
   evento = letto.e;
   stato = statoDi(letto.e, letto.calendario);
 } catch (e) {

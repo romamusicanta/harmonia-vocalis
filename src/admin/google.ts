@@ -13,7 +13,7 @@ const AMBITI = [
   'openid',
   'email',
   'profile',
-  'https://www.googleapis.com/auth/calendar.events',
+  // Niente calendario: lo scrive solo il sito, con l'account di servizio (src/admin/calendari.ts)
   'https://www.googleapis.com/auth/drive',
   // Per sapere se chi entra fa parte del gruppo dei redattori
   'https://www.googleapis.com/auth/cloud-identity.groups.readonly',
@@ -52,7 +52,7 @@ async function token(corpo: Record<string, string>): Promise<Token> {
 export async function completaAccesso(codice: string, ritorno: string): Promise<{ sessione?: Sessione; errore?: string; altrove?: string; persona?: { email: string; nome: string; foto?: string } }> {
   const t = await token({ code: codice, redirect_uri: ritorno, grant_type: 'authorization_code' });
   const mancanti = AMBITI.filter((a) => a.startsWith('https://www.googleapis.com/auth/') && !t.scope.split(' ').includes(a));
-  if (mancanti.length) return { errore: 'Per usare l’area servono tutti i permessi richiesti (calendario, Drive, gruppi): riprova e lasciali selezionati.' };
+  if (mancanti.length) return { errore: 'Per usare l’area servono tutti i permessi richiesti (Drive, gruppi): riprova e lasciali selezionati.' };
   const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } })).json();
   const { dominio, gruppo } = coro.amministrazione!;
   if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };

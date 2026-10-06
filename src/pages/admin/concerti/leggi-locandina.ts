@@ -8,7 +8,6 @@ import { z } from 'astro/zod';
 import { coro } from '../../../motore/coro';
 import { daEvento } from '../../../motore/calendario';
 import { comeIcal, eventiConcerti } from '../../../admin/operazioni';
-import type { Sessione } from '../../../admin/sessione';
 
 export const prerender = false;
 
@@ -55,9 +54,9 @@ Regole:
 // quelli letti sulla locandina: "Digregorio" → "Di Gregorio", "ANTONIO SAPIO" → "Antonio Sapio"
 const chiave = (nome: string) => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 
-async function nomiInArchivio(s: Sessione) {
+async function nomiInArchivio() {
   const nomi = new Map<string, string>([[chiave(coro.maestro.nome), coro.maestro.nome]]);
-  for (const e of await eventiConcerti(s)) {
+  for (const e of await eventiConcerti()) {
     for (const i of daEvento(comeIcal(e), () => {}).interpreti ?? []) {
       for (const nome of (i.nome ?? '').split(/,\s*/)) if (nome) nomi.set(chiave(nome), nome);
     }
@@ -86,7 +85,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           { type: 'file', mediaType: file.type, data: new Uint8Array(await file.arrayBuffer()) },
         ],
       }],
-    }), nomiInArchivio(locals.sessione!).catch(() => new Map<string, string>())]);
+    }), nomiInArchivio().catch(() => new Map<string, string>())]);
     output.interpreti = output.interpreti.map((i) => ({ ...i, nome: uniforma(nomi, i.nome) }));
     return json({ ok: true, dati: output });
   } catch (e) {

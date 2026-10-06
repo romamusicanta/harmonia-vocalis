@@ -15,7 +15,7 @@ export const prerender = false;
 let righe: RigaConcerto[] = [];
 let erroreCalendario: unknown;
 try {
-  righe = await elencoConcerti(Astro.locals.sessione!);
+  righe = await elencoConcerti();
 } catch (err) {
   erroreCalendario = err;
 }

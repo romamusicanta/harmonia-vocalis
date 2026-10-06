@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Un concerto già in calendario quel giorno: si crea solo con la conferma
     if (!f.get('conferma')) {
-      const [gia] = await eventiDelGiorno(s, d.data);
+      const [gia] = await eventiDelGiorno(d.data);
       if (gia) return json({ ok: false, giaPresente: gia.summary ?? 'senza titolo' });
     }
 
@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const allegati = await caricaImmagini(s, f, cartella);
     if ('errore' in allegati) return json({ ok: false, errore: allegati.errore }, 400);
     const avvisoInglese = await completaInglese(d);
-    const evento = await creaConcerto(s, { ...corpoEvento(d), attachments: allegati.nuovi }, statoValido(f.get('stato')) ?? 'da-confermare');
+    const evento = await creaConcerto({ ...corpoEvento(d), attachments: allegati.nuovi }, statoValido(f.get('stato')) ?? 'da-confermare');
     return json({ ok: true, id: evento.id, evento: evento.htmlLink, cartella: `https://drive.google.com/drive/folders/${cartella}`, avviso: avvisoInglese, inglese: ingleseScritto(d) });
   } catch (e) {
     return json({ ok: false, errore: spiegaTesto(e) }, 500);

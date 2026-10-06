@@ -9,7 +9,7 @@ export const prerender = false;
 let prova: Prova | undefined;
 let errore: unknown;
 try {
-  prova = await leggiProva(Astro.locals.sessione!, Astro.url.searchParams.get('id') ?? '');
+  prova = await leggiProva(Astro.url.searchParams.get('id') ?? '');
 } catch (e) {
   errore = e;
 }

@@ -1,12 +1,12 @@
 ---
 // Elenco delle prove del calendario "Prove" (dall'inizio della stagione ai prossimi quattro mesi)
-// nell'Amministrazione (/admin/prove, scrive chi è entrato): si apre sulle prossime, con "Oggi" o
+// nell'Amministrazione (/admin/prove; il calendario lo scrive solo il sito): si apre sulle prossime, con "Oggi" o
 // "Prossima" sulla prima; sotto le prove già fatte della stagione, ognuna con quante registrazioni ha
 // e il pulsante per caricarle (porta al riquadro Registrazioni del modulo di Modifica). Modifica per ogni data (Cancella sta dentro la modifica) e il
 // pulsante per una prova nuova. Dopo un salvataggio o una cancellazione, "Invia su WhatsApp" con il
 // messaggio già scritto per il gruppo dei coristi.
 import { CALENDARIO_PROVE_ID } from 'astro:env/server';
-import { elencoProve, giornoEsteso, leggiProva, provaPerWhatsapp, type Chi, type Prova } from './prove';
+import { elencoProve, giornoEsteso, leggiProva, provaPerWhatsapp, type Prova } from './prove';
 import { linkWhatsapp } from '../area/bacheca';
 import Icona from '../componenti/Icona.astro';
 import InvioNotifica from '../area/InvioNotifica.astro';
@@ -16,8 +16,8 @@ import { registrazioni } from '../area/registrazioni';
 import { parti } from '../motore/concerti';
 import Errore from '../area/Errore.astro';
 
-interface Props { base: '/admin' | '/maestro'; chi: Chi }
-const { base, chi } = Astro.props;
+interface Props { base: '/admin' | '/maestro' }
+const { base } = Astro.props;
 
 const giorno = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const oggi = giorno(new Date());
@@ -27,7 +27,7 @@ let errore: unknown;
 if (!CALENDARIO_PROVE_ID) errore = 'Manca la variabile CALENDARIO_PROVE_ID sul server.';
 else {
   try {
-    prove = await elencoProve(chi, inizioStagione(oggi), tra(122));
+    prove = await elencoProve(inizioStagione(oggi), tra(122));
   } catch (e) {
     errore = e;
   }
@@ -40,7 +40,7 @@ const sito = Astro.url.origin;
 let whatsapp: string | undefined;
 const idSalvata = q.get('id');
 if (salvata && idSalvata && salvata >= oggi) {
-  const p = prove.find((x) => x.id === idSalvata) ?? (await leggiProva(chi, idSalvata).catch(() => undefined));
+  const p = prove.find((x) => x.id === idSalvata) ?? (await leggiProva(idSalvata).catch(() => undefined));
   if (p) whatsapp = provaPerWhatsapp(p, q.get('come') === 'nuova' ? 'nuova' : 'cambiata', sito);
 }
 const cancellata = q.get('cancellata');
