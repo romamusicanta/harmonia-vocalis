@@ -9,6 +9,7 @@ import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { parti, prossimiConcerti } from '../../../motore/concerti';
 import { comeHtml } from '../../../area/testo';
 import BachecaVera from '../../../area/BachecaVera.astro';
+import Attesa from '../../../area/Attesa.astro';
 import {
   corista, prossimaProva, luogoProva, convocazione, titoloBreve, repertorio, registrazioni,
   assenzeProssima, totaleVoci, avvisi, giorno, traGiorni, dataBreve, dataEstesa, dataGiorno,
@@ -156,5 +157,5 @@ const intro = [
       </div>
     </div>
   </div>
-  </>) : <BachecaVera />}
+  </>) : <Attesa testo="Sto preparando la tua bacheca…"><BachecaVera /></Attesa>}
 </Base>

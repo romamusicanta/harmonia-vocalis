@@ -1,0 +1,67 @@
+---
+// Aree riservate (coristi, Maestro, tesoriere, Amministrazione; incluso da TestataArea.astro): appena si
+// tocca un link a un'altra pagina del sito o si invia un modulo, una barra gialla in alto che avanza,
+// più la scritta «Caricamento…» se l'attesa supera un secondo e mezzo. Serve soprattutto nell'app
+// installata, dove non c'è la barra di caricamento del browser e sembrava che il tocco non avesse
+// fatto niente mentre il server legge i dati da Google. Sparisce con la pagina nuova; se la pagina non
+// cambia (un file scaricato, il tasto Indietro che ripristina la pagina), dopo 20 secondi o al ritorno.
+---
+
+<div class="caricamento-pagina" hidden aria-hidden="true"><span class="barra"></span><span class="scritta">Caricamento…</span></div>
+
+<style>
+  .caricamento-pagina { position: fixed; inset: 0 0 auto 0; z-index: 9999; pointer-events: none; }
+  .caricamento-pagina .barra {
+    display: block; height: 4px; background: var(--accento); transform-origin: left;
+    animation: avanza 8s cubic-bezier(.1, .7, .3, 1) forwards;
+  }
+  .caricamento-pagina .scritta {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    padding: 6px 14px; border-radius: 999px; background: var(--primario); color: var(--bianco);
+    font-size: 13px; font-weight: 600; box-shadow: 0 4px 14px rgb(0 0 0 / .2);
+    opacity: 0; animation: compare .2s 1.5s forwards;
+  }
+  @keyframes avanza { from { transform: scaleX(.05); } to { transform: scaleX(.92); } }
+  @keyframes compare { to { opacity: 1; } }
+</style>
+
+<script>
+  const riquadro = document.querySelector<HTMLElement>('.caricamento-pagina');
+  let scadenza: ReturnType<typeof setTimeout> | undefined;
+  const nascondi = () => { if (riquadro) riquadro.hidden = true; clearTimeout(scadenza); };
+  const mostra = () => {
+    if (!riquadro) return;
+    // Ricomincia l'animazione da capo
+    riquadro.hidden = true; void riquadro.offsetWidth; riquadro.hidden = false;
+    document.documentElement.style.cursor = 'progress';
+    clearTimeout(scadenza);
+    scadenza = setTimeout(() => { nascondi(); document.documentElement.style.cursor = ''; }, 20000);
+  };
+  addEventListener('pageshow', () => { nascondi(); document.documentElement.style.cursor = ''; });
+
+  // Un link porta a un'altra pagina del sito, nella stessa finestra?
+  const cambiaPagina = (a: HTMLAnchorElement, e: MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return false;
+    if (a.target && a.target !== '_self') return false;
+    if (a.hasAttribute('download') || a.dataset.fintoAvviso !== undefined) return false;
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) return false;
+    // Solo un'ancora nella stessa pagina
+    if (url.pathname === location.pathname && url.search === location.search && url.hash) return false;
+    // File serviti dal sito (spartiti, audio): possono aprirsi in un lettore o scaricarsi
+    if (/^\/(area|maestro)\/file\//.test(url.pathname)) return false;
+    return true;
+  };
+
+  // In ascolto per ultimi (dopo gli script delle pagine), per sapere se qualcuno ha fermato l'evento
+  document.addEventListener('click', (e) => {
+    const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!a || !cambiaPagina(a, e)) return;
+    setTimeout(() => { if (!e.defaultPrevented) mostra(); });
+  });
+  document.addEventListener('submit', (e) => {
+    const modulo = e.target as HTMLFormElement;
+    if (modulo.target && modulo.target !== '_self') return;
+    setTimeout(() => { if (!e.defaultPrevented) mostra(); });
+  });
+</script>

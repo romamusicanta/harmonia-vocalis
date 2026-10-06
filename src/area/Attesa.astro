@@ -1,0 +1,40 @@
+---
+// Rotellina «Sto caricando…» delle pagine riservate che leggono i dati da Google mentre la testata è
+// già arrivata (lo streaming di Astro manda subito la parte prima del componente che aspetta i dati).
+// Si usa in un contenitore insieme al componente lento, prima di lui:
+//   <Attesa testo="…"><BachecaVera /></Attesa>
+// e sparisce da sola appena arriva il primo pezzo del contenuto: lo script subito dopo la guarda
+// arrivare (il solo CSS con :last-child non basta, perché Chrome non lo applica finché il contenitore
+// non è arrivato tutto). Compare dopo mezzo secondo, così le pagine veloci non lampeggiano.
+interface Props { testo?: string }
+const { testo = 'Sto caricando i dati del coro…' } = Astro.props;
+---
+
+<div class="con-attesa">
+  <div class="attesa-dati" role="status" aria-live="polite">
+    <span class="rotella" aria-hidden="true"></span>
+    <span>{testo}</span>
+    <small>A volte, dopo un po' che nessuno apre il sito, serve qualche secondo in più.</small>
+  </div>
+  <script is:inline>(() => {
+    const c = document.currentScript.parentElement, a = c.firstElementChild;
+    const togli = () => { a.remove(); o.disconnect(); };
+    const o = new MutationObserver(() => { if (c.children.length > 2) togli(); });
+    o.observe(c, { childList: true });
+    addEventListener('DOMContentLoaded', togli);
+  })();</script>
+  <slot />
+</div>
+
+<style>
+  .attesa-dati {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    min-height: 50vh; padding: 48px 20px; text-align: center; color: var(--primario); font-weight: 600;
+    opacity: 0; animation: compare .3s .5s forwards;
+  }
+  .attesa-dati small { max-width: 34ch; font-weight: 400; font-size: 13px; color: var(--tenue); opacity: 0; animation: compare .3s 3s forwards; }
+  .rotella { width: 40px; height: 40px; border-radius: 50%; border: 4px solid var(--linea); border-top-color: var(--accento); animation: gira .8s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  @keyframes compare { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .rotella { animation-duration: 2.4s; } }
+</style>

@@ -8,6 +8,7 @@ import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { prossimiConcerti } from '../../../motore/concerti';
 import RepertorioVero from '../../../area/RepertorioVero.astro';
+import Attesa from '../../../area/Attesa.astro';
 import { corista, repertorio, archivioSpartiti, dataEstesa } from '../../../demo/area';
 
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
@@ -109,5 +110,5 @@ const inArrivo = repertorio.filter((o) => !o.materiali);
       </section>
     </div>
   </div>
-  </>) : <RepertorioVero />}
+  </>) : <Attesa testo="Sto caricando il repertorio…"><RepertorioVero /></Attesa>}
 </Base>

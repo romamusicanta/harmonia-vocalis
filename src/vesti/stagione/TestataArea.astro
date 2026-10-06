@@ -14,6 +14,7 @@ import MenuRiservato from './MenuRiservato.astro';
 import { areeRiservate } from './aree';
 import InvitoApp from '../../area/InvitoApp.astro';
 import InterruttoreNotifiche from '../../area/InterruttoreNotifiche.astro';
+import CaricamentoPagina from '../../area/CaricamentoPagina.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
@@ -104,6 +105,7 @@ const tab = sezioni.filter((s) => s.tab && s.icona);
 // L'invito a installare l'app solo nella prima pagina dell'area
 const primaPagina = sezione === sezioni[0]?.id;
 ---
+<CaricamentoPagina />
 
 <div class:list={['servizio area-s', { 'con-menu': conBarra }]}>
   <div class="w">

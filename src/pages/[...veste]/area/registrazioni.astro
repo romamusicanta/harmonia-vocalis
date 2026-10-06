@@ -7,6 +7,7 @@ import { AREA_CORISTI, coro, DEMO } from '../../../motore/coro';
 import { percorsiVesti, vesteCorrente } from '../../../motore/url';
 import { registrazioni, giorno, dataEstesa } from '../../../demo/area';
 import ProveFatte from '../../../area/ProveFatte.astro';
+import Attesa from '../../../area/Attesa.astro';
 
 export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
 const veste = vesteCorrente(Astro.params.veste);
@@ -49,5 +50,5 @@ const veste = vesteCorrente(Astro.params.veste);
       <p class="tenue" style="margin-top:32px;font-size:15px;border-top:1px solid var(--linea);padding-top:24px">Le registrazioni più vecchie di tre mesi restano nel Drive, nella cartella «Archivio».</p>
     </div>
   </div>
-  </>) : <ProveFatte />}
+  </>) : <Attesa testo="Sto caricando le registrazioni…"><ProveFatte /></Attesa>}
 </Base>
