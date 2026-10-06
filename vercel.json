@@ -5,6 +5,10 @@
     {
       "path": "/api/ricostruisci",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/statistiche",
+      "schedule": "30 23 * * *"
     }
   ],
   "redirects": [

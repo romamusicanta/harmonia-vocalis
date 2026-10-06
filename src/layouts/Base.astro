@@ -109,6 +109,20 @@ const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immag
     {area ? <PiedeArea veste={veste} maestro={area.maestro} tesoriere={area.tesoriere} /> : <Piede veste={veste} />}
     {DEMO && <Pannello veste={veste} />}
     {prova && <PannelloProva veste={veste} />}
+    {indicizzata && (
+      <script is:inline>
+        // Statistiche delle visite, senza cookie (src/area/visite.ts, /api/visita): non conta i
+        // redattori (segnati dall'area Amministrazione) né i browser guidati da programmi
+        (function () {
+          try { if (localStorage.getItem('hv-redattore')) return; } catch (e) {}
+          if (navigator.webdriver) return;
+          var p = location.pathname.replace(/\/+$/, '') || '/';
+          var d = JSON.stringify({ p: p, t: p === '/' || p === '/en' ? 'Home' : document.title.split(' — ')[0], r: document.referrer, s: new URLSearchParams(location.search).get('utm_source') || '' });
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/visita', new Blob([d], { type: 'text/plain' }));
+          else fetch('/api/visita', { method: 'POST', body: d, keepalive: true });
+        })();
+      </script>
+    )}
     <script>
       import '../motore/interazioni';
       import '../motore/tendine';

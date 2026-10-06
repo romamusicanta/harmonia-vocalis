@@ -1,0 +1,200 @@
+---
+// Amministrazione → Statistiche (src/area/visite.ts): visitatori diversi al giorno del sito pubblico,
+// contati senza cookie, con le pagine più viste, da dove arrivano, lingua e dispositivo. Per tutti
+// i redattori. Il periodo si sceglie con ?giorni= (7, 30, 90, 365).
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import Errore from '../../area/Errore.astro';
+import { configurato, pagine, somma, statistiche, type Giorno } from '../../area/visite';
+import { oggi, piuGiorni } from '../../area/dati';
+
+export const prerender = false;
+
+const PERIODI = [7, 30, 90, 365];
+const giorni = PERIODI.includes(Number(Astro.url.searchParams.get('giorni'))) ? Number(Astro.url.searchParams.get('giorni')) : 30;
+let errore: unknown;
+let dati: Giorno[] = [];
+if (!configurato()) errore = 'Manca il foglio «Coristi e assenze» o la chiave delle sessioni sul server (FOGLIO_CORISTI_ID, SESSIONE_SEGRETO).';
+else {
+  try {
+    dati = await statistiche(piuGiorni(oggi(), -(giorni - 1)));
+  } catch (e) {
+    errore = e;
+  }
+}
+// Il grafico parte dal primo giorno con visite, se è dentro il periodo
+const primo = dati.findIndex((g) => g.visualizzazioni > 0);
+const periodo = primo === -1 ? [] : dati.slice(primo);
+const finiti = periodo.slice(0, -1);
+const oggiG = dati.at(-1);
+const ieri = dati.at(-2);
+const visite = periodo.reduce((t, g) => t + g.visitatori, 0);
+const viste = periodo.reduce((t, g) => t + g.visualizzazioni, 0);
+const media = finiti.length ? finiti.reduce((t, g) => t + g.visitatori, 0) / finiti.length : undefined;
+const massimo = Math.max(1, ...periodo.map((g) => g.visitatori));
+const migliore = periodo.reduce<Giorno | undefined>((m, g) => (!m || g.visitatori > m.visitatori ? g : m), undefined);
+// La scala del grafico: un numero tondo sopra il massimo
+const passo = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((p) => p * 4 >= massimo) ?? 1000;
+const cima = Math.ceil(massimo / passo) * passo;
+const righeGriglia = Array.from({ length: cima / passo + 1 }, (_, i) => i * passo);
+
+const formatoGiorno = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const formatoLungo = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const data = (g: string) => formatoGiorno.format(new Date(`${g}T12:00:00Z`));
+const dataLunga = (g: string) => formatoLungo.format(new Date(`${g}T12:00:00Z`));
+const n = (x: number) => x.toLocaleString('it-IT', { maximumFractionDigits: 1 });
+// Etichette sotto il grafico: prima, ultima e qualcuna in mezzo
+const etichette = new Set(periodo.length <= 8 ? periodo.map((_, i) => i) : [0, Math.round((periodo.length - 1) / 3), Math.round(((periodo.length - 1) * 2) / 3), periodo.length - 1]);
+
+const elencoPagine = pagine(periodo).slice(0, 15);
+const gruppi = [
+  { titolo: 'Da dove arrivano', nota: 'visite', righe: somma(periodo, 'provenienze') },
+  { titolo: 'Lingua', nota: 'visite', righe: somma(periodo, 'lingue') },
+  { titolo: 'Dispositivo', nota: 'visite', righe: somma(periodo, 'dispositivi') },
+];
+const percento = (x: number, tot: number) => (tot ? Math.round((x / tot) * 100) : 0);
+---
+
+<LayoutAdmin titolo="Statistiche" sezione="statistiche">
+  <h1>Statistiche</h1>
+  <p class="tenue" style="max-width:68ch">Le visite al sito pubblico, contate senza cookie: ogni persona conta una volta al giorno, e chi torna un altro giorno conta come una nuova visita. Non contano i coristi e i redattori entrati nelle aree riservate, né i motori di ricerca.</p>
+
+  <nav class="periodi" aria-label="Periodo">
+    {PERIODI.map((p) => <a href={`?giorni=${p}`} class:list={{ on: p === giorni }} aria-current={p === giorni ? 'page' : undefined}>{p === 365 ? 'Un anno' : `${p} giorni`}</a>)}
+  </nav>
+
+  {errore && <Errore e={errore} />}
+  {!errore && periodo.length === 0 && <p class="messaggio">Ancora nessuna visita in questo periodo. Il conteggio è cominciato il 6 ottobre 2026.</p>}
+
+  {!errore && periodo.length > 0 && (
+    <>
+      <div class="cifre">
+        <div class="cifra"><span class="eti">Oggi, finora</span><b>{oggiG?.visitatori ?? 0}</b><span class="tenue">{(oggiG?.visitatori ?? 0) === 1 ? 'visitatore' : 'visitatori'} · {oggiG?.visualizzazioni ?? 0} pagine viste</span></div>
+        {ieri && primo < dati.length - 1 && <div class="cifra"><span class="eti">Ieri</span><b>{ieri.visitatori}</b><span class="tenue">{ieri.visitatori === 1 ? 'visitatore' : 'visitatori'} · {ieri.visualizzazioni} pagine viste</span></div>}
+        {media !== undefined && <div class="cifra"><span class="eti">Media al giorno</span><b>{n(media)}</b><span class="tenue">visitatori, giorni completi del periodo</span></div>}
+        <div class="cifra"><span class="eti">Nel periodo</span><b>{visite}</b><span class="tenue">visite · {viste} pagine viste</span></div>
+      </div>
+
+      <section class="scheda-admin grafico-blocco">
+        <h2>Visitatori al giorno</h2>
+        {migliore && migliore.visitatori > 0 && <p class="tenue">Il giorno con più visitatori: {dataLunga(migliore.giorno)}, {migliore.visitatori}.</p>}
+        <div class="grafico" role="img" aria-label={`Visitatori al giorno dal ${dataLunga(periodo[0].giorno)} a oggi; massimo ${massimo}. I numeri sono nella tabella qui sotto.`}>
+          <div class="griglia" aria-hidden="true">
+            {righeGriglia.map((v) => <span style={`bottom:${(v / cima) * 100}%`}><i>{v}</i></span>)}
+          </div>
+          <div class:list={['barre', { fitte: periodo.length > 120 }]}>
+            {periodo.map((g, i) => (
+              <div class:list={['col', { oggi: i === periodo.length - 1 }]} data-info={`${dataLunga(g.giorno)}${i === periodo.length - 1 ? ' (finora)' : ''}: ${g.visitatori} ${g.visitatori === 1 ? 'visitatore' : 'visitatori'}, ${g.visualizzazioni} pagine viste`}>
+                <span class="barra" style={`height:${(g.visitatori / cima) * 100}%`}></span>
+              </div>
+            ))}
+          </div>
+          <div class="asse" aria-hidden="true">
+            {periodo.map((g, i) => <span>{etichette.has(i) ? data(g.giorno) : ''}</span>)}
+          </div>
+        </div>
+        <p class="info-barra tenue" aria-live="polite">Passa sopra una barra (o toccala) per i numeri del giorno.</p>
+        <details>
+          <summary>I numeri giorno per giorno</summary>
+          <table class="tabella">
+            <thead><tr><th>Giorno</th><th>Visitatori</th><th>Pagine viste</th></tr></thead>
+            <tbody>{[...periodo].reverse().map((g) => <tr><td>{dataLunga(g.giorno)}</td><td>{g.visitatori}</td><td>{g.visualizzazioni}</td></tr>)}</tbody>
+          </table>
+        </details>
+      </section>
+
+      <div class="due">
+        <section class="scheda-admin">
+          <h2>Pagine più viste</h2>
+          <ol class="elenco">
+            {elencoPagine.map((p) => (
+              <li>
+                <div class="riga"><span><a href={p.pagina} target="_blank" rel="noopener">{p.t || p.pagina}</a> <small class="tenue">{p.pagina}</small></span><b>{p.n}</b></div>
+                <span class="misura"><span style={`width:${percento(p.n, elencoPagine[0].n)}%`}></span></span>
+              </li>
+            ))}
+          </ol>
+          <p class="tenue piccolo">Pagine viste, le prime 15.</p>
+        </section>
+        <div class="colonna">
+          {gruppi.map((gr) => (
+            <section class="scheda-admin">
+              <h2>{gr.titolo}</h2>
+              <ul class="elenco">
+                {gr.righe.map(([k, v]) => (
+                  <li>
+                    <div class="riga"><span>{k}</span><b>{v} <small class="tenue">({percento(v, visite)}%)</small></b></div>
+                    <span class="misura"><span style={`width:${percento(v, gr.righe[0][1])}%`}></span></span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </div>
+      <p class="tenue piccolo" style="max-width:68ch">«Link diretto o app» comprende chi scrive l'indirizzo, usa un segnalibro o apre un link da un'app che non dice da dove arriva (spesso WhatsApp). Per sapere quante persone arrivano da un link preciso, aggiungi in fondo <code>?utm_source=nome</code> (per esempio <code>romamusicanta.org/concerti?utm_source=Locandina</code>): comparirà qui con quel nome. I totali dei giorni passati si aggiornano ogni notte; quelli di oggi subito.</p>
+    </>
+  )}
+</LayoutAdmin>
+
+<script>
+  // Il numero del giorno sotto il grafico, al passaggio o al tocco su una barra
+  const info = document.querySelector<HTMLElement>('.info-barra');
+  document.querySelectorAll<HTMLElement>('.grafico .col').forEach((c) => {
+    const mostra = () => {
+      document.querySelectorAll('.grafico .col.attiva').forEach((x) => x.classList.remove('attiva'));
+      c.classList.add('attiva');
+      if (info) info.textContent = c.dataset.info ?? '';
+    };
+    c.addEventListener('pointerenter', mostra);
+    c.addEventListener('click', mostra);
+  });
+</script>
+
+<style>
+  .periodi { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+  .periodi a { padding: 8px 14px; border: 1px solid var(--linea); border-radius: 999px; background: var(--bianco); color: var(--testo); text-decoration: none; font-size: 15px; min-height: 40px; display: inline-flex; align-items: center; }
+  .periodi a.on { background: var(--primario); border-color: var(--primario); color: var(--bianco); }
+  .cifre { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 8px 0 24px; }
+  .cifra { background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); padding: 16px 18px; display: grid; gap: 4px; }
+  .cifra .eti { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--tenue); }
+  .cifra b { font-size: 34px; line-height: 1.1; color: var(--primario); font-variant-numeric: tabular-nums; }
+  .cifra .tenue { font-size: 14px; }
+  .grafico-blocco h2, .due h2 { margin-top: 0; }
+  .grafico { position: relative; margin: 18px 0 0 36px; }
+  .griglia { position: absolute; inset: 0 0 24px 0; pointer-events: none; }
+  .griglia span { position: absolute; left: 0; right: 0; border-top: 1px solid color-mix(in srgb, var(--linea) 70%, transparent); }
+  .griglia i { position: absolute; right: calc(100% + 8px); transform: translateY(-50%); font-style: normal; font-size: 12px; color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .barre { position: relative; display: flex; align-items: flex-end; height: 220px; gap: 2px; }
+  .barre.fitte { gap: 0; }
+  .col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; cursor: pointer; }
+  .barra { display: block; width: 100%; background: var(--primario); border-radius: 4px 4px 0 0; min-height: 0; }
+  .barre.fitte .barra { border-radius: 1px 1px 0 0; }
+  .col.oggi .barra { background: color-mix(in srgb, var(--primario) 45%, transparent); }
+  .col:hover .barra, .col.attiva .barra { background: var(--accento); }
+  .asse { display: flex; gap: 2px; height: 24px; align-items: flex-end; }
+  .barre.fitte + .asse { gap: 0; }
+  .asse span { flex: 1 1 0; min-width: 0; font-size: 12px; color: var(--tenue); white-space: nowrap; overflow: visible; }
+  .asse span:last-child { text-align: right; }
+  .barre:not(.fitte) .col, .barre:not(.fitte) + .asse span { max-width: 44px; }
+  .barre:not(.fitte) + .asse span:last-child { text-align: left; }
+  .info-barra { min-height: 1.5em; margin: 10px 0 0; font-size: 15px; }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--primario); }
+  .tabella { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .tabella th, .tabella td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--linea); }
+  .tabella td:not(:first-child), .tabella th:not(:first-child) { text-align: right; }
+  .due { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-top: 16px; align-items: start; }
+  .colonna { display: grid; gap: 16px; }
+  .elenco { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .riga { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .riga span { min-width: 0; overflow-wrap: anywhere; }
+  .riga small { font-size: 12px; }
+  .riga b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .misura { display: block; height: 6px; background: color-mix(in srgb, var(--linea) 60%, transparent); border-radius: 3px; margin-top: 4px; }
+  .misura span { display: block; height: 100%; background: var(--primario); border-radius: 3px; }
+  .piccolo { font-size: 14px; margin-top: 16px; }
+  @media (max-width: 760px) {
+    .due { grid-template-columns: 1fr; }
+    .barre { height: 170px; }
+  }
+</style>

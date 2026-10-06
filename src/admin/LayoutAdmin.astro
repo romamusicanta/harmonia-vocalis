@@ -14,7 +14,7 @@ import TestaApp from '../componenti/TestaApp.astro';
 
 interface Props {
   titolo: string;
-  sezione?: 'pubblicazione' | 'concerti' | 'testi' | 'foto' | 'prove' | 'assenze' | 'avvisi' | 'repertorio';
+  sezione?: 'pubblicazione' | 'concerti' | 'testi' | 'foto' | 'prove' | 'assenze' | 'avvisi' | 'repertorio' | 'statistiche';
 }
 const { titolo, sezione } = Astro.props;
 const veste = coro.aspetto.veste;
@@ -68,6 +68,8 @@ const stileColori = colori ? Object.entries(colori).filter(([, v]) => v).map(([k
       import '../motore/tendine';
       // "Pubblica ora": rotella e attesa della nuova versione, in tutte le pagine
       import './pubblicazione-client';
+      // Le visite al sito pubblico da questo browser non entrano nelle statistiche (src/area/visite.ts)
+      try { localStorage.setItem('hv-redattore', '1'); } catch {}
     </script>
   </body>
 </html>
