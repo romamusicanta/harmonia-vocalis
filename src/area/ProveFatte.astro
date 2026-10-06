@@ -7,7 +7,8 @@
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
 import { proveFatte, type GiornoRegistrato } from './registrazioni';
-import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
+import { repertorio, type Pezzo } from './repertorio';
+import LinkPezzo from './LinkPezzo.astro';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import type { Evento } from './dati';
 import Errore from './Errore.astro';
@@ -24,7 +25,6 @@ try {
 }
 const peso = (n?: number) => (n ? (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(n > 100 * 1024 * 1024 ? 0 : 1).replace('.', ',')} MB` : `${Math.round(n / 1024)} KB`) : '');
 const valore = (e: Evento | undefined, k: string) => e?.righe.find(([x]) => x === k)?.[1];
-const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 // Un solo nome per la prova di tutti i giorni
 const nome = (t: string) => (/^prova( settimanale)?$/i.test(t) ? 'Prova' : t);
 const conRegistrazioni = elenco.filter((x) => x.giorno?.tracce.length || x.giorno?.link || valore(x.prova, 'Registrazione')).length;
@@ -62,7 +62,7 @@ const conRegistrazioni = elenco.filter((x) => x.giorno?.tracce.length || x.giorn
             <h3 class="titolo-prova">{nome(prova?.titolo ?? giorno!.titolo)}</h3>
             {(rep || brani) && (
               <p class="provati">
-                {rep && <><b>Pezzi:</b> {rep.split(SEPARATORE_PEZZI).map((t, j) => { const p = pezzoDi(t); return <>{j > 0 && ', '}{p ? <a href={`/area/repertorio#${p.id}`}>{t}</a> : t}</>; })}</>}
+                {rep && <><b>Pezzi:</b> {rep.split(SEPARATORE_PEZZI).map((t, j) => <>{j > 0 && ', '}<LinkPezzo pezzi={pezzi} nome={t} /></>)}</>}
                 {rep && brani && <br />}
                 {brani && <><b>Brani:</b> {brani}</>}
               </p>

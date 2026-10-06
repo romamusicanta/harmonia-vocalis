@@ -4,15 +4,19 @@
 // nell'ordine in cui si scelgono, ognuno con "Togli". Al modulo arrivano come tanti campi <nome>
 // con "Autore – Titolo" (il solo titolo non distingue due Magnificat). I nomi già salvati con il
 // solo titolo si riconoscono (trovaPezzo) e al salvataggio diventano completi; quelli che non sono
-// (più) nel repertorio restano scelti come sono.
-import { nomeCompleto, trovaPezzo, type Pezzo } from './repertorio';
+// (più) nel repertorio restano scelti come sono. Sotto ogni opera con brani separati si possono
+// scegliere anche i singoli brani ("Autore – Titolo › Brano", dal 6/10/2026): nell'area coristi il
+// brano apre il suo spartito.
+import { nomeBrano, nomeCompleto, trovaVoce, type Pezzo } from './repertorio';
 
 interface Props { nome: string; etichetta: string; pezzi: Pezzo[]; scelti: string[]; aiuto?: string }
 const { nome, etichetta, pezzi, scelti, aiuto } = Astro.props;
 const id = `scelta-${nome}`;
+const cerca = (...v: string[]) => v.join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const voce = (nome: string) => {
-  const p = trovaPezzo(pezzi, nome);
-  return { titolo: p ? nomeCompleto(p) : nome, testo: p ? nomeCompleto(p) : nome };
+  const v = trovaVoce(pezzi, nome);
+  const t = !v ? nome : v.brano ? nomeBrano(v.pezzo, v.brano) : nomeCompleto(v.pezzo);
+  return { titolo: t, testo: t };
 };
 ---
 
@@ -23,9 +27,14 @@ const voce = (nome: string) => {
   ) : (
     <>
       <div class="cerca-pezzo">
-        <input id={id} type="search" role="combobox" aria-expanded="false" aria-controls={`${id}-elenco`} aria-autocomplete="list" autocomplete="off" placeholder="Cerca per autore o titolo…" aria-label={`${etichetta}: cerca un pezzo`} />
+        <input id={id} type="search" role="combobox" aria-expanded="false" aria-controls={`${id}-elenco`} aria-autocomplete="list" autocomplete="off" placeholder="Cerca per autore, titolo o brano…" aria-label={`${etichetta}: cerca un pezzo`} />
         <ul class="risultati" id={`${id}-elenco`} role="listbox" hidden>
-          {pezzi.map((p) => <li role="option" data-titolo={nomeCompleto(p)} data-testo={nomeCompleto(p)} data-cerca={`${p.autore} ${p.titolo}`.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}><b>{p.titolo}</b>{p.autore && <small>{p.autore}</small>}</li>)}
+          {pezzi.map((p) => (
+            <>
+              <li role="option" data-titolo={nomeCompleto(p)} data-testo={nomeCompleto(p)} data-cerca={cerca(p.autore, p.titolo, ...p.brani.map((b) => b.nome))}><b>{p.titolo}</b>{p.autore && <small>{p.autore}</small>}</li>
+              {p.brani.map((b) => <li role="option" class="brano" data-titolo={nomeBrano(p, b)} data-testo={nomeBrano(p, b)} data-cerca={cerca(p.autore, p.titolo, b.nome)}><b>{b.nome}</b><small>Brano di {nomeCompleto(p)}</small></li>)}
+            </>
+          ))}
           <li class="nessuno" hidden>Nessun pezzo trovato</li>
         </ul>
       </div>
@@ -48,6 +57,8 @@ const voce = (nome: string) => {
   .scelta-pezzi .risultati[hidden], .scelta-pezzi .risultati li[hidden] { display: none; }
   .scelta-pezzi .risultati li { padding: 9px 10px; cursor: pointer; border-radius: var(--raggio); display: grid; }
   .scelta-pezzi .risultati li small { color: var(--tenue); font-size: 13px; }
+  .scelta-pezzi .risultati li.brano { padding-left: 26px; }
+  .scelta-pezzi .risultati li.brano b { font-weight: 500; }
   .scelta-pezzi .risultati li[aria-selected="true"], .scelta-pezzi .risultati li:hover { background: var(--fondo); }
   .scelta-pezzi .risultati li.gia { opacity: .45; }
   .scelta-pezzi .risultati .nessuno { cursor: default; color: var(--tenue); }
@@ -85,7 +96,8 @@ const voce = (nome: string) => {
       const parole = semplice(input.value).split(/\s+/).filter(Boolean);
       const gia = giaScelti();
       opzioni.forEach((o) => {
-        o.hidden = !parole.every((p) => o.dataset.cerca!.includes(p));
+        // I brani di un'opera compaiono solo cercando (il titolo dell'opera o il nome del brano)
+        o.hidden = !parole.every((p) => o.dataset.cerca!.includes(p)) || (o.classList.contains('brano') && !parole.length);
         o.classList.toggle('gia', gia.has(o.dataset.titolo!));
       });
       nessuno.hidden = visibili().length > 0;

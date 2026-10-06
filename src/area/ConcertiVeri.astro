@@ -8,7 +8,8 @@ import Icona from '../componenti/Icona.astro';
 import { linkMappa, parti, prossimiConcerti, slug } from '../motore/concerti';
 import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato } from './dati';
 import { concertiInArrivo, convocazioni, vuota, type Convocazione } from './convocazioni';
-import { repertorio, type Pezzo, trovaPezzo } from './repertorio';
+import { repertorio, type Pezzo } from './repertorio';
+import LinkPezzo from './LinkPezzo.astro';
 import Errore from './Errore.astro';
 
 let errore: unknown;
@@ -31,7 +32,6 @@ try {
   errore = e;
 }
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
-const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 const percento = (parte: number, totale: number) => `${totale ? Math.round((parte / totale) * 1000) / 10 : 0}%`;
 ---
 
@@ -91,13 +91,13 @@ const percento = (parte: number, totale: number) => `${totale ? Math.round((part
               {c && c.repertorio.length > 0 && (
                 <>
                   <h3 style="margin-top:20px">In programma</h3>
-                  <ol class="elenco-puntato" style="font-size:15px">{c.repertorio.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</li>; })}</ol>
+                  <ol class="elenco-puntato" style="font-size:15px">{c.repertorio.map((t) => <li><LinkPezzo pezzi={pezzi} nome={t} stile="text-decoration:underline" /></li>)}</ol>
                 </>
               )}
               {c && c.bis.length > 0 && (
                 <>
                   <h3 style="margin-top:20px">Bis</h3>
-                  <ol class="elenco-puntato" style="font-size:15px">{c.bis.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="text-decoration:underline">{t}</a> : t}</li>; })}</ol>
+                  <ol class="elenco-puntato" style="font-size:15px">{c.bis.map((t) => <li><LinkPezzo pezzi={pezzi} nome={t} stile="text-decoration:underline" /></li>)}</ol>
                 </>
               )}
               {(c?.arrivare || luogo) && <h3 style="margin-top:20px">Come arrivare</h3>}

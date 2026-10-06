@@ -13,7 +13,8 @@ import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nom
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
-import { nomeCompleto, repertorio, type Pezzo, trovaPezzo } from './repertorio';
+import { repertorio, type Pezzo } from './repertorio';
+import LinkPezzo from './LinkPezzo.astro';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import { comeHtml } from './testo';
@@ -65,7 +66,6 @@ const mieQuote = leQuote && io ? (() => {
 // "Scrivi un avviso": il Maestro e il tesoriere li scrivono dalla loro area, gli altri ruoli dall'Amministrazione
 const scriviAvvisi = ruoli.some((r) => r.id === 'maestro') ? '/maestro/avvisi' : ruoli.some((r) => r.id === 'tesoriere') && !ruoli.some((r) => r.id === 'amministratori' || r.id === 'presidente') ? '/tesoriere/avvisi' : '/admin/avvisi';
 const riga = (e: Evento, k: string) => e.righe.find(([x]) => x === k)?.[1];
-const pezzoDi = (nome: string) => trovaPezzo(pezzi, nome);
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const traGiorni = (iso: string) => { const n = Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000); return n === 0 ? 'Oggi' : n === 1 ? 'Domani' : `Tra ${n} giorni`; };
 const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -117,7 +117,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
                     <>
                       <span class="eti gialla" style="margin-top:18px">Da preparare</span>
                       <ul class="brani">
-                        {rep.map((t) => { const p = pezzoDi(t); return <li>{p ? <a href={`/area/repertorio#${p.id}`} style="color:inherit;text-decoration:underline">{nomeCompleto(p)}</a> : t}</li>; })}
+                        {rep.map((t) => <li><LinkPezzo pezzi={pezzi} nome={t} stile="color:inherit;text-decoration:underline" /></li>)}
                         {brani && <li>{brani}</li>}
                       </ul>
                     </>

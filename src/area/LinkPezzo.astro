@@ -1,0 +1,19 @@
+---
+// Un pezzo nominato in una prova o in una convocazione ("Autore – Titolo", oppure
+// "Autore – Titolo › Brano" per un solo brano di un'opera): il pezzo porta alla sua scheda nel
+// Repertorio, il brano apre il suo spartito (se il brano non c'è più, porta almeno all'opera). Un
+// nome che non è (più) nel repertorio resta testo.
+import { linkDelSito } from './file';
+import { nomeCompleto, SEPARATORE_BRANO, trovaPezzo, trovaVoce, type Pezzo } from './repertorio';
+
+interface Props { pezzi: Pezzo[]; nome: string; stile?: string }
+const { pezzi, nome, stile } = Astro.props;
+const i = nome.lastIndexOf(SEPARATORE_BRANO.trim());
+const opera = i > 0 ? trovaPezzo(pezzi, nome.slice(0, i)) : undefined;
+const v = trovaVoce(pezzi, nome);
+---
+{v ? (
+  <><a href={`/area/repertorio#${v.pezzo.id}`} style={stile}>{nomeCompleto(v.pezzo)}</a>{v.brano && <>{SEPARATORE_BRANO}<a href={linkDelSito(v.brano.link)} target="_blank" rel="noopener" style={stile} title={`Spartito di ${v.brano.nome}`}>{v.brano.nome}</a></>}</>
+) : opera ? (
+  <><a href={`/area/repertorio#${opera.id}`} style={stile}>{nomeCompleto(opera)}</a>{SEPARATORE_BRANO}{nome.slice(i + 1).trim()}</>
+) : nome}

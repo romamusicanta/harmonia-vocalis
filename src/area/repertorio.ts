@@ -49,6 +49,21 @@ export function trovaPezzo<T extends Pick<Pezzo, 'autore' | 'titolo'>>(pezzi: T[
   return pezzi.find((p) => confrontabile(nomeCompleto(p)) === n) ?? pezzi.find((p) => confrontabile(p.titolo) === n);
 }
 
+// Un brano di un'opera (uno dei "brani separati" del pezzo, con il suo spartito) si nomina
+// "Autore – Titolo › Brano": in una prova si può chiedere di preparare solo quello (dal 6/10/2026)
+export const SEPARATORE_BRANO = ' › ';
+export const nomeBrano = (p: Pick<Pezzo, 'autore' | 'titolo'>, b: Pick<FileBrano, 'nome'>) => `${nomeCompleto(p)}${SEPARATORE_BRANO}${b.nome}`;
+export function trovaVoce<T extends Pick<Pezzo, 'autore' | 'titolo' | 'brani'>>(pezzi: T[], nome: string): { pezzo: T; brano?: FileBrano } | undefined {
+  const pezzo = trovaPezzo(pezzi, nome);
+  if (pezzo) return { pezzo };
+  const i = nome.lastIndexOf(SEPARATORE_BRANO.trim());
+  if (i < 0) return undefined;
+  const opera = trovaPezzo(pezzi, nome.slice(0, i));
+  const b = confrontabile(nome.slice(i + 1));
+  const brano = opera?.brani.find((x) => confrontabile(x.nome) === b);
+  return opera && brano ? { pezzo: opera, brano } : undefined;
+}
+
 const aBrani = (v = '') => v.split('\n').map((r) => r.split(' | ')).filter(([, l]) => l).map(([nome, link]) => ({ nome: nome.trim(), link: link.trim() }));
 const daBrani = (b: FileBrano[]) => b.map((x) => `${x.nome} | ${x.link}`).join('\n');
 
