@@ -9,6 +9,8 @@
 // uscite della cassa con le categorie degli onorari) e quanto resta; mese per mese, con il link che
 // apre in Entrate e uscite il pagamento già scritto.
 // Redattori e amministratori (dal 7/10/2026) la vedono in sola lettura: campi bloccati, niente Paga né Aggiungi.
+// Dal 7/10/2026 chi dirige una prova si sceglie dall'elenco dei maestri (riquadro «I maestri», scheda
+// "Maestri" del foglio, /tesoriere/maestri/elenco), ognuno con il suo onorario proposto.
 import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
@@ -17,7 +19,7 @@ import { scriveTesoriere } from '../../area/accesso';
 import { coro } from '../../motore/coro';
 import {
   CATEGORIE_ONORARI, cassa, configurata, direttore, euro, giornoBreve, maiuscola, meseDi, meseEsteso, movimenti, nomeStagione, onorari, onorariPerMese, pagatoPer,
-  proveDeiMaestri, quote, stagioneCorrente, type Cassa, type ProvaMaestro,
+  elencoMaestri, proveDeiMaestri, quote, stagioneCorrente, type Cassa, type Maestro, type ProvaMaestro,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -31,11 +33,13 @@ const anno = chiesta >= 2000 && chiesta <= corrente ? chiesta : corrente;
 
 let errore: unknown;
 let prove: ProvaMaestro[] = [];
+let maestri: Maestro[] = [];
 let conti: Cassa | undefined;
 if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
 else {
   try {
-    const [p, q, m] = await Promise.all([proveDeiMaestri(anno), quote(), movimenti()]);
+    maestri = await elencoMaestri();
+    const [p, q, m] = await Promise.all([proveDeiMaestri(anno, maestri), quote(), movimenti()]);
     prove = p;
     conti = cassa(anno, q, m);
   } catch (e) {
@@ -52,8 +56,11 @@ const maturato = {
 const pagato = conti ? { direttore: pagatoPer(conti, CATEGORIE_ONORARI.direttore), sostituti: pagatoPer(conti, CATEGORIE_ONORARI.sostituti), vocalita: pagatoPer(conti, CATEGORIE_ONORARI.vocalita) } : { direttore: 0, sostituti: 0, vocalita: 0 };
 const totaleMaturato = maturato.direttore + maturato.sostituti + maturato.vocalita;
 const totalePagato = pagato.direttore + pagato.sostituti + pagato.vocalita;
-// I nomi già usati, per scegliere il maestro di una prova
-const nomi = [...new Set([direttore(), ...prove.map((p) => p.maestro).filter(Boolean)])];
+// Chi può dirigere una prova: i maestri attivi, più quello già scritto se non c'è più nell'elenco
+const scelte = (attuale: string) => {
+  const attivi = maestri.filter((m) => m.attivo || m.nome === attuale);
+  return attuale && !attivi.some((m) => m.nome === attuale) ? [...attivi, { nome: attuale, onorario: 0, attivo: false, principale: false, note: '' }] : attivi;
+};
 // Il pagamento già scritto nel modulo di Entrate e uscite
 const pagamento = (categoria: string, importo: number, descrizione: string) => `/tesoriere/cassa?${new URLSearchParams({ tipo: 'Uscita', 'categoria-uscita': categoria, importo: String(importo).replace('.', ','), descrizione })}#modulo`;
 const mesiProve = [...new Set(prove.map((p) => meseDi(p.data)))].reverse();
@@ -68,7 +75,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Prove e maestri</h1>
-        <p>Le prove del calendario fino a oggi, di base dirette dal Maestro, {direttore()}. Per ogni prova vale l'onorario scritto nell'elenco qui sotto, che può cambiare da una prova all'altra: per una prova nuova si propone {euro(onorari().prova)}. {!solaLettura && 'Segna i sostituti, le prove gratuite, gli onorari diversi e le lezioni di vocalità: si salva subito. '}Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
+        <p>Le prove del calendario fino a oggi, di base dirette dal Maestro, {direttore()}. Per ogni prova vale l'onorario scritto nell'elenco qui sotto, che può cambiare da una prova all'altra: l'onorario proposto per ogni maestro si cambia nel riquadro «I maestri». {!solaLettura && 'Segna i sostituti, le prove gratuite, gli onorari diversi e le lezioni di vocalità: si salva subito. '}Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
       </div>
     </div>
   </div>
@@ -124,28 +131,53 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
           </div>
           {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Maestro per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>}
 
+          <h2 class="titolo-t no-stampa">I maestri</h2>
+          <div class="carta elenco-maestri no-stampa">
+            <p class="cc tenue" style="margin:0">Chi può dirigere le prove, con l'onorario che si propone scegliendolo in una prova: in ogni prova si può sempre correggere, e fa fede quello. {!solaLettura && 'Un maestro che non dirige più si toglie dal menu con «Attivo»: resta nelle prove già fatte.'}</p>
+            <ul>
+              {maestri.map((m) => (
+                <li data-prima={m.nome}>
+                  <label class="nome-m"><span>{m.principale ? 'Maestro del coro' : 'Maestro'}</span><input name="nome" value={m.nome} disabled={solaLettura || m.principale} maxlength="80" /></label>
+                  <label class="onorario-m"><span>Onorario proposto €</span><input name="onorario" inputmode="decimal" value={String(m.onorario).replace('.', ',')} disabled={solaLettura} /></label>
+                  <label class="attivo-m"><input type="checkbox" name="attivo" checked={m.attivo} disabled={solaLettura || m.principale} />Attivo</label>
+                  <span class="stato-m" aria-live="polite"></span>
+                </li>
+              ))}
+              {!solaLettura && (
+                <li class="nuovo-m">
+                  <label class="nome-m"><span>Aggiungi un maestro</span><input name="nome" maxlength="80" placeholder="Nome e cognome" /></label>
+                  <label class="onorario-m"><span>Onorario proposto €</span><input name="onorario" inputmode="decimal" value={String(onorari().sostituto).replace('.', ',')} /></label>
+                  <button type="button" class="btn g piccolo aggiungi-m">Aggiungi</button>
+                  <span class="stato-m" aria-live="polite"></span>
+                </li>
+              )}
+            </ul>
+          </div>
+
           <h2 class="titolo-t no-stampa">Le prove</h2>
           {!solaLettura && <form class="carta aggiungi-prova no-stampa">
             <div class="cc">
               <b style="color:var(--primario)">Una prova che non è nel calendario?</b>
               <div class="riga-aggiungi">
                 <label>Data<input type="date" name="data" required /></label>
-                <label>Diretta da<input name="maestro" list="nomi-maestri" value={direttore()} required /></label>
-                <label>Onorario (€)<input name="onorario" inputmode="decimal" value={String(onorari().prova)} /></label>
+                <label>Diretta da<select name="maestro">{scelte('').map((m) => <option value={m.nome} data-onorario={String(m.onorario)} selected={m.principale}>{m.nome}</option>)}</select></label>
+                <label>Onorario (€)<input name="onorario" inputmode="decimal" value={String(maestri.find((m) => m.principale)?.onorario ?? onorari().prova).replace('.', ',')} /></label>
                 <button class="btn g piccolo" type="submit">Aggiungi</button>
               </div>
             </div>
           </form>}
-          <datalist id="nomi-maestri">{nomi.map((n) => <option value={n} />)}</datalist>
 
           {mesiProve.map((mese) => (
             <div class="carta mese-prove no-stampa">
               <div class="ct"><h2>{maiuscola(meseEsteso(mese))}</h2></div>
-              <ul class="prove-maestri" data-direttore={direttore()} data-prova={String(onorari().prova)} data-sostituto={String(onorari().sostituto)}>
+              <ul class="prove-maestri">
                 {prove.filter((p) => meseDi(p.data) === mese).reverse().map((p) => (
                   <li class:list={{ cambiata: p.cambiata }} data-id={p.id} data-data={p.data}>
                     <span class="quando"><b>{giornoBreve(p.data).slice(0, 5)}</b><small>{!p.inCalendario ? 'non in calendario' : /^prova( settimanale)?$/i.test(p.titolo) ? '' : p.titolo}</small></span>
-                    <label class="campo-m"><span>Diretta da</span><input name="maestro" list="nomi-maestri" value={p.maestro} placeholder="Nessuno" disabled={solaLettura} /></label>
+                    <label class="campo-m"><span>Diretta da</span><select name="maestro" disabled={solaLettura}>
+                      {scelte(p.maestro).map((m) => <option value={m.nome} data-onorario={String(m.onorario)} selected={m.nome === p.maestro}>{m.nome}{!m.attivo && m.onorario === 0 && !maestri.some((x) => x.nome === m.nome) ? ' (non nell’elenco)' : ''}</option>)}
+                      <option value="" data-onorario="0" selected={!p.maestro}>Nessuno (prova non pagata)</option>
+                    </select></label>
                     <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={String(p.onorario).replace('.', ',')} disabled={solaLettura} /></label>
                     <label class="campo-v"><span>Vocalità</span>
                       <select name="vocalita" disabled={solaLettura}>
@@ -169,6 +201,14 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
 
 <style>
   .aggiungi-prova { margin-bottom: 20px; }
+  .elenco-maestri { margin-bottom: 28px; }
+  .elenco-maestri ul { list-style: none; margin: 0; padding: 0; }
+  .elenco-maestri li { display: grid; grid-template-columns: minmax(200px, 1.5fr) 150px auto 1fr; gap: 12px; align-items: end; padding: 12px 18px; border-top: 1px solid var(--linea); }
+  .elenco-maestri label:not(.attivo-m) { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--primario); }
+  .elenco-maestri input:not([type='checkbox']) { font: inherit; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); height: 44px; width: 100%; }
+  .elenco-maestri input:disabled { opacity: 1; color: var(--testo); background: var(--fondo); border-color: transparent; }
+  .attivo-m { display: flex; gap: 8px; align-items: center; height: 44px; font-size: 14px; font-weight: 700; color: var(--primario); }
+  .attivo-m input { width: 20px; height: 20px; }
   .aggiungi-prova .cc { display: grid; gap: 12px; }
   .riga-aggiungi { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
   .riga-aggiungi label, .prove-maestri label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--primario); }
@@ -203,6 +243,8 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
     .riepilogo-stampa :global(:is(th, td)) { padding: 6px 8px; }
   }
   @media (max-width: 759.98px) {
+    .elenco-maestri li { grid-template-columns: 1fr 1fr; }
+    .elenco-maestri .nome-m { grid-column: 1 / -1; }
     .prove-maestri li { grid-template-columns: 1fr 1fr; }
     .prove-maestri .quando, .prove-maestri .campo-m { grid-column: 1 / -1; }
   }
@@ -231,11 +273,9 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
         stato.className = 'stato-m errore'; stato.textContent = (e as Error).message;
       }
     };
-    // Cambiando chi dirige, l'onorario proposto: quello del Maestro, quello da sostituto per gli altri, 0 senza nessuno
-    const base = (li.parentElement as HTMLElement).dataset;
+    // Cambiando chi dirige, l'onorario proposto per quel maestro (0 senza nessuno)
     campo('maestro').addEventListener('change', () => {
-      const m = campo('maestro').value.trim();
-      campo('onorario').value = !m ? '0' : m === base.direttore ? base.prova! : base.sostituto!;
+      campo('onorario').value = proposto(campo('maestro') as HTMLSelectElement);
       invia();
     });
     campo('onorario').addEventListener('change', invia);
@@ -243,6 +283,39 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
     li.querySelector('.ripristina')?.addEventListener('click', async () => {
       try { await salva({ id: li.dataset.id, elimina: true }); location.reload(); } catch (e) { stato.className = 'stato-m errore'; stato.textContent = (e as Error).message; }
     });
+  });
+
+  const proposto = (s: HTMLSelectElement) => (s.selectedOptions[0]?.dataset.onorario ?? '0').replace('.', ',');
+  const f0 = document.querySelector<HTMLFormElement>('.aggiungi-prova');
+  f0?.querySelector<HTMLSelectElement>('[name="maestro"]')?.addEventListener('change', (e) => {
+    (f0.querySelector('[name="onorario"]') as HTMLInputElement).value = proposto(e.currentTarget as HTMLSelectElement);
+  });
+
+  // L'elenco dei maestri: ogni cambio si salva subito; un maestro nuovo con «Aggiungi»
+  const salvaMaestro = (corpo: object) => fetch('/tesoriere/maestri/elenco', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })
+    .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).errore ?? `Errore ${r.status}`); });
+  document.querySelectorAll<HTMLLIElement>('.elenco-maestri li').forEach((li) => {
+    const stato = li.querySelector<HTMLElement>('.stato-m')!;
+    const val = (n: string) => li.querySelector<HTMLInputElement>(`[name="${n}"]`);
+    const invia = async (ricarica: boolean) => {
+      stato.className = 'stato-m'; stato.textContent = 'Salvo…';
+      try {
+        await salvaMaestro({ prima: li.dataset.prima, nome: val('nome')!.value, onorario: val('onorario')!.value, attivo: val('attivo')?.checked ?? true });
+        if (ricarica) return location.reload();
+        li.dataset.prima = val('nome')!.value.trim();
+        stato.textContent = 'Salvato';
+      } catch (e) {
+        stato.className = 'stato-m errore'; stato.textContent = (e as Error).message;
+      }
+    };
+    if (li.classList.contains('nuovo-m')) {
+      li.querySelector('.aggiungi-m')!.addEventListener('click', () => { if (val('nome')!.value.trim()) invia(true); else val('nome')!.focus(); });
+      return;
+    }
+    // Il nome cambiato o l'attivo cambiano anche i menu delle prove: si ricarica la pagina
+    val('nome')?.addEventListener('change', () => invia(true));
+    val('attivo')?.addEventListener('change', () => invia(true));
+    val('onorario')?.addEventListener('change', () => invia(true));
   });
 
   document.querySelector<HTMLFormElement>('.aggiungi-prova')?.addEventListener('submit', async (e) => {

@@ -340,6 +340,14 @@ export async function scriviRiga(scheda: string, valori: (string | number)[], ri
   await google(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${scheda}!A:${fine}`)}:append?${p}`, { method: 'POST', body: JSON.stringify({ values: [valori] }) });
 }
 
+// Aggiunge più righe in fondo con una richiesta sola
+export async function aggiungiRighe(scheda: string, righe: (string | number)[][], foglio = FOGLIO_CORISTI_ID!) {
+  if (!righe.length) return;
+  const fine = String.fromCharCode(64 + Math.max(...righe.map((r) => r.length)));
+  const p = new URLSearchParams({ valueInputOption: 'USER_ENTERED', insertDataOption: 'OVERWRITE' });
+  await google(`${SHEETS}/${foglio}/values/${encodeURIComponent(`${scheda}!A:${fine}`)}:append?${p}`, { method: 'POST', body: JSON.stringify({ values: righe }) });
+}
+
 // Cancella una riga del foglio
 export async function cancellaRiga(scheda: string, riga: number, foglio = FOGLIO_CORISTI_ID!) {
   await google(`${SHEETS}/${foglio}:batchUpdate`, {

@@ -21,6 +21,9 @@
 // - "Prove dei maestri": le prove del calendario "Prove" per cui qualcosa cambia rispetto al solito
 //   (sostituto, prova gratuita, lezione di vocalità), più le prove non in calendario.
 // - "Verifiche di cassa": saldo del conto corrente e contanti a una data, da confrontare con i conti.
+// - "Maestri" (dal 7/10/2026): chi può dirigere le prove, con l'onorario proposto (il Maestro del coro,
+//   coro.maestro.nome, sempre per primo, e i sostituti), gestito dal tesoriere nella pagina Maestri.
+//   Finché la scheda è vuota l'elenco parte dal Maestro e dai nomi già scritti nelle prove.
 // Come il rendiconto 2025-26 (vedi la relazione del tesoriere), i conti sono "per cassa": vale la
 // data in cui i soldi entrano o escono. Le quote pagate entrano da sole nella cassa, nel mese del
 // pagamento. Gli spartiti comprati per i coristi e da loro rimborsati sono partite di giro: entrano ed
@@ -30,7 +33,7 @@
 import { randomBytes } from 'node:crypto';
 import { FOGLIO_TESORERIA_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { adesso, cancellaRiga, coristi, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { adesso, aggiungiRighe, cancellaRiga, coristi, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
 import { normalizza } from './servizio';
 
 const QUOTE = 'Quote';
@@ -39,6 +42,8 @@ const MOVIMENTI = 'Movimenti';
 const COLONNE_MOVIMENTI = ['ID', 'Data', 'Tipo', 'Categoria', 'Descrizione', 'Importo', 'Note', 'Scritto da', 'Modificato il'];
 const MAESTRI = 'Prove dei maestri';
 const COLONNE_MAESTRI = ['ID prova', 'Data', 'Maestro', 'Onorario', 'Vocalità', 'Importo vocalità', 'Note', 'Segnata da', 'Modificata il'];
+const ELENCO_MAESTRI = 'Maestri';
+const COLONNE_ELENCO_MAESTRI = ['Nome', 'Onorario proposto', 'Attivo', 'Note', 'Modificato da', 'Modificato il'];
 const VERIFICHE = 'Verifiche di cassa';
 const COLONNE_VERIFICHE = ['ID', 'Data', 'Saldo conto corrente', 'Contanti in cassa', 'Note', 'Scritta da'];
 const TUTTI = 'tutti';
@@ -536,9 +541,10 @@ async function righeMaestri() {
 
 // Le prove della stagione fino a oggi: quelle del calendario "Prove" (di base con il Maestro e il
 // suo onorario) con le modifiche del foglio, più quelle aggiunte a mano
-export async function proveDeiMaestri(anno: number): Promise<ProvaMaestro[]> {
+export async function proveDeiMaestri(anno: number, elenco?: Maestro[]): Promise<ProvaMaestro[]> {
   const fine = [fineDi(anno), oggi()].sort()[0];
-  const [calendario, righe] = await Promise.all([eventi(inizioDi(anno), fine), righeMaestri()]);
+  const [calendario, righe, maestri] = await Promise.all([eventi(inizioDi(anno), fine), righeMaestri(), elenco ?? elencoMaestri()]);
+  const proposto = maestri.find((m) => m.principale)?.onorario ?? onorari().prova;
   const perId = new Map(righe.filter((r) => r['ID prova']).map((r) => [r['ID prova'], r]));
   const daRiga = (r: Record<string, string> & { riga: number }) => {
     const v = (/^(singola|doppia)/i.exec(r['Vocalità'] ?? '')?.[1]?.toLowerCase() ?? 'nessuna') as Vocalita;
@@ -550,7 +556,7 @@ export async function proveDeiMaestri(anno: number): Promise<ProvaMaestro[]> {
       const r = perId.get(e.id);
       return {
         id: e.id, data: e.data, titolo: e.titolo, inCalendario: true,
-        ...(r ? daRiga(r) : { maestro: direttore(), onorario: onorari().prova, vocalita: 'nessuna' as Vocalita, importoVocalita: 0, note: '', cambiata: false }),
+        ...(r ? daRiga(r) : { maestro: direttore(), onorario: proposto, vocalita: 'nessuna' as Vocalita, importoVocalita: 0, note: '', cambiata: false }),
       };
     });
   const aMano = righe
@@ -574,10 +580,69 @@ export async function salvaProvaMaestro(d: { id?: string; data?: string; maestro
   if (!data) throw new Error('Data della prova non valida.');
   const vocalita = (['nessuna', 'singola', 'doppia'] as const).find((x) => x === d.vocalita) ?? 'nessuna';
   const maestro = (d.maestro ?? direttore()).trim().slice(0, 80);
-  const onorario = d.onorario !== undefined && d.onorario >= 0 ? centesimi(d.onorario) : maestro === direttore() ? onorari().prova : maestro ? onorari().sostituto : 0;
+  const onorario = d.onorario !== undefined && d.onorario >= 0 ? centesimi(d.onorario) : maestro ? onorarioProposto(await elencoMaestri(), maestro) : 0;
   const valori = [testo(id), perFoglio(data), testo(maestro), onorario, vocalita === 'nessuna' ? '' : maiuscola(vocalita), importoVocalita(vocalita), testo((d.note ?? '').trim().slice(0, 200)), da, adesso()];
   await scriviRiga(MAESTRI, valori, esistente?.riga, FOGLIO_TESORERIA_ID);
   return { id };
+}
+
+// ——— L'elenco dei maestri (scheda "Maestri", dal 7/10/2026) ———
+
+export interface Maestro { nome: string; onorario: number; attivo: boolean; principale: boolean; note: string; riga?: number }
+
+const stessoNome = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+export const onorarioProposto = (elenco: Maestro[], nome: string) => elenco.find((m) => stessoNome(m.nome, nome))?.onorario ?? onorari().sostituto;
+
+// I maestri: il Maestro del coro per primo, poi gli altri (attivi prima, in ordine di nome). Con la
+// scheda vuota, quelli di partenza: il Maestro e i nomi già scritti nelle prove, con gli onorari di
+// coro.config.ts (si scrivono nella scheda al primo salvataggio)
+export async function elencoMaestri(): Promise<Maestro[]> {
+  await idScheda(ELENCO_MAESTRI, COLONNE_ELENCO_MAESTRI, FOGLIO_TESORERIA_ID);
+  const righe = (await leggiScheda(ELENCO_MAESTRI, FOGLIO_TESORERIA_ID)).filter((r) => r['Nome']?.trim());
+  const elenco: Maestro[] = righe.map((r) => ({
+    nome: r['Nome'].trim(), onorario: numero(r['Onorario proposto']), attivo: !/^(no|falso|false)$/i.test(r['Attivo']?.trim() ?? ''),
+    principale: stessoNome(r['Nome'], direttore()), note: r['Note'] ?? '', riga: r.riga,
+  }));
+  if (!elenco.some((m) => m.principale)) elenco.push({ nome: direttore(), onorario: onorari().prova, attivo: true, principale: true, note: '' });
+  if (!righe.length) {
+    const usati = (await righeMaestri()).map((r) => r['Maestro']?.trim()).filter((n): n is string => Boolean(n));
+    for (const n of new Set(usati)) if (!elenco.some((m) => stessoNome(m.nome, n))) elenco.push({ nome: n, onorario: onorari().sostituto, attivo: true, principale: false, note: '' });
+  }
+  return elenco.sort((a, b) => Number(b.principale) - Number(a.principale) || Number(b.attivo) - Number(a.attivo) || a.nome.localeCompare(b.nome, 'it'));
+}
+
+const rigaMaestro = (m: Maestro, da: string) => [testo(m.nome), m.onorario, m.attivo ? 'Sì' : 'No', testo(m.note), da, adesso()];
+
+// Aggiunge o cambia un maestro (prima = il nome di prima, per rinominarlo: le prove già scritte con
+// quel nome lo seguono). Se cambia l'onorario proposto del Maestro del coro, le prove già fatte che lo
+// usavano senza una riga propria la ricevono con l'onorario di prima: fa fede quello di ogni prova,
+// e il nuovo vale per le prove dopo
+export async function salvaMaestro(d: { prima?: string; nome: string; onorario: number; attivo: boolean; note?: string }, da: string) {
+  const elenco = await elencoMaestri();
+  const nome = d.nome.trim().replace(/\s+/g, ' ').slice(0, 80);
+  if (!nome) throw new Error('Scrivi il nome del maestro.');
+  if (!(d.onorario >= 0)) throw new Error('Onorario non valido.');
+  const vecchio = d.prima ? elenco.find((m) => stessoNome(m.nome, d.prima!)) : undefined;
+  if (d.prima && !vecchio) throw new Error('Maestro non trovato: ricarica la pagina.');
+  if (elenco.some((m) => m !== vecchio && stessoNome(m.nome, nome))) throw new Error(`C'è già un maestro con il nome ${nome}.`);
+  if (vecchio?.principale && !stessoNome(nome, direttore())) throw new Error('Il nome del Maestro del coro si cambia nei dati del sito, non qui.');
+  const nuovo: Maestro = { nome: vecchio?.principale ? direttore() : nome, onorario: centesimi(d.onorario), attivo: vecchio?.principale ? true : d.attivo, principale: Boolean(vecchio?.principale), note: (d.note ?? vecchio?.note ?? '').trim().slice(0, 200) };
+  // Le prove del Maestro senza riga propria tengono l'onorario di prima
+  if (vecchio?.principale && vecchio.onorario !== nuovo.onorario) {
+    const anni = [stagioneCorrente() - 1, stagioneCorrente()];
+    const solite = (await Promise.all(anni.map((a) => proveDeiMaestri(a, elenco)))).flat().filter((p) => p.inCalendario && !p.cambiata);
+    await aggiungiRighe(MAESTRI, solite.map((p) => [testo(p.id), perFoglio(p.data), testo(p.maestro), p.onorario, '', 0, '', da, adesso()]), FOGLIO_TESORERIA_ID);
+  }
+  // La prima volta si scrive tutto l'elenco di partenza
+  const daScrivere = elenco.filter((m) => m.riga === undefined && m !== vecchio);
+  if (daScrivere.length) await aggiungiRighe(ELENCO_MAESTRI, daScrivere.map((m) => rigaMaestro(m, da)), FOGLIO_TESORERIA_ID);
+  await scriviRiga(ELENCO_MAESTRI, rigaMaestro(nuovo, da), vecchio?.riga, FOGLIO_TESORERIA_ID);
+  // Rinominato: le prove già scritte con il nome di prima
+  if (vecchio && !stessoNome(vecchio.nome, nuovo.nome)) {
+    for (const r of (await righeMaestri()).filter((x) => stessoNome(x['Maestro'] ?? '', vecchio.nome))) {
+      await scriviRiga(MAESTRI, [testo(r['ID prova']), perFoglio(dataFoglio(r['Data']) ?? ''), testo(nuovo.nome)], r.riga, FOGLIO_TESORERIA_ID);
+    }
+  }
 }
 
 export interface MeseMaestri { mese: string; proveDirettore: number; direttore: number; sostituti: Map<string, { prove: number; totale: number }>; vocalita: { singole: number; doppie: number; totale: number } }
