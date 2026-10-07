@@ -21,8 +21,9 @@ const CI = 'https://cloudidentity.googleapis.com/v1';
 // Il token dell'account di servizio dura un'ora: si tiene finché vale
 let inCache: { token: string; scade: number } | undefined;
 
-export async function tokenServizio() {
-  if (inCache && Date.now() < inCache.scade) return inCache.token;
+// L'accesso federato (il token OIDC di Vercel scambiato da Google): serve per agire come l'account di
+// servizio (tokenServizio) e per firmare a suo nome (src/area/posta.ts)
+export async function tokenFederato() {
   if (!GCP_PROJECT_NUMBER || !GCP_SERVICE_ACCOUNT_EMAIL) throw new Error('mancano le variabili GCP_* sul server');
   const sts = await fetch('https://sts.googleapis.com/v1/token', {
     method: 'POST',
@@ -37,7 +38,12 @@ export async function tokenServizio() {
     }),
   });
   if (!sts.ok) throw new Error(`scambio del token OIDC rifiutato (${sts.status})`);
-  const { access_token: federato } = await sts.json();
+  return (await sts.json()).access_token as string;
+}
+
+export async function tokenServizio() {
+  if (inCache && Date.now() < inCache.scade) return inCache.token;
+  const federato = await tokenFederato();
   const sa = await fetch(`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SERVICE_ACCOUNT_EMAIL}:generateAccessToken`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${federato}` },

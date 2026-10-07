@@ -1,6 +1,8 @@
 // Sessione dell'area Amministrazione: un cookie cifrato (AES-256-GCM, chiave da SESSIONE_SEGRETO)
-// con chi è entrato e il suo token di Google, che serve per scrivere nel calendario e su Drive a
-// suo nome. Niente database: il cookie è tutto quello che serve.
+// con chi è entrato. Dal 7/10/2026 il token di Google non serve più (Drive e calendari li scrive
+// l'account di servizio): la sessione nasce dall'accesso con Google o da quella delle aree
+// (sessioneDalleAree in src/admin/google.ts: per esempio dopo l'accesso con il codice via email).
+// Niente database: il cookie è tutto quello che serve.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import type { AstroCookies } from 'astro';
 import { SESSIONE_SEGRETO } from 'astro:env/server';
@@ -9,9 +11,9 @@ export interface Sessione {
   email: string;
   nome: string;
   foto?: string; // foto dell'account Google ('' se non c'è)
-  accesso: string; // token di accesso di Google
+  accesso?: string; // token di accesso di Google (solo le sessioni di prima del 7/10/2026)
   rinnovo?: string; // token per rinnovarlo, se Google l'ha dato
-  scade: number; // scadenza del token di accesso (ms)
+  scade: number; // scadenza della sessione (ms; per le sessioni di prima, del token di accesso)
   redattore?: boolean; // false = entra solo per gli avvisi (presidente, tesoriere); mancante = redattore (sessioni di prima)
   demo?: boolean; // nel gruppo Demo (coro.amministrazione.demo): tutto in sola lettura, nomi inventati (src/area/demo.ts)
 }

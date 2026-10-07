@@ -83,6 +83,9 @@ export const schemaCoro = z.object({
     direzione: z.string().optional(),
     // Gli amministratori del sito: aprono tutte le aree (coristi, Maestro, tesoriere), senza essere nei loro gruppi
     amministratori: z.string().optional(),
+    // Accesso con un codice via email (dal 7/10/2026, src/area/codice.ts): l'account che spedisce i
+    // codici, a cui l'account di servizio scrive con la delega a livello di dominio (solo gmail.send)
+    mittenteCodici: z.string().optional(),
     // Chi scrive gli avvisi della bacheca dell'area coristi: ogni ruolo è un gruppo Google, con la
     // firma che compare sotto l'avviso e la chat WhatsApp dove inoltrarlo
     bacheca: z.array(z.object({

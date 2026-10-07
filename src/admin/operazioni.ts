@@ -1,14 +1,28 @@
 // Operazioni dell'area Amministrazione sui calendari, sul Drive condiviso e su Vercel. I calendari
-// li scrive solo il sito, con l'account di servizio (src/admin/calendari.ts); Drive a nome di chi è
-// entrato; la ripubblicazione con il deploy hook.
+// li scrive solo il sito, con l'account di servizio (src/admin/calendari.ts); dal 7/10/2026 anche
+// Drive (cartelle Concerti e Sito, dove l'account di servizio è Gestore contenuti): prima a nome di chi
+// era entrato, che però doveva dare a Google il permesso su Drive e quindi entrare con Google. Chi ha
+// caricato un file resta nelle sue proprietà (caricatoDa). La ripubblicazione con il deploy hook.
 import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, VERCEL_DEPLOY_HOOK } from 'astro:env/server';
 import type ical from 'node-ical';
-import { api } from './google';
+import { tokenServizio } from '../area/servizio';
 import { CAL, calendario } from './calendari';
 import type { Sessione } from './sessione';
 import { FILE_TESTI, type TestiSalvati } from '../motore/testiSito';
 
 const DRIVE = 'https://www.googleapis.com/drive/v3';
+
+// Chiamata a Drive con l'account di servizio (la sessione resta nelle firme: dice chi ha fatto cosa);
+// errore leggibile se va male
+async function api<T = any>(_s: Sessione, url: string, init: RequestInit = {}): Promise<T> {
+  const r = await fetch(url, { ...init, headers: { Authorization: `Bearer ${await tokenServizio()}`, ...(init.headers ?? {}) } });
+  if (!r.ok) {
+    const testo = await r.text();
+    const messaggio = (() => { try { return JSON.parse(testo).error?.message; } catch { return undefined; } })();
+    throw new Error(`Google (${r.status}): ${messaggio ?? testo.slice(0, 200)}`);
+  }
+  return r.status === 204 ? (undefined as T) : r.json();
+}
 const CARTELLA = 'application/vnd.google-apps.folder';
 
 export const configurazioneMancante = () =>
@@ -128,7 +142,7 @@ interface FileDrive { id: string; name: string; webViewLink: string }
 export async function caricaFile(s: Sessione, file: File, nome: string, genitore: string): Promise<FileDrive> {
   const confine = `hv${crypto.randomUUID()}`;
   const corpo = new Blob([
-    `--${confine}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: nome, parents: [genitore] })}\r\n`,
+    `--${confine}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: nome, parents: [genitore], appProperties: { caricatoDa: s.email } })}\r\n`,
     `--${confine}\r\nContent-Type: ${file.type}\r\n\r\n`,
     await file.arrayBuffer(),
     `\r\n--${confine}--`,
@@ -196,7 +210,7 @@ export async function immagineDrive(s: Sessione, id: string): Promise<Response> 
   const url = Number(f.size ?? 0) <= 4_000_000 || !f.thumbnailLink
     ? `${DRIVE}/files/${encodeURIComponent(id)}?alt=media&supportsAllDrives=true`
     : f.thumbnailLink.replace(/=s\d+$/, '=s1600');
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${s.accesso}` } });
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${await tokenServizio()}` } });
   if (!r.ok) throw new Error(`Google (${r.status})`);
   return new Response(r.body, { headers: { 'Content-Type': r.headers.get('Content-Type') ?? f.mimeType } });
 }

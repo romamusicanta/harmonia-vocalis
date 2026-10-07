@@ -13,11 +13,11 @@
 import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
 import { conDemo, MESSAGGIO_DEMO } from './area/demo';
-import { conFoto, tokenValido } from './admin/google';
+import { conFoto, sessioneDalleAree, tokenValido } from './admin/google';
 import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, areaDi, chiudiCorista, coristaValido, leggiCorista, rientroSilenzioso, salvaCorista } from './area/accesso';
 
 const libere = ['/admin/accedi', '/admin/callback', '/admin/esci'];
-const libereArea = ['/area/accesso', '/area/entra', '/area/callback', '/area/esci'];
+const libereArea = ['/area/accesso', '/area/entra', '/area/callback', '/area/esci', '/area/codice'];
 const libereMaestro = ['/maestro/accesso'];
 const libereTesoriere = ['/tesoriere/accesso'];
 
@@ -95,7 +95,15 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   if (libere.includes(pathname.replace(/\/$/, ''))) return avanti();
 
   const letta = leggiSessione(ctx.cookies);
-  const sessione = letta && (await tokenValido(letta));
+  let sessione = letta && (await tokenValido(letta));
+  // Senza sessione (o scaduta), chi ha quella delle aree e può entrare qui la ottiene senza chiedere
+  // niente (dal 7/10/2026: per esempio dopo l'accesso con il codice via email)
+  if (!sessione) {
+    const delleAree = leggiCorista(ctx.cookies);
+    const corista = delleAree && (await coristaValido(delleAree));
+    sessione = corista ? await sessioneDalleAree(corista) : undefined;
+    if (sessione) salvaSessione(ctx.cookies, sessione, ctx.url.protocol === 'https:');
+  }
   if (!sessione) return ctx.redirect(`/admin/accedi?${new URLSearchParams({ dopo: pathname + ctx.url.search })}`);
   // Le sessioni aperte prima della foto del profilo la prendono subito, con il token che hanno
   const completa = sessione.foto === undefined ? await conFoto(sessione) : sessione;

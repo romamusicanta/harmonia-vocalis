@@ -41,11 +41,11 @@ export const scriveTesoriere = (c: Corista) => Boolean(c.tesoreria);
 // La prima area di chi entra: coristi, Maestro, tesoriere, in quest'ordine (chi è solo redattore ha
 // qui soltanto l'area del tesoriere)
 export const areaDi = (c: Corista) => (c.coro ? '/area' : c.direzione ? '/maestro' : c.tesoreria ? '/tesoriere' : c.demo ? '/maestro' : c.redattore && !c.amministratore ? '/tesoriere' : '/area');
-const almenoUno = (g: { coro: boolean; direzione: boolean; tesoreria: boolean; amministratore: boolean; redattore: boolean; demo: boolean }) =>
+export const almenoUno = (g: { coro: boolean; direzione: boolean; tesoreria: boolean; amministratore: boolean; redattore: boolean; demo: boolean }) =>
   g.coro || g.direzione || g.tesoreria || g.amministratore || g.redattore || g.demo;
 
 // In quali gruppi è l'indirizzo
-async function gruppiDi(email: string) {
+export async function gruppiDi(email: string) {
   const { gruppo, direzione, tesoreria, amministratori } = coro.coristi!;
   const redattori = coro.amministrazione?.gruppo;
   const demo = coro.amministrazione?.demo;
@@ -65,7 +65,9 @@ async function gruppiDi(email: string) {
 const NOME = 'hv-coro';
 // Il cookie di prima del 3/10/2026, solo sul percorso /area: si legge ancora e si sostituisce
 const VECCHIO = 'hv-corista';
-const DURATA = 60 * 60 * 24 * 30; // si resta dentro un mese
+// si resta dentro sei mesi (dal 7/10/2026, prima uno: con il codice via email rientrare è facile, ma
+// non serve chiederlo spesso; ogni giorno si ricontrollano comunque i gruppi)
+const DURATA = 60 * 60 * 24 * 182;
 const RICONTROLLO = 24 * 60 * 60 * 1000;
 
 export const configurato = () => Boolean(CORISTI_CLIENT_ID && CORISTI_CLIENT_SECRET && coro.coristi);

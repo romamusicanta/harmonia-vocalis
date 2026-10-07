@@ -1,0 +1,98 @@
+---
+// Modulo dell'accesso con il codice via email (dal 7/10/2026, src/area/codice.ts): nelle pagine di
+// accesso dell'area coristi, del Maestro, del tesoriere e dell'Amministrazione, sopra «Accedi con
+// Google». Primo passo l'indirizzo, poi il codice; tutti e due con /area/codice. Senza JavaScript non
+// funziona: resta Google.
+import { accountRicordato } from './accesso';
+import { codiceConfigurato } from './codice';
+
+interface Props { dopo: string }
+const { dopo } = Astro.props;
+const attivo = codiceConfigurato();
+const iniziale = accountRicordato(Astro.cookies) ?? '';
+---
+
+{attivo && (
+  <div class="codice-accesso" data-dopo={dopo}>
+    <form class="passo passo-indirizzo">
+      <label for="codice-indirizzo">La tua email</label>
+      <input id="codice-indirizzo" name="indirizzo" type="text" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required value={iniziale} placeholder="la email che usi di solito" />
+      <small>Quella personale che hai dato al coro, oppure nome.cognome dell'associazione: il codice arriva comunque alla tua email personale.</small>
+      <button class="btn g" type="submit">Mandami il codice</button>
+    </form>
+    <form class="passo passo-codice" hidden>
+      <p class="spiega" role="status">Se l'indirizzo è nell'elenco del coro, ti abbiamo appena mandato un'email con un <b>codice di 6 cifre</b>. Guarda anche nella posta indesiderata.</p>
+      <label for="codice-cifre">Codice</label>
+      <input id="codice-cifre" name="codice" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required placeholder="123456" />
+      <button class="btn g" type="submit">Entra</button>
+      <p class="altri"><button type="button" class="link rimanda">Rimandami il codice</button> · <button type="button" class="link cambia">Usa un altro indirizzo</button></p>
+    </form>
+    <p class="messaggio-codice" role="alert" hidden></p>
+    <p class="oppure">oppure</p>
+  </div>
+)}
+
+<script>
+  document.querySelectorAll<HTMLElement>('.codice-accesso').forEach((box) => {
+    const fi = box.querySelector<HTMLFormElement>('.passo-indirizzo')!;
+    const fc = box.querySelector<HTMLFormElement>('.passo-codice')!;
+    const msg = box.querySelector<HTMLElement>('.messaggio-codice')!;
+    const indirizzo = fi.querySelector<HTMLInputElement>('input')!;
+    const cifre = fc.querySelector<HTMLInputElement>('input')!;
+    const avviso = (testo = '') => { msg.textContent = testo; msg.hidden = !testo; };
+    const occupato = (f: HTMLFormElement, si: boolean) => f.querySelectorAll('button').forEach((b) => { b.disabled = si; });
+    const chiama = async (dati: object) => {
+      const r = await fetch('/area/codice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dati) });
+      return (await r.json().catch(() => ({ errore: `Errore ${r.status}: riprova.` }))) as { ok?: boolean; errore?: string; vai?: string };
+    };
+    const chiedi = async () => {
+      avviso();
+      occupato(fi, true); occupato(fc, true);
+      try {
+        const esito = await chiama({ azione: 'chiedi', indirizzo: indirizzo.value });
+        if (esito.errore) return avviso(esito.errore);
+        fi.hidden = true; fc.hidden = false; cifre.value = ''; cifre.focus();
+      } catch {
+        avviso('Connessione assente: riprova.');
+      } finally {
+        occupato(fi, false); occupato(fc, false);
+      }
+    };
+    fi.addEventListener('submit', (e) => { e.preventDefault(); chiedi(); });
+    fc.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      avviso();
+      occupato(fc, true);
+      try {
+        const esito = await chiama({ azione: 'verifica', codice: cifre.value, dopo: box.dataset.dopo });
+        if (esito.vai) return location.assign(esito.vai);
+        avviso(esito.errore ?? 'Accesso non riuscito.');
+      } catch {
+        avviso('Connessione assente: riprova.');
+      }
+      occupato(fc, false);
+    });
+    // Sei cifre scritte (o incollate dall'email): si entra senza toccare il pulsante
+    cifre.addEventListener('input', () => { if (cifre.value.replace(/\D/g, '').length === 6) fc.requestSubmit(); });
+    fc.querySelector('.rimanda')!.addEventListener('click', chiedi);
+    fc.querySelector('.cambia')!.addEventListener('click', () => { avviso(); fc.hidden = true; fi.hidden = false; indirizzo.select(); });
+  });
+</script>
+
+<style>
+  .codice-accesso { display: grid; gap: 14px; }
+  .passo { display: grid; gap: 10px; }
+  .passo[hidden] { display: none; }
+  label { font-weight: 700; font-size: 15px; color: var(--testo); }
+  input { width: 100%; min-height: 48px; padding: 10px 14px; font-size: 17px; border: 1px solid var(--linea); border-radius: var(--raggio, 6px); background: var(--bianco, #fff); color: var(--testo); }
+  #codice-cifre { font-size: 24px; letter-spacing: .3em; text-align: center; font-variant-numeric: tabular-nums; }
+  small, .spiega { font-size: 14px; color: var(--tenue); }
+  .spiega b { color: var(--testo); }
+  .btn { width: 100%; min-height: 48px; justify-content: center; }
+  .altri { font-size: 14px; color: var(--tenue); text-align: center; }
+  .link { background: none; border: 0; padding: 4px; color: var(--primario); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+  .messaggio-codice { padding: 12px 16px; border-radius: var(--raggio, 6px); border: 2px solid #b3261e; color: #b3261e; font-size: 15px; }
+  .messaggio-codice[hidden] { display: none; }
+  .oppure { display: flex; align-items: center; gap: 12px; color: var(--tenue); font-size: 14px; margin-top: 6px; }
+  .oppure::before, .oppure::after { content: ''; flex: 1; border-top: 1px solid var(--linea); }
+</style>

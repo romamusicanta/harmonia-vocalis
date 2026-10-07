@@ -1,4 +1,5 @@
-// Accesso con Google all'area Amministrazione e chiamate alle API di Google a nome di chi è entrato.
+// Chi entra nell'area Amministrazione: con Google o, dal 7/10/2026, dalla sessione delle aree
+// (sessioneDalleAree: per esempio dopo l'accesso con il codice via email, src/area/codice.ts).
 // Il client OAuth "web" sta nel progetto Google Cloud harmonia-vocalis-510406 (consenso Interno:
 // solo account del dominio). Entrano i redattori (gruppo coro.amministrazione.gruppo) e, per i soli
 // avvisi della bacheca, chi ha un ruolo in coro.coristi.bacheca (il presidente; Maestro e tesoriere
@@ -6,33 +7,28 @@
 // la sessione ha redattore = false e il middleware apre solo /admin/avvisi. Il Maestro no: ha la
 // sua area, e chi è solo nel gruppo della direzione viene mandato lì. Il gruppo Demo
 // (coro.amministrazione.demo, dal 7/10/2026) entra con demo = true: vede tutto ma non salva niente.
+// Dal 7/10/2026 a Google si chiedono solo nome ed email: Drive e calendari li scrive l'account di
+// servizio (src/admin/operazioni.ts, src/admin/calendari.ts) e i gruppi li legge lui.
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import type { Sessione } from './sessione';
+import type { Corista } from '../area/accesso';
 import { nelGruppo } from '../area/servizio';
 
-const AMBITI = [
-  'openid',
-  'email',
-  'profile',
-  // Niente calendario: lo scrive solo il sito, con l'account di servizio (src/admin/calendari.ts)
-  'https://www.googleapis.com/auth/drive',
-  // Per sapere se chi entra fa parte del gruppo dei redattori
-  'https://www.googleapis.com/auth/cloud-identity.groups.readonly',
-];
+const AMBITI = ['openid', 'email', 'profile'];
+// La sessione dura 12 ore (come il cookie); dopo, se c'è quella delle aree, si riapre da sola
+const DURATA = 12 * 60 * 60 * 1000;
 
 export const configurato = () => Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && coro.amministrazione);
 
 // Con silenzioso (l'email dell'account da usare) Google non mostra niente: se l'account è collegato nel
-// browser e ha già dato i permessi torna subito con il codice, altrimenti con un errore
+// browser torna subito con il codice, altrimenti con un errore
 export function urlAccesso(ritorno: string, stato: string, silenzioso?: string) {
   const p = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID!,
     redirect_uri: ritorno,
     response_type: 'code',
     scope: AMBITI.join(' '),
-    access_type: 'offline',
-    include_granted_scopes: 'true',
     ...(silenzioso ? { prompt: 'none', login_hint: silenzioso } : { prompt: 'select_account' }),
     hd: coro.amministrazione!.dominio,
     state: stato,
@@ -52,17 +48,14 @@ async function token(corpo: Record<string, string>): Promise<Token> {
   return r.json();
 }
 
-// Dopo il ritorno da Google: chi è, e se è un amministratore
-export async function completaAccesso(codice: string, ritorno: string): Promise<{ sessione?: Sessione; errore?: string; altrove?: string; persona?: { email: string; nome: string; foto?: string } }> {
-  const t = await token({ code: codice, redirect_uri: ritorno, grant_type: 'authorization_code' });
-  const mancanti = AMBITI.filter((a) => a.startsWith('https://www.googleapis.com/auth/') && !t.scope.split(' ').includes(a));
-  if (mancanti.length) return { errore: 'Per usare l’area servono tutti i permessi richiesti (Drive, gruppi): riprova e lasciali selezionati.' };
-  const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } })).json();
+type Persona = { email: string; nome: string; foto?: string };
+type Esito = { sessione?: Sessione; errore?: string; altrove?: string; persona?: Persona };
+
+// Che cosa apre l'Amministrazione a questa persona, dai suoi gruppi
+async function decidi(persona: Persona): Promise<Esito> {
   const { dominio, gruppo } = coro.amministrazione!;
-  if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
-  // I gruppi si chiedono a Google con il token di chi entra; se Google non glieli lascia leggere (succede
-  // con alcuni account, per esempio quelli del gruppo Demo, 7/10/2026) li controlla l'account di servizio
-  const suoi = await gruppiDi(t.access_token, io.email).catch(() => gruppiDalServizio(io.email));
+  if (!persona.email.toLowerCase().endsWith(`@${dominio}`)) return { errore: `Si entra solo con un account @${dominio}.` };
+  const suoi = await gruppiDalServizio(persona.email);
   const redattore = suoi.has(gruppo.toLowerCase());
   const demo = !redattore && Boolean(coro.amministrazione!.demo && suoi.has(coro.amministrazione!.demo.toLowerCase()));
   // Il Maestro e il tesoriere scrivono gli avvisi dalla loro area (/maestro/avvisi, /tesoriere/avvisi):
@@ -72,25 +65,32 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const tesoreria = (coro.coristi?.tesoreria?.gruppi ?? []).map((g) => g.toLowerCase());
   const conAreaPropria = (g: string) => g === direzione || tesoreria.includes(g);
   const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => !conAreaPropria(r.gruppo.toLowerCase()) && suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
-  const persona = { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '' };
-  if (demo) return { sessione: { email: io.email, nome: persona.nome, foto: persona.foto, accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000, redattore: true, demo: true } };
+  const sessione = (extra: Partial<Sessione>): Sessione => ({ email: persona.email, nome: persona.nome, foto: persona.foto ?? '', scade: Date.now() + DURATA, ...extra });
+  if (demo) return { sessione: sessione({ redattore: true, demo: true }) };
   if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { altrove: '/maestro', persona };
   if (!redattore && !conRuolo && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere', persona };
-  if (!redattore && !conRuolo) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };
-  return {
-    sessione: { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '', accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000, redattore },
-  };
+  if (!redattore && !conRuolo) return { errore: `L’account ${persona.email} non fa parte del gruppo ${gruppo}.` };
+  return { sessione: sessione({ redattore }) };
 }
 
-// I gruppi di cui l'utente fa parte (anche indirettamente): ognuno può sempre vedere i propri
-async function gruppiDi(accesso: string, email: string) {
-  const query = `member_key_id == '${email}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels`;
-  const r = await fetch(`https://cloudidentity.googleapis.com/v1/groups/-/memberships:searchTransitiveGroups?${new URLSearchParams({ query })}`, {
-    headers: { Authorization: `Bearer ${accesso}` },
-  });
-  if (!r.ok) throw new Error(`Non riesco a leggere i gruppi di ${email} (${r.status}): ${await r.text()}`);
-  const { memberships = [] } = (await r.json()) as { memberships?: { groupKey?: { id?: string } }[] };
-  return new Set(memberships.map((m) => m.groupKey?.id?.toLowerCase()).filter((g): g is string => Boolean(g)));
+// Dopo il ritorno da Google: chi è, e se è un amministratore
+export async function completaAccesso(codice: string, ritorno: string): Promise<Esito> {
+  const t = await token({ code: codice, redirect_uri: ritorno, grant_type: 'authorization_code' });
+  const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } })).json();
+  const { dominio } = coro.amministrazione!;
+  if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
+  return decidi({ email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '' });
+}
+
+// La sessione dell'Amministrazione per chi ha già quella delle aree (stessa persona, già
+// riconosciuta): undefined se l'Amministrazione non è sua
+export async function sessioneDalleAree(c: Corista): Promise<Sessione | undefined> {
+  if (!coro.amministrazione) return undefined;
+  try {
+    return (await decidi({ email: c.email, nome: c.nome.split(' ')[0] || c.nome, foto: c.foto })).sessione;
+  } catch {
+    return undefined;
+  }
 }
 
 // I gruppi che contano per l'accesso, controllati con l'account di servizio (ruolo «Lettore gruppi»)
@@ -112,27 +112,16 @@ async function fotoDi(accesso: string) {
     return undefined;
   }
 }
-export const conFoto = async (s: Sessione): Promise<Sessione> => ({ ...s, foto: await fotoDi(s.accesso) });
+export const conFoto = async (s: Sessione): Promise<Sessione> => ({ ...s, foto: s.accesso ? await fotoDi(s.accesso) : '' });
 
-// Token ancora valido, o rinnovato; undefined se bisogna rientrare
+// Sessione ancora valida (per quelle di prima del 7/10/2026: token rinnovato); undefined se è scaduta
 export async function tokenValido(s: Sessione): Promise<Sessione | undefined> {
   if (Date.now() < s.scade) return s;
   if (!s.rinnovo) return undefined;
   try {
-    const t = await token({ refresh_token: s.rinnovo, grant_type: 'refresh_token' });
-    return { ...s, accesso: t.access_token, scade: Date.now() + (t.expires_in - 60) * 1000 };
+    await token({ refresh_token: s.rinnovo, grant_type: 'refresh_token' });
+    return { ...s, accesso: undefined, rinnovo: undefined, scade: Date.now() + DURATA };
   } catch {
     return undefined;
   }
-}
-
-// Chiamata alle API di Google con il token di chi è entrato; errore leggibile se va male
-export async function api<T = any>(s: Sessione, url: string, init: RequestInit = {}): Promise<T> {
-  const r = await fetch(url, { ...init, headers: { Authorization: `Bearer ${s.accesso}`, ...(init.headers ?? {}) } });
-  if (!r.ok) {
-    const testo = await r.text();
-    const messaggio = (() => { try { return JSON.parse(testo).error?.message; } catch { return undefined; } })();
-    throw new Error(`Google (${r.status}): ${messaggio ?? testo.slice(0, 200)}`);
-  }
-  return r.status === 204 ? (undefined as T) : r.json();
 }

@@ -96,6 +96,8 @@ export default {
     // Dal 5/10/2026 gli amministratori aprono tutte le aree per regola, non perché admin@ è dentro
     // maestro@ (che ora contiene solo il Maestro)
     amministratori: 'admin@romamusicanta.org',
+    // Accesso con un codice via email (dal 7/10/2026): lo spedisce questo account, a nome del sito
+    mittenteCodici: 'sito@romamusicanta.org',
     // Chi scrive in bacheca (gruppi presidente@ e tesoriere@: una persona ciascuno, si cambia il
     // membro quando cambia il ruolo)
     bacheca: [

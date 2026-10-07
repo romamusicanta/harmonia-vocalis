@@ -4,7 +4,7 @@
 // a cui ha diritto (apriSessioneAree): un solo passaggio da Google. Se la richiesta era silenziosa
 // (accedi.astro) e qualcosa non va, si riprova subito facendo scegliere l'account.
 import { completaAccesso } from '../../admin/google';
-import { decifra, leggiSessione, salvaSessione } from '../../admin/sessione';
+import { decifra, salvaSessione } from '../../admin/sessione';
 import { apriSessioneAree, ricordaAccount } from '../../area/accesso';
 
 export const prerender = false;
@@ -32,10 +32,7 @@ if (esito.altrove) {
   return Astro.redirect(esito.altrove);
 }
 if (!esito.sessione) return errore(esito.errore ?? 'Accesso non riuscito.');
-// Google dà il token per rinnovare l'accesso solo la prima volta: rientrando si tiene quello di prima
-const prima = leggiSessione(Astro.cookies);
-const rinnovo = esito.sessione.rinnovo ?? (prima?.email === esito.sessione.email ? prima.rinnovo : undefined);
-salvaSessione(Astro.cookies, { ...esito.sessione, rinnovo }, sicuro);
+salvaSessione(Astro.cookies, esito.sessione, sicuro);
 ricordaAccount(Astro.cookies, esito.sessione.email, sicuro);
 await apriSessioneAree(Astro.cookies, esito.sessione, sicuro);
 return Astro.redirect(atteso.dopo);
