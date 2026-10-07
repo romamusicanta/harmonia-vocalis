@@ -5,11 +5,12 @@
 // si aprono solo a chi è entrato ed è nel gruppo dei coristi. Area del Maestro (/maestro, i
 // report): solo al gruppo della direzione, con lo stesso accesso con Google e la stessa sessione.
 // Area del tesoriere (/tesoriere, quote e cassa): solo ai gruppi della tesoreria, idem. Gli amministratori
-// del sito (coro.coristi.amministratori) aprono tutte le aree.
+// del sito (coro.coristi.amministratori) aprono tutte le aree; nell'area del tesoriere loro e i redattori
+// (dal 7/10/2026) solo in lettura: nessuna richiesta che modifica (POST), niente Avvisi.
 import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
 import { conFoto, tokenValido } from './admin/google';
-import { apreArea, apreMaestro, apreTesoriere, areaDi, chiudiCorista, coristaValido, leggiCorista, salvaCorista } from './area/accesso';
+import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, areaDi, chiudiCorista, coristaValido, leggiCorista, salvaCorista } from './area/accesso';
 
 const libere = ['/admin/accedi', '/admin/callback', '/admin/esci'];
 const libereArea = ['/area/accesso', '/area/entra', '/area/callback', '/area/esci'];
@@ -51,6 +52,11 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     if (area && !apreArea(corista) && pathname !== '/area/notifiche') return ctx.redirect(areaDi(corista));
     // L'area del tesoriere solo ai gruppi della tesoreria
     if (tesoriere && !apreTesoriere(corista)) return ctx.redirect(`/tesoriere/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del tesoriere.` })}`);
+    // Redattori e amministratori: area del tesoriere in sola lettura
+    if (tesoriere && !scriveTesoriere(corista)) {
+      if (ctx.request.method !== 'GET') return new Response(JSON.stringify({ errore: 'Hai l’area del tesoriere in sola lettura: solo il tesoriere può modificare i dati.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+      if (/^\/tesoriere\/avvisi\/?$/.test(pathname)) return ctx.redirect('/tesoriere');
+    }
     // Le sessioni aperte prima della foto del profilo la prendono da Google, senza chiedere niente
     if (corista.foto === undefined && ctx.request.method === 'GET' && ctx.request.headers.get('sec-fetch-mode') === 'navigate') {
       return ctx.redirect(`/area/entra?${new URLSearchParams({ silenzioso: '1', dopo: pathname + ctx.url.search })}`);

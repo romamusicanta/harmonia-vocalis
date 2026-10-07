@@ -7,10 +7,12 @@
 // spese di gestione (senza le partite di giro degli spartiti), verifica di cassa: saldo del conto
 // corrente più contanti, confrontati con il saldo dei conti a quella data (come il prospetto «Conto
 // corrente bancario» del rendiconto).
+// Redattori e amministratori (dal 7/10/2026) la vedono in sola lettura: niente modulo, Modifica né Togli.
 import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
+import { scriveTesoriere } from '../../area/accesso';
 import { oggi } from '../../area/dati';
 import { spiegaTesto } from '../../area/errori';
 import {
@@ -22,6 +24,7 @@ import '../../area/tesoreria.css';
 export const prerender = false;
 const veste = vesteCorrente(undefined);
 const email = Astro.locals.corista!.email;
+const solaLettura = !scriveTesoriere(Astro.locals.corista!);
 
 if (Astro.request.method === 'POST') {
   const f = await Astro.request.formData();
@@ -57,7 +60,7 @@ else {
     errore = e;
   }
 }
-const inModifica = tutti.find((m) => m.id === q.get('modifica'));
+const inModifica = solaLettura ? undefined : tutti.find((m) => m.id === q.get('modifica'));
 // Il modulo: il movimento in modifica, o quanto scritto prima di un errore
 const val = (k: string, v?: string) => (inModifica ? v : undefined) ?? q.get(k) ?? '';
 const tipo = val('tipo', inModifica?.tipo) || 'Uscita';
@@ -81,7 +84,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Entrate e uscite</h1>
-        <p>Tutti i movimenti di cassa del coro. Le quote dei coristi entrano da sole dalla tabella del <a href="/tesoriere">Riepilogo</a>, nel mese in cui sono state pagate: non scriverle anche qui.</p>
+        <p>Tutti i movimenti di cassa del coro. Le quote dei coristi entrano da sole dalla tabella del <a href="/tesoriere">Riepilogo</a>, nel mese in cui sono state pagate{solaLettura ? '.' : ': non scriverle anche qui.'}</p>
       </div>
     </div>
   </div>
@@ -91,7 +94,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
       {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
       {errore && <Errore e={errore} />}
 
-      {configurata() && !errore && (
+      {configurata() && !errore && !solaLettura && (
         <form method="post" class="carta modulo-cassa" id="modulo">
           <div class="ct"><h2>{inModifica ? 'Modifica il movimento' : 'Nuovo movimento'}</h2>{inModifica && <a class="link-freccia" href="/tesoriere/cassa">Annulla</a>}</div>
           <div class="cc">
@@ -155,7 +158,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
                         <td class="data">{giorno(x.data)}</td>
                         <td>{x.tipo === 'Saldo iniziale' ? <b>Avanzo di cassa</b> : x.descrizione}<small class="tenue">{[x.categoria, x.note].filter(Boolean).join(' · ')}</small></td>
                         <td class:list={['num', x.tipo === 'Uscita' ? 'neg' : 'pos']}>{x.tipo === 'Uscita' ? '−' : '+'}{euro(x.importo)}</td>
-                        <td class="num"><a class="btn o piccolo" href={`/tesoriere/cassa?modifica=${x.id}${anno !== corrente ? `&stagione=${anno}` : ''}#modulo`}>Modifica</a></td>
+                        {!solaLettura && <td class="num"><a class="btn o piccolo" href={`/tesoriere/cassa?modifica=${x.id}${anno !== corrente ? `&stagione=${anno}` : ''}#modulo`}>Modifica</a></td>}
                       </tr>
                     ))}
                     {m.quote > 0 && (
@@ -174,7 +177,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
 
           <h2 class="titolo-t" id="verifica">Verifica di cassa</h2>
           <div class="carta">
-            <form method="post" class="cc modulo-verifica">
+            {!solaLettura && <form method="post" class="cc modulo-verifica">
               <input type="hidden" name="azione" value="verifica" />
               <p class="tenue" style="margin:0;font-size:14px;flex-basis:100%">Ogni tanto, e a fine stagione: il saldo del conto corrente (dall'estratto conto o dall'app della banca) e i contanti in cassa, da confrontare con i conti.</p>
               <label>Data<input type="date" name="data" required value={oggi()} /></label>
@@ -182,11 +185,12 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
               <label>Contanti (€)<input name="contanti" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="Es. 90" /></label>
               <label style="flex:1 1 200px">Note<input name="note" maxlength="300" placeholder="Facoltative" /></label>
               <button class="btn g piccolo" type="submit">Registra</button>
-            </form>
+            </form>}
+            {solaLettura && verificheStagione.length === 0 && <p class="cc tenue" style="margin:0">Nessuna verifica di cassa in questa stagione.</p>}
             {verificheStagione.length > 0 && (
-              <div class="tabella-wrap" style="border-top:1px solid var(--linea)">
+              <div class="tabella-wrap" style={solaLettura ? undefined : 'border-top:1px solid var(--linea)'}>
                 <table class="tabella">
-                  <thead><tr><th>Data</th><th class="num">Conto corrente</th><th class="num">Contanti</th><th class="num">Disponibilità</th><th class="num">Saldo dei conti</th><th class="num">Differenza</th><th></th></tr></thead>
+                  <thead><tr><th>Data</th><th class="num">Conto corrente</th><th class="num">Contanti</th><th class="num">Disponibilità</th><th class="num">Saldo dei conti</th><th class="num">Differenza</th>{!solaLettura && <th></th>}</tr></thead>
                   <tbody>
                     {verificheStagione.map((v) => {
                       const disponibile = v.contoCorrente + v.contanti;
@@ -199,7 +203,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
                           <td class="num"><b>{euroEsatto(disponibile)}</b></td>
                           <td class="num">{euroEsatto(saldoAl(v.data))}</td>
                           <td class:list={['num', segno(diff)]}>{diff === 0 ? 'nessuna' : `${diff > 0 ? 'avanzo' : 'disavanzo'} ${euroEsatto(Math.abs(diff))}`}</td>
-                          <td class="num"><form method="post" onsubmit="return confirm('Cancellare questa verifica?')"><input type="hidden" name="azione" value="cancella-verifica" /><input type="hidden" name="id" value={v.id} /><button class="btn o piccolo cancella" type="submit">Togli</button></form></td>
+                          {!solaLettura && <td class="num"><form method="post" onsubmit="return confirm('Cancellare questa verifica?')"><input type="hidden" name="azione" value="cancella-verifica" /><input type="hidden" name="id" value={v.id} /><button class="btn o piccolo cancella" type="submit">Togli</button></form></td>}
                         </tr>
                       );
                     })}

@@ -7,10 +7,12 @@
 // salva subito (/tesoriere/maestri/salva). In alto quanto è maturato, quanto è già stato pagato (le
 // uscite della cassa con le categorie degli onorari) e quanto resta; mese per mese, con il link che
 // apre in Entrate e uscite il pagamento già scritto.
+// Redattori e amministratori (dal 7/10/2026) la vedono in sola lettura: campi bloccati, niente Paga né Aggiungi.
 import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
+import { scriveTesoriere } from '../../area/accesso';
 import { coro } from '../../motore/coro';
 import {
   CATEGORIE_ONORARI, cassa, configurata, direttore, euro, giornoBreve, maiuscola, meseDi, meseEsteso, movimenti, nomeStagione, onorari, onorariPerMese, pagatoPer,
@@ -20,6 +22,7 @@ import '../../area/tesoreria.css';
 
 export const prerender = false;
 const veste = vesteCorrente(undefined);
+const solaLettura = !scriveTesoriere(Astro.locals.corista!);
 
 const corrente = configurata() ? stagioneCorrente() : 0;
 const chiesta = Number(Astro.url.searchParams.get('stagione'));
@@ -64,7 +67,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Prove e maestri</h1>
-        <p>Le prove del calendario fino a oggi, di base dirette da {direttore()} ({euro(onorari().prova)} a prova). Segna i sostituti, le prove gratuite e le lezioni di vocalità: si salva subito. Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
+        <p>Le prove del calendario fino a oggi, di base dirette da {direttore()} ({euro(onorari().prova)} a prova). {!solaLettura && 'Segna i sostituti, le prove gratuite e le lezioni di vocalità: si salva subito. '}Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
       </div>
     </div>
   </div>
@@ -109,7 +112,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                         <td>{m.sostituti.size ? [...m.sostituti].map(([n, s]) => `${n}: ${s.prove} ${s.prove === 1 ? 'prova' : 'prove'}, ${euro(s.totale)}`).join(' · ') : '—'}</td>
                         <td class="num">{m.vocalita.totale ? `${euro(m.vocalita.totale)}` : '—'}</td>
                         <td class="num"><b>{euro(m.direttore + sost + m.vocalita.totale)}</b></td>
-                        <td class="num no-stampa">{m.direttore > 0 && totaleMaturato - totalePagato > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario Direttore – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
+                        <td class="num no-stampa">{!solaLettura && m.direttore > 0 && totaleMaturato - totalePagato > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario Direttore – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
                       </tr>
                     );
                   })}
@@ -118,10 +121,10 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
               </table>
             </div>
           </div>
-          <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Direttore per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>
+          {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Direttore per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>}
 
           <h2 class="titolo-t no-stampa">Le prove</h2>
-          <form class="carta aggiungi-prova no-stampa">
+          {!solaLettura && <form class="carta aggiungi-prova no-stampa">
             <div class="cc">
               <b style="color:var(--primario)">Una prova che non è nel calendario?</b>
               <div class="riga-aggiungi">
@@ -131,7 +134,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                 <button class="btn g piccolo" type="submit">Aggiungi</button>
               </div>
             </div>
-          </form>
+          </form>}
           <datalist id="nomi-maestri">{nomi.map((n) => <option value={n} />)}</datalist>
 
           {mesiProve.map((mese) => (
@@ -141,17 +144,17 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                 {prove.filter((p) => meseDi(p.data) === mese).reverse().map((p) => (
                   <li class:list={{ cambiata: p.cambiata }} data-id={p.id} data-data={p.data}>
                     <span class="quando"><b>{giornoBreve(p.data).slice(0, 5)}</b><small>{!p.inCalendario ? 'non in calendario' : /^prova( settimanale)?$/i.test(p.titolo) ? '' : p.titolo}</small></span>
-                    <label class="campo-m"><span>Maestro</span><input name="maestro" list="nomi-maestri" value={p.maestro} placeholder="Nessuno" /></label>
-                    <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={String(p.onorario).replace('.', ',')} /></label>
+                    <label class="campo-m"><span>Maestro</span><input name="maestro" list="nomi-maestri" value={p.maestro} placeholder="Nessuno" disabled={solaLettura} /></label>
+                    <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={String(p.onorario).replace('.', ',')} disabled={solaLettura} /></label>
                     <label class="campo-v"><span>Vocalità</span>
-                      <select name="vocalita">
+                      <select name="vocalita" disabled={solaLettura}>
                         <option value="nessuna" selected={p.vocalita === 'nessuna'}>Nessuna</option>
                         <option value="singola" selected={p.vocalita === 'singola'}>Singola · {euro(onorari().vocalitaSingola)}</option>
                         <option value="doppia" selected={p.vocalita === 'doppia'}>Doppia · {euro(onorari().vocalitaDoppia)}</option>
                       </select>
                     </label>
                     <span class="stato-m" aria-live="polite"></span>
-                    {(p.cambiata || !p.inCalendario) && <button type="button" class="btn o piccolo ripristina" title={p.inCalendario ? 'Torna al solito: Direttore, onorario pieno, niente vocalità' : 'Togli questa prova'}>{p.inCalendario ? 'Come al solito' : 'Togli'}</button>}
+                    {!solaLettura && (p.cambiata || !p.inCalendario) && <button type="button" class="btn o piccolo ripristina" title={p.inCalendario ? 'Torna al solito: Direttore, onorario pieno, niente vocalità' : 'Togli questa prova'}>{p.inCalendario ? 'Come al solito' : 'Togli'}</button>}
                   </li>
                 ))}
               </ul>
@@ -179,6 +182,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
   .prove-maestri .quando { display: grid; align-self: center; }
   .prove-maestri .quando small { color: var(--tenue); font-size: 12px; }
   .prove-maestri input, .prove-maestri select { width: 100%; }
+  .prove-maestri :is(input, select):disabled { opacity: 1; color: var(--testo); background: var(--fondo); border-color: transparent; }
   .stato-m { font-size: 13px; color: var(--tenue); align-self: center; min-width: 60px; }
   .stato-m.errore { color: var(--rosso); }
   .testa-riepilogo { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }

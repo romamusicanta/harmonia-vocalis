@@ -12,11 +12,14 @@
 // correggibili nel campo (salvato all'uscita; vuoto = quello calcolato), e la casellina «versato».
 // In alto tre cifre (quote raccolte, chi deve pagare, saldo di cassa)
 // e il sollecito per tutte le quote dovute fino a oggi. Si salva tutto subito con /tesoriere/quote/segna.
+// Redattori e amministratori (dal 7/10/2026) vedono la stessa tabella in sola lettura: caselle, riporto,
+// quota base e sollecito non si toccano (e il middleware rifiuta comunque ogni POST).
 import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import Sollecito from '../../area/Sollecito.astro';
 import { vesteCorrente } from '../../motore/url';
+import { scriveTesoriere } from '../../area/accesso';
 import { coro } from '../../motore/coro';
 import { coristi, oggi, type SchedaCorista } from '../../area/dati';
 import {
@@ -27,6 +30,7 @@ import '../../area/tesoreria.css';
 
 export const prerender = false;
 const veste = vesteCorrente(undefined);
+const solaLettura = !scriveTesoriere(Astro.locals.corista!);
 
 const corrente = configurata() ? stagioneCorrente() : 0;
 const chiesta = Number(Astro.url.searchParams.get('stagione'));
@@ -83,7 +87,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Riepilogo</h1>
-        <p>{euro(quotaMensile())} al mese, da ottobre a giugno; a settembre di solito metà quota (la quota base di ogni mese è sotto il suo nome). I debiti della stagione prima sono nella colonna Riporto. Segna le quote nella tabella: un tocco su una casella per «pagata», pressione lunga per importo e data.</p>
+        <p>{euro(quotaMensile())} al mese, da ottobre a giugno; a settembre di solito metà quota (la quota base di ogni mese è sotto il suo nome). I debiti della stagione prima sono nella colonna Riporto. {solaLettura ? 'Passa sopra una casella per i dettagli del pagamento; un tocco sul mese per le sue cifre.' : 'Segna le quote nella tabella: un tocco su una casella per «pagata», pressione lunga per importo e data.'}</p>
       </div>
     </div>
   </div>
@@ -104,7 +108,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
             <div class:list={['cifra-t', { rosso: debitori.length }]}><b>{debitori.length}</b><span>{debitori.length === 1 ? 'corista deve' : 'coristi devono'} ancora pagare</span><small>{euro(debitori.reduce((t, a) => t + a.importo, 0))} in tutto</small></div>
             <a class="cifra-t" href={passata ? `/tesoriere/cassa?stagione=${anno}` : '/tesoriere/cassa'}><b>{euro(conti.saldoFinale)}</b><span>{passata ? 'saldo di fine stagione' : 'saldo di cassa'}</span><small>Entrate e uscite →</small></a>
           </div>
-          {!passata && anno <= corrente && debitori.length > 0 && <p class="no-stampa" style="margin:12px 0 0"><button type="button" class="btn g apri-sollecito"><Icona nome="campanella" />Sollecita chi non ha pagato</button></p>}
+          {!solaLettura && !passata && anno <= corrente && debitori.length > 0 && <p class="no-stampa" style="margin:12px 0 0"><button type="button" class="btn g apri-sollecito"><Icona nome="campanella" />Sollecita chi non ha pagato</button></p>}
         </>
       )}
 
@@ -114,7 +118,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
         <div class="solo-stampa intesta-stampa"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>Quote dei coristi · Stagione {nomeStagione(anno)}</h2><small>Situazione al {oggiStampa}</small></div>
         <div class="carta tabella-stampa">
           <div class="tabella-wrap">
-            <table class:list={['tabella griglia-quote', { compatta: richiudibili }]}>
+            <table class:list={['tabella griglia-quote', { compatta: richiudibili, 'sola-lettura': solaLettura }]} data-sola-lettura={solaLettura ? '1' : undefined}>
               <thead>
                 <tr>
                   <th>
@@ -139,11 +143,11 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                       return (
                         <td class:list={['cella-riporto', { passato: richiudibili }]}>
                           <span class:list={['riporto', { versato: r.versato, debito: !r.versato && r.importo > 0 }]}>
-                            <input class:list={['cifra-riporto', { mano: r.scritto !== undefined }]} inputmode="decimal" value={cifra(r.importo)} disabled={r.versato}
+                            <input class:list={['cifra-riporto', { mano: r.scritto !== undefined }]} inputmode="decimal" value={cifra(r.importo)} disabled={r.versato || solaLettura}
                               data-email={c.email} data-anno={String(anno)} data-valore={cifra(r.importo)} aria-label={`Riporto di ${c.nome} ${c.cognome}`}
                               title={`${r.scritto !== undefined ? `Scritto a mano. Il calcolo ora dà ${euro(r.calcolato)}` : `Calcolato: ${euro(r.calcolato)}`}${origine ? ` (${origine})` : ''}${r.versato ? '. Versato: togli la spunta per cambiarlo' : ''}`} />
-                            {r.scritto !== undefined && !r.versato && <button type="button" class="torna-calcolo" data-email={c.email} data-anno={String(anno)} title={`Cifra scritta a mano: il calcolo ora dà ${euro(r.calcolato)}. Tocca per tornare al calcolo`} aria-label={`Riporta al calcolo (${euro(r.calcolato)})`}>↺</button>}
-                            <input type="checkbox" class="versato-riporto" checked={r.versato} disabled={!r.importo && !r.versato} data-email={c.email} data-anno={String(anno)}
+                            {!solaLettura && r.scritto !== undefined && !r.versato && <button type="button" class="torna-calcolo" data-email={c.email} data-anno={String(anno)} title={`Cifra scritta a mano: il calcolo ora dà ${euro(r.calcolato)}. Tocca per tornare al calcolo`} aria-label={`Riporta al calcolo (${euro(r.calcolato)})`}>↺</button>}
+                            <input type="checkbox" class="versato-riporto" checked={r.versato} disabled={solaLettura || (!r.importo && !r.versato)} data-email={c.email} data-anno={String(anno)}
                               aria-label={`Riporto di ${c.nome} ${c.cognome} versato`} title={r.versato ? `Versato${r.versatoIl ? ` il ${r.versatoIl.split('-').reverse().join('/')}` : ''}` : 'Segna versato (oggi)'} />
                           </span>
                         </td>
@@ -191,30 +195,32 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
         </div>
         </>
       )}
-      <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>
+      {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>}
     </div>
   </div>
 
-  <Sollecito />
+  {!solaLettura && <Sollecito />}
 
   <dialog class="finestra-notifica finestra-mese">
     <form method="dialog">
       <h2 class="titolo-m"></h2>
       <div class="cifre-mese"></div>
       <p class="nota nota-m"></p>
-      <div class="base-m">
-        <label>Quota base del mese (€)<input name="base" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" /></label>
-        <button type="button" class="btn o piccolo salva-base">Salva la quota base</button>
-      </div>
-      <p class="nota spiega-base"></p>
+      {!solaLettura && (
+        <div class="base-m">
+          <label>Quota base del mese (€)<input name="base" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" /></label>
+          <button type="button" class="btn o piccolo salva-base">Salva la quota base</button>
+        </div>
+      )}
+      {!solaLettura && <p class="nota spiega-base"></p>}
       <div class="pulsanti" style="justify-content:flex-start">
-        <button type="button" class="btn g piccolo apri-sollecito">Sollecita per questo mese</button>
+        {!solaLettura && <button type="button" class="btn g piccolo apri-sollecito">Sollecita per questo mese</button>}
         <button type="button" class="btn o piccolo chiudi" style="margin-left:auto">Chiudi</button>
       </div>
     </form>
   </dialog>
 
-  <dialog class="finestra-notifica finestra-dettagli">
+  {!solaLettura && <dialog class="finestra-notifica finestra-dettagli">
     <form method="dialog">
       <h2>Quota di <span class="chi-d"></span></h2>
       <p class="nota mese-d"></p>
@@ -229,7 +235,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
         <button type="submit" class="btn g piccolo">Segna pagata</button>
       </div>
     </form>
-  </dialog>
+  </dialog>}
 
 </Base>
 
@@ -269,6 +275,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   .mostra-passati[aria-expanded='true'] .freccia { display: inline-block; transform: scaleX(-1); }
   .torna-calcolo { font: inherit; font-size: 15px; line-height: 1; color: var(--primario); background: none; border: 0; padding: 2px; cursor: pointer; }
   .torna-mini { font-size: 11px; color: var(--primario); }
+  .sola-lettura button.cella-quota { cursor: default; }
   .cella-quota.diversa { box-shadow: inset 0 0 0 2px var(--accento); }
   .griglia-quote tfoot td { font-size: 12px; text-align: center; }
   .cifre-mese { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -320,6 +327,8 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   const meseLungo = (m: string) => new Date(`${m}-15`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
   const numero = (v: string) => Number(v.replace(/\./g, '').replace(',', '.'));
   const base = (mese: string) => Number(document.querySelector<HTMLElement>(`.testa-mese[data-mese="${mese}"]`)?.dataset.base ?? 0);
+  // Redattori e amministratori: sola lettura, le caselle non si toccano
+  const solaLettura = Boolean(document.querySelector('[data-sola-lettura]'));
   const celle = (mese: string) => [...document.querySelectorAll<HTMLButtonElement>(`button.cella-quota[data-mese="${mese}"]`)];
   const invia = async (corpo: object) => {
     const r = await fetch('/tesoriere/quote/segna', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
@@ -362,7 +371,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
 
   // Pressione lunga, doppio clic o tasto destro: importo, data e nota
   const det = document.querySelector<HTMLDialogElement>('.finestra-dettagli')!;
-  const fd = det.querySelector('form')!;
+  const fd = det?.querySelector('form')!;
   let inDettaglio: HTMLButtonElement | undefined;
   function dettagli(c: HTMLButtonElement) {
     inDettaglio = c;
@@ -374,8 +383,8 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
     det.querySelector<HTMLElement>('.esito')!.hidden = true;
     det.showModal();
   }
-  det.querySelector('.chiudi')!.addEventListener('click', () => det.close());
-  fd.addEventListener('submit', async (e) => {
+  det?.querySelector('.chiudi')!.addEventListener('click', () => det.close());
+  fd?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!inDettaglio) return;
     try {
@@ -415,7 +424,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
     }
   }));
 
-  document.querySelectorAll<HTMLButtonElement>('button.cella-quota').forEach((c) => {
+  if (!solaLettura) document.querySelectorAll<HTMLButtonElement>('button.cella-quota').forEach((c) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let lunga = false;
     let clicTimer: ReturnType<typeof setTimeout> | undefined;
@@ -446,15 +455,16 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
       [String(n('pagata')), 'hanno pagato'], [String(n('esonerato')), 'esonerati'], [String(n('da-pagare')), 'da pagare'],
     ].map(([v, e]) => `<div><b>${v}</b><span>${e}</span></div>`).join('');
     fm.querySelector('.nota-m')!.textContent = senza ? `A ${meseLungo(m)} la quota non si raccoglie.${t.dataset.nota ? ` ${t.dataset.nota}` : ''}` : `${cc.length} coristi nel coro.`;
-    const sol = fm.querySelector<HTMLButtonElement>('.apri-sollecito')!;
-    sol.dataset.mese = m;
-    sol.hidden = senza || !n('da-pagare');
-    fm.querySelector<HTMLInputElement>('input[name="base"]')!.value = String(t.dataset.base ?? '').replace('.', ',');
-    fm.querySelector('.spiega-base')!.textContent = m.endsWith('-09') ? 'Settembre ha poche prove e si assimila a giugno: se giugno ne ha avute poche la quota base è zero, se è stato un mese intero metà quota. I debiti della stagione prima sono nella colonna Riporto.'
+    const sol = fm.querySelector<HTMLButtonElement>('.apri-sollecito');
+    if (sol) { sol.dataset.mese = m; sol.hidden = senza || !n('da-pagare'); }
+    const campoBase = fm.querySelector<HTMLInputElement>('input[name="base"]');
+    if (campoBase) campoBase.value = String(t.dataset.base ?? '').replace('.', ',');
+    const spiega = fm.querySelector('.spiega-base');
+    if (spiega) spiega.textContent = m.endsWith('-09') ? 'Settembre ha poche prove e si assimila a giugno: se giugno ne ha avute poche la quota base è zero, se è stato un mese intero metà quota. I debiti della stagione prima sono nella colonna Riporto.'
       : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : 'Zero = in questo mese la quota non si raccoglie.';
     fm.showModal();
   }));
-  fm.querySelector('.salva-base')!.addEventListener('click', async () => {
+  fm.querySelector('.salva-base')?.addEventListener('click', async () => {
     if (!meseAperto) return;
     const campo = fm.querySelector<HTMLInputElement>('input[name="base"]')!;
     if (!campo.value.trim() || !campo.reportValidity()) return;
