@@ -73,6 +73,11 @@ const sostituti = prove.filter((p) => p.maestro && p.maestro !== direttore());
 const nomiSostituti = [...new Set(sostituti.map((p) => p.maestro))];
 const vocalita = prove.filter((p) => p.vocalita !== 'nessuna');
 const totale = (x: ProvaMaestro[], k: 'onorario' | 'importoVocalita') => x.reduce((t, p) => t + p[k], 0);
+// L'onorario a prova come è scritto prova per prova: uno solo, o da… a… se è cambiato
+const tariffa = (x: ProvaMaestro[]) => {
+  const v = [...new Set(x.map((p) => p.onorario).filter((o) => o > 0))].sort((a, b) => a - b);
+  return !v.length ? '—' : v.length === 1 ? euro(v[0]) : `${euro(v[0])}–${euro(v[v.length - 1])}`;
+};
 // Conto corrente: l'ultima verifica della stagione
 const ultima = leVerifiche[0];
 const disponibile = ultima ? ultima.contoCorrente + ultima.contanti : undefined;
@@ -195,12 +200,12 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                 <table class="tabella">
                   <thead><tr><th>Maestro</th><th class="num">Prove</th><th class="num">Onorario</th><th class="num">Totale</th></tr></thead>
                   <tbody>
-                    <tr><td>{direttore()}</td><td class="num">{conDirettore.length}</td><td class="num">{euro(onorari().prova)}</td><td class="num">{euro(totale(conDirettore, 'onorario'))}</td></tr>
-                    {nomiSostituti.map((n) => { const x = sostituti.filter((p) => p.maestro === n); const pagate = x.filter((p) => p.onorario > 0); return <tr><td>{n}</td><td class="num">{x.length}{pagate.length < x.length && ` (${x.length - pagate.length} gratuite)`}</td><td class="num">{pagate[0] ? euro(pagate[0].onorario) : '—'}</td><td class="num">{euro(totale(x, 'onorario'))}</td></tr>; })}
+                    <tr><td>{direttore()}</td><td class="num">{conDirettore.length}</td><td class="num">{tariffa(conDirettore)}</td><td class="num">{euro(totale(conDirettore, 'onorario'))}</td></tr>
+                    {nomiSostituti.map((n) => { const x = sostituti.filter((p) => p.maestro === n); const pagate = x.filter((p) => p.onorario > 0); return <tr><td>{n}</td><td class="num">{x.length}{pagate.length < x.length && ` (${x.length - pagate.length} gratuite)`}</td><td class="num">{tariffa(x)}</td><td class="num">{euro(totale(x, 'onorario'))}</td></tr>; })}
                   </tbody>
                   <tfoot><tr><td>Totale</td><td></td><td></td><td class="num">{euro(totale(prove, 'onorario'))}</td></tr></tfoot>
                 </table>
-                <h3>Onorario mensile Direttore</h3>
+                <h3>Onorario mensile del Maestro</h3>
                 <table class="tabella">
                   <tbody>{perMese.map((m) => <tr><td>{nomeMese(m.mese)}</td><td class="num">{m.direttore ? euro(m.direttore) : ''}</td></tr>)}</tbody>
                   <tfoot><tr><td>Totale</td><td class="num">{euro(totale(conDirettore, 'onorario'))}</td></tr></tfoot>

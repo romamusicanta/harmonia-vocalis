@@ -54,7 +54,7 @@ export const direttore = () => coro.maestro.nome;
 export const CATEGORIE = {
   Entrata: ['Rimborsi concerti', 'Spartiti: versamenti dei coristi', 'Contributi e donazioni', 'Altre entrate'],
   Uscita: [
-    'Onorario Direttore', 'Altri maestri', 'Lezioni di vocalità', 'Compensi per i concerti', 'Affitto sala prove', 'Spartiti per i coristi', 'Spartiti e materiale musicale',
+    'Onorario del Maestro', 'Altri maestri', 'Lezioni di vocalità', 'Compensi per i concerti', 'Affitto sala prove', 'Spartiti per i coristi', 'Spartiti e materiale musicale',
     'Concerti (trasporti, fiori, allestimento)', 'Pedane e attrezzatura', 'Feste e rinfreschi', 'Adesioni e assicurazione', 'Spese bancarie',
     'Omaggi e donazioni', 'Altre uscite',
   ],
@@ -65,7 +65,10 @@ export const COMPENSI_CONCERTI = 'Compensi per i concerti';
 // Partite di giro: gli spartiti comprati per i coristi e da loro rimborsati (si tolgono dalle spese di gestione)
 export const PARTITE_DI_GIRO: string[] = ['Spartiti: versamenti dei coristi', 'Spartiti per i coristi'];
 // Le categorie degli onorari, per confrontare il pagato con il maturato (pagina Maestri)
-export const CATEGORIE_ONORARI = { direttore: 'Onorario Direttore', sostituti: 'Altri maestri', vocalita: 'Lezioni di vocalità' } as const;
+// (il Maestro del coro è il direttore: fino al 7/10/2026 la categoria si chiamava «Onorario Direttore», come
+// nel rendiconto 2025-26; le righe scritte prima si leggono con il nome nuovo)
+export const CATEGORIE_ONORARI = { direttore: 'Onorario del Maestro', sostituti: 'Altri maestri', vocalita: 'Lezioni di vocalità' } as const;
+const CATEGORIE_DI_PRIMA: Record<string, string> = { 'Onorario Direttore': CATEGORIE_ONORARI.direttore };
 export type TipoMovimento = 'Entrata' | 'Uscita' | 'Saldo iniziale';
 
 // ——— Mesi e stagioni ———
@@ -369,7 +372,7 @@ export async function movimenti(): Promise<Movimento[]> {
       id: r['ID'],
       data: dataFoglio(r['Data']) ?? '',
       tipo: (/^uscita/i.test(r['Tipo']) ? 'Uscita' : /^saldo|^avanzo/i.test(r['Tipo']) ? 'Saldo iniziale' : 'Entrata') as TipoMovimento,
-      categoria: r['Categoria'] ?? '',
+      categoria: CATEGORIE_DI_PRIMA[r['Categoria'] ?? ''] ?? r['Categoria'] ?? '',
       descrizione: r['Descrizione'] ?? '',
       importo: Math.abs(numero(r['Importo'])),
       note: r['Note'] ?? '',
@@ -515,7 +518,7 @@ export interface ProvaMaestro {
   data: string;
   titolo: string;
   inCalendario: boolean;
-  maestro: string;         // il Direttore, un sostituto, o '' se la prova non si paga
+  maestro: string;         // chi l'ha diretta: il Maestro, un sostituto, o '' se la prova non si paga
   onorario: number;
   vocalita: Vocalita;
   importoVocalita: number;
@@ -531,7 +534,7 @@ async function righeMaestri() {
   return leggiScheda(MAESTRI, FOGLIO_TESORERIA_ID);
 }
 
-// Le prove della stagione fino a oggi: quelle del calendario "Prove" (di base con il Direttore e il
+// Le prove della stagione fino a oggi: quelle del calendario "Prove" (di base con il Maestro e il
 // suo onorario) con le modifiche del foglio, più quelle aggiunte a mano
 export async function proveDeiMaestri(anno: number): Promise<ProvaMaestro[]> {
   const fine = [fineDi(anno), oggi()].sort()[0];

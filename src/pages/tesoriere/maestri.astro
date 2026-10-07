@@ -1,7 +1,8 @@
 ---
 // Area del tesoriere: prove e onorari dei maestri (/tesoriere/maestri, ?stagione=2025 per le passate),
 // come i prospetti "Onorario maestri" e "Spese gestione prove" del rendiconto. Le prove sono quelle
-// del calendario "Prove" fino a oggi: di base dirette dal Direttore, con il suo onorario. Per ogni
+// del calendario "Prove" fino a oggi: di base dirette dal Maestro, con il suo onorario (fa fede quello
+// scritto per ogni prova: il valore di coro.config.ts è solo quello proposto). Per ogni
 // prova si cambia chi l'ha diretta (un sostituto), l'onorario (0 = gratuita o non pagata) e la lezione
 // di vocalità di gruppo (singola o doppia); le prove non in calendario si aggiungono a mano. Tutto si
 // salva subito (/tesoriere/maestri/salva). In alto quanto è maturato, quanto è già stato pagato (le
@@ -67,7 +68,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
       <div>
         <span class="eti" style="margin-bottom:12px">Area del tesoriere · Stagione {anno ? nomeStagione(anno) : ''}</span>
         <h1>Prove e maestri</h1>
-        <p>Le prove del calendario fino a oggi, di base dirette da {direttore()} ({euro(onorari().prova)} a prova). {!solaLettura && 'Segna i sostituti, le prove gratuite e le lezioni di vocalità: si salva subito. '}Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
+        <p>Le prove del calendario fino a oggi, di base dirette dal Maestro, {direttore()}. Per ogni prova vale l'onorario scritto nell'elenco qui sotto, che può cambiare da una prova all'altra: per una prova nuova si propone {euro(onorari().prova)}. {!solaLettura && 'Segna i sostituti, le prove gratuite, gli onorari diversi e le lezioni di vocalità: si salva subito. '}Qui si calcola quanto spetta; i pagamenti si registrano in Entrate e uscite.</p>
       </div>
     </div>
   </div>
@@ -85,7 +86,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
         <>
           <div class="cifre-t no-stampa">
             <div class="cifra-t forte"><b>{euro(totaleMaturato)}</b><span>maturati nella stagione</span><small>{prove.length} prove</small></div>
-            <div class="cifra-t"><b>{euro(maturato.direttore)}</b><span>Direttore</span><small>pagati {euro(pagato.direttore)}</small></div>
+            <div class="cifra-t"><b>{euro(maturato.direttore)}</b><span>Maestro</span><small>pagati {euro(pagato.direttore)}</small></div>
             <div class="cifra-t"><b>{euro(maturato.sostituti)}</b><span>sostituti</span><small>pagati {euro(pagato.sostituti)}</small></div>
             <div class="cifra-t"><b>{euro(maturato.vocalita)}</b><span>vocalità di gruppo</span><small>pagati {euro(pagato.vocalita)}</small></div>
             <div class:list={['cifra-t', { rosso: totaleMaturato - totalePagato > 0 }]}><b>{euro(totaleMaturato - totalePagato)}</b><span>{totaleMaturato - totalePagato >= 0 ? 'ancora da pagare' : 'pagati in più'}</span></div>
@@ -99,7 +100,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
           <div class="carta riepilogo-stampa">
             <div class="tabella-wrap">
               <table class="tabella">
-                <thead><tr><th>Mese</th><th class="num">Prove del Direttore</th><th class="num">Onorario Direttore</th><th>Sostituti</th><th class="num">Vocalità</th><th class="num">Totale</th><th class="no-stampa"></th></tr></thead>
+                <thead><tr><th>Mese</th><th class="num">Prove del Maestro</th><th class="num">Onorario del Maestro</th><th>Sostituti</th><th class="num">Vocalità</th><th class="num">Totale</th><th class="no-stampa"></th></tr></thead>
                 <tbody>
                   {perMese.length === 0 && <tr><td colspan="7" class="tenue">Nessuna prova ancora fatta in questa stagione.</td></tr>}
                   {perMese.map((m) => {
@@ -112,7 +113,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                         <td>{m.sostituti.size ? [...m.sostituti].map(([n, s]) => `${n}: ${s.prove} ${s.prove === 1 ? 'prova' : 'prove'}, ${euro(s.totale)}`).join(' · ') : '—'}</td>
                         <td class="num">{m.vocalita.totale ? `${euro(m.vocalita.totale)}` : '—'}</td>
                         <td class="num"><b>{euro(m.direttore + sost + m.vocalita.totale)}</b></td>
-                        <td class="num no-stampa">{!solaLettura && m.direttore > 0 && totaleMaturato - totalePagato > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario Direttore – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
+                        <td class="num no-stampa">{!solaLettura && m.direttore > 0 && totaleMaturato - totalePagato > 0 && <a class="btn o piccolo" href={pagamento(CATEGORIE_ONORARI.direttore, m.direttore, `Onorario del Maestro – ${meseEsteso(m.mese)} (${m.proveDirettore} prove)`)} title="Apre il pagamento già scritto in Entrate e uscite">Paga</a>}</td>
                       </tr>
                     );
                   })}
@@ -121,7 +122,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
               </table>
             </div>
           </div>
-          {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Direttore per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>}
+          {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Maestro per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>}
 
           <h2 class="titolo-t no-stampa">Le prove</h2>
           {!solaLettura && <form class="carta aggiungi-prova no-stampa">
@@ -129,7 +130,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
               <b style="color:var(--primario)">Una prova che non è nel calendario?</b>
               <div class="riga-aggiungi">
                 <label>Data<input type="date" name="data" required /></label>
-                <label>Maestro<input name="maestro" list="nomi-maestri" value={direttore()} required /></label>
+                <label>Diretta da<input name="maestro" list="nomi-maestri" value={direttore()} required /></label>
                 <label>Onorario (€)<input name="onorario" inputmode="decimal" value={String(onorari().prova)} /></label>
                 <button class="btn g piccolo" type="submit">Aggiungi</button>
               </div>
@@ -144,7 +145,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                 {prove.filter((p) => meseDi(p.data) === mese).reverse().map((p) => (
                   <li class:list={{ cambiata: p.cambiata }} data-id={p.id} data-data={p.data}>
                     <span class="quando"><b>{giornoBreve(p.data).slice(0, 5)}</b><small>{!p.inCalendario ? 'non in calendario' : /^prova( settimanale)?$/i.test(p.titolo) ? '' : p.titolo}</small></span>
-                    <label class="campo-m"><span>Maestro</span><input name="maestro" list="nomi-maestri" value={p.maestro} placeholder="Nessuno" disabled={solaLettura} /></label>
+                    <label class="campo-m"><span>Diretta da</span><input name="maestro" list="nomi-maestri" value={p.maestro} placeholder="Nessuno" disabled={solaLettura} /></label>
                     <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={String(p.onorario).replace('.', ',')} disabled={solaLettura} /></label>
                     <label class="campo-v"><span>Vocalità</span>
                       <select name="vocalita" disabled={solaLettura}>
@@ -154,7 +155,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                       </select>
                     </label>
                     <span class="stato-m" aria-live="polite"></span>
-                    {!solaLettura && (p.cambiata || !p.inCalendario) && <button type="button" class="btn o piccolo ripristina" title={p.inCalendario ? 'Torna al solito: Direttore, onorario pieno, niente vocalità' : 'Togli questa prova'}>{p.inCalendario ? 'Come al solito' : 'Togli'}</button>}
+                    {!solaLettura && (p.cambiata || !p.inCalendario) && <button type="button" class="btn o piccolo ripristina" title={p.inCalendario ? 'Torna al solito: il Maestro, con l’onorario proposto, niente vocalità' : 'Togli questa prova'}>{p.inCalendario ? 'Come al solito' : 'Togli'}</button>}
                   </li>
                 ))}
               </ul>
@@ -230,7 +231,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
         stato.className = 'stato-m errore'; stato.textContent = (e as Error).message;
       }
     };
-    // Cambiando maestro, l'onorario di base: pieno per il Direttore, da sostituto per gli altri, 0 senza nessuno
+    // Cambiando chi dirige, l'onorario proposto: quello del Maestro, quello da sostituto per gli altri, 0 senza nessuno
     const base = (li.parentElement as HTMLElement).dataset;
     campo('maestro').addEventListener('change', () => {
       const m = campo('maestro').value.trim();
