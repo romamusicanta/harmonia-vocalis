@@ -408,6 +408,11 @@ export async function gestisciMovimento(f: FormData, email: string): Promise<{ o
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { ok: false, messaggio: 'Data non valida.' };
   if (!(importo > 0) && tipo !== 'Saldo iniziale') return { ok: false, messaggio: 'Scrivi un importo maggiore di zero.' };
   if (tipo !== 'Saldo iniziale' && !descrizione) return { ok: false, messaggio: 'Scrivi una breve descrizione.' };
+  // L'avanzo di cassa si scrive a mano solo se la stagione prima non è nel foglio (dal 7/10/2026):
+  // altrimenti lo riporta il sito dal suo saldo finale
+  if (tipo === 'Saldo iniziale' && esistente?.tipo !== 'Saldo iniziale' && haDati(stagioneDi(data) - 1, await quote(), await movimenti())) {
+    return { ok: false, messaggio: `L'avanzo di cassa della stagione ${nomeStagione(stagioneDi(data))} lo calcola il sito dal saldo finale della stagione prima: non serve scriverlo.` };
+  }
   const nuovoId = esistente?.id ?? randomBytes(4).toString('hex');
   const valori = [nuovoId, perFoglio(data), tipo, testo(categoria), testo(descrizione), centesimi(importo), testo(v('note').slice(0, 500)), email, esistente ? adesso() : ''];
   await scriviRiga(MOVIMENTI, valori, esistente?.riga, FOGLIO_TESORERIA_ID);
@@ -506,7 +511,7 @@ export function cassa(anno: number, tutte: Quota[], tutti: Movimento[]): Cassa {
   };
 }
 
-const haDati = (anno: number, tutte: Quota[], tutti: Movimento[]) => {
+export const haDati = (anno: number, tutte: Quota[], tutti: Movimento[]) => {
   const mesi = mesiDellaStagione(anno);
   return tutti.some((m) => mesi.includes(meseDi(m.data))) || tutte.some((q) => incassata(q) && mesi.includes(meseDi(q.pagataIl ?? `${q.mese}-01`)));
 };

@@ -16,7 +16,7 @@ import { scriveTesoriere } from '../../area/accesso';
 import { oggi } from '../../area/dati';
 import { spiegaTesto } from '../../area/errori';
 import {
-  CATEGORIE, PARTITE_DI_GIRO, nomiSedi, cassa, configurata, euro, euroEsatto, gestisciMovimento, gestisciVerifica, giornoBreve, meseEsteso, movimenti, nomeStagione, questoMese, quote,
+  CATEGORIE, PARTITE_DI_GIRO, haDati, nomiSedi, cassa, configurata, euro, euroEsatto, gestisciMovimento, gestisciVerifica, giornoBreve, meseEsteso, movimenti, nomeStagione, questoMese, quote,
   stagioneCorrente, stagioneDi, stagioniConDati, verifiche, type Cassa, type Movimento, type Quota, type Verifica,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
@@ -64,6 +64,9 @@ const inModifica = solaLettura ? undefined : tutti.find((m) => m.id === q.get('m
 // Il modulo: il movimento in modifica, o quanto scritto prima di un errore
 const val = (k: string, v?: string) => (inModifica ? v : undefined) ?? q.get(k) ?? '';
 const tipo = val('tipo', inModifica?.tipo) || 'Uscita';
+// L'avanzo di cassa si scrive a mano solo se la stagione prima non è nel foglio (come per la prima,
+// il 2025-26): altrimenti lo riporta il sito. Resta per modificare o cancellare quello già scritto
+const conAvanzo = inModifica?.tipo === 'Saldo iniziale' || !haDati(anno - 1, leQuote, tutti);
 const importoInModifica = inModifica ? String(inModifica.importo).replace('.', ',') : undefined;
 const mesiConQualcosa = (conti?.mesi ?? []).filter((m) => m.movimenti.length || m.quote).reverse();
 const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
@@ -102,7 +105,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
             {inModifica && <input type="hidden" name="id" value={inModifica.id} />}
             <fieldset class="tipo-movimento">
               <legend>Tipo</legend>
-              {(['Uscita', 'Entrata', 'Saldo iniziale'] as const).map((t) => (
+              {(conAvanzo ? (['Uscita', 'Entrata', 'Saldo iniziale'] as const) : (['Uscita', 'Entrata'] as const)).map((t) => (
                 <label><input type="radio" name="tipo" value={t} checked={tipo === t} />{t === 'Saldo iniziale' ? 'Avanzo di cassa (inizio stagione)' : t}</label>
               ))}
             </fieldset>
