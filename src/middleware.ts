@@ -14,7 +14,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
 import { conDemo, MESSAGGIO_DEMO } from './area/demo';
 import { conFoto, tokenValido } from './admin/google';
-import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, areaDi, chiudiCorista, coristaValido, leggiCorista, salvaCorista } from './area/accesso';
+import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, areaDi, chiudiCorista, coristaValido, leggiCorista, rientroSilenzioso, salvaCorista } from './area/accesso';
 
 const libere = ['/admin/accedi', '/admin/callback', '/admin/esci'];
 const libereArea = ['/area/accesso', '/area/entra', '/area/callback', '/area/esci'];
@@ -47,6 +47,9 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     const letto = leggiCorista(ctx.cookies);
     const corista = letto && (await coristaValido(letto));
     if (!corista) {
+      // Senza sessione si prova prima a rientrare in silenzio con Google (dal 7/10/2026: per esempio
+      // dopo un mese, o arrivando dall'Amministrazione se l'accesso lì non ha aperto le aree)
+      if (!letto && rientroSilenzioso(ctx.cookies, ctx.request)) return ctx.redirect(`/area/entra?${new URLSearchParams({ automatico: '1', dopo: pathname + ctx.url.search })}`);
       if (letto) chiudiCorista(ctx.cookies);
       return ctx.redirect(`${accesso}?${new URLSearchParams({ dopo: pathname + ctx.url.search, ...(letto ? { errore: 'Il tuo indirizzo non è più nell’elenco.' } : {}) })}`);
     }

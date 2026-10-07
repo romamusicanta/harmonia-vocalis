@@ -1,17 +1,18 @@
 ---
 // Ritorno da Google: si controlla lo state, si scambia il codice e si verifica che chi entra
 // faccia parte del gruppo dei redattori. Con lo stesso accesso si apre anche la sessione delle altre aree
-// a cui ha diritto (apriSessioneAree): un solo passaggio da Google.
+// a cui ha diritto (apriSessioneAree): un solo passaggio da Google. Se la richiesta era silenziosa
+// (accedi.astro) e qualcosa non va, si riprova subito facendo scegliere l'account.
 import { completaAccesso } from '../../admin/google';
-import { decifra, salvaSessione } from '../../admin/sessione';
-import { apriSessioneAree } from '../../area/accesso';
+import { decifra, leggiSessione, salvaSessione } from '../../admin/sessione';
+import { apriSessioneAree, ricordaAccount } from '../../area/accesso';
 
 export const prerender = false;
 
 const p = Astro.url.searchParams;
-const atteso = decifra<{ stato: string; dopo: string }>(Astro.cookies.get('hv-stato')?.value);
+const atteso = decifra<{ stato: string; dopo: string; silenzioso?: boolean }>(Astro.cookies.get('hv-stato')?.value);
 Astro.cookies.delete('hv-stato', { path: '/admin' });
-const errore = (m: string) => Astro.redirect(`/admin/accedi?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/admin' })}`);
+const errore = (m: string) => Astro.redirect(`/admin/accedi?${new URLSearchParams(atteso?.silenzioso ? { scegli: '1', dopo: atteso.dopo } : { errore: m, dopo: atteso?.dopo ?? '/admin' })}`);
 
 if (p.get('error')) return errore('Accesso annullato su Google.');
 if (!atteso || atteso.stato !== p.get('state') || !p.get('code')) return errore('Accesso scaduto o non valido: riprova.');
@@ -24,11 +25,18 @@ try {
 // Il Maestro (solo nel gruppo della direzione) non entra nell'Amministrazione: va nella sua area
 const sicuro = Astro.url.protocol === 'https:';
 if (esito.altrove) {
-  if (esito.persona) await apriSessioneAree(Astro.cookies, esito.persona, sicuro);
+  if (esito.persona) {
+    await apriSessioneAree(Astro.cookies, esito.persona, sicuro);
+    ricordaAccount(Astro.cookies, esito.persona.email, sicuro);
+  }
   return Astro.redirect(esito.altrove);
 }
 if (!esito.sessione) return errore(esito.errore ?? 'Accesso non riuscito.');
-salvaSessione(Astro.cookies, esito.sessione, sicuro);
+// Google dà il token per rinnovare l'accesso solo la prima volta: rientrando si tiene quello di prima
+const prima = leggiSessione(Astro.cookies);
+const rinnovo = esito.sessione.rinnovo ?? (prima?.email === esito.sessione.email ? prima.rinnovo : undefined);
+salvaSessione(Astro.cookies, { ...esito.sessione, rinnovo }, sicuro);
+ricordaAccount(Astro.cookies, esito.sessione.email, sicuro);
 await apriSessioneAree(Astro.cookies, esito.sessione, sicuro);
 return Astro.redirect(atteso.dopo);
 ---

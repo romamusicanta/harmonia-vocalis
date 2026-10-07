@@ -11,7 +11,7 @@
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import MenuRiservato from './MenuRiservato.astro';
-import { areeRiservate } from './aree';
+import { areeRiservate, type AreaRiservata } from './aree';
 import InvitoApp from '../../area/InvitoApp.astro';
 import InterruttoreNotifiche from '../../area/InterruttoreNotifiche.astro';
 import CaricamentoPagina from '../../area/CaricamentoPagina.astro';
@@ -20,7 +20,7 @@ import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
 import { ruoliDi } from '../../area/bacheca';
 import { nelGruppo } from '../../area/servizio';
-import { apreTesoriere, scriveTesoriere } from '../../area/accesso';
+import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, leggiCorista, type Corista } from '../../area/accesso';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; tesoriere?: boolean; admin?: boolean }
@@ -37,20 +37,45 @@ const utente = admin
     : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}`, foto: undefined as string | undefined };
 const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : tesoriere ? '/area/esci?da=tesoriere' : '/area/esci';
 
-// L'area del tesoriere compare tra le aree riservate solo a chi la può aprire: nell'area coristi e in
-// quella del Maestro lo dice la sessione; nell'Amministrazione (altra sessione) si guardano i gruppi
-// della tesoreria (letti al più ogni 5 minuti)
-// (e gli amministratori del sito, che aprono tutte le aree). Dal 7/10/2026 la vedono, in sola lettura,
-// anche i redattori: cioè tutti quelli che entrano nell'Amministrazione, tranne chi entra solo per gli avvisi
-const gruppiTesoreria = [...(coro.coristi?.tesoreria?.gruppi ?? []), ...(coro.coristi?.amministratori ? [coro.coristi.amministratori] : [])];
-const tesoreria = admin
-  ? Boolean(sessione && !DEMO && (sessione.redattore !== false || (await Promise.all(gruppiTesoreria.map((g) => nelGruppo(sessione.email, g).catch(() => false)))).some(Boolean)))
-  : Boolean(Astro.locals.corista && apreTesoriere(Astro.locals.corista));
+// Tra le aree riservate (tendina e menu del telefono) solo quelle che chi è entrato può aprire (dal
+// 7/10/2026; prima comparivano tutte, e chi ne sceglieva una non sua finiva a una pagina di accesso).
+// Nell'area coristi, del Maestro e del tesoriere lo dice la sessione (src/area/accesso.ts);
+// nell'Amministrazione (altra sessione) quella delle aree, se è della stessa persona (la apre l'accesso
+// all'Amministrazione), altrimenti i gruppi, letti al più ogni 5 minuti. L'Amministrazione la aprono
+// redattori, amministratori, gruppo Demo e chi ha un ruolo nella bacheca senza un'area propria (il presidente).
+// Nelle pagine di accesso, dove non si sa chi è, come nel sito pubblico.
+const ammessoAdmin = async (c: Corista) =>
+  Boolean(c.redattore || c.amministratore || c.demo) ||
+  (await ruoliDi(c.email).catch(() => [])).some((r) => r.id !== 'maestro' && r.id !== 'tesoriere');
+const permesse: AreaRiservata[] | undefined = DEMO ? undefined : await (async () => {
+  if (admin) {
+    if (!sessione) return undefined;
+    if (sessione.demo) return ['admin', 'maestro', 'tesoriere'];
+    const delleAree = leggiCorista(Astro.cookies);
+    if (delleAree?.email.toLowerCase() === sessione.email.toLowerCase()) {
+      return [apreArea(delleAree) && 'coristi', 'admin', apreMaestro(delleAree) && 'maestro', apreTesoriere(delleAree) && 'tesoriere'].filter(Boolean) as AreaRiservata[];
+    }
+    const c = coro.coristi;
+    const dentro = (g?: string) => (g ? nelGruppo(sessione.email, g).catch(() => false) : Promise.resolve(false));
+    const [inCoro, inDirezione, inAmministratori, inTesoreria] = await Promise.all([
+      dentro(c?.gruppo), dentro(c?.direzione), dentro(c?.amministratori),
+      Promise.all((c?.tesoreria?.gruppi ?? []).map(dentro)).then((x) => x.some(Boolean)),
+    ]);
+    return [
+      (inCoro || inAmministratori) && 'coristi', 'admin', (inDirezione || inAmministratori) && 'maestro',
+      // L'area del tesoriere in sola lettura anche ai redattori: tutti quelli che entrano qui, tranne chi entra solo per gli avvisi
+      (inTesoreria || inAmministratori || sessione.redattore !== false) && 'tesoriere',
+    ].filter(Boolean) as AreaRiservata[];
+  }
+  const c = Astro.locals.corista;
+  if (!c) return undefined;
+  return [apreArea(c) && 'coristi', (await ammessoAdmin(c)) && 'admin', apreMaestro(c) && 'maestro', apreTesoriere(c) && 'tesoriere'].filter(Boolean) as AreaRiservata[];
+})();
 // Nell'area del tesoriere redattori e amministratori leggono soltanto: niente Avvisi e una striscia che lo dice
 // Gruppo Demo (src/area/demo.ts): una striscia lo dice e i moduli non partono (il middleware li rifiuta comunque)
 const demo = !DEMO && Boolean(admin ? sessione?.demo : Astro.locals.corista?.demo);
 const solaLettura = tipo === 'tesoriere' && !DEMO && !demo && Boolean(Astro.locals.corista && !scriveTesoriere(Astro.locals.corista));
-const aree = areeRiservate(veste, false, tesoreria);
+const aree = areeRiservate(veste, false, permesse);
 const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', tesoriere: 'Area del tesoriere', admin: 'Amministrazione' }[tipo];
 const info = {
   coristi: `Area coristi · accesso riservato ai coristi del ${coro.nome}`,
@@ -117,7 +142,7 @@ const primaPagina = sezione === sezioni[0]?.id;
     <span class="info">{info}</span>
     <span class="dx">
       <a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a>
-      {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} tesoreria={tesoreria} />}
+      {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} permesse={permesse} />}
     </span>
   </div>
 </div>

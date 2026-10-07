@@ -1,19 +1,22 @@
 // Ritorno da Google: si controlla lo state, si scambia il codice e si verifica che chi entra
 // faccia parte del gruppo dei coristi. Dopo una richiesta silenziosa (solo per la foto) qualunque
-// problema lascia la sessione com'era, con la foto vuota per non riprovare a ogni pagina.
+// problema lascia la sessione com'era, con la foto vuota per non riprovare a ogni pagina; dopo una
+// richiesta automatica (chi non aveva la sessione) qualunque problema porta alla pagina di accesso,
+// senza errori.
 import type { APIRoute } from 'astro';
-import { apreMaestro, apreTesoriere, areaDi, completaAccesso, leggiCorista, salvaCorista } from '../../area/accesso';
+import { apreMaestro, apreTesoriere, areaDi, completaAccesso, leggiCorista, ricordaAccount, salvaCorista } from '../../area/accesso';
 import { decifra } from '../../admin/sessione';
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const p = url.searchParams;
-  const atteso = decifra<{ stato: string; dopo: string; silenzioso?: string }>(cookies.get('hv-stato-area')?.value);
+  const atteso = decifra<{ stato: string; dopo: string; silenzioso?: string; automatico?: boolean }>(cookies.get('hv-stato-area')?.value);
   cookies.delete('hv-stato-area', { path: '/area' });
   const maestro = atteso?.dopo.startsWith('/maestro');
   const tesoriere = atteso?.dopo.startsWith('/tesoriere');
-  const errore = (m: string) => redirect(`${maestro ? '/maestro/accesso' : tesoriere ? '/tesoriere/accesso' : '/area/accesso'}?${new URLSearchParams({ errore: m, dopo: atteso?.dopo ?? '/area' })}`);
+  const accesso = maestro ? '/maestro/accesso' : tesoriere ? '/tesoriere/accesso' : '/area/accesso';
+  const errore = (m: string) => redirect(`${accesso}?${new URLSearchParams(atteso?.automatico ? { dopo: atteso.dopo } : { errore: m, dopo: atteso?.dopo ?? '/area' })}`);
 
   const sessione = leggiCorista(cookies);
   if (atteso?.silenzioso && sessione?.email === atteso.silenzioso) {
@@ -38,6 +41,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   }
   if (!esito.corista) return errore(esito.errore ?? 'Accesso non riuscito.');
   salvaCorista(cookies, esito.corista, url.protocol === 'https:');
+  ricordaAccount(cookies, esito.corista.email, url.protocol === 'https:');
   // Ognuno va nella sua area: chi chiede un'area che non è sua finisce in una delle sue (coristi,
   // Maestro, tesoriere, in quest'ordine)
   const c = esito.corista;

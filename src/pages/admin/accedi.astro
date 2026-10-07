@@ -1,10 +1,17 @@
 ---
 // Accesso all'area Amministrazione: si va da Google e si torna su /admin/callback.
 // Un valore casuale (state) in un cookie protegge il ritorno da richieste estranee.
+// Dal 7/10/2026 si chiede prima a Google in silenzio, con l'account della sessione scaduta, di
+// quella delle aree o dell'ultimo accesso (accountRicordato): chi ci è già stato e ha l'account
+// collegato nel browser rientra senza vedere niente, anche quando il token di Google scade (un'ora,
+// se Google non ha dato quello per rinnovarlo). Se non riesce, il ritorno riprova con la scelta
+// dell'account (?scegli=1). Mai dopo "Esci".
 import { randomBytes } from 'node:crypto';
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
 import { configurato, urlAccesso } from '../../admin/google';
-import { cifra } from '../../admin/sessione';
+import { cifra, leggiSessione } from '../../admin/sessione';
+import { accountRicordato, leggiCorista, rientroSilenzioso } from '../../area/accesso';
+import { coro } from '../../motore/coro';
 
 export const prerender = false;
 
@@ -12,8 +19,12 @@ const dopo = Astro.url.searchParams.get('dopo') ?? '/admin';
 const errore = Astro.url.searchParams.get('errore');
 if (configurato() && !errore) {
   const stato = randomBytes(16).toString('hex');
-  Astro.cookies.set('hv-stato', cifra({ stato, dopo: dopo.startsWith('/admin') ? dopo : '/admin' }), { httpOnly: true, secure: Astro.url.protocol === 'https:', sameSite: 'lax', path: '/admin', maxAge: 600 });
-  return Astro.redirect(urlAccesso(`${Astro.url.origin}/admin/callback`, stato));
+  const delDominio = (e?: string) => (e?.toLowerCase().endsWith(`@${coro.amministrazione!.dominio}`) ? e : undefined);
+  const silenzioso = !Astro.url.searchParams.has('scegli') && rientroSilenzioso(Astro.cookies, Astro.request)
+    ? delDominio(leggiSessione(Astro.cookies)?.email) ?? delDominio(leggiCorista(Astro.cookies)?.email) ?? delDominio(accountRicordato(Astro.cookies))
+    : undefined;
+  Astro.cookies.set('hv-stato', cifra({ stato, silenzioso: Boolean(silenzioso), dopo: dopo.startsWith('/admin') ? dopo : '/admin' }), { httpOnly: true, secure: Astro.url.protocol === 'https:', sameSite: 'lax', path: '/admin', maxAge: 600 });
+  return Astro.redirect(urlAccesso(`${Astro.url.origin}/admin/callback`, stato, silenzioso));
 }
 ---
 

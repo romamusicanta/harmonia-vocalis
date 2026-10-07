@@ -23,7 +23,9 @@ const AMBITI = [
 
 export const configurato = () => Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && coro.amministrazione);
 
-export function urlAccesso(ritorno: string, stato: string) {
+// Con silenzioso (l'email dell'account da usare) Google non mostra niente: se l'account è collegato nel
+// browser e ha già dato i permessi torna subito con il codice, altrimenti con un errore
+export function urlAccesso(ritorno: string, stato: string, silenzioso?: string) {
   const p = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID!,
     redirect_uri: ritorno,
@@ -31,7 +33,7 @@ export function urlAccesso(ritorno: string, stato: string) {
     scope: AMBITI.join(' '),
     access_type: 'offline',
     include_granted_scopes: 'true',
-    prompt: 'select_account',
+    ...(silenzioso ? { prompt: 'none', login_hint: silenzioso } : { prompt: 'select_account' }),
     hd: coro.amministrazione!.dominio,
     state: stato,
   });

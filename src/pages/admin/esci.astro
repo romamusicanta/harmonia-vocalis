@@ -1,9 +1,14 @@
 ---
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
 import { chiudiSessione } from '../../admin/sessione';
+import { chiudiCorista, segnaUscita } from '../../area/accesso';
 
 export const prerender = false;
+// Si esce anche dalle altre aree (un solo accesso, una sola uscita) e non si rientra in silenzio
+// finché non si accede di nuovo (dal 7/10/2026)
 chiudiSessione(Astro.cookies);
+chiudiCorista(Astro.cookies);
+segnaUscita(Astro.cookies, Astro.url.protocol === 'https:');
 ---
 
 <LayoutAdmin titolo="Uscita">

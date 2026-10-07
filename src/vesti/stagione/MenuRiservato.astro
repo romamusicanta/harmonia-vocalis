@@ -1,15 +1,16 @@
 ---
 // Veste Stagione: "Area riservata" con il lucchetto nella barra in alto, che apre una tendina con le
 // aree riservate (Coristi, Amministratori, Maestro), al posto di un link per ciascuna. Nel sito
-// pubblico e nelle aree riservate (TestataArea.astro), dove l'area corrente è in evidenza. Si apre
+// pubblico e nelle aree riservate (TestataArea.astro), dove l'area corrente è in evidenza e ci sono
+// solo le aree che chi è entrato può aprire. Si apre
 // anche senza JavaScript (<details>); lo script la chiude al clic fuori e con Esc.
 import Icona from '../../componenti/Icona.astro';
 import { areeRiservate, type AreaRiservata } from './aree';
 import type { Veste } from '../../motore/aspetto';
 
-interface Props { veste: Veste; en?: boolean; corrente?: AreaRiservata; tesoreria?: boolean }
-const { veste, en = false, corrente, tesoreria = false } = Astro.props;
-const aree = areeRiservate(veste, en, tesoreria);
+interface Props { veste: Veste; en?: boolean; corrente?: AreaRiservata; permesse?: AreaRiservata[] }
+const { veste, en = false, corrente, permesse } = Astro.props;
+const aree = areeRiservate(veste, en, permesse);
 ---
 
 {aree.length > 0 && (

@@ -70,16 +70,16 @@ const RICONTROLLO = 24 * 60 * 60 * 1000;
 
 export const configurato = () => Boolean(CORISTI_CLIENT_ID && CORISTI_CLIENT_SECRET && coro.coristi);
 
-// Con silenzioso (l'email di chi è già dentro) Google non mostra niente: se l'account è ancora
-// collegato nel browser torna subito con il codice, altrimenti con un errore (serve a prendere la
-// foto per le sessioni che non l'hanno)
-export function urlAccesso(ritorno: string, stato: string, silenzioso?: string) {
+// Con silenzioso Google non mostra niente: se l'account (l'email, se c'è) è ancora collegato nel
+// browser torna subito con il codice, altrimenti con un errore (serve a prendere la foto per le
+// sessioni che non l'hanno e, dal 7/10/2026, a rientrare senza passare dalla pagina di accesso)
+export function urlAccesso(ritorno: string, stato: string, silenzioso?: string | true) {
   const p = new URLSearchParams({
     client_id: CORISTI_CLIENT_ID!,
     redirect_uri: ritorno,
     response_type: 'code',
     scope: 'openid email profile',
-    ...(silenzioso ? { prompt: 'none', login_hint: silenzioso } : { prompt: 'select_account' }),
+    ...(silenzioso ? { prompt: 'none', ...(silenzioso !== true && { login_hint: silenzioso }) } : { prompt: 'select_account' }),
     state: stato,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${p}`;
@@ -116,6 +116,29 @@ export function chiudiCorista(cookies: AstroCookies) {
   cookies.delete(NOME, { path: '/' });
   cookies.delete(VECCHIO, { path: '/area' });
 }
+
+// Accesso senza domande (dal 7/10/2026): l'account con cui si è entrati l'ultima volta (in una
+// qualunque area, Amministrazione compresa) resta in un cookie per un anno. Quando una sessione manca
+// o è scaduta, Amministrazione e aree lo usano per chiedere a Google in silenzio (prompt=none): se
+// l'account è ancora collegato nel browser si rientra senza vedere niente, altrimenti si va alla
+// pagina di accesso come prima. Dopo "Esci" (in qualunque area: si esce da tutte) non si rientra in
+// silenzio finché non si accede di nuovo con il pulsante.
+const ACCOUNT = 'hv-account';
+const USCITO = 'hv-uscito';
+
+export function ricordaAccount(cookies: AstroCookies, email: string, secure: boolean) {
+  cookies.set(ACCOUNT, cifra({ email }), { ...opzioni(secure), maxAge: 60 * 60 * 24 * 365 });
+  if (cookies.has(USCITO)) cookies.delete(USCITO, { path: '/' });
+}
+
+export const accountRicordato = (cookies: AstroCookies) => decifra<{ email: string }>(cookies.get(ACCOUNT)?.value)?.email;
+
+export const segnaUscita = (cookies: AstroCookies, secure: boolean) => cookies.set(USCITO, '1', opzioni(secure));
+
+// Si può provare a rientrare in silenzio: non dopo "Esci", e solo aprendo una pagina (non per i moduli
+// o le richieste degli script, che Google non può far passare dalla sua pagina)
+export const rientroSilenzioso = (cookies: AstroCookies, richiesta: Request) =>
+  !cookies.has(USCITO) && richiesta.method === 'GET' && richiesta.headers.get('sec-fetch-mode') === 'navigate';
 
 // Il corista della sessione, ricontrollato nel gruppo se è passato un giorno; undefined se non
 // è più nel gruppo. Se Google non risponde, per non chiudere fuori nessuno vale l'ultimo controllo.
