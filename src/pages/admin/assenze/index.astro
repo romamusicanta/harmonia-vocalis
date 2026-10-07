@@ -3,7 +3,8 @@
 // correggono chi c'era, partendo da quanto dichiarato dai coristi. Un tocco su un nome lo segna
 // assente o presente (/admin/assenze/cambia). Stessi dati dell'area coristi (src/area/dati.ts).
 // In testa i report: chi è atteso al prossimo appuntamento, per sezione e con gli assenti, e
-// i presenti per sezione alle ultime prove della stagione.
+// i presenti per sezione alle ultime prove della stagione. Dopo ogni tocco salvato i report si
+// rileggono dalla pagina stessa e si sostituiscono, senza ricaricarla (dal 7/10/2026).
 import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
 import Icona from '../../../componenti/Icona.astro';
 import { assenze, configurati, coristi, eventi, inizioStagione, nomeEvento, oggi, piuGiorni, riepilogo, sezioniDi, type Evento, type Riepilogo } from '../../../area/dati';
@@ -153,6 +154,19 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
       const assenti = document.querySelectorAll('.corista.assente').length;
       document.querySelector('#conteggio')!.innerHTML = `<b>${tutti - assenti}</b> presenti su ${tutti} · <b>${assenti}</b> assenti`;
     };
+    // I report in testa (prossimo appuntamento, ultime prove) rifatti dal server: vale l'ultima
+    // richiesta, se si toccano più nomi di seguito
+    let ultima = 0;
+    const aggiornaReport = async () => {
+      const mia = ++ultima;
+      try {
+        const html = await (await fetch(location.href, { cache: 'no-store' })).text();
+        if (mia !== ultima) return;
+        const nuovo = new DOMParser().parseFromString(html, 'text/html').querySelector('.cruscotto');
+        const vecchio = document.querySelector('.cruscotto');
+        if (nuovo && vecchio) vecchio.replaceWith(document.importNode(nuovo, true));
+      } catch { /* restano quelli di prima: si aggiornano al prossimo tocco o ricaricando */ }
+    };
     box?.querySelectorAll<HTMLButtonElement>('.corista').forEach((b) => b.addEventListener('click', async () => {
       const assente = !b.classList.contains('assente');
       // L'assenza dichiarata dal corista (con la sua nota) non si toglie con un tocco involontario
@@ -171,6 +185,7 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
         b.querySelector('.stato')!.textContent = assente ? 'Assente · redattori' : 'Presente';
         if (!assente) b.parentElement?.querySelector('small')?.remove();
         conteggio();
+        aggiornaReport();
       } catch (e) {
         alert((e as Error).message);
       } finally {
