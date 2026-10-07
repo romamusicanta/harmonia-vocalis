@@ -13,6 +13,7 @@ export interface Sessione {
   rinnovo?: string; // token per rinnovarlo, se Google l'ha dato
   scade: number; // scadenza del token di accesso (ms)
   redattore?: boolean; // false = entra solo per gli avvisi (presidente, tesoriere); mancante = redattore (sessioni di prima)
+  demo?: boolean; // nel gruppo Demo (coro.amministrazione.demo): tutto in sola lettura, nomi inventati (src/area/demo.ts)
 }
 
 const NOME = 'hv-admin';

@@ -7,7 +7,7 @@
 // calendario. Si ascoltano dal sito (src/area/file.ts); i redattori le tolgono (cestino del Drive condiviso).
 import { DRIVE_CARTELLA_REGISTRAZIONI } from 'astro:env/server';
 import { cartellaIn, cestina, fileIn, fileInCartelle, leggiFile, linkFile, rispondiCaricamento } from './drive';
-import { coristi, eventi, inizioStagione, nomeBreve, oggi, piuGiorni, type Evento } from './dati';
+import { coristiVeri, eventi, inizioStagione, oggi, personaVista, piuGiorni, type Evento } from './dati';
 import { normalizza } from './servizio';
 
 export const configurato = () => Boolean(DRIVE_CARTELLA_REGISTRAZIONI);
@@ -39,7 +39,7 @@ export async function registrazioni(): Promise<GiornoRegistrato[]> {
   const da = inizioStagione(oggi());
   const [prove, elenco, cartelle] = await Promise.all([
     eventi(da, oggi()).then((x) => x.filter((e) => e.tipo === 'prova')),
-    coristi(),
+    coristiVeri(),
     configurato() ? fileIn(DRIVE_CARTELLA_REGISTRAZIONI!, true) : Promise.resolve([]),
   ]);
   const giorni = new Map<string, GiornoRegistrato>();
@@ -58,11 +58,11 @@ export async function registrazioni(): Promise<GiornoRegistrato[]> {
       const prova = prove.find((e) => e.id === evento) ?? prove.find((e) => e.data === data);
       const k = chiave(data, prova?.id);
       if (!giorni.has(k)) giorni.set(k, { data, titolo: (prova?.titolo ?? c.name.slice(11)) || 'Prova', evento: prova?.id, tracce: [], link: prova && riga(prova, 'Registrazione') });
-      const email = f.appProperties?.caricatoDa ?? '';
-      const c2 = elenco.find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
+      // In modalità demo chi ha caricato ha un nome inventato (src/area/demo.ts)
+      const p = await personaVista(f.appProperties?.caricatoDa ?? '', elenco);
       giorni.get(k)!.tracce.push({
-        id: f.id, titolo: f.appProperties?.titolo || senzaEstensione(f.name), caricatoDa: email,
-        chi: c2 ? nomeBreve(c2) : email, sezione: c2?.sezione, link: linkFile(f.id), dimensione: f.size ? Number(f.size) : undefined, tipo: f.mimeType,
+        id: f.id, titolo: f.appProperties?.titolo || senzaEstensione(f.name), caricatoDa: p.email,
+        chi: p.chi, sezione: p.sezione, link: linkFile(f.id), dimensione: f.size ? Number(f.size) : undefined, tipo: f.mimeType,
       });
     }
   }
@@ -97,14 +97,13 @@ export function registrazioniPerWhatsapp(prova: { id: string; data: string; tito
 // I file registrati di una prova: nella cartella della sua data, quelli legati a quella prova
 export async function fileDellaProva(e: Pick<Evento, 'id' | 'data'>): Promise<Traccia[]> {
   if (!configurato()) return [];
-  const elenco = await coristi().catch(() => []);
+  const elenco = await coristiVeri().catch(() => []);
   const cartelle = (await fileIn(DRIVE_CARTELLA_REGISTRAZIONI!, true)).filter((c) => c.name.startsWith(e.data));
   const file = (await Promise.all(cartelle.map((c) => fileIn(c.id)))).flat().filter((f) => f.mimeType !== 'application/vnd.google-apps.folder' && (!f.appProperties?.evento || f.appProperties.evento === e.id));
-  return file.map((f) => {
-    const email = f.appProperties?.caricatoDa ?? '';
-    const c = elenco.find((x) => x.email === normalizza(email));
-    return { id: f.id, titolo: f.appProperties?.titolo || senzaEstensione(f.name), caricatoDa: email, chi: c ? nomeBreve(c) : email, sezione: c?.sezione, link: linkFile(f.id), dimensione: f.size ? Number(f.size) : undefined, tipo: f.mimeType };
-  });
+  return Promise.all(file.map(async (f) => {
+    const p = await personaVista(f.appProperties?.caricatoDa ?? '', elenco);
+    return { id: f.id, titolo: f.appProperties?.titolo || senzaEstensione(f.name), caricatoDa: p.email, chi: p.chi, sezione: p.sezione, link: linkFile(f.id), dimensione: f.size ? Number(f.size) : undefined, tipo: f.mimeType };
+  }));
 }
 
 // Caricamento dai redattori (/admin/prove/registrazione): qualunque prova già fatta

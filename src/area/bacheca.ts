@@ -6,7 +6,8 @@
 // correggibile anche direttamente nel foglio.
 import { randomBytes } from 'node:crypto';
 import { coro } from '../motore/coro';
-import { adesso, cancellaRiga, idScheda, leggiScheda, oggi, scriviRiga } from './dati';
+import { adesso, cancellaRiga, idScheda, leggiScheda, oggi, personaVista, scriviRiga } from './dati';
+import { inDemo } from './demo';
 import { nelGruppo } from './servizio';
 import { spiegaTesto } from './errori';
 
@@ -46,7 +47,7 @@ export async function ruoliDi(email: string): Promise<Ruolo[]> {
 // Tutti gli avvisi, i più recenti prima
 export async function avvisi(): Promise<Avviso[]> {
   await idScheda(SCHEDA, COLONNE);
-  return (await leggiScheda(SCHEDA))
+  const elenco = (await leggiScheda(SCHEDA))
     .filter((r) => r['ID'] && (r['Titolo'] || r['Testo']))
     .map((r) => ({
       riga: r.riga,
@@ -60,6 +61,9 @@ export async function avvisi(): Promise<Avviso[]> {
       scrittoDa: r['Scritto da'],
     }))
     .sort((a, b) => b.pubblicato.localeCompare(a.pubblicato) || b.riga - a.riga);
+  // Modalità demo (src/area/demo.ts): chi ha scritto l'avviso con un'email inventata
+  if (!inDemo()) return elenco;
+  return Promise.all(elenco.map(async (a) => ({ ...a, scrittoDa: (await personaVista(a.scrittoDa)).email })));
 }
 
 // Quelli da mostrare in bacheca oggi

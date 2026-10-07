@@ -70,6 +70,9 @@ export const schemaCoro = z.object({
   amministrazione: z.object({
     dominio: z.string(),
     gruppo: z.string(),
+    // Gruppo Demo (dal 7/10/2026): Amministrazione e area del Maestro in sola lettura, con nomi
+    // inventati e note nascoste; nell'area del tesoriere solo le anteprime delle sezioni
+    demo: z.string().optional(),
   }).optional(),
 
   // Area coristi (/area): accesso con un account Google qualunque il cui indirizzo fa parte del

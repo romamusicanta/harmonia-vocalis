@@ -1,0 +1,145 @@
+---
+// Area del tesoriere, gruppo Demo (dal 7/10/2026, src/area/demo.ts): al posto di ogni sezione la sua
+// anteprima, senza nessun dato. Il middleware ci porta chi è in demo da /tesoriere, /tesoriere/cassa,
+// /tesoriere/maestri, /tesoriere/rendiconto e /tesoriere/avvisi, tenendo l'indirizzo della sezione.
+import Base from '../../../layouts/Base.astro';
+import Icona, { type NomeIcona } from '../../../componenti/Icona.astro';
+import { vesteCorrente } from '../../../motore/url';
+import '../../../area/tesoreria.css';
+
+export const prerender = false;
+const veste = vesteCorrente(undefined);
+
+const SEZIONI: Record<string, { titolo: string; icona: NomeIcona; intro: string; punti: string[]; forma: 'griglia' | 'righe' | 'tabella' | 'fogli' | 'avvisi' }> = {
+  riepilogo: {
+    titolo: 'Riepilogo e quote',
+    icona: 'euro',
+    intro: 'In questa sezione il tesoriere segue la riscossione delle quote della stagione, in una tabella con una riga per corista e una casella per mese.',
+    punti: [
+      'Un tocco su una casella segna la quota pagata o l’esonero; con una pressione lunga si scrivono importo, data del pagamento e una nota.',
+      'In alto le quote raccolte fino a oggi, quanti coristi devono ancora pagare e il saldo di cassa.',
+      'I debiti della stagione prima stanno in una colonna a parte, calcolati dal sito e correggibili a mano.',
+      'Il sollecito manda a ciascuno, sul telefono, una notifica personale con i mesi e l’importo che gli restano da versare.',
+      'La tabella si stampa su un solo foglio A4, con l’intestazione dell’associazione.',
+    ],
+    forma: 'griglia',
+  },
+  cassa: {
+    titolo: 'Entrate e uscite',
+    icona: 'cassa',
+    intro: 'In questa sezione il tesoriere tiene la cassa del coro: ogni entrata e ogni uscita, mese per mese.',
+    punti: [
+      'Un modulo per registrare entrate, uscite e l’avanzo di cassa della stagione prima, con data, categoria, descrizione e note.',
+      'Le quote pagate entrano da sole, nel mese del pagamento: non si scrivono due volte.',
+      'Per ogni mese i movimenti e i totali; per la stagione le cifre di entrate, uscite, spese di gestione e saldo.',
+      'La verifica di cassa confronta il saldo del conto corrente e i contanti con quello che risulta dai conti.',
+      'In fondo i totali per categoria, come nel rendiconto.',
+    ],
+    forma: 'righe',
+  },
+  maestri: {
+    titolo: 'Prove e maestri',
+    icona: 'nota',
+    intro: 'In questa sezione il tesoriere calcola quanto spetta ai maestri, partendo dalle prove del calendario.',
+    punti: [
+      'Ogni prova già fatta, di base diretta dal Maestro con il suo onorario: si segnano i sostituti, le prove gratuite e le lezioni di vocalità di gruppo.',
+      'Le prove che non sono nel calendario si aggiungono a mano.',
+      'Quanto è maturato, quanto è già stato pagato e quanto resta, per il Maestro, i sostituti e la vocalità.',
+      'Mese per mese, con «Paga», che prepara il pagamento in Entrate e uscite; la tabella si stampa.',
+    ],
+    forma: 'tabella',
+  },
+  rendiconto: {
+    titolo: 'Rendiconto',
+    icona: 'documento',
+    intro: 'In questa sezione il sito prepara da solo il rendiconto della stagione da allegare alla relazione annuale.',
+    punti: [
+      'Una sintesi con le cifre principali: quote, altre entrate, spese di gestione, saldo.',
+      'I cinque prospetti: quote dei coristi, entrate e uscite, spese fisse per le prove, onorari dei maestri, conto corrente.',
+      'Tutto pronto da stampare o salvare in PDF, un prospetto per pagina, con l’intestazione dell’associazione.',
+    ],
+    forma: 'fogli',
+  },
+  avvisi: {
+    titolo: 'Avvisi ai coristi',
+    icona: 'campanella',
+    intro: 'In questa sezione il tesoriere scrive gli avvisi che compaiono nella bacheca dell’area coristi, firmati «Il tesoriere».',
+    punti: [
+      'Titolo, testo e, se serve, il giorno fino al quale l’avviso resta in bacheca.',
+      'Dopo averlo pubblicato, lo si manda nella chat WhatsApp del coro o come notifica sul telefono dei coristi.',
+    ],
+    forma: 'avvisi',
+  },
+};
+const id = Astro.params.sezione ?? '';
+const s = SEZIONI[id];
+if (!s) return Astro.redirect('/tesoriere');
+---
+
+<Base veste={veste} titolo={`${s.titolo} · Area del tesoriere`} area={{ tesoriere: true, sezione: id }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <span class="eti" style="margin-bottom:12px">Area del tesoriere · Anteprima</span>
+        <h1>{s.titolo}</h1>
+        <p>{s.intro}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w anteprima">
+      <div class="carta finta" aria-hidden="true">
+        <div class:list={['disegno', s.forma]}>
+          {s.forma === 'griglia' && Array.from({ length: 6 }, (_, r) => (
+            <div class="riga-g"><span class="nome" />{Array.from({ length: 9 }, (_, c) => <span class:list={['casella', { piena: (r * 3 + c * 5) % 7 < 3 + (c < 3 ? 2 : 0) }]} />)}</div>
+          ))}
+          {s.forma === 'righe' && Array.from({ length: 5 }, (_, r) => <div class="riga-r"><span class="data" /><span class="testo" style={`width:${40 + ((r * 17) % 35)}%`} /><span class:list={['cifra', { su: r % 3 === 1 }]} /></div>)}
+          {s.forma === 'tabella' && Array.from({ length: 5 }, (_, r) => <div class="riga-r"><span class="testo" style="width:22%" /><span class="cella" /><span class="cella" /><span class="testo" style={`width:${18 + ((r * 13) % 20)}%`} /><span class="cifra" /></div>)}
+          {s.forma === 'fogli' && Array.from({ length: 5 }, () => <div class="foglio"><span class="titolo" />{Array.from({ length: 6 }, () => <span class="linea" />)}</div>)}
+          {s.forma === 'avvisi' && Array.from({ length: 3 }, (_, r) => <div class="avviso"><span class="titolo" style={`width:${35 + r * 12}%`} /><span class="linea" /><span class="linea" style="width:70%" /></div>)}
+        </div>
+        <div class="velo"><Icona nome="lucchetto" /><span>Nella demo i dati della tesoreria non si vedono</span></div>
+      </div>
+
+      <div class="carta spiega">
+        <div class="cc">
+          <h2><Icona nome={s.icona} />Cosa si fa qui</h2>
+          <ul>{s.punti.map((p) => <li>{p}</li>)}</ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .anteprima { display: grid; gap: 20px; max-width: 900px; }
+  .finta { position: relative; overflow: hidden; }
+  .disegno { padding: 22px; display: grid; gap: 10px; filter: blur(1.5px); opacity: .7; }
+  .disegno span { display: block; background: var(--linea); border-radius: 5px; height: 12px; }
+  .riga-g { display: grid; grid-template-columns: 2.4fr repeat(9, 1fr); gap: 8px; align-items: center; }
+  .riga-g .casella { height: 24px; width: 24px; border-radius: 6px; background: transparent; border: 2px solid var(--linea); justify-self: center; }
+  .riga-g .casella.piena { background: #2e7d4f; border-color: #2e7d4f; }
+  .riga-r { display: flex; gap: 14px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--linea); }
+  .riga-r .data { width: 42px; }
+  .riga-r .cella { width: 60px; }
+  .riga-r .cifra { width: 70px; margin-left: auto; background: color-mix(in srgb, var(--rosso, #b3261e) 35%, var(--bianco)); }
+  .riga-r .cifra.su { background: color-mix(in srgb, #2e7d4f 45%, var(--bianco)); }
+  .fogli { grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .foglio { aspect-ratio: 1 / 1.41; border: 1px solid var(--linea); border-radius: 6px; padding: 10px; display: grid; align-content: start; gap: 7px; background: var(--bianco); }
+  .foglio .titolo { height: 10px; width: 70%; background: var(--primario); opacity: .5; }
+  .foglio .linea { height: 6px; }
+  .avviso { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+  .avviso .titolo { height: 14px; background: var(--primario); opacity: .45; }
+  .velo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; text-align: center; font-weight: 700; color: var(--primario); background: color-mix(in srgb, var(--bianco) 45%, transparent); }
+  .velo :global(svg) { width: 22px; height: 22px; flex-shrink: 0; }
+  .spiega h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 20px; color: var(--primario); }
+  .spiega h2 :global(svg) { width: 22px; height: 22px; }
+  .spiega ul { margin: 0; padding-left: 20px; display: grid; gap: 10px; line-height: 1.5; }
+  @media (max-width: 759.98px) {
+    .riga-g { grid-template-columns: 2fr repeat(5, 1fr); }
+    .riga-g .casella:nth-child(n + 7) { display: none; }
+    .fogli { grid-template-columns: repeat(3, 1fr); }
+    .fogli .foglio:nth-child(n + 4) { display: none; }
+  }
+</style>

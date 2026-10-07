@@ -10,7 +10,8 @@
 // dei concerti); ogni corista può togliere le sue.
 import { DRIVE_CARTELLA_FOTO_CONCERTI } from 'astro:env/server';
 import { CARTELLA, cartellaIn, cestina, fileIn, fileInCartelle, leggiFile, rispondiCaricamento } from './drive';
-import { coristi, eventi, nomeBreve, nomeEvento, oggi, piuGiorni } from './dati';
+import { coristiVeri, eventi, nomeBreve, nomeEvento, oggi, personaVista, piuGiorni } from './dati';
+import { inDemo } from './demo';
 import { archivio } from '../motore/concerti';
 import { google, normalizza } from './servizio';
 import { dimentica } from './file';
@@ -57,6 +58,16 @@ const svuota = () => { inCache = undefined; };
 export async function fotoDeiConcerti(tutte = false): Promise<ConcertoConFoto[]> {
   if (!configurato()) return [];
   if (!inCache || Date.now() - inCache.letto > 60 * 1000) inCache = { elenco: await leggiFoto(), letto: Date.now() };
+  // Modalità demo (src/area/demo.ts): solo le foto già pubbliche, con chi le ha caricate inventato
+  if (inDemo()) {
+    return (await Promise.all(inCache.elenco.map(async (g) => ({
+      ...g,
+      foto: await Promise.all(g.foto.filter((f) => sulSito(f.visibilita)).map(async (f) => {
+        const p = await personaVista(f.caricatoDa);
+        return { ...f, caricatoDa: p.email, chi: p.chi };
+      })),
+    })))).filter((g) => g.foto.length);
+  }
   return tutte ? inCache.elenco : inCache.elenco.map((g) => ({ ...g, foto: g.foto.filter((f) => f.visibilita !== 'nascosta') })).filter((g) => g.foto.length);
 }
 
@@ -66,7 +77,7 @@ export const ultimeFoto = async (quante = 6) =>
 
 // Tutte le foto da Drive, anche nascoste, per concerto
 async function leggiFoto(): Promise<ConcertoConFoto[]> {
-  const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristi().catch(() => []), concertiPerFoto().catch(() => [] as ConcertoScelta[])]);
+  const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristiVeri().catch(() => []), concertiPerFoto().catch(() => [] as ConcertoScelta[])]);
   const scelte = cartelle.filter((c) => /^\d{4}-\d{2}-\d{2}/.test(c.name));
   const perCartella = await fileInCartelle(scelte.map((c) => c.id));
   const dentro = scelte.map((c) => ({ c, file: perCartella.get(c.id) ?? [] }));

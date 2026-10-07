@@ -4,7 +4,8 @@
 // avvisi della bacheca, chi ha un ruolo in coro.coristi.bacheca (il presidente; Maestro e tesoriere
 // vanno invece nella loro area): per loro
 // la sessione ha redattore = false e il middleware apre solo /admin/avvisi. Il Maestro no: ha la
-// sua area, e chi è solo nel gruppo della direzione viene mandato lì.
+// sua area, e chi è solo nel gruppo della direzione viene mandato lì. Il gruppo Demo
+// (coro.amministrazione.demo, dal 7/10/2026) entra con demo = true: vede tutto ma non salva niente.
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import type { Sessione } from './sessione';
@@ -58,6 +59,7 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
   const suoi = await gruppiDi(t.access_token, io.email);
   const redattore = suoi.has(gruppo.toLowerCase());
+  const demo = !redattore && Boolean(coro.amministrazione!.demo && suoi.has(coro.amministrazione!.demo.toLowerCase()));
   // Il Maestro e il tesoriere scrivono gli avvisi dalla loro area (/maestro/avvisi, /tesoriere/avvisi):
   // il loro ruolo nella bacheca non apre l'Amministrazione, dove entrano solo se sono anche redattori
   // o amministratori
@@ -66,6 +68,7 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const conAreaPropria = (g: string) => g === direzione || tesoreria.includes(g);
   const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => !conAreaPropria(r.gruppo.toLowerCase()) && suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
   const persona = { email: io.email, nome: io.given_name ?? io.name ?? io.email, foto: io.picture ?? '' };
+  if (demo) return { sessione: { email: io.email, nome: persona.nome, foto: persona.foto, accesso: t.access_token, rinnovo: t.refresh_token, scade: Date.now() + (t.expires_in - 60) * 1000, redattore: true, demo: true } };
   if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { altrove: '/maestro', persona };
   if (!redattore && !conRuolo && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere', persona };
   if (!redattore && !conRuolo) return { errore: `L’account ${io.email} non fa parte del gruppo ${gruppo}.` };

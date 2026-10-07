@@ -47,7 +47,9 @@ const tesoreria = admin
   ? Boolean(sessione && !DEMO && (sessione.redattore !== false || (await Promise.all(gruppiTesoreria.map((g) => nelGruppo(sessione.email, g).catch(() => false)))).some(Boolean)))
   : Boolean(Astro.locals.corista && apreTesoriere(Astro.locals.corista));
 // Nell'area del tesoriere redattori e amministratori leggono soltanto: niente Avvisi e una striscia che lo dice
-const solaLettura = tipo === 'tesoriere' && !DEMO && Boolean(Astro.locals.corista && !scriveTesoriere(Astro.locals.corista));
+// Gruppo Demo (src/area/demo.ts): una striscia lo dice e i moduli non partono (il middleware li rifiuta comunque)
+const demo = !DEMO && Boolean(admin ? sessione?.demo : Astro.locals.corista?.demo);
+const solaLettura = tipo === 'tesoriere' && !DEMO && !demo && Boolean(Astro.locals.corista && !scriveTesoriere(Astro.locals.corista));
 const aree = areeRiservate(veste, false, tesoreria);
 const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', tesoriere: 'Area del tesoriere', admin: 'Amministrazione' }[tipo];
 const info = {
@@ -179,11 +181,32 @@ const primaPagina = sezione === sezioni[0]?.id;
     {tab.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona!} classe="" /><span>{s.breve ?? s.testo}</span></a>)}
   </nav>
 )}
+{conBarra && demo && (
+  <div class="sola-lettura no-stampa"><div class="w"><Icona nome="lucchetto" /><span><b>Demo.</b> {tipo === 'tesoriere' ? 'Di ogni sezione dell’area del tesoriere vedi una descrizione, non i dati.' : 'Puoi guardare tutto, ma niente viene salvato. Nomi ed email dei coristi sono inventati, note e foto private nascoste.'}</span></div></div>
+)}
+{demo && (
+  <div class="avviso-demo" role="status" hidden><Icona nome="lucchetto" /><span>Questa è una demo: le modifiche non vengono salvate.</span></div>
+  <script is:inline>
+    // Modalità demo: i moduli che salvano non partono, compare un avviso (prima degli altri script)
+    document.addEventListener('submit', (e) => {
+      const f = e.target;
+      // Passano solo i moduli che non salvano: le finestre (method="dialog") e i filtri (method="get")
+      if (!(f instanceof HTMLFormElement) || ['get', 'dialog'].includes((f.getAttribute('method') || '').toLowerCase())) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const a = document.querySelector('.avviso-demo');
+      if (!a) return;
+      a.hidden = false;
+      clearTimeout(a._t);
+      a._t = setTimeout(() => { a.hidden = true; }, 3500);
+    }, true);
+  </script>
+)}
 {conBarra && solaLettura && (
   <div class="sola-lettura no-stampa"><div class="w"><Icona nome="lucchetto" /><span><b>Sola lettura.</b> Puoi consultare quote, cassa, maestri e rendiconto; solo il tesoriere può modificare i dati.</span></div></div>
 )}
 {conBarra && !DEMO && primaPagina && <InvitoApp area={tipo} />}
-{conBarra && !DEMO && primaPagina && (tipo === 'coristi' || tipo === 'maestro') && <InterruttoreNotifiche area={tipo} />}
+{conBarra && !DEMO && !demo && primaPagina && (tipo === 'coristi' || tipo === 'maestro') && <InterruttoreNotifiche area={tipo} />}
 
 <script>
   // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che
@@ -198,4 +221,7 @@ const primaPagina = sezione === sezioni[0]?.id;
   .sola-lettura b { color: var(--primario); }
   .sola-lettura :global(svg) { width: 18px; height: 18px; flex-shrink: 0; color: var(--primario); }
   @media print { .sola-lettura { display: none; } }
+  .avviso-demo { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 1000; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px); padding: 12px 18px; border-radius: var(--raggio); background: var(--primario); color: #fff; font-size: 15px; box-shadow: 0 8px 24px rgb(0 0 0 / .25); }
+  .avviso-demo[hidden] { display: none; }
+  .avviso-demo :global(svg) { width: 18px; height: 18px; flex-shrink: 0; color: var(--accento); }
 </style>

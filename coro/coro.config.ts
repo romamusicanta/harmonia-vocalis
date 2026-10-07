@@ -81,6 +81,10 @@ export default {
   amministrazione: {
     dominio: 'romamusicanta.org',
     gruppo: 'redattori@romamusicanta.org',
+    // Gruppo Demo (dal 7/10/2026, account @romamusicanta.org): vede Amministrazione e area del Maestro
+    // in sola lettura, con i nomi dei coristi inventati e le note nascoste, e dell'area del tesoriere
+    // solo un'anteprima di ogni sezione
+    demo: 'demo@romamusicanta.org',
   },
 
   // Area coristi (romamusicanta.org/area): entrano i membri del gruppo coro@ (i coristi attuali, con

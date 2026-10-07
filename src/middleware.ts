@@ -7,8 +7,12 @@
 // Area del tesoriere (/tesoriere, quote e cassa): solo ai gruppi della tesoreria, idem. Gli amministratori
 // del sito (coro.coristi.amministratori) aprono tutte le aree; nell'area del tesoriere loro e i redattori
 // (dal 7/10/2026) solo in lettura: nessuna richiesta che modifica (POST), niente Avvisi.
+// Gruppo Demo (dal 7/10/2026, src/area/demo.ts): Amministrazione e area del Maestro in sola lettura, con
+// ogni richiesta dentro il contesto demo (nomi inventati, note nascoste); dell'area del tesoriere vede al
+// posto di ogni sezione la sua anteprima (src/pages/tesoriere/anteprima/[sezione].astro).
 import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
+import { conDemo, MESSAGGIO_DEMO } from './area/demo';
 import { conFoto, tokenValido } from './admin/google';
 import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, areaDi, chiudiCorista, coristaValido, leggiCorista, salvaCorista } from './area/accesso';
 
@@ -16,6 +20,11 @@ const libere = ['/admin/accedi', '/admin/callback', '/admin/esci'];
 const libereArea = ['/area/accesso', '/area/entra', '/area/callback', '/area/esci'];
 const libereMaestro = ['/maestro/accesso'];
 const libereTesoriere = ['/tesoriere/accesso'];
+
+// Le richieste che modificano qualcosa, rifiutate in modalità demo (le pagine mostrano il messaggio)
+const rifiutaDemo = () => new Response(JSON.stringify({ errore: MESSAGGIO_DEMO }), { status: 403, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+// Le sezioni dell'area del tesoriere, per l'anteprima della demo
+const sezioneTesoriere = (pathname: string) => ({ '': 'riepilogo', quote: 'riepilogo', cassa: 'cassa', maestri: 'maestri', rendiconto: 'rendiconto', avvisi: 'avvisi' } as Record<string, string>)[pathname.replace(/^\/tesoriere\/?/, '').replace(/\/$/, '')];
 
 const riservata = (risposta: Response) => {
   risposta.headers.set('Cache-Control', 'no-store');
@@ -52,6 +61,16 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     if (area && !apreArea(corista) && pathname !== '/area/notifiche') return ctx.redirect(areaDi(corista));
     // L'area del tesoriere solo ai gruppi della tesoreria
     if (tesoriere && !apreTesoriere(corista)) return ctx.redirect(`/tesoriere/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del tesoriere.` })}`);
+    // Gruppo Demo: niente modifiche; dell'area del tesoriere solo le anteprime
+    if (corista.demo) {
+      if (ctx.request.method !== 'GET') return rifiutaDemo();
+      ctx.locals.corista = corista;
+      if (tesoriere && !pathname.startsWith('/tesoriere/anteprima/')) {
+        const s = sezioneTesoriere(pathname);
+        return s ? riservata(await conDemo(true, () => avanti(`/tesoriere/anteprima/${s}`))) : ctx.redirect('/tesoriere');
+      }
+      return riservata(await conDemo(true, () => avanti()));
+    }
     // Redattori e amministratori: area del tesoriere in sola lettura
     if (tesoriere && !scriveTesoriere(corista)) {
       if (ctx.request.method !== 'GET') return new Response(JSON.stringify({ errore: 'Hai l’area del tesoriere in sola lettura: solo il tesoriere può modificare i dati.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
@@ -81,5 +100,10 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   ctx.locals.sessione = completa;
   // Chi ha solo un ruolo nella bacheca (tesoriere, presidente…) vede solo gli avvisi (e ne manda la notifica)
   if (completa.redattore === false && !/^\/admin\/(avvisi|notifiche)\/?$/.test(pathname)) return ctx.redirect('/admin/avvisi');
+  // Gruppo Demo: si guarda tutto, non si salva niente
+  if (completa.demo) {
+    if (ctx.request.method !== 'GET') return rifiutaDemo();
+    return riservata(await conDemo(true, () => avanti()));
+  }
   return riservata(await avanti());
 });

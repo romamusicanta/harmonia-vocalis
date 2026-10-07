@@ -9,6 +9,7 @@
 import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, FOGLIO_CORISTI_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import { google, normalizza } from './servizio';
+import { EMAIL_REDAZIONE, fintiPer, inDemo, type Finto } from './demo';
 import { sommario } from '../motore/calendario';
 
 const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
@@ -77,7 +78,8 @@ export const nomeBreve = (c: Pick<SchedaCorista, 'nome' | 'cognome'>) => `${c.no
 
 let coristiInCache: { elenco: SchedaCorista[]; letti: number } | undefined;
 
-export async function coristi(): Promise<SchedaCorista[]> {
+// I coristi veri, anche in modalità demo: per i calcoli tenuti in cache (src/area/demo.ts)
+export async function coristiVeri(): Promise<SchedaCorista[]> {
   if (coristiInCache && Date.now() - coristiInCache.letti < 5 * 60 * 1000) return coristiInCache.elenco;
   const elenco = (await leggiScheda('Coristi'))
     .filter((r) => r['Email associazione'] && r['Nome'])
@@ -95,6 +97,34 @@ export async function coristi(): Promise<SchedaCorista[]> {
     .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it', { sensitivity: 'base' }));
   coristiInCache = { elenco, letti: Date.now() };
   return elenco;
+}
+
+// Le persone inventate della modalità demo, per email vera (dell'associazione o personale)
+const fintiInCache = new WeakMap<SchedaCorista[], Map<string, Finto>>();
+async function finti() {
+  const elenco = await coristiVeri();
+  if (!fintiInCache.has(elenco)) fintiInCache.set(elenco, fintiPer(elenco));
+  return fintiInCache.get(elenco)!;
+}
+const trova = (m: Map<string, Finto>, email: string) => m.get(email.toLowerCase()) ?? [...m.entries()].find(([k]) => normalizza(k) === normalizza(email))?.[1];
+
+// In modalità demo: l'email finta e il nome breve inventato di chi ha scritto o caricato qualcosa
+// (chi non è corista è «Redazione»); fuori dalla demo, quelli veri
+export async function personaVista(email: string, elenco?: SchedaCorista[]): Promise<{ email: string; chi: string; sezione?: string }> {
+  const vero = (elenco ?? (await coristiVeri())).find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
+  if (!inDemo()) return { email, chi: vero ? nomeBreve(vero) : email, sezione: vero?.sezione };
+  const f = email ? trova(await finti(), email) : undefined;
+  return f ? { email: f.email, chi: nomeBreve(f), sezione: vero?.sezione } : { email: EMAIL_REDAZIONE, chi: 'Redazione', sezione: vero?.sezione };
+}
+
+// I coristi come li vede chi guarda: in modalità demo con nomi ed email inventati (sezione e periodo veri)
+export async function coristi(): Promise<SchedaCorista[]> {
+  const elenco = await coristiVeri();
+  if (!inDemo()) return elenco;
+  const m = await finti();
+  return elenco
+    .map((c) => ({ ...c, ...m.get(c.email)!, emailPersonale: '' }))
+    .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it', { sensitivity: 'base' }));
 }
 
 // Chi faceva parte del coro quel giorno
@@ -226,10 +256,19 @@ export interface Assenza {
 const COLONNE_ASSENZE = ['Data', 'Evento', 'ID evento', 'Nome', 'Email', 'Sezione', 'Nota', 'Inserita il', 'Inserita da'];
 
 // Tutte le assenze (non si tengono in cache: le scrivono coristi e redattori)
+// In modalità demo con le email inventate di coristi() e senza note
 export async function assenze(): Promise<Assenza[]> {
-  return (await leggiScheda('Assenze'))
+  const tutte = (await leggiScheda('Assenze'))
     .filter((r) => r['ID evento'] && r['Email'])
     .map((r) => ({ riga: r.riga, data: dataFoglio(r['Data']) ?? '', idEvento: r['ID evento'], email: r['Email'].toLowerCase(), nota: r['Nota'], inseritaDa: r['Inserita da'] }));
+  if (!inDemo()) return tutte;
+  const m = await finti();
+  return tutte.map((a) => {
+    const chi = trova(m, a.email);
+    const da = trova(m, a.inseritaDa);
+    // Chi non avvisa da sé resta riconoscibile come «inserita dai redattori»
+    return { ...a, email: chi?.email ?? EMAIL_REDAZIONE, nota: '', inseritaDa: da?.email ?? (normalizza(a.inseritaDa) === normalizza(a.email) ? chi?.email ?? EMAIL_REDAZIONE : EMAIL_REDAZIONE) };
+  });
 }
 
 // "02/10/2026 21:43": il foglio (in italiano) la riconosce come data e ora
