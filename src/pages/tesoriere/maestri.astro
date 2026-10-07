@@ -212,8 +212,8 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
   .aggiungi-prova .cc { display: grid; gap: 12px; }
   .riga-aggiungi { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
   .riga-aggiungi label, .prove-maestri label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--primario); }
-  .riga-aggiungi input, .prove-maestri :is(input, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); height: 44px; }
-  .riga-aggiungi input[name='maestro'] { min-width: 220px; }
+  .riga-aggiungi :is(input, select), .prove-maestri :is(input, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); height: 44px; }
+  .riga-aggiungi select[name='maestro'] { min-width: 220px; }
   .riga-aggiungi input[name='onorario'] { width: 110px; }
   .mese-prove { margin-bottom: 16px; }
   .prove-maestri { list-style: none; margin: 0; padding: 0; }
