@@ -58,12 +58,10 @@ const google = `/admin/accedi?${new URLSearchParams({ google: '1', dopo })}`;
     <h1>Area Amministrazione</h1>
     <p class="tenue">Per i redattori del sito. Scrivi la tua email per ricevere un codice, oppure entra con il tuo account Google dell'associazione.</p>
     {errore && <p class="messaggio errore">{errore}</p>}
-    <AccessoCodice dopo={dopo} />
-    {configurato() ? (
-      <a class="btn o google-admin" href={google}>Accedi con Google</a>
-    ) : (
-      !codiceConfigurato() && <p class="messaggio errore">L'accesso non è ancora configurato: mancano le credenziali sul server.</p>
-    )}
+    <AccessoCodice dopo={dopo}>
+      {configurato() && <a class="btn o google-admin" href={google}>Accedi con Google</a>}
+    </AccessoCodice>
+    {!configurato() && !codiceConfigurato() && <p class="messaggio errore">L'accesso non è ancora configurato: mancano le credenziali sul server.</p>}
   </div>
 </LayoutAdmin>
 
