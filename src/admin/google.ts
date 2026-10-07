@@ -9,6 +9,7 @@
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import type { Sessione } from './sessione';
+import { nelGruppo } from '../area/servizio';
 
 const AMBITI = [
   'openid',
@@ -57,7 +58,9 @@ export async function completaAccesso(codice: string, ritorno: string): Promise<
   const io = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${t.access_token}` } })).json();
   const { dominio, gruppo } = coro.amministrazione!;
   if (!io.email_verified || io.hd !== dominio) return { errore: `Si entra solo con un account @${dominio}.` };
-  const suoi = await gruppiDi(t.access_token, io.email);
+  // I gruppi si chiedono a Google con il token di chi entra; se Google non glieli lascia leggere (succede
+  // con alcuni account, per esempio quelli del gruppo Demo, 7/10/2026) li controlla l'account di servizio
+  const suoi = await gruppiDi(t.access_token, io.email).catch(() => gruppiDalServizio(io.email));
   const redattore = suoi.has(gruppo.toLowerCase());
   const demo = !redattore && Boolean(coro.amministrazione!.demo && suoi.has(coro.amministrazione!.demo.toLowerCase()));
   // Il Maestro e il tesoriere scrivono gli avvisi dalla loro area (/maestro/avvisi, /tesoriere/avvisi):
@@ -86,6 +89,16 @@ async function gruppiDi(accesso: string, email: string) {
   if (!r.ok) throw new Error(`Non riesco a leggere i gruppi di ${email} (${r.status}): ${await r.text()}`);
   const { memberships = [] } = (await r.json()) as { memberships?: { groupKey?: { id?: string } }[] };
   return new Set(memberships.map((m) => m.groupKey?.id?.toLowerCase()).filter((g): g is string => Boolean(g)));
+}
+
+// I gruppi che contano per l'accesso, controllati con l'account di servizio (ruolo «Lettore gruppi»)
+async function gruppiDalServizio(email: string) {
+  const c = coro.coristi;
+  const gruppi = [coro.amministrazione!.gruppo, coro.amministrazione!.demo, c?.direzione, ...(c?.tesoreria?.gruppi ?? []), ...(c?.bacheca ?? []).flatMap((r) => [r.gruppo, r.tranne])]
+    .filter((g): g is string => Boolean(g)).map((g) => g.toLowerCase());
+  const unici = [...new Set(gruppi)];
+  const esiti = await Promise.all(unici.map((g) => nelGruppo(email, g).catch(() => false)));
+  return new Set(unici.filter((_, i) => esiti[i]));
 }
 
 // La foto dell'account Google ('' se non c'è); se Google non risponde, si riprova la volta dopo
