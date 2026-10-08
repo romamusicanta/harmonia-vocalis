@@ -55,11 +55,40 @@ export async function tokenServizio() {
   return accessToken as string;
 }
 
-// Una chiamata alle API di Google a nome dell'account di servizio
+// Una chiamata alle API di Google a nome dell'account di servizio. Se Google risponde 429 (troppe
+// richieste: per i fogli al più 60 letture al minuto per tutto il sito, l'8/10/2026 superate
+// toccando di fila i coristi in Assenze) si riprova dopo 1, 2 e 4 secondi: la richiesta rifiutata
+// non è stata eseguita, quindi si può ripetere anche se scrive
+async function chiama<T>(url: string, init: RequestInit): Promise<T> {
+  for (let tentativo = 0; ; tentativo++) {
+    const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${await tokenServizio()}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}) } });
+    if (r.ok) return r.json();
+    if (r.status === 429 && tentativo < 3) { await new Promise((ok) => setTimeout(ok, 1000 * 2 ** tentativo)); continue; }
+    throw new Error(`Google (${r.status}): ${(await r.text()).slice(0, 200)}`);
+  }
+}
+
+// Le letture dei fogli si tengono 10 secondi, e due richieste uguali nello stesso momento (più
+// riquadri della stessa pagina) ne fanno una: ogni scrittura su un foglio dimentica le sue letture
+const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets/';
+const DURATA_LETTURA = 10 * 1000;
+const letture = new Map<string, { risposta: Promise<unknown>; letta: number }>();
+const foglioDi = (url: string) => url.slice(SHEETS.length).split(/[/?:]/)[0];
+const dimenticaFoglio = (foglio: string) => { for (const k of letture.keys()) if (foglioDi(k) === foglio) letture.delete(k); };
+
 export async function google<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const r = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${await tokenServizio()}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}) } });
-  if (!r.ok) throw new Error(`Google (${r.status}): ${(await r.text()).slice(0, 200)}`);
-  return r.json();
+  if (!url.startsWith(SHEETS)) return chiama<T>(url, init);
+  if ((init.method ?? 'GET') !== 'GET') {
+    dimenticaFoglio(foglioDi(url));
+    try { return await chiama<T>(url, init); }
+    finally { dimenticaFoglio(foglioDi(url)); }
+  }
+  const c = letture.get(url);
+  if (c && Date.now() - c.letta < DURATA_LETTURA) return structuredClone(await c.risposta) as T;
+  const risposta = chiama<T>(url, init);
+  letture.set(url, { risposta, letta: Date.now() });
+  risposta.catch(() => { if (letture.get(url)?.risposta === risposta) letture.delete(url); });
+  return structuredClone(await risposta);
 }
 const ci = google;
 

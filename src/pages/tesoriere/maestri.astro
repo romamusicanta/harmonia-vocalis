@@ -257,10 +257,13 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
   const salva = (corpo: object) => fetch('/tesoriere/maestri/salva', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })
     .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).errore ?? `Errore ${r.status}`); return r.json(); });
 
-  // Le cifre in alto e la tabella «Mese per mese», rilette dalla pagina dopo un salvataggio; se
-  // arrivano più cambi di fila vale l'ultima lettura
+  // Le cifre in alto e la tabella «Mese per mese», rilette dalla pagina un secondo e mezzo dopo
+  // l'ultimo salvataggio: più cambi di fila fanno una lettura sola (Google accetta 60 letture del
+  // foglio al minuto); vale l'ultima lettura
   let lettura = 0;
-  const aggiornaRiepilogo = async () => {
+  let attesa: ReturnType<typeof setTimeout> | undefined;
+  const aggiornaRiepilogo = () => { clearTimeout(attesa); attesa = setTimeout(rileggiRiepilogo, 1500); };
+  const rileggiRiepilogo = async () => {
     const mia = ++lettura;
     try {
       const html = await (await fetch(location.href, { cache: 'no-store' })).text();

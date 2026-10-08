@@ -154,10 +154,13 @@ const sezioniStorico = [...new Set(storico.flatMap((x) => x.perSezione.map((s) =
       const assenti = document.querySelectorAll('.corista.assente').length;
       document.querySelector('#conteggio')!.innerHTML = `<b>${tutti - assenti}</b> presenti su ${tutti} · <b>${assenti}</b> assenti`;
     };
-    // I report in testa (prossimo appuntamento, ultime prove) rifatti dal server: vale l'ultima
-    // richiesta, se si toccano più nomi di seguito
+    // I report in testa (prossimo appuntamento, ultime prove) rifatti dal server, un secondo e mezzo
+    // dopo l'ultimo tocco: toccando più nomi di seguito si rilegge la pagina una volta sola (ogni
+    // lettura costa letture del foglio, e Google ne accetta 60 al minuto); vale l'ultima richiesta
     let ultima = 0;
-    const aggiornaReport = async () => {
+    let attesa: ReturnType<typeof setTimeout> | undefined;
+    const aggiornaReport = () => { clearTimeout(attesa); attesa = setTimeout(rileggiReport, 1500); };
+    const rileggiReport = async () => {
       const mia = ++ultima;
       try {
         const html = await (await fetch(location.href, { cache: 'no-store' })).text();
