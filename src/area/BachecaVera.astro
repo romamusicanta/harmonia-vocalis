@@ -24,7 +24,7 @@ import { configurata as tesoreriaConfigurata, euro, indice, quotaBase, riporti, 
 const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
 // Tutto in parallelo, quote e foto comprese: la pagina aspetta solo la lettura più lenta
-const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte, foto, tutteLeQuote] = await Promise.all([
+const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte, foto, elencoQuote] = await Promise.all([
   nulla(coristaDi(email), undefined),
   nulla(eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 120)), [] as Evento[]),
   nulla(avvisi(), []),
@@ -39,7 +39,7 @@ const [io, prossimi, elencoAvvisi, ruoli, pezzi, regs, conv, tutti, tutte, foto,
   // Le quote: solo se la tesoreria è collegata; se il foglio non risponde il riquadro non compare
   tesoreriaConfigurata() ? nulla(quote(), undefined as Quota[] | undefined) : undefined,
 ]);
-const leQuote = io ? tutteLeQuote : undefined;
+const leQuote = io ? elencoQuote : undefined;
 const adesso = Date.now() - 3 * 3600 * 1000;
 const prova = prossimi.find((e) => e.tipo === 'prova' && e.inizioMs > adesso);
 const concerto = prossimi.find((e) => e.tipo === 'concerto' && e.inizioMs > adesso);
