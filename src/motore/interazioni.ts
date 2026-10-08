@@ -102,8 +102,9 @@ $$('[data-filtri]').forEach((contenitore) => {
   applica();
 });
 
-// Ricerca testuale semplice: input[data-cerca="#lista"]
-$$<HTMLInputElement>('[data-cerca]').forEach((inp) => {
+// Ricerca testuale semplice: input[data-cerca="#lista"] (solo i campi: altrove, per esempio nelle righe
+// del repertorio, data-cerca è il testo in cui cercare, non un selettore)
+$$<HTMLInputElement>('input[data-cerca^="#"]').forEach((inp) => {
   const lista = document.querySelector(inp.dataset.cerca!);
   if (!lista) return;
   inp.addEventListener('input', () => {
