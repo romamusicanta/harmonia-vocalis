@@ -161,10 +161,15 @@ export async function coristi(): Promise<SchedaCorista[]> {
 // Chi faceva parte del coro quel giorno
 export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => nelCoro(c, giorno));
 
-// Il corista di un indirizzo, dell'associazione o personale
-export async function coristaDi(email: string) {
+// Il corista di un indirizzo, dell'associazione o personale. In modalità demo chi guarda, che non è
+// nella scheda, è un contralto inventato senza assenze né quote (dall'8/10/2026): così l'area coristi
+// mostra «Non ci sarò» e «Le tue quote» come a un corista, senza i dati di una persona vera
+export async function coristaDi(email: string): Promise<SchedaCorista | undefined> {
   const n = normalizza(email);
-  return (await coristi()).find((c) => c.email === n || (c.emailPersonale && normalizza(c.emailPersonale) === n));
+  const trovato = (await coristi()).find((c) => c.email === n || (c.emailPersonale && normalizza(c.emailPersonale) === n));
+  if (trovato || !inDemo()) return trovato;
+  const dal = `${Number(oggi().slice(0, 4)) - 2}-09-01`;
+  return { nome: 'Demo', cognome: 'Corista', sezione: 'Contralti', email: n, emailPersonale: '', numeroSocio: '', periodi: [{ riga: 0, dal, nota: '' }], dal };
 }
 
 // Sezioni nell'ordine del coro, più quelle non previste scritte nel foglio
