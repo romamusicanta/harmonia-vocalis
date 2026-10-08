@@ -276,7 +276,10 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
     const stato = li.querySelector<HTMLElement>('.stato-m')!;
     const campo = (n: string) => li.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${n}"]`)!;
     let ultimo = '';
-    const invia = async () => {
+    // Un salvataggio alla volta per prova: due insieme su una prova mai cambiata scriverebbero due righe
+    let coda = Promise.resolve();
+    const invia = () => { coda = coda.then(inviaOra); return coda; };
+    const inviaOra = async () => {
       const corpo = { id: li.dataset.id, data: li.dataset.data, maestro: campo('maestro').value, onorario: campo('onorario').value, vocalita: campo('vocalita').value };
       const firma = JSON.stringify(corpo);
       if (firma === ultimo) return;
@@ -296,7 +299,10 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
       campo('onorario').value = proposto(campo('maestro') as HTMLSelectElement);
       invia();
     });
-    campo('onorario').addEventListener('change', invia);
+    // L'onorario si salva anche mentre si scrive, appena ci si ferma un attimo (non solo uscendo dal campo)
+    let pausa: ReturnType<typeof setTimeout> | undefined;
+    campo('onorario').addEventListener('input', () => { clearTimeout(pausa); if (campo('onorario').value.trim()) pausa = setTimeout(invia, 800); });
+    campo('onorario').addEventListener('change', () => { clearTimeout(pausa); invia(); });
     campo('vocalita').addEventListener('change', invia);
     li.querySelector('.ripristina')?.addEventListener('click', async () => {
       try { await salva({ id: li.dataset.id, elimina: true }); location.reload(); } catch (e) { stato.className = 'stato-m errore'; stato.textContent = (e as Error).message; }

@@ -2,11 +2,11 @@
 // - Pagine pubbliche: prima la rete (il sito si ricostruisce ogni notte), la copia salvata se si è
 //   senza connessione, altrimenti la pagina offline.
 // - File di /_astro (nomi con l'impronta, non cambiano mai) e caratteri di Google: dalla copia salvata.
-// - Aree riservate (/admin, /area, /maestro): mai salvate, sono dati personali e il telefono può
+// - Aree riservate (/admin, /area, /maestro, /tesoriere): mai salvate, sono dati personali e il telefono può
 //   essere di altri; senza connessione, la pagina offline.
 // Più sotto, le notifiche push.
 // Cambiare VERSIONE per svuotare le copie salvate.
-const VERSIONE = 'hv-1';
+const VERSIONE = 'hv-2'; // hv-2 (8/10/2026): via le copie delle pagine del tesoriere, salvate per errore
 const OFFLINE = '/offline.html';
 const PRIMA = [OFFLINE, '/favicon.svg', '/icone/icona-192.png'];
 
@@ -22,7 +22,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-const riservata = (p) => /^\/(admin|area|maestro)(\/|$)/.test(p);
+const riservata = (p) => /^\/(admin|area|maestro|tesoriere)(\/|$)/.test(p);
 // Le pagine si salvano senza barra finale: /concerti e /concerti/ sono la stessa copia
 const chiave = (indirizzo) => {
   const u = new URL(indirizzo);
