@@ -91,6 +91,8 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
 
       {conti && (
         <>
+          {/* Cifre e «Mese per mese»: dopo ogni cambio in una prova si rileggono dalla pagina e si sostituiscono */}
+          <div class="riepilogo-maestri">
           <div class="cifre-t no-stampa">
             <div class="cifra-t forte"><b>{euro(totaleMaturato)}</b><span>maturati nella stagione</span><small>{prove.length} prove</small></div>
             <div class="cifra-t"><b>{euro(maturato.direttore)}</b><span>Maestro</span><small>pagati {euro(pagato.direttore)}</small></div>
@@ -128,6 +130,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                 {perMese.length > 0 && <tfoot><tr><td>Stagione</td><td class="num">{somma((m) => m.proveDirettore)}</td><td class="num">{euro(maturato.direttore)}</td><td>{maturato.sostituti ? euro(maturato.sostituti) : '—'}</td><td class="num">{euro(maturato.vocalita)}</td><td class="num">{euro(totaleMaturato)}</td><td class="no-stampa"></td></tr></tfoot>}
               </table>
             </div>
+          </div>
           </div>
           {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Finché resta qualcosa da pagare, «Paga» apre Entrate e uscite con il pagamento del Maestro per quel mese già scritto: controlla data e importo e registra. I pagamenti ai sostituti e per la vocalità si registrano allo stesso modo, con le categorie «{CATEGORIE_ONORARI.sostituti}» e «{CATEGORIE_ONORARI.vocalita}».</p>}
 
@@ -255,6 +258,20 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
   const salva = (corpo: object) => fetch('/tesoriere/maestri/salva', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })
     .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).errore ?? `Errore ${r.status}`); return r.json(); });
 
+  // Le cifre in alto e la tabella «Mese per mese», rilette dalla pagina dopo un salvataggio; se
+  // arrivano più cambi di fila vale l'ultima lettura
+  let lettura = 0;
+  const aggiornaRiepilogo = async () => {
+    const mia = ++lettura;
+    try {
+      const html = await (await fetch(location.href, { cache: 'no-store' })).text();
+      if (mia !== lettura) return;
+      const nuovo = new DOMParser().parseFromString(html, 'text/html').querySelector('.riepilogo-maestri');
+      const vecchio = document.querySelector('.riepilogo-maestri');
+      if (nuovo && vecchio) vecchio.replaceWith(document.importNode(nuovo, true));
+    } catch { /* resta il riepilogo di prima: si aggiorna ricaricando la pagina */ }
+  };
+
   document.querySelectorAll<HTMLLIElement>('.prove-maestri li').forEach((li) => {
     const stato = li.querySelector<HTMLElement>('.stato-m')!;
     const campo = (n: string) => li.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${n}"]`)!;
@@ -269,6 +286,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
         ultimo = firma;
         li.classList.add('cambiata');
         stato.textContent = 'Salvato';
+        aggiornaRiepilogo();
       } catch (e) {
         stato.className = 'stato-m errore'; stato.textContent = (e as Error).message;
       }
