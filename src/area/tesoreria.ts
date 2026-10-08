@@ -34,7 +34,7 @@
 import { randomBytes } from 'node:crypto';
 import { FOGLIO_TESORERIA_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, nelCoro, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
 import { normalizza } from './servizio';
 
 const QUOTE = 'Quote';
@@ -110,7 +110,7 @@ export const mesiDovuti = (anno: number, tutte?: Quota[]) => mesiDelleQuote(anno
 const ultimoGiorno = (mese: string) => new Date(Date.UTC(Number(mese.slice(0, 4)), Number(mese.slice(5, 7)), 0)).toISOString().slice(0, 10);
 // Chi faceva parte del coro in quel mese (anche solo per qualche giorno)
 export const attiviNelMese = (elenco: SchedaCorista[], mese: string) =>
-  elenco.filter((c) => (!c.dal || c.dal <= ultimoGiorno(mese)) && (!c.al || c.al >= `${mese}-01`));
+  elenco.filter((c) => nelCoro(c, `${mese}-01`, ultimoGiorno(mese)));
 
 // ——— Numeri e date ———
 

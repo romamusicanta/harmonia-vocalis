@@ -63,41 +63,70 @@ export async function leggiScheda(scheda: string, foglio = FOGLIO_CORISTI_ID!) {
 
 // ——— Coristi ———
 
+// Un periodo nel coro: una riga della scheda Coristi (dal 8/10/2026 un corista che esce e poi rientra
+// ha più righe, con la stessa email dell'associazione)
+export interface Periodo {
+  riga: number;
+  dal?: string;
+  al?: string;            // vuota: è ancora nel coro
+  nota: string;
+}
+
 export interface SchedaCorista {
   nome: string;
   cognome: string;
   sezione: string;
   email: string;          // dell'associazione, nome.cognome@romamusicanta.org: è la chiave
   emailPersonale: string;
-  dal?: string;
-  al?: string;
+  numeroSocio: string;
+  periodi: Periodo[];     // in ordine di data
+  dal?: string;           // inizio del primo periodo
+  al?: string;            // fine dell'ultimo (vuota se è ancora nel coro)
 }
 
 export const SEZIONI = ['Soprani', 'Contralti', 'Tenori', 'Bassi'];
 export const nomeBreve = (c: Pick<SchedaCorista, 'nome' | 'cognome'>) => `${c.nome.split(' ')[0]} ${c.cognome.charAt(0)}.`;
 
 let coristiInCache: { elenco: SchedaCorista[]; letti: number } | undefined;
+// Dopo una modifica della scheda Coristi dall'Amministrazione
+export const dimenticaCoristi = () => { coristiInCache = undefined; };
 
 // I coristi veri, anche in modalità demo: per i calcoli tenuti in cache (src/area/demo.ts)
 export async function coristiVeri(): Promise<SchedaCorista[]> {
   if (coristiInCache && Date.now() - coristiInCache.letti < 5 * 60 * 1000) return coristiInCache.elenco;
-  const elenco = (await leggiScheda('Coristi'))
-    .filter((r) => r['Email associazione'] && r['Nome'])
-    .map((r) => ({
-      nome: r['Nome'],
-      cognome: r['Cognome'],
-      sezione: r['Sezione'] || 'Sezione da assegnare',
-      email: r['Email associazione'].toLowerCase(),
-      emailPersonale: r['Email personale'],
-      dal: dataFoglio(r['Dal']),
-      al: dataFoglio(r['Al']),
-    }))
+  const perEmail = new Map<string, ({ riga: number } & Record<string, string>)[]>();
+  for (const r of (await leggiScheda('Coristi')).filter((r) => r['Email associazione'] && r['Nome'])) {
+    const email = r['Email associazione'].toLowerCase();
+    perEmail.set(email, [...(perEmail.get(email) ?? []), r]);
+  }
+  const elenco = [...perEmail.entries()]
+    .map(([email, righe]) => {
+      const periodi: Periodo[] = righe.map((r) => ({ riga: r.riga, dal: dataFoglio(r['Dal']), al: dataFoglio(r['Al']), nota: r['Note'] ?? '' }))
+        .sort((a, b) => (a.dal ?? '').localeCompare(b.dal ?? ''));
+      // I dati della persona: quelli della riga del periodo più recente
+      const r = righe.find((x) => x.riga === periodi.at(-1)!.riga)!;
+      return {
+        nome: r['Nome'],
+        cognome: r['Cognome'],
+        sezione: r['Sezione'] || 'Sezione da assegnare',
+        email,
+        emailPersonale: r['Email personale'] ?? '',
+        numeroSocio: r['N. socio'] ?? '',
+        periodi,
+        dal: periodi[0].dal,
+        al: periodi.some((p) => !p.al) ? undefined : periodi.map((p) => p.al!).sort().at(-1),
+      };
+    })
     // In ordine alfabetico come si mostrano, "Nome Cognome" (dal 5/10/2026; prima per cognome): sulla
     // scritta intera, così "Maria Cristina Di Bernardino" viene prima di "Maria Di Paola"
     .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it', { sensitivity: 'base' }));
   coristiInCache = { elenco, letti: Date.now() };
   return elenco;
 }
+
+// Se un corista faceva parte del coro tra due giorni (anche solo per uno di questi)
+export const nelCoro = (c: SchedaCorista, da: string, a = da) =>
+  (c.periodi?.length ? c.periodi : [{ dal: c.dal, al: c.al }]).some((p) => (!p.dal || p.dal <= a) && (!p.al || p.al >= da));
 
 // Le persone inventate della modalità demo, per email vera (dell'associazione o personale)
 const fintiInCache = new WeakMap<SchedaCorista[], Map<string, Finto>>();
@@ -123,12 +152,12 @@ export async function coristi(): Promise<SchedaCorista[]> {
   if (!inDemo()) return elenco;
   const m = await finti();
   return elenco
-    .map((c) => ({ ...c, ...m.get(c.email)!, emailPersonale: '' }))
+    .map((c) => ({ ...c, ...m.get(c.email)!, emailPersonale: '', numeroSocio: '', periodi: c.periodi.map((p) => ({ ...p, nota: '' })) }))
     .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it', { sensitivity: 'base' }));
 }
 
 // Chi faceva parte del coro quel giorno
-export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => (!c.dal || c.dal <= giorno) && (!c.al || c.al >= giorno));
+export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => nelCoro(c, giorno));
 
 // Il corista di un indirizzo, dell'associazione o personale
 export async function coristaDi(email: string) {

@@ -1,0 +1,227 @@
+---
+// Amministrazione → Coristi (dall'8/10/2026; dati e scritture in src/admin/coristi.ts): la scheda
+// Coristi del foglio "Coristi e assenze". Elenco con ricerca e filtro (nel coro, usciti, tutti); ogni
+// corista si apre con i suoi dati e i suoi periodi nel coro, ognuno con il suo modulo; "Aggiungi un
+// corista" (?nuovo) in testa. Le scritture tornano qui con l'esito e il corista aperto (?apri=email).
+import LayoutAdmin from '../../admin/LayoutAdmin.astro';
+import Icona from '../../componenti/Icona.astro';
+import Errore from '../../area/Errore.astro';
+import { configurati, coristi, oggi, SEZIONI, type SchedaCorista } from '../../area/dati';
+import { ancora, attuale, dopoIlModulo } from '../../admin/coristi';
+import { coro } from '../../motore/coro';
+
+export const prerender = false;
+if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(Astro.request, '/admin/coristi'));
+
+const q = Astro.url.searchParams;
+let errore: unknown;
+let elenco: SchedaCorista[] = [];
+if (!configurati()) errore = 'Mancano le variabili FOGLIO_CORISTI_ID e CALENDARIO_PROVE_ID sul server.';
+else {
+  try {
+    elenco = await coristi();
+  } catch (e) {
+    errore = e;
+  }
+}
+const nuovo = q.has('nuovo');
+const aperto = q.get('apri')?.toLowerCase();
+const nelCoro = elenco.filter(attuale);
+const giorno = (iso?: string) => (iso ? iso.split('-').reverse().join('/') : '');
+const periodoBreve = (p: SchedaCorista['periodi'][number]) => (p.al ? `${giorno(p.dal)} – ${giorno(p.al)}` : p.dal && p.dal > oggi() ? `dal ${giorno(p.dal)} (in arrivo)` : `dal ${giorno(p.dal)}`);
+const semplice = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const dominio = coro.amministrazione?.dominio ?? 'romamusicanta.org';
+---
+
+<LayoutAdmin titolo="Coristi" sezione="coristi">
+  <h1>Coristi</h1>
+  <p class="tenue" style="max-width:66ch">La scheda Coristi del foglio «Coristi e assenze»: da qui il sito sa chi fa parte del coro a ogni data (assenze, presenze, quote). Chi esce e poi rientra ha più periodi. Il sito non crea l'account @{dominio} e non cambia il gruppo coro@: per chi entra o esce vanno fatti dalla console di Workspace (Directory → Utenti e Gruppi).</p>
+
+  {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}</p>}
+  {errore && <Errore e={errore} />}
+
+  {nuovo ? (
+    <form method="post" class="carta modulo-corista" id="modulo">
+      <div class="ct"><h2>Nuovo corista</h2><a class="link-freccia" href="/admin/coristi">Annulla</a></div>
+      <div class="cc">
+        <input type="hidden" name="azione" value="nuovo" />
+        <div class="riga-campi">
+          <label>Nome<input name="nome" required maxlength="60" autocomplete="off" /></label>
+          <label>Cognome<input name="cognome" required maxlength="60" autocomplete="off" /></label>
+          <label>Sezione<select name="sezione" required><option value="">Scegli…</option>{SEZIONI.map((s) => <option>{s}</option>)}</select></label>
+        </div>
+        <div class="riga-campi">
+          <label>Email dell'associazione <small>(proposta dal nome; nomi composti uniti)</small><input name="emailAssociazione" type="email" maxlength="120" placeholder={`nome.cognome@${dominio}`} data-dominio={dominio} autocomplete="off" /></label>
+          <label>Email personale <small>(qui arriva il codice per entrare)</small><input name="emailPersonale" type="email" maxlength="120" autocomplete="off" /></label>
+          <label>N. socio <small>(facoltativo)</small><input name="numeroSocio" maxlength="10" inputmode="numeric" autocomplete="off" /></label>
+        </div>
+        <div class="riga-campi">
+          <label>Nel coro dal<input name="dal" type="date" required value={oggi()} /></label>
+          <label>Nota <small>(facoltativa)</small><input name="nota" maxlength="300" /></label>
+        </div>
+        <button class="btn" type="submit"><Icona nome="spunta" />Aggiungi alla scheda</button>
+      </div>
+    </form>
+  ) : (
+    <p style="margin:24px 0"><a class="btn" href="/admin/coristi?nuovo#modulo"><Icona nome="persone" />Aggiungi un corista</a></p>
+  )}
+
+  {elenco.length > 0 && (
+    <>
+      <div class="filtri" role="group" aria-label="Quali coristi">
+        <button type="button" class="filtro on" data-filtro="attuale" aria-pressed="true">Nel coro <small>{nelCoro.length}</small></button>
+        <button type="button" class="filtro" data-filtro="uscito" aria-pressed="false">Usciti <small>{elenco.length - nelCoro.length}</small></button>
+        <button type="button" class="filtro" data-filtro="" aria-pressed="false">Tutti <small>{elenco.length}</small></button>
+      </div>
+      <input class="cerca-coristi" type="search" placeholder="Cerca per nome, cognome, sezione o email…" aria-label="Cerca tra i coristi" />
+      <ul class="carta elenco-coristi">
+        {elenco.map((c) => {
+          const aperta = c.email === aperto;
+                    return (
+            <li id={ancora(c.email)} data-stato={attuale(c) ? 'attuale' : 'uscito'} data-cerca={semplice(`${c.nome} ${c.cognome} ${c.sezione} ${c.email} ${c.emailPersonale}`)} class:list={{ attivo: aperta }}>
+              <details open={aperta}>
+                <summary>
+                  <span class="chi"><b>{c.nome} {c.cognome}</b><span class="tenue">{c.email}</span></span>
+                  <span class:list={['tag', { grigio: !attuale(c) }]}>{c.sezione}</span>
+                  <span class="tenue periodi-breve">{c.periodi.map(periodoBreve).join(' · ')}</span>
+                </summary>
+                <div class="corpo">
+                  <form method="post" class="blocco">
+                    <h3>Dati</h3>
+                    <input type="hidden" name="azione" value="dati" /><input type="hidden" name="email" value={c.email} />
+                    <div class="riga-campi">
+                      <label>Nome<input name="nome" required maxlength="60" value={c.nome} /></label>
+                      <label>Cognome<input name="cognome" required maxlength="60" value={c.cognome} /></label>
+                      <label>Sezione<select name="sezione" required>{!SEZIONI.includes(c.sezione) && <option value="" selected>Scegli…</option>}{SEZIONI.map((s) => <option selected={s === c.sezione}>{s}</option>)}</select></label>
+                    </div>
+                    <div class="riga-campi">
+                      <label>Email personale<input name="emailPersonale" type="email" maxlength="120" value={c.emailPersonale} /></label>
+                      <label>N. socio<input name="numeroSocio" maxlength="10" inputmode="numeric" value={c.numeroSocio} /></label>
+                      <label title="Non si cambia: è la chiave di assenze, quote e accessi">Email dell'associazione<input value={c.email} readonly tabindex="-1" class="fisso" /></label>
+                    </div>
+                    <button class="btn piccolo" type="submit"><Icona nome="spunta" />Salva i dati</button>
+                  </form>
+
+                  <div class="blocco">
+                    <h3>Periodi nel coro <small class="tenue">· senza data di fine è ancora nel coro</small></h3>
+                    {c.periodi.map((p) => (
+                      <form method="post" class="periodo">
+                        <input type="hidden" name="email" value={c.email} /><input type="hidden" name="riga" value={p.riga} />
+                        <label>Dal<input name="dal" type="date" required value={p.dal} /></label>
+                        <label>Al<input name="al" type="date" value={p.al} /></label>
+                        <label class="nota">Nota<input name="nota" maxlength="300" value={p.nota} /></label>
+                        <span class="azioni">
+                          <button class="btn piccolo" type="submit" name="azione" value="periodo">Salva</button>
+                          {c.periodi.length > 1 && <button class="btn o piccolo cancella" type="submit" name="azione" value="togli-periodo" formnovalidate onclick="return confirm('Togliere questo periodo dalla scheda?')">Togli</button>}
+                        </span>
+                      </form>
+                    ))}
+                    <details class="aggiungi">
+                      <summary class="btn o piccolo">Aggiungi un periodo</summary>
+                      <form method="post" class="periodo">
+                        <input type="hidden" name="azione" value="periodo" /><input type="hidden" name="email" value={c.email} />
+                        <label>Dal<input name="dal" type="date" required /></label>
+                        <label>Al<input name="al" type="date" /></label>
+                        <label class="nota">Nota<input name="nota" maxlength="300" placeholder="Es. rientrato dopo una pausa" /></label>
+                        <span class="azioni"><button class="btn piccolo" type="submit">Aggiungi</button></span>
+                      </form>
+                      <p class="tenue">Per un rientro: prima si scrive la fine del periodo aperto, poi si aggiunge quello nuovo. I periodi non si possono sovrapporre.</p>
+                    </details>
+                  </div>
+                </div>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+      <p class="tenue nessuno" hidden>Nessun corista corrisponde.</p>
+    </>
+  )}
+</LayoutAdmin>
+
+<script>
+  // Nuovo corista: l'email dell'associazione si propone dal nome finché non la si scrive a mano
+  const modulo = document.querySelector<HTMLFormElement>('#modulo');
+  if (modulo) {
+    const [nome, cognome, email] = (['nome', 'cognome', 'emailAssociazione'] as const).map((n) => modulo.querySelector<HTMLInputElement>(`[name=${n}]`)!);
+    const pulito = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+    let aMano = false;
+    email.addEventListener('input', () => { aMano = email.value !== ''; });
+    const proponi = () => { if (!aMano) email.value = nome.value && cognome.value ? `${pulito(nome.value)}.${pulito(cognome.value)}@${email.dataset.dominio}` : ''; };
+    nome.addEventListener('input', proponi);
+    cognome.addEventListener('input', proponi);
+  }
+
+  // Elenco: filtro (nel coro, usciti, tutti) e ricerca; il corista indicato nell'indirizzo si vede sempre
+  const voci = [...document.querySelectorAll<HTMLElement>('.elenco-coristi > li')];
+  const cerca = document.querySelector<HTMLInputElement>('.cerca-coristi');
+  const filtri = [...document.querySelectorAll<HTMLButtonElement>('.filtro')];
+  const nessuno = document.querySelector<HTMLElement>('.nessuno');
+  let filtro = 'attuale';
+  const aperto = voci.find((li) => li.classList.contains('attivo'));
+  if (aperto && aperto.dataset.stato !== filtro) filtro = '';
+  const aggiorna = () => {
+    const parole = (cerca?.value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
+    let visibili = 0;
+    voci.forEach((li) => {
+      li.hidden = !((!filtro || li.dataset.stato === filtro) && parole.every((p) => li.dataset.cerca!.includes(p)));
+      if (!li.hidden) visibili++;
+    });
+    if (nessuno) nessuno.hidden = visibili > 0;
+    filtri.forEach((b) => { const on = b.dataset.filtro === filtro; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  };
+  filtri.forEach((b) => b.addEventListener('click', () => { filtro = b.dataset.filtro!; aggiorna(); }));
+  cerca?.addEventListener('input', aggiorna);
+  aggiorna();
+  aperto?.scrollIntoView({ block: 'start' });
+</script>
+
+<style>
+  .modulo-corista { margin: 24px 0 8px; }
+  .modulo-corista .cc { display: grid; gap: 18px; }
+  .modulo-corista button[type=submit] { justify-self: start; }
+  label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); align-content: start; }
+  label small { font-weight: 400; color: var(--tenue); }
+  :is(.modulo-corista, .elenco-coristi) :is(input, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); width: 100%; min-width: 0; }
+  .elenco-coristi input.fisso { background: var(--fondo); color: var(--tenue); border-color: transparent; }
+  .riga-campi { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .filtri { display: flex; gap: 8px; flex-wrap: wrap; margin: 32px 0 12px; }
+  .filtro { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 999px; border: 2px solid var(--linea); background: var(--bianco); color: var(--testo); cursor: pointer; min-height: 44px; }
+  .filtro small { color: var(--tenue); font-weight: 400; margin-left: 4px; }
+  .filtro.on { background: var(--primario); border-color: var(--primario); color: #fff; }
+  .filtro.on small { color: inherit; opacity: .8; }
+  .cerca-coristi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 12px; }
+  .elenco-coristi { list-style: none; margin: 0; padding: 0; }
+  .elenco-coristi > li { border-bottom: 1px solid var(--linea); scroll-margin-top: 140px; }
+  .elenco-coristi > li:last-child { border-bottom: 0; }
+  .elenco-coristi > li.attivo { box-shadow: inset 4px 0 0 var(--accento); }
+  .elenco-coristi > li > details > summary { display: flex; gap: 6px 14px; align-items: center; flex-wrap: wrap; padding: 14px 20px; cursor: pointer; list-style: none; }
+  .elenco-coristi > li > details > summary::-webkit-details-marker { display: none; }
+  .elenco-coristi > li > details > summary::before { content: '▸'; color: var(--tenue); transition: transform .15s; }
+  .elenco-coristi > li > details[open] > summary::before { transform: rotate(90deg); }
+  .chi { flex: 1 1 240px; min-width: 0; display: grid; }
+  .chi b { font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }
+  .chi .tenue { font-size: 13px; overflow-wrap: anywhere; }
+  .periodi-breve { flex-basis: 100%; padding-left: 22px; font-size: 14px; }
+  .corpo { padding: 0 20px 20px 42px; display: grid; gap: 22px; }
+  .blocco { display: grid; gap: 14px; }
+  .blocco h3 { font-size: 16px; margin: 0; }
+  .blocco h3 small { font-size: 14px; font-weight: 400; }
+  .blocco > button { justify-self: start; }
+  .periodo { display: grid; grid-template-columns: 160px 160px minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 12px; background: var(--fondo); border-radius: var(--raggio); }
+  .periodo .azioni { display: flex; gap: 8px; }
+  .aggiungi { display: grid; gap: 10px; }
+  .aggiungi > summary { list-style: none; justify-self: start; display: inline-flex; cursor: pointer; }
+  .aggiungi > summary::-webkit-details-marker { display: none; }
+  .aggiungi[open] > summary { margin-bottom: 10px; }
+  .aggiungi p { margin: 8px 0 0; font-size: 14px; }
+  .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
+  .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
+  .messaggio.ok { border-color: #2e7d4f; }
+  .messaggio.errore { border-color: #b3261e; color: #b3261e; }
+  @media (max-width: 700px) {
+    .corpo { padding-left: 20px; }
+    .periodo { grid-template-columns: 1fr 1fr; }
+    .periodo .nota, .periodo .azioni { grid-column: 1 / -1; }
+  }
+</style>
