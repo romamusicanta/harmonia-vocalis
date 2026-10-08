@@ -5,7 +5,8 @@
 // Modifica, Cancella e "Invia su WhatsApp" per quelli firmati con i propri ruoli. Le azioni sono
 // POST alla pagina stessa, che le passa a gestisci() e poi torna qui con ?esito=…
 import Icona from '../componenti/Icona.astro';
-import { avvisi, firmaDi, inBacheca, linkWhatsapp, perWhatsapp, puoModificare, ruoliDi, type Avviso } from './bacheca';
+import { avvisi, firmaDi, inBacheca, linkWhatsapp, perWhatsapp, puoModificare, ruoli, ruoliDi, type Avviso } from './bacheca';
+import { inDemo } from './demo';
 import { comeHtml } from './testo';
 import { parti } from '../motore/concerti';
 import Errore from './Errore.astro';
@@ -18,7 +19,9 @@ const q = Astro.url.searchParams;
 
 let errore: unknown;
 let elenco: Avviso[] = [];
-const suoi = await ruoliDi(email).catch(() => []);
+// In modalità demo chi guarda ha il ruolo della pagina (nell'area del Maestro, il Maestro), così vede il
+// modulo e i pulsanti di invio; salvare e inviare li rifiuta comunque il middleware
+const suoi = inDemo() ? ruoli().filter((r) => r.id === firma) : await ruoliDi(email).catch(() => []);
 // La firma proposta: quella chiesta dalla pagina, altrimenti il ruolo personale (Maestro, presidente,
 // tesoriere) prima di quelli di gruppo (redattori, amministratori)
 const proposta = (suoi.find((r) => r.id === firma) ?? suoi.find((r) => r.id !== 'redattori' && r.id !== 'amministratori') ?? suoi[0])?.id;
@@ -41,7 +44,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
 
 {appena && q.get('ok') === '1' && (
   <div class="messaggio ok wa-subito">
-    <span>Mandalo anche su WhatsApp, nella chat <b>{chatDi(appena)}</b>: si apre con il testo già scritto, scegli la chat e premi Invia. Con «Notifica» arriva sui telefoni di chi ha attivato le notifiche.</span>
+    <span>Mandalo anche su WhatsApp: si apre con il testo già scritto, scegli la chat (di solito <b>{chatDi(appena)}</b>; puoi sceglierne anche più d'una) e premi Invia. Con «Notifica» arriva sui telefoni di chi ha attivato le notifiche.</span>
     <span class="pulsanti-invio">
       <a class="btn g piccolo" href={linkWhatsapp(perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito))} target="_blank" rel="noopener"><Icona nome="whatsapp" />WhatsApp</a>
       <InvioNotifica messaggio={perWhatsapp({ ...appena, firma: firmaDi(appena) }, sito)} />
