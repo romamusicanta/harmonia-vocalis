@@ -17,6 +17,7 @@ if (Astro.request.method === 'POST') {
   return Astro.redirect(`/maestro/repertorio?${new URLSearchParams({ ok: r.ok ? '1' : '0', esito: r.messaggio })}#p-${f.get('id')}`);
 }
 const q = Astro.url.searchParams;
+const semplice = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 let errore: unknown;
 let elenco: Pezzo[] = [];
 try { elenco = await repertorio(); } catch (e) { errore = e; }
@@ -37,27 +38,60 @@ try { elenco = await repertorio(); } catch (e) { errore = e; }
       {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} role="status">{q.get('esito')}</p>}
       {errore && <Errore e={errore} />}
       {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio è ancora vuoto: i pezzi li aggiungono i redattori.</p>}
-      <div class="note-pezzi">
-        {elenco.map((p) => (
-          <form method="post" class="carta" id={`p-${p.id}`}>
-            <div class="ct"><h2>{nomeCompleto(p)}</h2><span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span></div>
-            <div class="cc">
-              <input type="hidden" name="id" value={p.id} />
-              <label for={`note-${p.id}`}>Note sull'esecuzione</label>
-              <textarea id={`note-${p.id}`} name="note" rows="5" maxlength="4000" placeholder="Tempi, respiri, attacchi, pronuncia… Una riga vuota separa i paragrafi.">{p.note}</textarea>
-              <button class="btn" type="submit"><Icona nome="spunta" />Salva le note</button>
-            </div>
-          </form>
-        ))}
-      </div>
+      {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca nel repertorio per autore o titolo…" aria-label="Cerca nel repertorio" />}
+      {elenco.length > 0 && (
+        <ul class="carta elenco-pezzi">
+          {elenco.map((p) => (
+            <li id={`p-${p.id}`} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
+              <details>
+                <summary>
+                  <span class="testa-pezzo"><span class="aut">{p.autore}</span><b>{p.titolo}</b></span>
+                  <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
+                  <span class="tenue dettagli">{p.note ? 'con le sue note' : 'nessuna nota'}</span>
+                </summary>
+                <form method="post" class="corpo-pezzo">
+                  <input type="hidden" name="id" value={p.id} />
+                  <label for={`note-${p.id}`}>Note sull'esecuzione</label>
+                  <textarea id={`note-${p.id}`} name="note" rows="5" maxlength="4000" placeholder="Tempi, respiri, attacchi, pronuncia… Una riga vuota separa i paragrafi.">{p.note}</textarea>
+                  <button class="btn" type="submit"><Icona nome="spunta" />Salva le note</button>
+                </form>
+              </details>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   </div>
 </Base>
 
+<script>
+  // Tutti i pezzi chiusi; dopo il salvataggio si riapre quello indicato nell'indirizzo (#p-<id>).
+  // Ricerca per autore o titolo
+  const daAprire = location.hash.startsWith('#p-') && document.querySelector<HTMLElement>(location.hash);
+  if (daAprire) daAprire.querySelector('details')?.setAttribute('open', '');
+  const filtro = document.querySelector<HTMLInputElement>('.filtra-pezzi');
+  filtro?.addEventListener('input', () => {
+    const parole = filtro.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
+    document.querySelectorAll<HTMLElement>('.elenco-pezzi > li').forEach((li) => { li.hidden = !parole.every((p) => li.dataset.cerca!.includes(p)); });
+  });
+</script>
+
 <style>
-  .note-pezzi { display: grid; gap: 20px; }
-  .note-pezzi .cc { display: grid; gap: 10px; }
-  .note-pezzi label { font-weight: 700; font-size: 14px; color: var(--primario); }
-  .note-pezzi textarea { font: inherit; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
-  .note-pezzi button { justify-self: start; }
+  .elenco-pezzi { list-style: none; margin: 0; padding: 0; }
+  .elenco-pezzi li { border-bottom: 1px solid var(--linea); scroll-margin-top: 140px; }
+  .elenco-pezzi li:last-child { border-bottom: 0; }
+  .elenco-pezzi summary { display: flex; gap: 6px 14px; align-items: center; flex-wrap: wrap; padding: 14px 20px; cursor: pointer; list-style: none; }
+  .elenco-pezzi summary::-webkit-details-marker { display: none; }
+  .elenco-pezzi summary::before { content: '▸'; color: var(--tenue); transition: transform .15s; }
+  .elenco-pezzi details[open] summary::before { transform: rotate(90deg); }
+  .elenco-pezzi .testa-pezzo { flex: 1 1 260px; min-width: 0; }
+  .elenco-pezzi .aut { display: block; }
+  .elenco-pezzi b { display: block; font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }
+  .elenco-pezzi .dettagli { flex-basis: 100%; padding-left: 22px; font-size: 14px; }
+  .corpo-pezzo { padding: 0 20px 18px 42px; display: grid; gap: 10px; }
+  .corpo-pezzo label { font-weight: 700; font-size: 14px; color: var(--primario); }
+  .corpo-pezzo textarea { font: inherit; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
+  .corpo-pezzo button { justify-self: start; }
+  .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 12px; }
+  @media (max-width: 560px) { .corpo-pezzo { padding-left: 20px; } }
 </style>
