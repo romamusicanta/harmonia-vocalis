@@ -356,6 +356,16 @@ export async function cancellaRiga(scheda: string, riga: number, foglio = FOGLIO
   });
 }
 
+// Cancella più righe con una sola richiesta, dal basso, perché ogni cancellazione sposta le righe sotto
+export async function cancellaRighe(scheda: string, righe: number[], foglio = FOGLIO_CORISTI_ID!) {
+  if (!righe.length) return;
+  const sheetId = await idScheda(scheda, undefined, foglio);
+  await google(`${SHEETS}/${foglio}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({ requests: [...new Set(righe)].sort((a, b) => b - a).map((riga) => ({ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: riga - 1, endIndex: riga } } })) }),
+  });
+}
+
 // Toglie l'assenza (cioè: era presente)
 export async function togliAssenza(idEvento: string, email: string) {
   const a = (await assenze()).find((x) => x.idEvento === idEvento && x.email === email);

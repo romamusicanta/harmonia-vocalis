@@ -464,7 +464,8 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
     if (campoBase) campoBase.value = String(t.dataset.base ?? '').replace('.', ',');
     const spiega = fm.querySelector('.spiega-base');
     if (spiega) spiega.textContent = m.endsWith('-09') ? 'Settembre ha poche prove e si assimila a giugno: se giugno ne ha avute poche la quota base è zero, se è stato un mese intero metà quota. I debiti della stagione prima sono nella colonna Riporto.'
-      : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : 'Zero = in questo mese la quota non si raccoglie e tutti risultano esonerati.';
+      : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : 'Zero = in questo mese la quota non si raccoglie: chi non ha pagato risulta esonerato, chi ha pagato tiene il suo importo.';
+    if (spiega && senza) spiega.textContent += ' Rimettendo una quota, tutti gli esonerati del mese (anche quelli segnati a mano) tornano da pagare.';
     fm.showModal();
   }));
   fm.querySelector('.salva-base')?.addEventListener('click', async () => {

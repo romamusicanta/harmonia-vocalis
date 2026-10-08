@@ -34,7 +34,7 @@
 import { randomBytes } from 'node:crypto';
 import { FOGLIO_TESORERIA_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { adesso, aggiungiRighe, cancellaRiga, coristi, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
 import { normalizza } from './servizio';
 
 const QUOTE = 'Quote';
@@ -316,21 +316,23 @@ export function arretrati(mesi: string[], elenco: SchedaCorista[], idx: Map<stri
 
 // La quota base di un mese per tutti (giugno, settembre; zero = il mese non ha quota): se è quella
 // solita la riga si toglie. Toglie anche la vecchia riga "Nessuna quota" del mese (dal 5/10/2026 il
-// mese senza quota si indica solo con la quota base zero)
+// mese senza quota si indica solo con la quota base zero).
+// Con la quota base zero chi non ha pagato risulta esonerato (statoDi) e chi ha pagato tiene il suo
+// importo; passando da zero a una cifra (dall'8/10/2026) ogni esonero del mese, anche quelli scritti a
+// mano, si toglie: tutti tornano "da pagare", tranne chi ha pagato.
 export async function segnaQuotaBase(mese: string, importo: number, da: string) {
   if (!/^\d{4}-\d{2}$/.test(mese)) throw new Error('Mese non valido.');
   const cifra = centesimi(importo);
   if (!(cifra >= 0)) throw new Error('Quota non valida.');
   const tutte = await quote();
-  const nessuna = tutte.find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'nessuna');
-  if (nessuna) await cancellaRiga(QUOTE, nessuna.riga, FOGLIO_TESORERIA_ID);
-  const esistente = (nessuna ? await quote() : tutte).find((q) => q.email === TUTTI && q.mese === mese && q.stato === 'base');
-  const solita = quotaBase(new Map(), mese);
-  if (cifra === solita) {
-    if (esistente) await cancellaRiga(QUOTE, esistente.riga, FOGLIO_TESORERIA_ID);
-    return;
-  }
-  await scriviQuota([testo(mese), 'Tutti i coristi', TUTTI, 'Quota base', cifra, '', '', da, adesso()], esistente?.riga);
+  const delMese = tutte.filter((q) => q.mese === mese);
+  const daTogliere = delMese.filter((q) => q.email === TUTTI && q.stato === 'nessuna').map((q) => q.riga);
+  if (quotaBase(indice(tutte), mese) === 0 && cifra > 0) daTogliere.push(...delMese.filter((q) => q.email !== TUTTI && q.stato === 'esonerato').map((q) => q.riga));
+  const esistente = delMese.find((q) => q.email === TUTTI && q.stato === 'base');
+  // Prima la riga della quota base (al suo posto o in fondo), poi le cancellazioni, dal basso
+  if (cifra === quotaBase(new Map(), mese)) { if (esistente) daTogliere.push(esistente.riga); }
+  else await scriviQuota([testo(mese), 'Tutti i coristi', TUTTI, 'Quota base', cifra, '', '', da, adesso()], esistente?.riga);
+  await cancellaRighe(QUOTE, daTogliere, FOGLIO_TESORERIA_ID);
 }
 
 // Segna la quota di un corista per un mese: pagata (oggi, o il giorno dato; la quota intera, o
