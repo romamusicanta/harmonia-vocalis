@@ -19,7 +19,7 @@ import LinkPezzo from './LinkPezzo.astro';
 import { registrazioni, type GiornoRegistrato } from './registrazioni';
 import { SEPARATORE_PEZZI } from '../admin/prove';
 import { comeHtml } from './testo';
-import { configurata as tesoreriaConfigurata, euro, indice, quotaBase, riporti, riportoDi, meseEsteso, meseBreve, mesiDelleQuote, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, type Quota } from './tesoreria';
+import { configurata as tesoreriaConfigurata, euro, indice, quotaBase, riporti, riportoDi, meseEsteso, meseBreve, nomeMese, questoMese, quote, stagioneCorrente, statoDi, attiviNelMese, tutteLeQuote, type Quota } from './tesoreria';
 
 const email = Astro.locals.corista!.email;
 const nulla = <T,>(p: Promise<T>, vuoto: T) => p.catch(() => vuoto);
@@ -58,7 +58,8 @@ const mieQuote = leQuote && io ? (() => {
   // Il riporto della stagione prima, se c'è qualcosa da versare (o è stato versato)
   const r = riportoDi(riporti(leQuote, tutti), io.email, stagioneCorrente());
   const riporto = r && (r.importo > 0 || r.versato) ? r : undefined;
-  const mesi = mesiDelleQuote(stagioneCorrente(), leQuote).filter((m) => attiviNelMese([io], m).length);
+  // Anche i mesi con la quota base zero, in cui risulta esonerato
+  const mesi = tutteLeQuote(stagioneCorrente()).filter((m) => attiviNelMese([io], m).length);
   const stati = mesi.map((m) => ({ mese: m, stato: statoDi(idx, io.email, m), dovuta: m <= questoMese(), nota: idx.get(`${io.email}|${m}`)?.nota }));
   const daVersare = stati.filter((x) => x.dovuta && x.stato === 'da-pagare');
   const riportoDaVersare = riporto && !riporto.versato ? riporto.importo : 0;

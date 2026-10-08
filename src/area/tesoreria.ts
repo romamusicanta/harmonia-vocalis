@@ -10,7 +10,8 @@
 //   5/10/2026): serve per giugno e settembre. Settembre ha poche prove e si assimila a giugno: se
 //   giugno ha avuto poche prove (come nel 2026) a settembre la quota base è zero, se giugno è stato un
 //   mese intero è metà quota (coro.coristi.tesoreria.quotaSettembre, di base).
-//   Una quota base zero vale come "Nessuna quota" (il mese non è dovuto).
+//   Una quota base zero vale come "Nessuna quota" (il mese non è dovuto). In un mese così chi non ha
+//   una riga propria risulta esonerato (dall'8/10/2026; prima la casella era vuota, «–»).
 //   Riporto (dal 5/10/2026): i debiti della stagione prima (le quote rimaste da pagare, più il riporto
 //   non versato di quella stagione) si pagano a parte, in una colonna propria accanto a settembre,
 //   indipendente dalla quota base. Una riga con stato "Riporto" (da versare) o "Riporto versato" e il
@@ -179,13 +180,15 @@ export const exCoristi = (tutte: Quota[], elenco: SchedaCorista[]) => {
 export const mesiSenzaQuota = (tutte: Quota[]) => new Set(tutte.filter((q) => q.email === TUTTI && (q.stato === 'nessuna' || (q.stato === 'base' && !q.importo))).map((q) => q.mese));
 
 const chiave = (email: string, mese: string) => `${email}|${mese}`;
-// Le quote per corista e mese, più le quote base dei mesi (chiave "tutti|mese")
+// Le quote per corista e mese, più le quote base dei mesi (chiave "tutti|mese"; "Nessuna quota"
+// vale come quota base zero)
 export const indice = (tutte: Quota[]) =>
-  new Map(tutte.filter((q) => (q.email !== TUTTI && q.stato !== 'riporto') || q.stato === 'base').map((q) => [chiave(q.email, q.mese), q]));
+  new Map(tutte.filter((q) => (q.email !== TUTTI && q.stato !== 'riporto') || q.stato === 'base' || q.stato === 'nessuna').map((q) => [chiave(q.email, q.mese), q]));
 export const quotaDi = (idx: Map<string, Quota>, email: string, mese: string) => idx.get(chiave(email, mese));
+// Senza una riga propria: da pagare, ma esonerato se il mese ha la quota base zero
 export const statoDi = (idx: Map<string, Quota>, email: string, mese: string): StatoQuota => {
   const s = idx.get(chiave(email, mese))?.stato;
-  return s === 'pagata' || s === 'esonerato' ? s : 'da-pagare';
+  return s === 'pagata' || s === 'esonerato' ? s : quotaBase(idx, mese) === 0 ? 'esonerato' : 'da-pagare';
 };
 // La quota base di un mese: quella indicata dal tesoriere per quel mese, altrimenti la solita
 // (a settembre quotaSettembre, di base metà quota)
@@ -283,8 +286,9 @@ export function situazioneMese(mese: string, elenco: SchedaCorista[], idx: Map<s
   const attesi = attiviNelMese(elenco, mese);
   const stati = attesi.map((c) => idx.get(chiave(c.email, mese)));
   const pagate = stati.filter((q) => q?.stato === 'pagata');
-  const esonerati = stati.filter((q) => q?.stato === 'esonerato').length;
   const senzaQuota = senza.has(mese);
+  // In un mese senza quota chi non ha pagato è esonerato
+  const esonerati = senzaQuota ? attesi.length - pagate.length : stati.filter((q) => q?.stato === 'esonerato').length;
   return {
     mese, senzaQuota, attesi,
     pagate: pagate.length,

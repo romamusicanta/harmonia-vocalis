@@ -154,7 +154,10 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                       );
                     })()}
                     {mesi.map((m) => {
-                      const attivo = attiviNelMese([c], m).length > 0 && !senza.has(m);
+                      // Nel coro quel mese; in un mese senza quota la casella mostra lo stato (esonerato,
+                      // o pagata se aveva già pagato) ma non si tocca
+                      const nelCoro = attiviNelMese([c], m).length > 0;
+                      const attivo = nelCoro && !senza.has(m);
                       const stato = statoDi(idx, c.email, m);
                       const q = quotaDi(idx, c.email, m);
                       const diversa = q?.stato === 'pagata' && q.importo !== quotaBase(idx, m);
@@ -162,9 +165,9 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                       return (
                         <td class:list={{ passato: passati.includes(m) }}>
                           <button type="button" class:list={['cella-quota', { dovuta: dovuti.includes(m), diversa }]} disabled={!attivo}
-                            data-email={c.email} data-mese={m} data-nome={`${c.nome} ${c.cognome}`} data-stato={attivo ? stato : undefined}
+                            data-email={c.email} data-mese={m} data-nome={`${c.nome} ${c.cognome}`} data-stato={nelCoro ? stato : undefined}
                             data-importo={q?.stato === 'pagata' ? String(q.importo) : String(quotaBase(idx, m))} data-data={q?.pagataIl ?? oggi()} data-nota={q?.nota ?? ''}
-                            title={attivo ? `${c.nome} ${c.cognome}, ${meseEsteso(m)}: ${ETICHETTA[stato]}${dettaglio ? ` (${dettaglio})` : ''}` : senza.has(m) ? `Nessuna quota a ${meseEsteso(m)}` : `Non era nel coro a ${meseEsteso(m)}`}>{attivo ? SIMBOLO[stato] : '–'}</button>
+                            title={nelCoro ? `${c.nome} ${c.cognome}, ${meseEsteso(m)}: ${ETICHETTA[stato]}${dettaglio ? ` (${dettaglio})` : ''}${attivo ? '' : ' · quota base zero'}` : `Non era nel coro a ${meseEsteso(m)}`}>{nelCoro ? SIMBOLO[stato] : '–'}</button>
                         </td>
                       );
                     })}
@@ -180,7 +183,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
             <span><span class="cella-quota" data-stato="esonerato">E</span>esonerato</span>
             <span><span class="cella-quota dovuta" data-stato="da-pagare"></span>da pagare</span>
             <span><span class="cella-quota" data-stato="da-pagare"></span>mese non ancora arrivato</span>
-            <span><span class="cella-quota" style="border-style:dashed;opacity:.4">–</span>non dovuta</span>
+            <span><span class="cella-quota" style="border-style:dashed;opacity:.4">–</span>non nel coro quel mese</span>
             <span><span class="cella-quota diversa" data-stato="pagata">✓</span>importo diverso</span>
           </div>
           {conRiporto && (
@@ -195,7 +198,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
         </div>
         </>
       )}
-      {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>}
+      {!solaLettura && <p class="tenue no-stampa" style="font-size:14px;margin-top:10px">Un tocco su una casella: da pagare → pagata → esonerato → da pagare. Pressione lunga (o doppio clic): importo, data del pagamento e nota. Riporto: i debiti della stagione prima, calcolati (quote non pagate più il riporto non versato); si correggono nel campo (vuoto = quello calcolato) e la casellina li segna versati (per cambiare un riporto versato, prima si toglie la spunta). Un tocco sul mese: le sue cifre, la quota base (zero = il mese non ha quota e tutti risultano esonerati) e il sollecito per quel mese.{richiudibili && ' I mesi già passati e il riporto si mostrano con la freccia accanto a «Corista».'} Il rendiconto completo è in <a href={`/tesoriere/rendiconto${passata ? `?stagione=${anno}` : ''}`}>Rendiconto</a>.</p>}
     </div>
   </div>
 
@@ -454,14 +457,14 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
       [euro(cc.filter((c) => c.dataset.stato === 'pagata').reduce((s, c) => s + Number(c.dataset.importo), 0)), 'raccolti'],
       [String(n('pagata')), 'hanno pagato'], [String(n('esonerato')), 'esonerati'], [String(n('da-pagare')), 'da pagare'],
     ].map(([v, e]) => `<div><b>${v}</b><span>${e}</span></div>`).join('');
-    fm.querySelector('.nota-m')!.textContent = senza ? `A ${meseLungo(m)} la quota non si raccoglie.${t.dataset.nota ? ` ${t.dataset.nota}` : ''}` : `${cc.length} coristi nel coro.`;
+    fm.querySelector('.nota-m')!.textContent = senza ? `A ${meseLungo(m)} la quota non si raccoglie: i coristi risultano esonerati.${t.dataset.nota ? ` ${t.dataset.nota}` : ''}` : `${cc.length} coristi nel coro.`;
     const sol = fm.querySelector<HTMLButtonElement>('.apri-sollecito');
     if (sol) { sol.dataset.mese = m; sol.hidden = senza || !n('da-pagare'); }
     const campoBase = fm.querySelector<HTMLInputElement>('input[name="base"]');
     if (campoBase) campoBase.value = String(t.dataset.base ?? '').replace('.', ',');
     const spiega = fm.querySelector('.spiega-base');
     if (spiega) spiega.textContent = m.endsWith('-09') ? 'Settembre ha poche prove e si assimila a giugno: se giugno ne ha avute poche la quota base è zero, se è stato un mese intero metà quota. I debiti della stagione prima sono nella colonna Riporto.'
-      : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : 'Zero = in questo mese la quota non si raccoglie.';
+      : m.endsWith('-06') ? 'Se giugno ha poche prove, si paga solo giugno e la quota base di settembre è zero.' : 'Zero = in questo mese la quota non si raccoglie e tutti risultano esonerati.';
     fm.showModal();
   }));
   fm.querySelector('.salva-base')?.addEventListener('click', async () => {

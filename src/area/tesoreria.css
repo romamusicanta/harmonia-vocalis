@@ -54,7 +54,9 @@
 .cella-quota[data-stato='pagata'] { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
 .cella-quota[data-stato='esonerato'] { background: var(--primario); border-color: var(--primario); color: #fff; }
 .cella-quota[data-stato='da-pagare'].dovuta { border-color: var(--accento); background: color-mix(in srgb, var(--accento) 18%, var(--bianco)); color: var(--testo); }
-.cella-quota:disabled { border-style: dashed; cursor: default; opacity: .4; }
+.cella-quota:disabled { cursor: default; }
+/* Non nel coro quel mese; in un mese senza quota la casella resta piena (esonerato o pagata) */
+.cella-quota:disabled:not([data-stato]) { border-style: dashed; opacity: .4; }
 .cella-quota.in-corso { opacity: .5; pointer-events: none; }
 .legenda-t { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--tenue); padding: 12px 18px; border-top: 1px solid var(--linea); }
 .legenda-t span { display: inline-flex; align-items: center; gap: 6px; }
