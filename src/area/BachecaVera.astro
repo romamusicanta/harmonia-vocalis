@@ -68,7 +68,7 @@ const mieQuote = leQuote && io ? (() => {
 })() : undefined;
 
 // "Scrivi un avviso": il Maestro e il tesoriere li scrivono dalla loro area, gli altri ruoli dall'Amministrazione
-const scriviAvvisi = ruoli.some((r) => r.id === 'maestro') ? '/maestro/avvisi' : ruoli.some((r) => r.id === 'tesoriere') && !ruoli.some((r) => r.id === 'amministratori' || r.id === 'presidente') ? '/tesoriere/avvisi' : '/admin/avvisi';
+const scriviAvvisi = ruoli.some((r) => r.id === 'maestro') ? '/maestro/avvisi' : ruoli.some((r) => r.id === 'tesoriere') && !ruoli.some((r) => r.id === 'redattori' || r.id === 'amministratori' || r.id === 'presidente') ? '/tesoriere/avvisi' : '/admin/avvisi';
 const riga = (e: Evento, k: string) => e.righe.find(([x]) => x === k)?.[1];
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${d.giornoSettimana.toLowerCase()} ${Number(d.giorno)} ${d.mese.toLowerCase()}`; };
 const traGiorni = (iso: string) => { const n = Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${oggi()}T12:00:00Z`)) / 86_400_000); return n === 0 ? 'Oggi' : n === 1 ? 'Domani' : `Tra ${n} giorni`; };

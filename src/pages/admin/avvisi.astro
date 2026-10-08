@@ -12,6 +12,6 @@ if (Astro.request.method === 'POST') return Astro.redirect(await dopoIlModulo(As
 
 <LayoutAdmin titolo="Avvisi in bacheca" sezione="avvisi">
   <h1>Avvisi in bacheca</h1>
-  <p class="tenue" style="max-width:64ch">Gli avvisi della bacheca dell'area coristi. Li scrivono anche il Maestro e il tesoriere (dalla loro area) e il presidente; gli amministratori possono correggerli tutti.</p>
+  <p class="tenue" style="max-width:64ch">Gli avvisi della bacheca dell'area coristi. Li scrivono i redattori, gli amministratori del sito e il presidente, ognuno con la firma dei suoi ruoli, e il Maestro e il tesoriere dalla loro area; gli amministratori possono correggerli tutti.</p>
   <GestioneAvvisi email={email} />
 </LayoutAdmin>

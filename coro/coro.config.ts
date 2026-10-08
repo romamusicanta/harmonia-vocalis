@@ -98,13 +98,15 @@ export default {
     amministratori: 'admin@romamusicanta.org',
     // Accesso con un codice via email (dal 7/10/2026): lo spedisce questo account, a nome del sito
     mittenteCodici: 'sito@romamusicanta.org',
-    // Chi scrive in bacheca (gruppi presidente@ e tesoriere@: una persona ciascuno, si cambia il
-    // membro quando cambia il ruolo)
+    // Chi scrive in bacheca, nell'ordine delle firme del modulo (gruppi presidente@ e tesoriere@: una
+    // persona ciascuno, si cambia il membro quando cambia il ruolo). Dall'8/10/2026 anche i redattori:
+    // redattori@ contiene admin@, quindi gli amministratori possono firmare in tutti e due i modi
     bacheca: [
+      { id: 'redattori', firma: 'I redattori', gruppo: 'redattori@romamusicanta.org', chat: 'HV' },
+      { id: 'amministratori', firma: 'Gli amministratori del sito', gruppo: 'admin@romamusicanta.org', chat: 'HV', tutti: true },
       { id: 'maestro', firma: 'Il Maestro', gruppo: 'maestro@romamusicanta.org', chat: 'HV Maestro' },
       { id: 'presidente', firma: 'Il presidente', gruppo: 'presidente@romamusicanta.org', chat: 'HV' },
       { id: 'tesoriere', firma: 'Il tesoriere', gruppo: 'tesoriere@romamusicanta.org', chat: 'HV' },
-      { id: 'amministratori', firma: 'Gli amministratori del sito', gruppo: 'admin@romamusicanta.org', chat: 'HV', tutti: true },
     ],
     // Area del tesoriere (/tesoriere, dal 5/10/2026): quote dei coristi e cassa del coro. La vedono il
     // tesoriere e, per regola, gli amministratori del sito (per assistenza). Quota di 20 euro al mese, da

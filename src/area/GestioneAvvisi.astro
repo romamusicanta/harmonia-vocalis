@@ -19,6 +19,9 @@ const q = Astro.url.searchParams;
 let errore: unknown;
 let elenco: Avviso[] = [];
 const suoi = await ruoliDi(email).catch(() => []);
+// La firma proposta: quella chiesta dalla pagina, altrimenti il ruolo personale (Maestro, presidente,
+// tesoriere) prima di quelli di gruppo (redattori, amministratori)
+const proposta = (suoi.find((r) => r.id === firma) ?? suoi.find((r) => r.id !== 'redattori' && r.id !== 'amministratori') ?? suoi[0])?.id;
 try {
   elenco = await avvisi();
 } catch (e) {
@@ -47,7 +50,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
 )}
 
 {suoi.length === 0 ? (
-  <p class="messaggio">Per scrivere in bacheca serve uno di questi ruoli: Maestro, presidente, tesoriere o amministratore del sito.</p>
+  <p class="messaggio">Per scrivere in bacheca serve uno di questi ruoli: redattore, amministratore del sito, Maestro, presidente o tesoriere.</p>
 ) : (
   <form method="post" class="carta modulo-avviso" id="modulo">
     <div class="ct"><h2>{inModifica ? 'Modifica l’avviso' : 'Nuovo avviso'}</h2>{inModifica && <a class="link-freccia" href="?">Annulla</a>}</div>
@@ -59,7 +62,7 @@ const valore = (k: string, v?: string) => (inModifica ? v : q.get(k)) ?? '';
       <div class="riga-campi">
         <label><span>Firma</span>
           <select name="firma">
-            {suoi.map((r) => <option value={r.id} selected={(inModifica?.ruolo?.id ?? (suoi.some((x) => x.id === firma) ? firma : suoi[0].id)) === r.id}>{r.firma}</option>)}
+            {suoi.map((r) => <option value={r.id} selected={(inModifica?.ruolo?.id ?? proposta) === r.id}>{r.firma}</option>)}
           </select>
         </label>
         <label><span>Resta in bacheca fino al <small>(facoltativo)</small></span><input type="date" name="fino" value={valore('fino', inModifica?.finoAl)} /></label>
