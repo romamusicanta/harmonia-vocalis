@@ -6,6 +6,7 @@
 // si segna come per le prove, con "Non ci sarò" (scheda Assenze).
 import { adesso, eventi, idScheda, leggiScheda, luogoBreveDi, nomeEvento, oggi, piuGiorni, scriviRiga, type Evento } from './dati';
 import { spiegaTesto } from './errori';
+import { inDemo } from './demo';
 
 const SCHEDA = 'Convocazioni';
 const COLONNE = ['ID evento', 'Data', 'Concerto', 'Convocazione', 'Ritrovo', 'Prova generale', 'Programma', 'Abito', 'Portare', 'Come arrivare', 'Repertorio', 'Note', 'Aggiornato il', 'Aggiornato da', 'Bis'];
@@ -51,7 +52,8 @@ export async function convocazioni(): Promise<Map<string, Convocazione>> {
     bis: (r['Bis'] ?? '').split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean),
     note: r['Note'],
   }));
-  return new Map(elenco.map((c) => [c.idEvento, c]));
+  // Modalità demo (src/area/demo.ts): le note sono testo libero dei redattori, si nascondono
+  return new Map(elenco.map((c) => [c.idEvento, inDemo() ? { ...c, note: '' } : c]));
 }
 
 // Le prove che possono fare da generale a un concerto: dalle due settimane prima al giorno stesso

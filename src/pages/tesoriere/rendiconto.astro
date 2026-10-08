@@ -8,13 +8,12 @@ import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
-import { coro } from '../../motore/coro';
 import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
 import { inDemo } from '../../area/demo';
 import {
   attiviNelMese, cassa, COMPENSI_CONCERTI, configurata, exCoristi, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
   nomeStagioneLungo, nomiSedi, onorari, riporti, riportoDi, sedeDi, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
-  verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica,
+  verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica, intestazioneStampa,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -83,7 +82,7 @@ const tariffa = (x: ProvaMaestro[]) => {
 const ultima = leVerifiche[0];
 const disponibile = ultima ? ultima.contoCorrente + ultima.contanti : undefined;
 const bancarie = uscite.filter((m) => m.categoria === 'Spese bancarie');
-const intestazione = { associazione: coro.associazione ?? coro.nome, cf: coro.coristi?.tesoreria?.codiceFiscale };
+const intestazione = intestazioneStampa();
 // In demo nemmeno avanzo o disavanzo (le cifre sono nascoste)
 const demo = inDemo();
 const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); return `${['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][d.getUTCDay()]} ${d.getUTCDate()} ${maiuscola(nomeMese(iso.slice(0, 7)))}`; };

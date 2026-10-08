@@ -16,10 +16,9 @@ import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
 import { scriveTesoriere } from '../../area/accesso';
-import { coro } from '../../motore/coro';
 import {
   CATEGORIE_ONORARI, cassa, configurata, direttore, euro, giornoBreve, maiuscola, meseDi, meseEsteso, movimenti, nomeStagione, onorari, onorariPerMese, pagatoPer,
-  elencoMaestri, proveDeiMaestri, quote, stagioneCorrente, valoreVisto, type Cassa, type Maestro, type ProvaMaestro,
+  elencoMaestri, proveDeiMaestri, quote, stagioneCorrente, valoreVisto, type Cassa, type Maestro, type ProvaMaestro, intestazioneStampa,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -65,7 +64,7 @@ const scelte = (attuale: string) => {
 const pagamento = (categoria: string, importo: number, descrizione: string) => `/tesoriere/cassa?${new URLSearchParams({ tipo: 'Uscita', 'categoria-uscita': categoria, importo: String(importo).replace('.', ','), descrizione })}#modulo`;
 const mesiProve = [...new Set(prove.map((p) => meseDi(p.data)))].reverse();
 // Intestazione della stampa del riepilogo, come nei prospetti del rendiconto
-const intestazione = { associazione: coro.associazione ?? coro.nome, cf: coro.coristi?.tesoreria?.codiceFiscale };
+const intestazione = intestazioneStampa();
 const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' }).format(new Date());
 ---
 

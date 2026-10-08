@@ -132,6 +132,9 @@ export const NASCOSTO = 'xxx';
 export const euro = (n: number) => (inDemo() ? `${NASCOSTO} €` : formatoEuro.format(n).replace(/,00(?=\s?€)/, ''));
 export const euroEsatto = (n: number) => (inDemo() ? `${NASCOSTO} €` : formatoEuro.format(n));
 export const valoreVisto = (n: number) => (inDemo() ? NASCOSTO : String(n));
+// L'intestazione delle stampe (tabella delle quote, maestri, rendiconto): in demo il codice fiscale
+// dell'associazione è nascosto
+export const intestazioneStampa = () => ({ associazione: coro.associazione ?? coro.nome, cf: inDemo() ? 'x'.repeat(11) : conf().codiceFiscale });
 const centesimi = (n: number) => Math.round(n * 100) / 100;
 const perFoglio = (iso: string) => iso.split('-').reverse().join('/');
 export const giornoBreve = (iso: string) => iso.split('-').reverse().join('/');
@@ -599,7 +602,8 @@ export async function proveDeiMaestri(anno: number, elenco?: Maestro[]): Promise
     .filter((r) => r['ID prova']?.startsWith('manuale-'))
     .map((r) => ({ id: r['ID prova'], data: dataFoglio(r['Data']) ?? '', titolo: 'Prova (non in calendario)', inCalendario: false, ...daRiga(r) }))
     .filter((p) => p.data >= inizioDi(anno) && p.data <= fineDi(anno));
-  return [...prove, ...aMano].sort((a, b) => a.data.localeCompare(b.data)).map((p) => (inDemo() ? { ...p, note: '' } : p));
+  const visto = await nomiMaestriVisti();
+  return [...prove, ...aMano].sort((a, b) => a.data.localeCompare(b.data)).map((p) => (inDemo() ? { ...p, maestro: visto(p.maestro), note: '' } : p));
 }
 
 // Salva come è andata una prova: chi l'ha diretta, l'onorario, la lezione di vocalità. Senza id, una
@@ -644,9 +648,26 @@ export async function elencoMaestri(): Promise<Maestro[]> {
     const usati = (await righeMaestri()).map((r) => r['Maestro']?.trim()).filter((n): n is string => Boolean(n));
     for (const n of new Set(usati)) if (!elenco.some((m) => stessoNome(m.nome, n))) elenco.push({ nome: n, onorario: onorari().sostituto, attivo: true, principale: false, note: '' });
   }
+  const visto = await nomiMaestriVisti();
   return elenco
     .sort((a, b) => Number(b.principale) - Number(a.principale) || Number(b.attivo) - Number(a.attivo) || a.nome.localeCompare(b.nome, 'it'))
-    .map((m) => (inDemo() ? { ...m, note: '' } : m));
+    .map((m) => (inDemo() ? { ...m, nome: visto(m.nome), note: '' } : m));
+}
+
+// In demo i maestri che non sono il Maestro del coro (persone non nominate sul sito pubblico) hanno un
+// nome inventato, «Maestro sostituto A, B…», lo stesso in tutte le pagine: dai nomi delle schede Maestri
+// e Prove dei maestri, in ordine alfabetico. Fuori dalla demo, il nome vero
+async function nomiMaestriVisti(): Promise<(nome: string) => string> {
+  if (!inDemo()) return (n) => n;
+  const [elenco, prove] = await Promise.all([leggiScheda(ELENCO_MAESTRI, FOGLIO_TESORERIA_ID).catch(() => []), righeMaestri().catch(() => [])]);
+  const nomi = [...new Set([...elenco.map((r) => r['Nome']), ...prove.map((r) => r['Maestro'])].map((n) => (n ?? '').trim().toLowerCase()))]
+    .filter((n) => n && !stessoNome(n, direttore()))
+    .sort();
+  return (n) => {
+    if (!n || stessoNome(n, direttore())) return n;
+    const i = nomi.indexOf(n.trim().toLowerCase());
+    return `Maestro sostituto ${i < 0 ? '' : i < 26 ? String.fromCharCode(65 + i) : i + 1}`.trim();
+  };
 }
 
 const rigaMaestro = (m: Maestro, da: string) => [testo(m.nome), m.onorario, m.attivo ? 'Sì' : 'No', testo(m.note), da, adesso()];

@@ -6,8 +6,8 @@
 // correggibile anche direttamente nel foglio.
 import { randomBytes } from 'node:crypto';
 import { coro } from '../motore/coro';
-import { adesso, cancellaRiga, idScheda, leggiScheda, oggi, personaVista, scriviRiga } from './dati';
-import { inDemo } from './demo';
+import { adesso, cancellaRiga, idScheda, leggiScheda, oggi, scriviRiga } from './dati';
+import { avvisiDiEsempio, EMAIL_REDAZIONE, inDemo } from './demo';
 import { nelGruppo } from './servizio';
 import { spiegaTesto } from './errori';
 
@@ -46,6 +46,12 @@ export async function ruoliDi(email: string): Promise<Ruolo[]> {
 
 // Tutti gli avvisi, i più recenti prima
 export async function avvisi(): Promise<Avviso[]> {
+  // Modalità demo (src/area/demo.ts): al posto degli avvisi veri, testi liberi, quelli d'esempio
+  if (inDemo()) {
+    return avvisiDiEsempio(oggi())
+      .map((a, i) => ({ ...a, riga: i + 2, ruolo: ruoli().find((x) => x.id === a.firma), scrittoDa: EMAIL_REDAZIONE }))
+      .filter((a) => a.ruolo);
+  }
   await idScheda(SCHEDA, COLONNE);
   const elenco = (await leggiScheda(SCHEDA))
     .filter((r) => r['ID'] && (r['Titolo'] || r['Testo']))
@@ -61,9 +67,7 @@ export async function avvisi(): Promise<Avviso[]> {
       scrittoDa: r['Scritto da'],
     }))
     .sort((a, b) => b.pubblicato.localeCompare(a.pubblicato) || b.riga - a.riga);
-  // Modalità demo (src/area/demo.ts): chi ha scritto l'avviso con un'email inventata
-  if (!inDemo()) return elenco;
-  return Promise.all(elenco.map(async (a) => ({ ...a, scrittoDa: (await personaVista(a.scrittoDa)).email })));
+  return elenco;
 }
 
 // Quelli da mostrare in bacheca oggi

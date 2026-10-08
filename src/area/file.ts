@@ -10,6 +10,7 @@
 // altro, che qui non deve uscire.
 import { DRIVE_CARTELLA_FOTO_CONCERTI, DRIVE_CARTELLA_REGISTRAZIONI, DRIVE_CARTELLA_SPARTITI } from 'astro:env/server';
 import { google, tokenServizio } from './servizio';
+import { inDemo } from './demo';
 
 const DRIVE = 'https://www.googleapis.com/drive/v3';
 const TIPI = /^(application\/pdf|audio\/|video\/)/;
@@ -47,8 +48,15 @@ async function consentito(id: string, redattore = false): Promise<Dati | undefin
   return dati;
 }
 
+// Modalità demo (src/area/demo.ts): spartiti (diritti degli editori), registrazioni delle prove e foto
+// non pubbliche non escono; si aprono solo le foto già sul sito pubblico (Sito e Home)
+const MESSAGGIO_FILE_DEMO = 'Nella demo i file riservati (spartiti, tracce, registrazioni, foto non pubbliche) non si aprono.';
+const vietatoInDemo = (d: Dati) => inDemo() && !(/^image\//.test(d.mimeType) && ['pubblica', 'home'].includes(d.appProperties?.visibilita ?? ''));
+const rispostaDemo = () => new Response(MESSAGGIO_FILE_DEMO, { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+
 export async function serviFile(id: string | undefined, richiesta: Request, redattore = false): Promise<Response> {
   const dati = id && /^[\w-]{10,}$/.test(id) ? await consentito(id, redattore) : undefined;
+  if (dati && vietatoInDemo(dati)) return rispostaDemo();
   if (!dati) return new Response('File non trovato', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   const intervallo = richiesta.headers.get('range');
   const r = await fetch(`${DRIVE}/files/${encodeURIComponent(id!)}?alt=media&supportsAllDrives=true`, {
@@ -74,6 +82,7 @@ export async function serviFile(id: string | undefined, richiesta: Request, reda
 export async function serviMiniatura(id: string | undefined, redattore = false): Promise<Response> {
   const dati = id && /^[\w-]{10,}$/.test(id) ? await consentito(id, redattore) : undefined;
   if (!dati || !/^image\//.test(dati.mimeType)) return new Response('Foto non trovata', { status: 404 });
+  if (vietatoInDemo(dati)) return rispostaDemo();
   const link = dati.thumbnailLink ?? (await meta(id!).catch(() => undefined))?.thumbnailLink;
   const r = link ? await fetch(link.replace(/=s\d+$/, '=s640'), { headers: { Authorization: `Bearer ${await tokenServizio()}` } }) : undefined;
   // Drive prepara la miniatura qualche secondo dopo il caricamento: intanto la foto intera

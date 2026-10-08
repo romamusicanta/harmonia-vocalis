@@ -20,11 +20,10 @@ import Icona from '../../componenti/Icona.astro';
 import Sollecito from '../../area/Sollecito.astro';
 import { vesteCorrente } from '../../motore/url';
 import { scriveTesoriere } from '../../area/accesso';
-import { coro } from '../../motore/coro';
 import { coristi, oggi, type SchedaCorista } from '../../area/dati';
 import {
   arretrati, attiviNelMese, cassa, configurata, euro, indice, quotaBase, riporti, riportoDi, meseBreve, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeStagione, questoMese,
-  quotaDi, quotaMensile, quote, situazioneMese, stagioneCorrente, stagioneDi, statoDi, tutteLeQuote, valoreVisto, NASCOSTO, type Cassa, type Quota,
+  quotaDi, quotaMensile, quote, situazioneMese, stagioneCorrente, stagioneDi, statoDi, tutteLeQuote, valoreVisto, NASCOSTO, type Cassa, type Quota, intestazioneStampa,
 } from '../../area/tesoreria';
 import { inDemo } from '../../area/demo';
 import '../../area/tesoreria.css';
@@ -79,7 +78,7 @@ const passati = anno === corrente ? mesi.filter((m) => m < questoMese()) : [];
 const richiudibili = passati.length > 0;
 const etichettaPassati = [...(conRiporto ? ['riporto'] : []), ...(passati.length ? [passati.length > 1 ? `${meseBreve(passati[0])}–${meseBreve(passati.at(-1)!)}` : meseBreve(passati[0])] : [])].join(', ');
 // Intestazione della stampa della tabella, come nei prospetti del rendiconto
-const intestazione = { associazione: coro.associazione ?? coro.nome, cf: coro.coristi?.tesoreria?.codiceFiscale };
+const intestazione = intestazioneStampa();
 const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' }).format(new Date());
 const ETICHETTA = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' } as const;
 const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;

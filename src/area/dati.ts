@@ -9,7 +9,7 @@
 import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, FOGLIO_CORISTI_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
 import { google, normalizza } from './servizio';
-import { EMAIL_REDAZIONE, fintiPer, inDemo, type Finto } from './demo';
+import { CONCERTO_RISERVATO, EMAIL_REDAZIONE, RIGHE_PROVA_VISIBILI, fintiPer, inDemo, type Finto } from './demo';
 import { sommario } from '../motore/calendario';
 
 const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
@@ -247,8 +247,9 @@ async function eventiDi(calendario: string, tipo: Evento['tipo'], da: string, a:
 
 const eventiInCache = new Map<string, { elenco: Evento[]; letti: number }>();
 
-// Prove e concerti tra due giorni (compresi), in ordine di data
-export async function eventi(da: string, a: string): Promise<Evento[]> {
+// Prove e concerti tra due giorni (compresi), in ordine di data, anche in modalità demo: per i calcoli
+// tenuti in cache (src/area/demo.ts)
+export async function eventiVeri(da: string, a: string): Promise<Evento[]> {
   const chiave = `${da}/${a}`;
   const c = eventiInCache.get(chiave);
   if (c && Date.now() - c.letti < 60 * 1000) return c.elenco;
@@ -259,6 +260,20 @@ export async function eventi(da: string, a: string): Promise<Evento[]> {
   const elenco = [...prove, ...concerti].sort((x, y) => x.inizioMs - y.inizioMs);
   eventiInCache.set(chiave, { elenco, letti: Date.now() });
   return elenco;
+}
+
+// Come li vede chi guarda: in modalità demo i concerti non ancora pubblici hanno titolo, luogo e
+// programma generici e delle prove restano solo sezioni, repertorio e brani (src/area/demo.ts)
+const eventoVisto = (e: Evento): Evento => {
+  if (e.tipo === 'concerto' && e.stato && e.stato !== 'in-cartellone') {
+    const { titolo, luogo } = CONCERTO_RISERVATO;
+    return { ...e, titolo, luogo, luogoBreve: luogo, opera: titolo, autore: undefined, rassegna: undefined, righe: [] };
+  }
+  return e.tipo === 'prova' ? { ...e, righe: e.righe.filter(([k]) => RIGHE_PROVA_VISIBILI.some((x) => x.toLowerCase() === k.toLowerCase())) } : e;
+};
+export async function eventi(da: string, a: string): Promise<Evento[]> {
+  const elenco = await eventiVeri(da, a);
+  return inDemo() ? elenco.map(eventoVisto) : elenco;
 }
 
 // Un evento entro un anno prima o dopo oggi, per id
