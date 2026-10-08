@@ -14,7 +14,7 @@ export interface Sessione {
   accesso?: string; // token di accesso di Google (solo le sessioni di prima del 7/10/2026)
   rinnovo?: string; // token per rinnovarlo, se Google l'ha dato
   scade: number; // scadenza della sessione (ms; per le sessioni di prima, del token di accesso)
-  redattore?: boolean; // false = entra solo per gli avvisi (presidente, tesoriere); mancante = redattore (sessioni di prima)
+  redattore?: boolean; // false = entrava solo per gli avvisi (fino all'8/10/2026, ora non valgono più); mancante = redattore
   demo?: boolean; // nel gruppo Demo (coro.amministrazione.demo): tutto in sola lettura, nomi inventati (src/area/demo.ts)
 }
 

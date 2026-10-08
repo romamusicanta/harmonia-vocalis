@@ -19,7 +19,7 @@ import { scriveTesoriere } from '../../area/accesso';
 import { coro } from '../../motore/coro';
 import {
   CATEGORIE_ONORARI, cassa, configurata, direttore, euro, giornoBreve, maiuscola, meseDi, meseEsteso, movimenti, nomeStagione, onorari, onorariPerMese, pagatoPer,
-  elencoMaestri, proveDeiMaestri, quote, stagioneCorrente, type Cassa, type Maestro, type ProvaMaestro,
+  elencoMaestri, proveDeiMaestri, quote, stagioneCorrente, valoreVisto, type Cassa, type Maestro, type ProvaMaestro,
 } from '../../area/tesoreria';
 import '../../area/tesoreria.css';
 
@@ -141,7 +141,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
               {maestri.map((m) => (
                 <li data-prima={m.nome}>
                   <label class="nome-m"><span>{m.principale ? 'Maestro del coro' : 'Maestro'}</span><input name="nome" value={m.nome} disabled={solaLettura || m.principale} maxlength="80" /></label>
-                  <label class="onorario-m"><span>Onorario proposto €</span><input name="onorario" inputmode="decimal" value={String(m.onorario).replace('.', ',')} disabled={solaLettura} /></label>
+                  <label class="onorario-m"><span>Onorario proposto €</span><input name="onorario" inputmode="decimal" value={valoreVisto(m.onorario).replace('.', ',')} disabled={solaLettura} /></label>
                   <label class="attivo-m"><input type="checkbox" name="attivo" checked={m.attivo} disabled={solaLettura || m.principale} />Attivo</label>
                   <span class="stato-m" aria-live="polite"></span>
                 </li>
@@ -163,7 +163,7 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
               <b style="color:var(--primario)">Una prova che non è nel calendario?</b>
               <div class="riga-aggiungi">
                 <label>Data<input type="date" name="data" required /></label>
-                <label>Diretta da<select name="maestro">{scelte('').map((m) => <option value={m.nome} data-onorario={String(m.onorario)} selected={m.principale}>{m.nome}</option>)}</select></label>
+                <label>Diretta da<select name="maestro">{scelte('').map((m) => <option value={m.nome} data-onorario={valoreVisto(m.onorario)} selected={m.principale}>{m.nome}</option>)}</select></label>
                 <label>Onorario (€)<input name="onorario" inputmode="decimal" value={String(maestri.find((m) => m.principale)?.onorario ?? onorari().prova).replace('.', ',')} /></label>
                 <button class="btn g piccolo" type="submit">Aggiungi</button>
               </div>
@@ -178,10 +178,10 @@ const oggiStampa = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'lo
                   <li class:list={{ cambiata: p.cambiata }} data-id={p.id} data-data={p.data}>
                     <span class="quando"><b>{giornoBreve(p.data).slice(0, 5)}</b><small>{!p.inCalendario ? 'non in calendario' : /^prova( settimanale)?$/i.test(p.titolo) ? '' : p.titolo}</small></span>
                     <label class="campo-m"><span>Diretta da</span><select name="maestro" disabled={solaLettura}>
-                      {scelte(p.maestro).map((m) => <option value={m.nome} data-onorario={String(m.onorario)} selected={m.nome === p.maestro}>{m.nome}{!m.attivo && m.onorario === 0 && !maestri.some((x) => x.nome === m.nome) ? ' (non nell’elenco)' : ''}</option>)}
+                      {scelte(p.maestro).map((m) => <option value={m.nome} data-onorario={valoreVisto(m.onorario)} selected={m.nome === p.maestro}>{m.nome}{!m.attivo && m.onorario === 0 && !maestri.some((x) => x.nome === m.nome) ? ' (non nell’elenco)' : ''}</option>)}
                       <option value="" data-onorario="0" selected={!p.maestro}>Nessuno (prova non pagata)</option>
                     </select></label>
-                    <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={String(p.onorario).replace('.', ',')} disabled={solaLettura} /></label>
+                    <label class="campo-o"><span>Onorario €</span><input name="onorario" inputmode="decimal" value={valoreVisto(p.onorario).replace('.', ',')} disabled={solaLettura} /></label>
                     <label class="campo-v"><span>Vocalità</span>
                       <select name="vocalita" disabled={solaLettura}>
                         <option value="nessuna" selected={p.vocalita === 'nessuna'}>Nessuna</option>

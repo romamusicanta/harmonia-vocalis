@@ -3,8 +3,9 @@
 // (coro.coristi.direzione: il Maestro, che ha la sua area, /maestro), di quelli
 // del tesoriere (coro.coristi.tesoreria.gruppi, area /tesoriere), degli amministratori del sito
 // (coro.coristi.amministratori: aprono tutte le aree) o dei redattori (coro.amministrazione.gruppo:
-// vedono l'area del tesoriere in sola lettura). Il gruppo Demo (coro.amministrazione.demo, dal 7/10/2026)
-// apre l'area del Maestro in sola lettura e dell'area del tesoriere solo le anteprime (src/area/demo.ts). A Google si chiedono solo
+// con questa sessione aprono l'area redattori, /admin, senza passare da Google). Dall'8/10/2026 ogni area
+// si apre solo al suo gruppo; amministratori e gruppo Demo (coro.amministrazione.demo) le aprono tutte, il
+// gruppo Demo sempre in sola lettura e con i dati personali nascosti (src/area/demo.ts). A Google si chiedono solo
 // nome ed email, con il client OAuth "Sito - area coristi" del progetto Google Cloud
 // harmonia-vocalis-coristi (consenso Esterno: quello dell'area Amministrazione è Interno e
 // lascerebbe entrare solo gli account @romamusicanta.org).
@@ -25,22 +26,22 @@ export interface Corista {
   direzione?: boolean; // nel gruppo della direzione
   tesoreria?: boolean; // in uno dei gruppi dell'area del tesoriere (coro.coristi.tesoreria.gruppi; le sessioni di prima del 5/10/2026 non lo hanno)
   amministratore?: boolean; // nel gruppo degli amministratori del sito (coro.coristi.amministratori): vede tutte le aree
-  demo?: boolean; // nel gruppo Demo: area del Maestro in sola lettura con dati nascosti, anteprime del tesoriere
+  demo?: boolean; // nel gruppo Demo: tutte le aree in sola lettura, con i dati personali nascosti
   redattore?: boolean; // nel gruppo dei redattori (coro.amministrazione.gruppo): vede l'area del tesoriere in sola lettura (dal 7/10/2026)
 }
 
 export const eCorista = (c: Corista) => c.coro !== false;
-// Chi apre quale area: gli amministratori del sito tutte (dal 5/10/2026, al posto di admin@ dentro gli
-// altri gruppi)
-export const apreArea = (c: Corista) => eCorista(c) || Boolean(c.amministratore);
+// Chi apre quale area (dall'8/10/2026): ognuna solo il suo gruppo, più gli amministratori del sito e il
+// gruppo Demo, che le aprono tutte (il gruppo Demo in sola lettura: lo blocca il middleware)
+export const apreArea = (c: Corista) => Boolean(eCorista(c) || c.amministratore || c.demo);
 export const apreMaestro = (c: Corista) => Boolean(c.direzione || c.amministratore || c.demo);
-// Area del tesoriere (dal 7/10/2026): la aprono anche redattori e amministratori, ma solo per leggere;
-// scrive (quote, cassa, maestri, avvisi, sollecito) solo chi è nei gruppi della tesoreria
-export const apreTesoriere = (c: Corista) => Boolean(c.tesoreria || c.amministratore || c.redattore || c.demo);
+export const apreTesoriere = (c: Corista) => Boolean(c.tesoreria || c.amministratore || c.demo);
+export const apreRedattori = (c: Corista) => Boolean(c.redattore || c.amministratore || c.demo);
+// Nell'area del tesoriere scrive (quote, cassa, maestri, avvisi, sollecito) solo chi è nei gruppi della
+// tesoreria: gli amministratori la vedono in sola lettura
 export const scriveTesoriere = (c: Corista) => Boolean(c.tesoreria);
-// La prima area di chi entra: coristi, Maestro, tesoriere, in quest'ordine (chi è solo redattore ha
-// qui soltanto l'area del tesoriere)
-export const areaDi = (c: Corista) => (c.coro ? '/area' : c.direzione ? '/maestro' : c.tesoreria ? '/tesoriere' : c.demo ? '/maestro' : c.redattore && !c.amministratore ? '/tesoriere' : '/area');
+// La prima area di chi entra: coristi, Maestro, tesoriere, redattori, in quest'ordine
+export const areaDi = (c: Corista) => (eCorista(c) || c.demo ? '/area' : c.direzione ? '/maestro' : c.tesoreria ? '/tesoriere' : c.redattore ? '/admin' : '/area');
 export const almenoUno = (g: { coro: boolean; direzione: boolean; tesoreria: boolean; amministratore: boolean; redattore: boolean; demo: boolean }) =>
   g.coro || g.direzione || g.tesoreria || g.amministratore || g.redattore || g.demo;
 

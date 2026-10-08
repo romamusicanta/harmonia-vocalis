@@ -34,7 +34,8 @@
 import { randomBytes } from 'node:crypto';
 import { FOGLIO_TESORERIA_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, nelCoro, dataFoglio, eventi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, nelCoro, dataFoglio, eventi, fintoDi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { inDemo } from './demo';
 import { normalizza } from './servizio';
 
 const QUOTE = 'Quote';
@@ -124,8 +125,13 @@ export function numero(v?: string | number) {
 }
 // Il punto delle migliaia anche con quattro cifre (4.443 €, come nei rendiconti): l'italiano di base lo mette da 10.000
 const formatoEuro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' });
-export const euro = (n: number) => formatoEuro.format(n).replace(/,00(?=\s?€)/, '');
-export const euroEsatto = (n: number) => formatoEuro.format(n);
+// Gruppo Demo (dal 8/10/2026): vede tutte le pagine, ma nessun importo vero arriva al browser. Ogni cifra
+// in euro si scrive «xxx €» (i calcoli restano quelli veri: si nasconde solo all'uscita), e i valori
+// grezzi (campi dei moduli, attributi data-*) passano da valoreVisto
+export const NASCOSTO = 'xxx';
+export const euro = (n: number) => (inDemo() ? `${NASCOSTO} €` : formatoEuro.format(n).replace(/,00(?=\s?€)/, ''));
+export const euroEsatto = (n: number) => (inDemo() ? `${NASCOSTO} €` : formatoEuro.format(n));
+export const valoreVisto = (n: number) => (inDemo() ? NASCOSTO : String(n));
 const centesimi = (n: number) => Math.round(n * 100) / 100;
 const perFoglio = (iso: string) => iso.split('-').reverse().join('/');
 export const giornoBreve = (iso: string) => iso.split('-').reverse().join('/');
@@ -152,7 +158,7 @@ async function scriviQuota(valori: (string | number)[], riga?: number) {
 
 export async function quote(): Promise<Quota[]> {
   await idScheda(QUOTE, COLONNE_QUOTE, FOGLIO_TESORERIA_ID);
-  return (await leggiScheda(QUOTE, FOGLIO_TESORERIA_ID))
+  const tutte: Quota[] = (await leggiScheda(QUOTE, FOGLIO_TESORERIA_ID))
     .filter((r) => /^\d{4}-\d{2}$/.test(r['Mese']) && r['Email'] && /^(pagata|esonerat|nessuna|quota base|riporto)/i.test(r['Stato']))
     .map((r) => ({
       riga: r.riga,
@@ -166,6 +172,21 @@ export async function quote(): Promise<Quota[]> {
       versato: /^riporto versato/i.test(r['Stato']),
       riporto: r['Riporto']?.trim() ? numero(r['Riporto']) : undefined,
     }));
+  return inDemo() ? quotePerDemo(tutte) : tutte;
+}
+
+// In demo: i coristi con le email e i nomi inventati di coristi() (così i calcoli tornano uguali), gli
+// ex coristi come «Ex corista 1, 2…», note vuote. Gli importi restano: li nasconde euro() all'uscita
+async function quotePerDemo(tutte: Quota[]): Promise<Quota[]> {
+  const ex = [...new Set(tutte.map((q) => q.email).filter((e) => e !== TUTTI))].sort();
+  const finti = new Map(await Promise.all(ex.map(async (e) => [e, await fintoDi(e)] as const)));
+  const exFinti = ex.filter((e) => !finti.get(e));
+  return tutte.map((q) => {
+    if (q.email === TUTTI) return { ...q, nota: '' };
+    const f = finti.get(q.email);
+    const n = exFinti.indexOf(q.email) + 1;
+    return { ...q, email: f ? f.email : `ex:corista-${n}`, nome: f ? `${f.nome} ${f.cognome}` : `Ex corista ${n}`, nota: '' };
+  });
 }
 
 // Chi ha quote nel foglio ma non è nella scheda Coristi (ex coristi caricati dai rendiconti passati)
@@ -373,11 +394,12 @@ export async function segnaMeseSenzaQuota(mese: string, senza: boolean, nota: st
 
 // ——— Movimenti di cassa ———
 
-export interface Movimento { riga: number; id: string; data: string; tipo: TipoMovimento; categoria: string; descrizione: string; importo: number; note: string }
+// sede: solo in demo, ricavata dalla descrizione vera prima di nasconderla (per gli affitti del rendiconto)
+export interface Movimento { riga: number; id: string; data: string; tipo: TipoMovimento; categoria: string; descrizione: string; importo: number; note: string; sede?: string }
 
 export async function movimenti(): Promise<Movimento[]> {
   await idScheda(MOVIMENTI, COLONNE_MOVIMENTI, FOGLIO_TESORERIA_ID);
-  return (await leggiScheda(MOVIMENTI, FOGLIO_TESORERIA_ID))
+  const tutti: Movimento[] = (await leggiScheda(MOVIMENTI, FOGLIO_TESORERIA_ID))
     .map((r) => ({
       riga: r.riga,
       id: r['ID'],
@@ -390,6 +412,8 @@ export async function movimenti(): Promise<Movimento[]> {
     }))
     .filter((m) => m.id && m.data)
     .sort((a, b) => b.data.localeCompare(a.data) || b.riga - a.riga);
+  // In demo descrizioni e note nascoste (possono contenere nomi e cifre): resta la categoria
+  return inDemo() ? tutti.map((m) => ({ ...m, sede: sedeDi(m), descrizione: m.categoria ? `${m.categoria} (descrizione nascosta)` : 'Descrizione nascosta', note: '' })) : tutti;
 }
 
 // Modulo (POST): azione=salva (id per modificare) o cancella
@@ -434,7 +458,8 @@ export async function verifiche(): Promise<Verifica[]> {
   return (await leggiScheda(VERIFICHE, FOGLIO_TESORERIA_ID))
     .map((r) => ({ riga: r.riga, id: r['ID'], data: dataFoglio(r['Data']) ?? '', contoCorrente: numero(r['Saldo conto corrente']), contanti: numero(r['Contanti in cassa']), note: r['Note'] ?? '' }))
     .filter((x) => x.id && x.data)
-    .sort((a, b) => b.data.localeCompare(a.data) || b.riga - a.riga);
+    .sort((a, b) => b.data.localeCompare(a.data) || b.riga - a.riga)
+    .map((x) => (inDemo() ? { ...x, note: '' } : x));
 }
 
 export async function gestisciVerifica(f: FormData, email: string): Promise<{ ok: boolean; messaggio: string; data?: string }> {
@@ -574,7 +599,7 @@ export async function proveDeiMaestri(anno: number, elenco?: Maestro[]): Promise
     .filter((r) => r['ID prova']?.startsWith('manuale-'))
     .map((r) => ({ id: r['ID prova'], data: dataFoglio(r['Data']) ?? '', titolo: 'Prova (non in calendario)', inCalendario: false, ...daRiga(r) }))
     .filter((p) => p.data >= inizioDi(anno) && p.data <= fineDi(anno));
-  return [...prove, ...aMano].sort((a, b) => a.data.localeCompare(b.data));
+  return [...prove, ...aMano].sort((a, b) => a.data.localeCompare(b.data)).map((p) => (inDemo() ? { ...p, note: '' } : p));
 }
 
 // Salva come è andata una prova: chi l'ha diretta, l'onorario, la lezione di vocalità. Senza id, una
@@ -619,7 +644,9 @@ export async function elencoMaestri(): Promise<Maestro[]> {
     const usati = (await righeMaestri()).map((r) => r['Maestro']?.trim()).filter((n): n is string => Boolean(n));
     for (const n of new Set(usati)) if (!elenco.some((m) => stessoNome(m.nome, n))) elenco.push({ nome: n, onorario: onorari().sostituto, attivo: true, principale: false, note: '' });
   }
-  return elenco.sort((a, b) => Number(b.principale) - Number(a.principale) || Number(b.attivo) - Number(a.attivo) || a.nome.localeCompare(b.nome, 'it'));
+  return elenco
+    .sort((a, b) => Number(b.principale) - Number(a.principale) || Number(b.attivo) - Number(a.attivo) || a.nome.localeCompare(b.nome, 'it'))
+    .map((m) => (inDemo() ? { ...m, note: '' } : m));
 }
 
 const rigaMaestro = (m: Maestro, da: string) => [testo(m.nome), m.onorario, m.attivo ? 'Sì' : 'No', testo(m.note), da, adesso()];
@@ -674,7 +701,7 @@ export function onorariPerMese(prove: ProvaMaestro[]): MeseMaestri[] {
 }
 
 // La sede di un affitto, dalla descrizione (coro.coristi.tesoreria.sedi); senza corrispondenza, "Altre sedi"
-export const sedeDi = (m: Movimento) => conf().sedi.find((s) => s.parole.some((p) => m.descrizione.toLowerCase().includes(p.toLowerCase())))?.nome ?? 'Altre sedi';
+export const sedeDi = (m: Movimento) => m.sede ?? conf().sedi.find((s) => s.parole.some((p) => m.descrizione.toLowerCase().includes(p.toLowerCase())))?.nome ?? 'Altre sedi';
 export const nomiSedi = () => conf().sedi.map((s) => s.nome);
 
 // Quanto è stato pagato per gli onorari nella stagione, dalle uscite della cassa

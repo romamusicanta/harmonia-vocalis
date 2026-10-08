@@ -136,6 +136,8 @@ async function finti() {
   return fintiInCache.get(elenco)!;
 }
 const trova = (m: Map<string, Finto>, email: string) => m.get(email.toLowerCase()) ?? [...m.entries()].find(([k]) => normalizza(k) === normalizza(email))?.[1];
+// La persona inventata di un corista (per email vera), per le letture rese demo fuori da qui (tesoreria)
+export const fintoDi = async (email: string) => (email ? trova(await finti(), email) : undefined);
 
 // In modalità demo: l'email finta e il nome breve inventato di chi ha scritto o caricato qualcosa
 // (chi non è corista è «Redazione»); fuori dalla demo, quelli veri

@@ -4,7 +4,7 @@
 // richiesta automatica (chi non aveva la sessione) qualunque problema porta alla pagina di accesso,
 // senza errori.
 import type { APIRoute } from 'astro';
-import { apreMaestro, apreTesoriere, areaDi, completaAccesso, leggiCorista, ricordaAccount, salvaCorista } from '../../area/accesso';
+import { apreArea, apreMaestro, apreTesoriere, areaDi, completaAccesso, leggiCorista, ricordaAccount, salvaCorista } from '../../area/accesso';
 import { decifra } from '../../admin/sessione';
 
 export const prerender = false;
@@ -51,6 +51,6 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const sua = areaDi(c);
   if (maestro && !apreMaestro(c)) return redirect(sua);
   if (tesoriere && !apreTesoriere(c)) return redirect(sua);
-  if (!maestro && !tesoriere && !c.coro && !c.amministratore) return redirect(sua);
+  if (!maestro && !tesoriere && !apreArea(c)) return redirect(sua);
   return redirect(atteso.dopo);
 };

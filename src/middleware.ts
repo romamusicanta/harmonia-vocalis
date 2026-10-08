@@ -5,11 +5,10 @@
 // si aprono solo a chi è entrato ed è nel gruppo dei coristi. Area del Maestro (/maestro, i
 // report): solo al gruppo della direzione, con lo stesso accesso con Google e la stessa sessione.
 // Area del tesoriere (/tesoriere, quote e cassa): solo ai gruppi della tesoreria, idem. Gli amministratori
-// del sito (coro.coristi.amministratori) aprono tutte le aree; nell'area del tesoriere loro e i redattori
-// (dal 7/10/2026) solo in lettura: nessuna richiesta che modifica (POST), niente Avvisi.
-// Gruppo Demo (dal 7/10/2026, src/area/demo.ts): Amministrazione e area del Maestro in sola lettura, con
-// ogni richiesta dentro il contesto demo (nomi inventati, note nascoste); dell'area del tesoriere vede al
-// posto di ogni sezione la sua anteprima (src/pages/tesoriere/anteprima/[sezione].astro).
+// del sito (coro.coristi.amministratori) aprono tutte le aree; nell'area del tesoriere solo in lettura:
+// nessuna richiesta che modifica (POST), niente Avvisi.
+// Gruppo Demo (dal 7/10/2026, src/area/demo.ts; dall'8/10/2026 in tutte le aree): sola lettura, con ogni
+// richiesta dentro il contesto demo (nomi inventati, note nascoste; nell'area del tesoriere anche le cifre).
 import { defineMiddleware } from 'astro:middleware';
 import { leggiSessione, salvaSessione } from './admin/sessione';
 import { conDemo, MESSAGGIO_DEMO } from './area/demo';
@@ -23,8 +22,6 @@ const libereTesoriere = ['/tesoriere/accesso'];
 
 // Le richieste che modificano qualcosa, rifiutate in modalità demo (le pagine mostrano il messaggio)
 const rifiutaDemo = () => new Response(JSON.stringify({ errore: MESSAGGIO_DEMO }), { status: 403, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
-// Le sezioni dell'area del tesoriere, per l'anteprima della demo
-const sezioneTesoriere = (pathname: string) => ({ '': 'riepilogo', quote: 'riepilogo', cassa: 'cassa', maestri: 'maestri', rendiconto: 'rendiconto', avvisi: 'avvisi' } as Record<string, string>)[pathname.replace(/^\/tesoriere\/?/, '').replace(/\/$/, '')];
 
 const riservata = (risposta: Response) => {
   risposta.headers.set('Cache-Control', 'no-store');
@@ -64,17 +61,13 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
     if (area && !apreArea(corista) && pathname !== '/area/notifiche') return ctx.redirect(areaDi(corista));
     // L'area del tesoriere solo ai gruppi della tesoreria
     if (tesoriere && !apreTesoriere(corista)) return ctx.redirect(`/tesoriere/accesso?${new URLSearchParams({ errore: `L’indirizzo ${corista.email} non è tra quelli che possono vedere l’area del tesoriere.` })}`);
-    // Gruppo Demo: niente modifiche; dell'area del tesoriere solo le anteprime
+    // Gruppo Demo: si guarda tutto, non si salva niente
     if (corista.demo) {
       if (ctx.request.method !== 'GET') return rifiutaDemo();
       ctx.locals.corista = corista;
-      if (tesoriere && !pathname.startsWith('/tesoriere/anteprima/')) {
-        const s = sezioneTesoriere(pathname);
-        return s ? riservata(await conDemo(true, () => avanti(`/tesoriere/anteprima/${s}`))) : ctx.redirect('/tesoriere');
-      }
       return riservata(await conDemo(true, () => avanti()));
     }
-    // Redattori e amministratori: area del tesoriere in sola lettura
+    // Amministratori: area del tesoriere in sola lettura
     if (tesoriere && !scriveTesoriere(corista)) {
       if (ctx.request.method !== 'GET') return new Response(JSON.stringify({ errore: 'Hai l’area del tesoriere in sola lettura: solo il tesoriere può modificare i dati.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
       if (/^\/tesoriere\/avvisi\/?$/.test(pathname)) return ctx.redirect('/tesoriere');
@@ -95,7 +88,8 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   if (libere.includes(pathname.replace(/\/$/, ''))) return avanti();
 
   const letta = leggiSessione(ctx.cookies);
-  let sessione = letta && (await tokenValido(letta));
+  // Le sessioni «solo avvisi» di prima dell'8/10/2026 (redattore = false) non valgono più: si riaprono con le regole nuove
+  let sessione = letta && letta.redattore !== false ? await tokenValido(letta) : undefined;
   // Senza sessione (o scaduta), chi ha quella delle aree e può entrare qui la ottiene senza chiedere
   // niente (dal 7/10/2026: per esempio dopo l'accesso con il codice via email)
   if (!sessione) {
@@ -109,8 +103,6 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
   const completa = sessione.foto === undefined ? await conFoto(sessione) : sessione;
   if (completa !== letta) salvaSessione(ctx.cookies, completa, ctx.url.protocol === 'https:');
   ctx.locals.sessione = completa;
-  // Chi ha solo un ruolo nella bacheca (tesoriere, presidente…) vede solo gli avvisi (e ne manda la notifica)
-  if (completa.redattore === false && !/^\/admin\/(avvisi|notifiche)\/?$/.test(pathname)) return ctx.redirect('/admin/avvisi');
   // Gruppo Demo: si guarda tutto, non si salva niente
   if (completa.demo) {
     if (ctx.request.method !== 'GET') return rifiutaDemo();

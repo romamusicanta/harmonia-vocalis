@@ -10,6 +10,7 @@ import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
 import { coro } from '../../motore/coro';
 import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
+import { inDemo } from '../../area/demo';
 import {
   attiviNelMese, cassa, COMPENSI_CONCERTI, configurata, exCoristi, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
   nomeStagioneLungo, nomiSedi, onorari, riporti, riportoDi, sedeDi, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
@@ -83,6 +84,8 @@ const ultima = leVerifiche[0];
 const disponibile = ultima ? ultima.contoCorrente + ultima.contanti : undefined;
 const bancarie = uscite.filter((m) => m.categoria === 'Spese bancarie');
 const intestazione = { associazione: coro.associazione ?? coro.nome, cf: coro.coristi?.tesoreria?.codiceFiscale };
+// In demo nemmeno avanzo o disavanzo (le cifre sono nascoste)
+const demo = inDemo();
 const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); return `${['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][d.getUTCDay()]} ${d.getUTCDate()} ${maiuscola(nomeMese(iso.slice(0, 7)))}`; };
 ---
 
@@ -120,7 +123,7 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                 <tr><td>Uscite{perCategoria(COMPENSI_CONCERTI) > 0 && ` (di cui ${euroEsatto(perCategoria(COMPENSI_CONCERTI))} di compensi per i concerti)`}</td><td class="num">{euroEsatto(conti.uscite)}</td></tr>
                 <tr><td>di cui partite di giro (spartiti per i coristi)</td><td class="num">{euroEsatto(conti.partiteDiGiro.uscite)}</td></tr>
                 <tr><td><b>Spese di gestione</b> (uscite meno partite di giro)</td><td class="num"><b>{euroEsatto(conti.speseDiGestione)}</b></td></tr>
-                <tr><td>Quote e rimborsi dei concerti, rispetto alle spese di gestione (al netto dei compensi per i concerti)</td><td class:list={['num', conti.quote + rimborsiConcerti - (conti.speseDiGestione - perCategoria(COMPENSI_CONCERTI)) < 0 ? 'neg' : 'pos']}>{euroEsatto(conti.quote + rimborsiConcerti - (conti.speseDiGestione - perCategoria(COMPENSI_CONCERTI)))}</td></tr>
+                <tr><td>Quote e rimborsi dei concerti, rispetto alle spese di gestione (al netto dei compensi per i concerti)</td><td class:list={['num', !demo && (conti.quote + rimborsiConcerti - (conti.speseDiGestione - perCategoria(COMPENSI_CONCERTI)) < 0 ? 'neg' : 'pos')]}>{euroEsatto(conti.quote + rimborsiConcerti - (conti.speseDiGestione - perCategoria(COMPENSI_CONCERTI)))}</td></tr>
               </tbody>
               <tfoot><tr><td>Saldo {anno < corrente ? 'di fine stagione' : 'a oggi'}</td><td class="num">{euroEsatto(conti.saldoFinale)}</td></tr></tfoot>
             </table>
@@ -155,7 +158,7 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                     <tr><td>{x.nome}</td>{conRiporto && <td class="num non-dovuta"></td>}{mesi.map((m) => { const q = quotaDi(idx, x.email, m); return <td class:list={['num', { 'non-dovuta': q?.stato !== 'pagata' }]}>{q?.stato === 'pagata' ? euro(q.importo).replace(/\s*€/, '') : ''}</td>; })}</tr>
                   ))}
                 </tbody>
-                <tfoot><tr><td>Totali mensili</td>{conRiporto && <td class="num">{euro(riportiVersati).replace(/\s*€/, '')}</td>}{raccoltePerMese.map((r) => <td class="num">{r ? euro(r).replace(/\s*€/, '') : '0'}</td>)}</tr></tfoot>
+                <tfoot><tr><td>Totali mensili</td>{conRiporto && <td class="num">{euro(riportiVersati).replace(/\s*€/, '')}</td>}{raccoltePerMese.map((r) => <td class="num">{euro(r).replace(/\s*€/, '')}</td>)}</tr></tfoot>
               </table>
             </div>
             <p class="nota-r">Totale quote della stagione: <b>{euroEsatto(raccoltePerMese.reduce((t, r) => t + r, 0) + (conRiporto ? riportiVersati : 0))}</b>{conRiporto && riportiVersati > 0 && <> (di cui {euroEsatto(riportiVersati)} di riporto)</>}. In grigio le quote non dovute (prima dell'ingresso o dopo l'uscita dal coro, esoneri{senza.size > 0 && `, mesi senza quota: ${[...senza].filter((m) => mesi.includes(m)).map(nomeMese).join(', ')}`}); in giallo quelle dovute e non versate.{conRiporto && <> Colonna «Rip.»: il riporto della stagione {nomeStagioneLungo(anno - 1)}, cioè le quote rimaste da pagare e il riporto non versato di quella stagione, con la cifra versata; in giallo se è ancora da versare, in grigio se non c'erano debiti.</>}</p>
@@ -262,7 +265,7 @@ const giornoMese = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); re
                 </tbody>
                 <tfoot>
                   <tr><td>Totale al {giornoBreve(ultima.data)}</td><td class="num">{euroEsatto(disponibile!)}</td></tr>
-                  <tr><td>{disponibile! - (totEntrate - conti.uscite) >= 0 ? 'Avanzo' : 'Disavanzo'} rispetto ai conti</td><td class="num">{euroEsatto(Math.abs(Math.round((disponibile! - (totEntrate - conti.uscite)) * 100) / 100))}</td></tr>
+                  <tr><td>{demo ? 'Differenza' : disponibile! - (totEntrate - conti.uscite) >= 0 ? 'Avanzo' : 'Disavanzo'} rispetto ai conti</td><td class="num">{euroEsatto(Math.abs(Math.round((disponibile! - (totEntrate - conti.uscite)) * 100) / 100))}</td></tr>
                 </tfoot>
               </table>
             ) : <p class="nota-r">Nessuna verifica di cassa registrata in questa stagione: si registra in Entrate e uscite, con il saldo del conto corrente e i contanti.</p>}

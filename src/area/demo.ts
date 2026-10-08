@@ -1,8 +1,10 @@
-// Modalità demo (dal 7/10/2026): chi è nel gruppo Demo (coro.amministrazione.demo) apre
-// l'Amministrazione e l'area del Maestro in sola lettura e, dell'area del tesoriere, solo le anteprime.
+// Modalità demo (dal 7/10/2026): chi è nel gruppo Demo (coro.amministrazione.demo) apre tutte le aree
+// riservate (dall'8/10/2026 anche l'area coristi e le pagine vere del tesoriere, con le cifre nascoste),
+// sempre in sola lettura.
 // Il middleware fa girare ogni sua richiesta dentro questo contesto: le letture dei dati (coristi,
-// assenze, avvisi, registrazioni, foto: src/area/dati.ts e gli altri) vedono inDemo() e restituiscono
-// nomi inventati, email finte e note vuote. I calcoli tenuti in cache devono usare i dati veri
+// assenze, avvisi, registrazioni, foto, quote e cassa: src/area/dati.ts, src/area/tesoreria.ts e gli
+// altri) vedono inDemo() e restituiscono nomi inventati, email finte e note vuote; nella tesoreria ogni
+// importo si scrive «xxx €» (euro, euroEsatto, valoreVisto). I calcoli tenuti in cache devono usare i dati veri
 // (coristiVeri) e nascondere solo all'uscita, altrimenti la cache passerebbe i dati finti agli altri.
 import { AsyncLocalStorage } from 'node:async_hooks';
 

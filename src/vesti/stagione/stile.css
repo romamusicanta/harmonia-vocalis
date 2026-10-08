@@ -15,7 +15,7 @@ button { cursor: pointer; }
 svg { flex-shrink: 0; }
 :focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; box-shadow: 0 0 0 5px var(--accento); }
 /* Sulle parti scure il contorno giallo basta e si vede */
-:is(.servizio, .fascia, .barra-area, .carta.blu, .piede-sito, .stagione-scura) :focus-visible { outline-color: var(--accento); box-shadow: none; }
+:is(.servizio, .fascia, .laterale, .carta.blu, .piede-sito, .stagione-scura) :focus-visible { outline-color: var(--accento); box-shadow: none; }
 /* Testo per i lettori di schermo, invisibile a vista */
 .sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* "Vai al contenuto": compare con il tasto Tab */
@@ -67,9 +67,6 @@ svg { flex-shrink: 0; }
 .riservate-mobile .eti { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .riservate-mobile a { display: flex; gap: 12px; align-items: center; padding: 12px 0; font-weight: 600; font-size: 17px; color: var(--primario); }
 .riservate-mobile a.on { box-shadow: inset 4px 0 0 var(--accento); padding-left: 14px; }
-.riservate-mobile.in-testa { margin-top: 8px; }
-.menu-mobile .extra.in-testa { margin-top: 12px; }
-.menu-mobile .voci-area { margin-top: 24px; border-top: 1px solid var(--linea); }
 
 /* ——— Header ——— */
 .testata { border-bottom: 1px solid var(--linea); position: sticky; top: 0; background: color-mix(in srgb, var(--bianco) 96%, transparent); backdrop-filter: blur(8px); z-index: 30; }
@@ -442,13 +439,8 @@ a.sc:hover { box-shadow: var(--ombra); }
 .servizio.area-s .dx { white-space: nowrap; }
 .servizio.area-s .info { display: none; }
 @media (min-width: 1100px) { .servizio.area-s .info { display: inline; } }
-/* Sul telefono barra scura e sezioni delle aree stanno nel menu dell'hamburger */
+/* Sotto 1000px il menu laterale si apre con l'hamburger della testata stretta */
 .hamb-area { display: grid; }
-@media (max-width: 999.98px) {
-  .servizio.area-s.con-menu { display: none; }
-  .barra-area { display: none; }
-}
-@media (min-width: 1000px) { .hamb-area { display: none; } }
 .marchio-area { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .utente .av { position: relative; overflow: hidden; }
 .utente .av .ic { width: 20px; height: 20px; }
@@ -463,18 +455,10 @@ a.sc:hover { box-shadow: var(--ombra); }
   /* Il nome dell'area resta visibile, piccolo sotto il logo; Esci sta in fondo al menu */
   .testata-area .marchio-area { flex-direction: column; gap: 3px; }
   .testata-area .etichetta-area { display: inline-block; font-size: 10px; padding: 3px 7px; margin: 0; }
-  .testata-area .esci-btn { display: none; }
 }
-.esci-menu { display: none; }
 /* Dopo un salvataggio nelle aree: "Invia su WhatsApp" con il messaggio già scritto */
 .invio-whatsapp { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 14px 16px; background: var(--bianco); border: 1px solid var(--linea); border-left: 4px solid var(--accento); margin: 12px 0; }
 .invio-whatsapp span { flex: 1 1 260px; color: var(--tenue); font-size: 15px; }
-@media (max-width: 999.98px) {
-  .menu-mobile .esci-menu { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--linea); }
-  .utente-menu { display: grid; font-size: 14px; line-height: 1.3; min-width: 0; }
-  .utente-menu b { color: var(--primario); }
-  .utente-menu small { color: var(--tenue); font-size: 13px; overflow-wrap: anywhere; }
-}
 /* Telefono: sezioni principali in una barra fissa in basso, con icona e scritta; nel menu restano le altre */
 .barra-tab { display: none; }
 @media (max-width: 759.98px) {
@@ -485,7 +469,6 @@ a.sc:hover { box-shadow: var(--ombra); }
   .barra-tab a.on { color: #fff; border-top-color: var(--accento); }
   body:has(.barra-tab) { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
   body:has(.barra-tab) .avviso-toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
-  .menu-mobile .voce.in-tab, .menu-mobile .voci-area.tutte-in-tab { display: none; }
   /* Pulsanti piccoli ed etichette più comodi da toccare e da leggere */
   .area-main .btn.piccolo { min-height: 44px; padding: 11px 16px; font-size: 14px; }
   .area-main .tag { font-size: 12px; }
@@ -500,19 +483,64 @@ a.sc:hover { box-shadow: var(--ombra); }
 .etichetta-area { display: none; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; background: var(--primario); color: #fff; padding: 6px 10px; margin-left: 4px; }
 @media (min-width: 760px) { .etichetta-area { display: inline-block; } }
 
-.barra-area { background: var(--primario); position: sticky; top: 80px; z-index: 25; }
-.barra-area .w { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
-.barra-area .w::-webkit-scrollbar { display: none; }
-.barra-area a { color: var(--primario-chiaro); font-weight: 700; font-size: 15px; padding: 16px 14px 13px; border-bottom: 3px solid transparent; white-space: nowrap; display: inline-flex; gap: 8px; align-items: center; }
-.barra-area a:first-child { padding-left: 0; }
-.barra-area a:hover { color: #fff; }
-.barra-area a.on { color: #fff; border-color: var(--accento); }
-/* Gruppi della barra (Amministrazione: "Sito pubblico", "Coro") */
-.barra-area .gruppo-barra { align-self: center; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--primario-chiaro); opacity: .7; padding: 0 2px 0 14px; white-space: nowrap; }
-.barra-area .gruppo-barra:first-child { padding-left: 0; }
-.barra-area .gruppo-barra + a { padding-left: 8px; }
-.barra-area .gruppo-barra:not(:first-child) { margin-left: 10px; border-left: 1px solid color-mix(in srgb, #fff 25%, transparent); }
-.menu-mobile .gruppo-menu { margin-top: 18px; }
+/* Menu laterale delle aree riservate (dall'8/10/2026, TestataArea.astro): le aree con le loro sezioni,
+   in fondo sito pubblico, utente ed Esci. Sul computer fisso a sinistra, riducibile alle icone; sotto
+   1000px un pannello che si apre con l'hamburger */
+:root { --lat-w: 264px; }
+.laterale-chiuso { --lat-w: 76px; }
+.laterale { position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; width: var(--lat-w); display: flex; flex-direction: column; background: var(--primario); color: var(--primario-chiaro); }
+.laterale a { color: inherit; }
+.laterale .ic { width: 20px; height: 20px; flex-shrink: 0; }
+.laterale .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lat-testa { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 80px; padding: 0 12px 0 20px; }
+.lat-marchio { min-width: 0; }
+.lat-marchio .con-logo { color: #fff; }
+.lat-marchio .logo-coro { width: 160px; }
+.lat-testa button { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; background: none; border: 0; border-radius: var(--raggio); color: inherit; cursor: pointer; }
+.lat-testa button:hover { background: color-mix(in srgb, #fff 10%, transparent); color: #fff; }
+.lat-voci { flex: 1; overflow-y: auto; padding: 0 10px 12px; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, #fff 25%, transparent) transparent; }
+.lat-area { border-top: 1px solid color-mix(in srgb, #fff 12%, transparent); padding: 6px 0; }
+.lat-area summary { list-style: none; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 10px; border-radius: var(--raggio); cursor: pointer; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.lat-area summary::-webkit-details-marker { display: none; }
+.lat-area summary:hover { background: color-mix(in srgb, #fff 8%, transparent); }
+.lat-area summary .freccina { width: 16px; height: 16px; margin-left: auto; opacity: .7; transition: transform .15s; }
+.lat-area[open] summary .freccina { transform: rotate(180deg); }
+.lat-area ul { list-style: none; margin: 0; padding: 2px 0 4px; display: grid; gap: 2px; }
+.lat-area a, .lat-voce { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 10px; border-radius: var(--raggio); font-weight: 600; font-size: 15px; }
+.lat-area a:hover, .lat-voce:hover { background: color-mix(in srgb, #fff 8%, transparent); color: #fff; }
+.lat-area a.on { background: color-mix(in srgb, #fff 13%, transparent); color: #fff; box-shadow: inset 3px 0 0 var(--accento); }
+.lat-area a.on .ic { color: var(--accento); }
+.lat-gruppo { padding: 10px 10px 4px 42px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+.lat-piede { border-top: 1px solid color-mix(in srgb, #fff 12%, transparent); padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); display: grid; gap: 4px; }
+.lat-utente { padding: 6px 4px 0 6px; }
+.lat-utente .nome { display: grid; flex: 1; font-size: 13px; line-height: 1.3; }
+.lat-utente .nome b { color: #fff; overflow: hidden; text-overflow: ellipsis; }
+.lat-utente .nome small { color: inherit; opacity: .75; overflow: hidden; text-overflow: ellipsis; }
+.lat-utente .esci-btn { color: inherit; }
+.lat-utente .esci-btn:hover { background: color-mix(in srgb, #fff 10%, transparent); color: #fff; }
+.laterale-velo { display: none; }
+@media (min-width: 1000px) {
+  .area:has(> .laterale) { padding-left: var(--lat-w); }
+  .testata-area, .lat-testa .lat-chiudi { display: none; }
+  /* Ridotto alle icone: niente scritte; i nomi dei gruppi diventano una linea */
+  .laterale-chiuso .laterale .t, .laterale-chiuso .lat-marchio, .laterale-chiuso .lat-area .freccina { display: none; }
+  .laterale-chiuso .lat-testa { justify-content: center; padding: 0; }
+  .laterale-chiuso .lat-area summary, .laterale-chiuso .lat-area a, .laterale-chiuso .lat-voce { justify-content: center; padding: 0; }
+  .laterale-chiuso .lat-gruppo { padding: 0; margin: 6px 14px; border-top: 1px solid color-mix(in srgb, #fff 22%, transparent); }
+  .laterale-chiuso .lat-utente { flex-direction: column; padding: 6px 0 0; }
+}
+@media (max-width: 999.98px) {
+  .lat-testa .lat-riduci { display: none; }
+  .laterale { width: min(320px, 86vw); transform: translateX(-100%); visibility: hidden; transition: transform .2s, visibility .2s; box-shadow: 4px 0 24px rgb(0 0 0 / .25); }
+  .menu-aperto .laterale { transform: none; visibility: visible; }
+  .menu-aperto .laterale-velo { display: block; position: fixed; inset: 0; z-index: 55; background: rgb(0 0 0 / .4); }
+  body.menu-aperto { overflow: hidden; }
+}
+@media (prefers-reduced-motion: reduce) { .laterale { transition: none; } }
+@media print {
+  .laterale, .laterale-velo, .testata-area { display: none !important; }
+  .area:has(> .laterale) { padding-left: 0; }
+}
 
 .area-intesta { padding: 48px 0 32px; }
 /* Messaggi dei moduli delle aree riservate (esito di un salvataggio, errori) */

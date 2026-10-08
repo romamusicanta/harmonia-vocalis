@@ -2,9 +2,13 @@
 // Area coristi, Bacheca: il conto per pagare le quote con un bonifico (coro.coristi.tesoreria.iban e
 // .intestatario), con il pulsante per copiare l'IBAN.
 import Icona from '../componenti/Icona.astro';
+import { inDemo } from './demo';
 
 interface Props { iban: string; intestatario: string }
-const { iban, intestatario } = Astro.props;
+// Gruppo Demo: IBAN e intestatario nascosti
+const demo = inDemo();
+const iban = demo ? 'ITxx'.padEnd(27, 'x') : Astro.props.iban;
+const intestatario = demo ? 'Nascosto nella demo' : Astro.props.intestatario;
 // L'IBAN a gruppi di quattro, più facile da leggere e da ricopiare
 const leggibile = iban.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
 ---

@@ -14,6 +14,7 @@ import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
 import { scriveTesoriere } from '../../area/accesso';
 import { oggi } from '../../area/dati';
+import { inDemo } from '../../area/demo';
 import { spiegaTesto } from '../../area/errori';
 import {
   CATEGORIE, PARTITE_DI_GIRO, haDati, nomiSedi, cassa, configurata, euro, euroEsatto, gestisciMovimento, gestisciVerifica, giornoBreve, meseEsteso, movimenti, nomeStagione, questoMese, quote,
@@ -69,7 +70,9 @@ const tipo = val('tipo', inModifica?.tipo) || 'Uscita';
 const conAvanzo = inModifica?.tipo === 'Saldo iniziale' || !haDati(anno - 1, leQuote, tutti);
 const importoInModifica = inModifica ? String(inModifica.importo).replace('.', ',') : undefined;
 const mesiConQualcosa = (conti?.mesi ?? []).filter((m) => m.movimenti.length || m.quote).reverse();
-const segno = (n: number) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+// In demo nemmeno il segno dei saldi (le cifre sono nascoste)
+const demo = inDemo();
+const segno = (n: number) => (demo ? '' : n < 0 ? 'neg' : n > 0 ? 'pos' : '');
 const giorno = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
 // Il saldo dei conti a un giorno: avanzo + quote pagate + entrate - uscite fino a quel giorno compreso
 const saldoAl = (g: string) => {
@@ -205,7 +208,7 @@ const verificheStagione = leVerifiche.filter((v) => stagioneDi(v.data) === anno)
                           <td class="num">{euroEsatto(v.contanti)}</td>
                           <td class="num"><b>{euroEsatto(disponibile)}</b></td>
                           <td class="num">{euroEsatto(saldoAl(v.data))}</td>
-                          <td class:list={['num', segno(diff)]}>{diff === 0 ? 'nessuna' : `${diff > 0 ? 'avanzo' : 'disavanzo'} ${euroEsatto(Math.abs(diff))}`}</td>
+                          <td class:list={['num', segno(diff)]}>{demo ? euroEsatto(diff) : diff === 0 ? 'nessuna' : `${diff > 0 ? 'avanzo' : 'disavanzo'} ${euroEsatto(Math.abs(diff))}`}</td>
                           {!solaLettura && <td class="num"><form method="post" onsubmit="return confirm('Cancellare questa verifica?')"><input type="hidden" name="azione" value="cancella-verifica" /><input type="hidden" name="id" value={v.id} /><button class="btn o piccolo cancella" type="submit">Togli</button></form></td>}
                         </tr>
                       );

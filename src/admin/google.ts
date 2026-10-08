@@ -1,11 +1,10 @@
-// Chi entra nell'area Amministrazione: con Google o, dal 7/10/2026, dalla sessione delle aree
+// Chi entra nell'area redattori (/admin): con Google o, dal 7/10/2026, dalla sessione delle aree
 // (sessioneDalleAree: per esempio dopo l'accesso con il codice via email, src/area/codice.ts).
 // Il client OAuth "web" sta nel progetto Google Cloud harmonia-vocalis-510406 (consenso Interno:
-// solo account del dominio). Entrano i redattori (gruppo coro.amministrazione.gruppo) e, per i soli
-// avvisi della bacheca, chi ha un ruolo in coro.coristi.bacheca (il presidente; Maestro e tesoriere
-// vanno invece nella loro area): per loro
-// la sessione ha redattore = false e il middleware apre solo /admin/avvisi. Il Maestro no: ha la
-// sua area, e chi è solo nel gruppo della direzione viene mandato lì. Il gruppo Demo
+// solo account del dominio). Entrano solo i redattori (gruppo coro.amministrazione.gruppo, che contiene
+// gli amministratori): dall'8/10/2026 un ruolo nella bacheca non basta più (il presidente, che è anche
+// amministratore, scrive gli avvisi da qui con la firma che sceglie). Chi è solo Maestro o tesoriere
+// viene mandato nella sua area. Il gruppo Demo
 // (coro.amministrazione.demo, dal 7/10/2026) entra con demo = true: vede tutto ma non salva niente.
 // Dal 7/10/2026 a Google si chiedono solo nome ed email: Drive e calendari li scrive l'account di
 // servizio (src/admin/operazioni.ts, src/admin/calendari.ts) e i gruppi li legge lui.
@@ -58,18 +57,13 @@ async function decidi(persona: Persona): Promise<Esito> {
   const suoi = await gruppiDalServizio(persona.email);
   const redattore = suoi.has(gruppo.toLowerCase());
   const demo = !redattore && Boolean(coro.amministrazione!.demo && suoi.has(coro.amministrazione!.demo.toLowerCase()));
-  // Il Maestro e il tesoriere scrivono gli avvisi dalla loro area (/maestro/avvisi, /tesoriere/avvisi):
-  // il loro ruolo nella bacheca non apre l'Amministrazione, dove entrano solo se sono anche redattori
-  // o amministratori
   const direzione = coro.coristi?.direzione?.toLowerCase();
   const tesoreria = (coro.coristi?.tesoreria?.gruppi ?? []).map((g) => g.toLowerCase());
-  const conAreaPropria = (g: string) => g === direzione || tesoreria.includes(g);
-  const conRuolo = (coro.coristi?.bacheca ?? []).some((r) => !conAreaPropria(r.gruppo.toLowerCase()) && suoi.has(r.gruppo.toLowerCase()) && !(r.tranne && suoi.has(r.tranne.toLowerCase())));
   const sessione = (extra: Partial<Sessione>): Sessione => ({ email: persona.email, nome: persona.nome, foto: persona.foto ?? '', scade: Date.now() + DURATA, ...extra });
   if (demo) return { sessione: sessione({ redattore: true, demo: true }) };
-  if (!redattore && !conRuolo && direzione && suoi.has(direzione)) return { altrove: '/maestro', persona };
-  if (!redattore && !conRuolo && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere', persona };
-  if (!redattore && !conRuolo) return { errore: `L’account ${persona.email} non fa parte del gruppo ${gruppo}.` };
+  if (!redattore && direzione && suoi.has(direzione)) return { altrove: '/maestro', persona };
+  if (!redattore && tesoreria.some((g) => suoi.has(g))) return { altrove: '/tesoriere', persona };
+  if (!redattore) return { errore: `L’account ${persona.email} non fa parte del gruppo ${gruppo}.` };
   return { sessione: sessione({ redattore }) };
 }
 
@@ -96,7 +90,7 @@ export async function sessioneDalleAree(c: Corista): Promise<Sessione | undefine
 // I gruppi che contano per l'accesso, controllati con l'account di servizio (ruolo «Lettore gruppi»)
 async function gruppiDalServizio(email: string) {
   const c = coro.coristi;
-  const gruppi = [coro.amministrazione!.gruppo, coro.amministrazione!.demo, c?.direzione, ...(c?.tesoreria?.gruppi ?? []), ...(c?.bacheca ?? []).flatMap((r) => [r.gruppo, r.tranne])]
+  const gruppi = [coro.amministrazione!.gruppo, coro.amministrazione!.demo, c?.direzione, ...(c?.tesoreria?.gruppi ?? [])]
     .filter((g): g is string => Boolean(g)).map((g) => g.toLowerCase());
   const unici = [...new Set(gruppi)];
   const esiti = await Promise.all(unici.map((g) => nelGruppo(email, g).catch(() => false)));

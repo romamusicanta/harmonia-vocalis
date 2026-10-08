@@ -1,13 +1,13 @@
 ---
-// Veste Stagione: testata comune delle aree riservate (area coristi, area del Maestro, area
-// Amministrazione), sempre in tre fasce: barra scura con il sito pubblico e la tendina "Area
-// riservata" per passare da un'area all'altra; testata chiara con logo, nome dell'area, utente
-// collegato e uscita; barra delle sezioni. Sotto 1000px barra scura e sezioni stanno nel menu
-// dell'hamburger (in alto aree riservate e sito pubblico, poi le sezioni, in fondo utente ed Esci),
-// con l'hamburger a sinistra, il logo con il nome dell'area al centro e la foto dell'utente a destra.
-// Sul telefono (sotto 760px) le sezioni principali dell'area coristi e del Maestro stanno in una
-// barra fissa in basso, con icona e scritta, e nel menu restano solo le altre. Con conBarra = false
-// (pagine di accesso) niente utente, sezioni né menu, solo "Torna al sito".
+// Veste Stagione: testata comune delle aree riservate (area coristi, area redattori, area tesoriere,
+// area Maestro). Dall'8/10/2026 le sezioni stanno in un menu laterale a sinistra, raggruppate per area
+// (solo le aree che chi è entrato può aprire; quella in cui si è aperta, le altre richiuse), con in fondo
+// il sito pubblico, l'utente collegato ed Esci. Sul computer il menu si riduce alle sole icone con il
+// pulsante in alto (la scelta resta nel browser, localStorage hv-laterale); sotto 1000px è un pannello
+// che si apre con l'hamburger di una testata stretta (hamburger, logo con il nome dell'area, foto
+// dell'utente). Sul telefono (sotto 760px) le sezioni principali dell'area in cui si è stanno anche in
+// una barra fissa in basso, con icona e scritta. Con conBarra = false (pagine di accesso) niente
+// utente né menu, solo la barra scura con la tendina delle aree e "Torna al sito".
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import MenuRiservato from './MenuRiservato.astro';
@@ -19,13 +19,12 @@ import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
 import { ruoliDi } from '../../area/bacheca';
-import { nelGruppo } from '../../area/servizio';
-import { apreArea, apreMaestro, apreTesoriere, scriveTesoriere, leggiCorista, type Corista } from '../../area/accesso';
+import { apreArea, apreMaestro, apreRedattori, apreTesoriere, gruppiDi, scriveTesoriere, leggiCorista, type Corista } from '../../area/accesso';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste; sezione?: string; conBarra?: boolean; maestro?: boolean; tesoriere?: boolean; admin?: boolean }
 const { veste, sezione, conBarra = true, maestro = false, tesoriere = false, admin = false } = Astro.props;
-const tipo = admin ? 'admin' : maestro ? 'maestro' : tesoriere ? 'tesoriere' : 'coristi';
+const tipo: AreaRiservata = admin ? 'admin' : maestro ? 'maestro' : tesoriere ? 'tesoriere' : 'coristi';
 
 // Chi è entrato (src/middleware.ts), con la foto dell'account Google se c'è (altrimenti, o se non si
 // carica, l'icona della persona); nella demo il corista di esempio
@@ -37,64 +36,43 @@ const utente = admin
     : { nome: corista.nome, dettaglio: `${corista.sezione} · ${corista.email}`, foto: undefined as string | undefined };
 const esci = admin ? '/admin/esci' : DEMO ? link(veste, '/area/accesso') : maestro ? '/area/esci?da=maestro' : tesoriere ? '/area/esci?da=tesoriere' : '/area/esci';
 
-// Tra le aree riservate (tendina e menu del telefono) solo quelle che chi è entrato può aprire (dal
-// 7/10/2026; prima comparivano tutte, e chi ne sceglieva una non sua finiva a una pagina di accesso).
-// Nell'area coristi, del Maestro e del tesoriere lo dice la sessione (src/area/accesso.ts);
-// nell'Amministrazione (altra sessione) quella delle aree, se è della stessa persona (la apre l'accesso
-// all'Amministrazione), altrimenti i gruppi, letti al più ogni 5 minuti. L'Amministrazione la aprono
-// redattori, amministratori, gruppo Demo e chi ha un ruolo nella bacheca senza un'area propria (il presidente).
-// Nelle pagine di accesso, dove non si sa chi è, come nel sito pubblico.
-const ammessoAdmin = async (c: Corista) =>
-  Boolean(c.redattore || c.amministratore || c.demo) ||
-  (await ruoliDi(c.email).catch(() => [])).some((r) => r.id !== 'maestro' && r.id !== 'tesoriere');
-const permesse: AreaRiservata[] | undefined = DEMO ? undefined : await (async () => {
-  if (admin) {
-    if (!sessione) return undefined;
-    if (sessione.demo) return ['admin', 'maestro', 'tesoriere'];
-    const delleAree = leggiCorista(Astro.cookies);
-    if (delleAree?.email.toLowerCase() === sessione.email.toLowerCase()) {
-      return [apreArea(delleAree) && 'coristi', 'admin', apreMaestro(delleAree) && 'maestro', apreTesoriere(delleAree) && 'tesoriere'].filter(Boolean) as AreaRiservata[];
-    }
-    const c = coro.coristi;
-    const dentro = (g?: string) => (g ? nelGruppo(sessione.email, g).catch(() => false) : Promise.resolve(false));
-    const [inCoro, inDirezione, inAmministratori, inTesoreria] = await Promise.all([
-      dentro(c?.gruppo), dentro(c?.direzione), dentro(c?.amministratori),
-      Promise.all((c?.tesoreria?.gruppi ?? []).map(dentro)).then((x) => x.some(Boolean)),
-    ]);
-    return [
-      (inCoro || inAmministratori) && 'coristi', 'admin', (inDirezione || inAmministratori) && 'maestro',
-      // L'area del tesoriere in sola lettura anche ai redattori: tutti quelli che entrano qui, tranne chi entra solo per gli avvisi
-      (inTesoreria || inAmministratori || sessione.redattore !== false) && 'tesoriere',
-    ].filter(Boolean) as AreaRiservata[];
-  }
-  const c = Astro.locals.corista;
-  if (!c) return undefined;
-  return [apreArea(c) && 'coristi', (await ammessoAdmin(c)) && 'admin', apreMaestro(c) && 'maestro', apreTesoriere(c) && 'tesoriere'].filter(Boolean) as AreaRiservata[];
+// I gruppi di chi è entrato, per sapere quali aree mostrare: nell'area coristi, del Maestro e del
+// tesoriere li dice la sessione (src/area/accesso.ts); nell'area redattori (altra sessione) quella delle
+// aree, se è della stessa persona, altrimenti i gruppi, letti al più ogni 5 minuti. Nelle pagine di
+// accesso, dove non si sa chi è, nessuno (aree come nel sito pubblico).
+const persona: Corista | undefined = DEMO || !conBarra ? undefined : await (async () => {
+  if (!admin) return Astro.locals.corista;
+  if (!sessione) return undefined;
+  const base = { email: sessione.email, nome: sessione.nome, verificato: 0 };
+  if (sessione.demo) return { ...base, demo: true };
+  const delleAree = leggiCorista(Astro.cookies);
+  if (delleAree?.email.toLowerCase() === sessione.email.toLowerCase()) return delleAree;
+  return { ...base, ...(await gruppiDi(sessione.email).catch(() => ({}))) };
 })();
-// Nell'area del tesoriere redattori e amministratori leggono soltanto: niente Avvisi e una striscia che lo dice
-// Gruppo Demo (src/area/demo.ts): una striscia lo dice e i moduli non partono (il middleware li rifiuta comunque)
-const demo = !DEMO && Boolean(admin ? sessione?.demo : Astro.locals.corista?.demo);
-const solaLettura = tipo === 'tesoriere' && !DEMO && !demo && Boolean(Astro.locals.corista && !scriveTesoriere(Astro.locals.corista));
+// I ruoli nella bacheca (presidente, amministratori…) danno la voce Avvisi nell'area redattori
+const ruoli = persona && !persona.demo ? await ruoliDi(persona.email).catch(() => []) : [];
+const permesse: AreaRiservata[] | undefined = persona && ([
+  apreArea(persona) && 'coristi', (admin || apreRedattori(persona)) && 'admin', apreTesoriere(persona) && 'tesoriere', apreMaestro(persona) && 'maestro',
+].filter(Boolean) as AreaRiservata[]);
 const aree = areeRiservate(veste, false, permesse);
-const nomeArea = { coristi: 'Area coristi', maestro: 'Area del Maestro', tesoriere: 'Area del tesoriere', admin: 'Amministrazione' }[tipo];
+
+// Gruppo Demo (src/area/demo.ts): una striscia lo dice e i moduli non partono (il middleware li rifiuta comunque)
+const demo = !DEMO && Boolean(persona?.demo);
+// Nell'area del tesoriere gli amministratori leggono soltanto: niente Avvisi e una striscia che lo dice
+const lettoreTesoriere = !DEMO && !demo && Boolean(persona && !scriveTesoriere(persona));
+const solaLettura = tipo === 'tesoriere' && lettoreTesoriere;
+const nomeArea = aree.find((a) => a.id === tipo)?.testo ?? { coristi: 'Area coristi', admin: 'Area redattori', tesoriere: 'Area tesoriere', maestro: 'Area Maestro' }[tipo];
 const info = {
   coristi: `Area coristi · accesso riservato ai coristi del ${coro.nome}`,
-  maestro: `Area del Maestro · accesso riservato alla direzione del ${coro.nome}`,
-  tesoriere: `Area del tesoriere · accesso riservato al tesoriere del ${coro.nome}`,
-  admin: `Amministrazione · accesso riservato ai redattori del sito del ${coro.nome}`,
+  maestro: `Area Maestro · accesso riservato alla direzione del ${coro.nome}`,
+  tesoriere: `Area tesoriere · accesso riservato al tesoriere del ${coro.nome}`,
+  admin: `Area redattori · accesso riservato ai redattori del sito del ${coro.nome}`,
 }[tipo];
 const casa = (conBarra && aree.find((a) => a.id === tipo)?.href) || link(veste, '/');
 
-// Nell'Amministrazione solo chi ha un ruolo nella bacheca vede la voce Avvisi (i gruppi sono letti al
-// più ogni 5 minuti); chi entra solo per gli avvisi (redattore = false) vede soltanto quella
-const soloAvvisi = tipo === 'admin' && sessione?.redattore === false;
-const scriveAvvisi = soloAvvisi || (tipo === 'admin' && conBarra && sessione
-  ? (await ruoliDi(sessione.email).catch(() => [])).length > 0
-  : false);
-
 // Sezioni di ogni area; quelle con tab stanno, sul telefono, nella barra in basso (al più cinque)
-type Sezione = { id: string; testo: string; breve?: string; icona?: NomeIcona; href: string; gruppo?: string; tab?: boolean };
-const sezioni = ({
+type Sezione = { id: string; testo: string; breve?: string; icona: NomeIcona; href: string; gruppo?: string; tab?: boolean };
+const sezioniDi = (area: AreaRiservata): Sezione[] => ({
   coristi: [
     { id: 'bacheca', testo: 'Bacheca', icona: 'casa', href: link(veste, '/area'), tab: true },
     { id: 'prove', testo: 'Calendario', icona: 'calendario', href: link(veste, '/area/prove'), tab: true },
@@ -105,86 +83,111 @@ const sezioni = ({
     // Le foto dei concerti (dal 5/10/2026): nel menu, la barra in basso ha già cinque voci
     ...(DEMO ? [] : [{ id: 'foto', testo: 'Foto', icona: 'fotocamera' as const, href: '/area/foto' }]),
   ],
-  maestro: [
-    { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro', tab: true },
-    { id: 'repertorio', testo: 'Note sul repertorio', breve: 'Note', icona: 'libro', href: '/maestro/repertorio', tab: true },
-    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi', tab: true },
+  admin: [
+    // Due gruppi: quello che cambia il sito pubblico (va pubblicato) e quello dell'area riservata (vale subito)
+    { id: 'pubblicazione', testo: 'Pubblicazione', icona: 'globo', href: '/admin', gruppo: 'Sito pubblico' },
+    { id: 'concerti', testo: 'Concerti', icona: 'biglietto', href: '/admin/concerti' },
+    { id: 'testi', testo: 'Testi del sito', icona: 'documento', href: '/admin/testi' },
+    { id: 'foto', testo: 'Foto del sito', icona: 'immagine', href: '/admin/foto' },
+    { id: 'foto-concerti', testo: 'Foto dei concerti', icona: 'fotocamera', href: '/admin/foto-concerti' },
+    { id: 'statistiche', testo: 'Statistiche', icona: 'grafico', href: '/admin/statistiche' },
+    { id: 'prove', testo: 'Prove', icona: 'calendario', href: '/admin/prove', gruppo: 'Area riservata' },
+    { id: 'assenze', testo: 'Assenze', icona: 'presenze', href: '/admin/assenze' },
+    { id: 'coristi', testo: 'Coristi', icona: 'persone', href: '/admin/coristi' },
+    { id: 'repertorio', testo: 'Repertorio', icona: 'libro', href: '/admin/repertorio' },
+    ...(ruoli.length > 0 ? [{ id: 'avvisi', testo: 'Avvisi', icona: 'campanella' as const, href: '/admin/avvisi' }] : []),
   ],
   tesoriere: [
     { id: 'riepilogo', testo: 'Riepilogo e quote', breve: 'Riepilogo', icona: 'euro', href: '/tesoriere', tab: true },
     { id: 'cassa', testo: 'Entrate e uscite', breve: 'Cassa', icona: 'cassa', href: '/tesoriere/cassa', tab: true },
     { id: 'maestri', testo: 'Maestri', icona: 'nota', href: '/tesoriere/maestri', tab: true },
     { id: 'rendiconto', testo: 'Rendiconto', icona: 'documento', href: '/tesoriere/rendiconto', tab: true },
-    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/tesoriere/avvisi', tab: true },
+    ...(lettoreTesoriere ? [] : [{ id: 'avvisi', testo: 'Avvisi', icona: 'campanella' as const, href: '/tesoriere/avvisi', tab: true }]),
   ],
-  admin: [
-    // Due gruppi: quello che cambia il sito pubblico (va pubblicato) e quello dell'area coristi (vale subito)
-    { id: 'pubblicazione', testo: 'Pubblicazione', href: '/admin', gruppo: 'Sito pubblico' },
-    { id: 'concerti', testo: 'Concerti', href: '/admin/concerti' },
-    { id: 'testi', testo: 'Testi del sito', href: '/admin/testi' },
-    { id: 'foto', testo: 'Foto del sito', href: '/admin/foto' },
-    { id: 'foto-concerti', testo: 'Foto dei concerti', href: '/admin/foto-concerti' },
-    { id: 'statistiche', testo: 'Statistiche', href: '/admin/statistiche' },
-    { id: 'prove', testo: 'Prove', href: '/admin/prove', gruppo: 'Coro' },
-    { id: 'assenze', testo: 'Assenze', href: '/admin/assenze' },
-    { id: 'coristi', testo: 'Coristi', href: '/admin/coristi' },
-    { id: 'repertorio', testo: 'Repertorio', href: '/admin/repertorio' },
-    ...(scriveAvvisi ? [{ id: 'avvisi', testo: 'Avvisi', href: '/admin/avvisi' }] : []),
+  maestro: [
+    { id: 'report', testo: 'Presenze', icona: 'presenze', href: '/maestro', tab: true },
+    { id: 'repertorio', testo: 'Note sul repertorio', breve: 'Note', icona: 'libro', href: '/maestro/repertorio', tab: true },
+    { id: 'avvisi', testo: 'Avvisi', icona: 'campanella', href: '/maestro/avvisi', tab: true },
   ],
-} as Record<typeof tipo, Sezione[]>)[tipo].filter((s) => (!soloAvvisi || s.id === 'avvisi') && !(solaLettura && s.id === 'avvisi'));
-const tab = sezioni.filter((s) => s.tab && s.icona);
+} as Record<AreaRiservata, Sezione[]>)[area];
+const sezioni = sezioniDi(tipo);
+// Nel menu laterale tutte le aree permesse (nella demo del modello e nelle pagine di accesso solo questa)
+const gruppi = (aree.some((a) => a.id === tipo) ? aree : [{ id: tipo, testo: nomeArea, href: casa, icona: 'persone' as NomeIcona }])
+  .map((a) => ({ ...a, voci: sezioniDi(a.id) }));
+const tab = sezioni.filter((s) => s.tab);
 // L'invito a installare l'app solo nella prima pagina dell'area
 const primaPagina = sezione === sezioni[0]?.id;
+const conMenu = conBarra && Boolean(utente);
 ---
 <CaricamentoPagina />
 
-<div class:list={['servizio area-s', { 'con-menu': conBarra }]}>
-  <div class="w">
-    <span class="info">{info}</span>
-    <span class="dx">
-      <a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a>
-      {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} permesse={permesse} />}
-    </span>
-  </div>
-</div>
-<header class:list={['testata', { 'testata-area': conBarra && utente }]}>
-  <div class="w">
-    {conBarra && utente && <button class="hamb hamb-area" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-area"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>}
-    <span class="marchio-area"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
-    {conBarra ? (
-      utente && (
+{conMenu ? (
+  <>
+    <script is:inline>
+      // Menu laterale ridotto alle icone, se scelto (prima di disegnarlo, per non vederlo cambiare)
+      try { if (localStorage.getItem('hv-laterale') === 'chiuso') document.documentElement.classList.add('laterale-chiuso'); } catch (e) {}
+    </script>
+    <header class="testata testata-area">
+      <div class="w">
+        <button class="hamb hamb-area" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-area"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
+        <span class="marchio-area"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
         <div class="azioni">
-          <span class="utente"><span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} />{utente.foto && <img src={utente.foto} alt="" referrerpolicy="no-referrer" onerror="this.remove()" />}</span><span class="nome"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span></span>
+          <span class="utente"><span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} />{utente!.foto && <img src={utente!.foto} alt="" referrerpolicy="no-referrer" onerror="this.remove()" />}</span></span>
+        </div>
+      </div>
+    </header>
+    <aside class="laterale" id="menu-area" aria-label="Aree riservate">
+      <div class="lat-testa">
+        <span class="lat-marchio"><Marchio href={casa} /></span>
+        <button class="lat-riduci" type="button" aria-label="Riduci il menu" title="Riduci il menu" aria-expanded="true"><Icona nome="pannello" classe="" /></button>
+        <button class="lat-chiudi" type="button" aria-label="Chiudi il menu"><Icona nome="chiudi" classe="" spessore={2} /></button>
+      </div>
+      <nav class="lat-voci">
+        {gruppi.map((g) => (
+          <details class="lat-area" open={g.id === tipo}>
+            <summary title={g.testo}><Icona nome={g.icona} classe="" /><span class="t">{g.testo}</span><Icona nome="giu" classe="freccina" /></summary>
+            <ul>
+              {g.voci.map((v) => {
+                const on = g.id === tipo && v.id === sezione;
+                return <>
+                  {v.gruppo && <li class="lat-gruppo" aria-hidden="true"><span class="t">{v.gruppo}</span></li>}
+                  <li><a href={v.href} class:list={{ on }} aria-current={on ? 'page' : undefined} title={v.testo}><Icona nome={v.icona} classe="" /><span class="t">{v.testo}</span></a></li>
+                </>;
+              })}
+            </ul>
+          </details>
+        ))}
+      </nav>
+      <div class="lat-piede">
+        <a class="lat-voce" href={link(veste, '/')} title="Sito pubblico"><Icona nome="globo" classe="" /><span class="t">Sito pubblico</span></a>
+        <div class="lat-utente utente">
+          <span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} />{utente!.foto && <img src={utente!.foto} alt="" referrerpolicy="no-referrer" onerror="this.remove()" />}</span>
+          <span class="nome t"><b>{utente!.nome}</b><small>{utente!.dettaglio}</small></span>
           <a class="esci-btn" href={esci} aria-label="Esci" title="Esci"><Icona nome="esci" classe="" /></a>
         </div>
-      )
-    ) : (
-      <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
-    )}
-  </div>
-  {conBarra && (
-    <div class="menu-mobile" id="menu-area">
+      </div>
+    </aside>
+    <div class="laterale-velo" aria-hidden="true"></div>
+  </>
+) : (
+  <>
+    <div class="servizio area-s">
       <div class="w">
-        {aree.length > 1 && (
-          <div class="riservate-mobile in-testa">
-            <span class="eti"><Icona nome="lucchetto" />Area riservata</span>
-            {aree.map((a) => <a href={a.href} class:list={{ on: a.id === tipo }} aria-current={a.id === tipo ? 'page' : undefined}><Icona nome={a.icona} />{a.testo}</a>)}
-          </div>
-        )}
-        <div class="extra in-testa"><a class="btn o" href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a></div>
-        <div class:list={['voci-area', { 'tutte-in-tab': tab.length === sezioni.length }]}>
-          {sezioni.map((s) => <>{s.gruppo && <span class="eti gruppo-menu">{s.gruppo}</span>}<a class:list={['voce', { on: s.id === sezione, 'in-tab': tab.includes(s) }]} href={s.href} aria-current={s.id === sezione ? 'page' : undefined}>{s.testo}<Icona nome="freccia" classe="" /></a></>)}
-        </div>
-        {utente && (
-          <div class="esci-menu">
-            <span class="utente-menu"><b>{utente.nome}</b><small>{utente.dettaglio}</small></span>
-            <a class="btn o" href={esci}><Icona nome="esci" />Esci</a>
-          </div>
-        )}
+        <span class="info">{info}</span>
+        <span class="dx">
+          <a href={link(veste, '/')}><Icona nome="indietro" />Sito pubblico</a>
+          {aree.length > 1 && <MenuRiservato veste={veste} corrente={tipo} permesse={permesse} />}
+        </span>
       </div>
     </div>
-  )}
-</header>
+    <header class="testata">
+      <div class="w">
+        <span class="marchio-area"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
+        <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
+      </div>
+    </header>
+  </>
+)}
 {DEMO && tipo === 'coristi' && (
   <div class="avviso-anteprima" role="note">
     <div class="w"><Icona nome="info" classe="" /><span><b>Demo:</b> qui l'area coristi è aperta a tutti. Nel sito vero si entra con l'account Google, solo se l'indirizzo è nell'elenco dei coristi. Nomi e dati sono di esempio.</span></div>
@@ -195,20 +198,13 @@ const primaPagina = sezione === sezioni[0]?.id;
     <div class="w"><Icona nome="info" classe="" /><span><b>Anteprima:</b> l'area coristi è in preparazione. <b>Calendario</b>, <b>concerti</b>, <b>repertorio</b>, <b>registrazioni</b> e <b>avvisi</b> sono veri; il resto della bacheca è ancora di esempio.</span></div>
   </div>
 )}
-{conBarra && (
-  <nav class="barra-area" aria-label={nomeArea}>
-    <div class="w">
-      {sezioni.map((s) => <>{s.gruppo && <span class="gruppo-barra" aria-hidden="true">{s.gruppo}</span>}<a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}>{s.icona && <Icona nome={s.icona} />}{s.testo}</a></>)}
-    </div>
-  </nav>
-)}
-{conBarra && tab.length > 0 && (
+{conMenu && tab.length > 0 && (
   <nav class="barra-tab" aria-label={`${nomeArea}, sezioni`}>
-    {tab.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona!} classe="" /><span>{s.breve ?? s.testo}</span></a>)}
+    {tab.map((s) => <a href={s.href} class:list={{ on: s.id === sezione }} aria-current={s.id === sezione ? 'page' : undefined}><Icona nome={s.icona} classe="" /><span>{s.breve ?? s.testo}</span></a>)}
   </nav>
 )}
-{conBarra && demo && (
-  <div class="sola-lettura no-stampa"><div class="w"><Icona nome="lucchetto" /><span><b>Demo.</b> {tipo === 'tesoriere' ? 'Di ogni sezione dell’area del tesoriere vedi una descrizione, non i dati.' : 'Puoi guardare tutto, ma niente viene salvato. Nomi ed email dei coristi sono inventati, note e foto private nascoste.'}</span></div></div>
+{conMenu && demo && (
+  <div class="sola-lettura no-stampa"><div class="w"><Icona nome="lucchetto" /><span><b>Demo.</b> {tipo === 'tesoriere' ? 'Puoi guardare tutto, ma niente viene salvato. Cifre, note e nomi dei coristi sono nascosti o inventati.' : 'Puoi guardare tutto, ma niente viene salvato. Nomi ed email dei coristi sono inventati, note e foto private nascoste.'}</span></div></div>
 )}
 {demo && (
   <div class="avviso-demo" role="status" hidden><Icona nome="lucchetto" /><span>Questa è una demo: le modifiche non vengono salvate.</span></div>
@@ -228,17 +224,45 @@ const primaPagina = sezione === sezioni[0]?.id;
     }, true);
   </script>
 )}
-{conBarra && solaLettura && (
+{conMenu && solaLettura && (
   <div class="sola-lettura no-stampa"><div class="w"><Icona nome="lucchetto" /><span><b>Sola lettura.</b> Puoi consultare quote, cassa, maestri e rendiconto; solo il tesoriere può modificare i dati.</span></div></div>
 )}
-{conBarra && !DEMO && primaPagina && <InvitoApp area={tipo} />}
-{conBarra && !DEMO && !demo && primaPagina && (tipo === 'coristi' || tipo === 'maestro') && <InterruttoreNotifiche area={tipo} />}
+{conMenu && !DEMO && primaPagina && <InvitoApp area={tipo} />}
+{conMenu && !DEMO && !demo && primaPagina && (tipo === 'coristi' || tipo === 'maestro') && <InterruttoreNotifiche area={tipo} />}
 
 <script>
-  // Menu del telefono delle aree riservate (il sito pubblico usa src/motore/interazioni.ts, che
-  // l'area Amministrazione non carica)
+  // Sotto 1000px il menu laterale è un pannello che si apre con l'hamburger (src/motore/menu-mobile.ts;
+  // l'area redattori non carica src/motore/interazioni.ts); si chiude anche con la X e toccando fuori.
+  // Sul computer il pulsante in alto lo riduce alle sole icone, e il browser ricorda la scelta.
   import { attivaMenu } from '../../motore/menu-mobile';
-  attivaMenu(document.querySelector<HTMLButtonElement>('.hamb-area'));
+  const hamb = document.querySelector<HTMLButtonElement>('.hamb-area');
+  attivaMenu(hamb);
+  const chiudi = () => { if (document.body.classList.contains('menu-aperto')) hamb?.click(); };
+  document.querySelector('.laterale-velo')?.addEventListener('click', chiudi);
+  document.querySelector('.lat-chiudi')?.addEventListener('click', () => { chiudi(); hamb?.focus(); });
+  const riduci = document.querySelector<HTMLButtonElement>('.lat-riduci');
+  const segna = () => {
+    const chiuso = document.documentElement.classList.contains('laterale-chiuso');
+    const nome = chiuso ? 'Allarga il menu' : 'Riduci il menu';
+    riduci?.setAttribute('aria-expanded', String(!chiuso));
+    riduci?.setAttribute('aria-label', nome);
+    riduci?.setAttribute('title', nome);
+  };
+  segna();
+  riduci?.addEventListener('click', () => {
+    const chiuso = document.documentElement.classList.toggle('laterale-chiuso');
+    try { localStorage.setItem('hv-laterale', chiuso ? 'chiuso' : 'aperto'); } catch {}
+    segna();
+  });
+  // Ridotto alle icone, aprire un'area la riallarga: le sue voci si leggono
+  document.querySelectorAll<HTMLElement>('.lat-area summary').forEach((s) => s.addEventListener('click', (e) => {
+    if (!document.documentElement.classList.contains('laterale-chiuso') || !matchMedia('(min-width: 1000px)').matches) return;
+    e.preventDefault();
+    (s.parentElement as HTMLDetailsElement).open = true;
+    document.documentElement.classList.remove('laterale-chiuso');
+    try { localStorage.setItem('hv-laterale', 'aperto'); } catch {}
+    segna();
+  }));
 </script>
 
 <style>

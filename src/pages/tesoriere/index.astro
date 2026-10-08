@@ -24,8 +24,9 @@ import { coro } from '../../motore/coro';
 import { coristi, oggi, type SchedaCorista } from '../../area/dati';
 import {
   arretrati, attiviNelMese, cassa, configurata, euro, indice, quotaBase, riporti, riportoDi, meseBreve, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeStagione, questoMese,
-  quotaDi, quotaMensile, quote, situazioneMese, stagioneCorrente, stagioneDi, statoDi, tutteLeQuote, type Cassa, type Quota,
+  quotaDi, quotaMensile, quote, situazioneMese, stagioneCorrente, stagioneDi, statoDi, tutteLeQuote, valoreVisto, NASCOSTO, type Cassa, type Quota,
 } from '../../area/tesoreria';
+import { inDemo } from '../../area/demo';
 import '../../area/tesoreria.css';
 
 export const prerender = false;
@@ -69,6 +70,9 @@ const riportiVersati = riportiQui.reduce((t, r) => t + r.pagato, 0);
 const raccolte = situazioni.filter((s) => dovuti.includes(s.mese)).reduce((t, s) => t + s.raccolto, 0) + (anno > corrente ? 0 : riportiVersati);
 const attese = situazioni.filter((s) => dovuti.includes(s.mese)).reduce((t, s) => t + s.dovuto, 0) + (anno > corrente ? 0 : riportiQui.reduce((t, r) => t + r.importo, 0));
 const cifra = (n: number) => euro(n).replace(/\s*€/, '');
+// Gruppo Demo: cifre nascoste anche negli attributi e negli esempi della legenda (lo script lo sa da data-demo)
+const demo = inDemo();
+const esempio = (n: string) => (demo ? NASCOSTO : n);
 // Nella stagione in corso i mesi prima di quello corrente (e il riporto) si possono richiudere: la
 // pagina si apre con loro chiusi, sul mese corrente
 const passati = anno === corrente ? mesi.filter((m) => m < questoMese()) : [];
@@ -118,7 +122,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
         <div class="solo-stampa intesta-stampa"><span><b>{intestazione.associazione}</b>{intestazione.cf && ` · C.F. ${intestazione.cf}`}</span><h2>Quote dei coristi · Stagione {nomeStagione(anno)}</h2><small>Situazione al {oggiStampa}</small></div>
         <div class="carta tabella-stampa">
           <div class="tabella-wrap">
-            <table class:list={['tabella griglia-quote', { compatta: richiudibili, 'sola-lettura': solaLettura }]} data-sola-lettura={solaLettura ? '1' : undefined}>
+            <table class:list={['tabella griglia-quote', { compatta: richiudibili, 'sola-lettura': solaLettura }]} data-sola-lettura={solaLettura ? '1' : undefined} data-demo={demo ? '1' : undefined}>
               <thead>
                 <tr>
                   <th>
@@ -128,7 +132,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                   </th>
                   {conRiporto && <th class:list={['testa-riporto', { passato: richiudibili }]} title="I debiti della stagione prima: calcolati, correggibili a mano; la casellina segna se sono stati versati">Riporto</th>}
                   {mesi.map((m) => (
-                    <th class:list={{ passato: passati.includes(m) }}><button type="button" class:list={['testa-mese', { 'senza-quota': senza.has(m), ora: m === questoMese() }]} data-mese={m} data-senza={senza.has(m) ? '1' : ''} data-base={senza.has(m) ? '0' : String(quotaBase(idx, m))} data-nota={tutte.find((q) => q.email === 'tutti' && q.mese === m && q.stato === 'nessuna')?.nota ?? ''} title={`${meseEsteso(m)}: cifre, quota base e sollecito`}>{meseBreve(m)}<small>{senza.has(m) ? '0 €' : `${cifra(quotaBase(idx, m))} €`}</small></button></th>
+                    <th class:list={{ passato: passati.includes(m) }}><button type="button" class:list={['testa-mese', { 'senza-quota': senza.has(m), ora: m === questoMese() }]} data-mese={m} data-senza={senza.has(m) ? '1' : ''} data-base={valoreVisto(senza.has(m) ? 0 : quotaBase(idx, m))} data-nota={tutte.find((q) => q.email === 'tutti' && q.mese === m && q.stato === 'nessuna')?.nota ?? ''} title={`${meseEsteso(m)}: cifre, quota base e sollecito`}>{meseBreve(m)}<small>{`${cifra(senza.has(m) ? 0 : quotaBase(idx, m))} €`}</small></button></th>
                   ))}
                 </tr>
               </thead>
@@ -166,7 +170,7 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
                         <td class:list={{ passato: passati.includes(m) }}>
                           <button type="button" class:list={['cella-quota', { dovuta: dovuti.includes(m), diversa }]} disabled={!attivo}
                             data-email={c.email} data-mese={m} data-nome={`${c.nome} ${c.cognome}`} data-stato={nelCoro ? stato : undefined}
-                            data-importo={q?.stato === 'pagata' ? String(q.importo) : String(quotaBase(idx, m))} data-data={q?.pagataIl ?? oggi()} data-nota={q?.nota ?? ''}
+                            data-importo={valoreVisto(q?.stato === 'pagata' ? q.importo : quotaBase(idx, m))} data-data={q?.pagataIl ?? oggi()} data-nota={q?.nota ?? ''}
                             title={nelCoro ? `${c.nome} ${c.cognome}, ${meseEsteso(m)}: ${ETICHETTA[stato]}${dettaglio ? ` (${dettaglio})` : ''}${attivo ? '' : ' · quota base zero'}` : `Non era nel coro a ${meseEsteso(m)}`}>{nelCoro ? SIMBOLO[stato] : '–'}</button>
                         </td>
                       );
@@ -189,10 +193,10 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
           {conRiporto && (
             <div class="legenda-t" aria-hidden="true">
               <b class="gruppo-legenda">Riporto</b>
-              <span><span class="riporto debito mini"><span class="cifra-mini">20</span><span class="spunta-mini"></span></span>da versare</span>
-              <span><span class="riporto versato mini"><span class="cifra-mini fissa">20</span><span class="spunta-mini on">✓</span></span>versato</span>
-              <span><span class="riporto mini"><span class="cifra-mini">0</span><span class="spunta-mini off"></span></span>nessun debito</span>
-              <span><span class="riporto debito mini"><span class="cifra-mini mano">25</span><span class="spunta-mini"></span><span class="torna-mini">↺</span></span>cifra scritta a mano (↺ torna al calcolo)</span>
+              <span><span class="riporto debito mini"><span class="cifra-mini">{esempio('20')}</span><span class="spunta-mini"></span></span>da versare</span>
+              <span><span class="riporto versato mini"><span class="cifra-mini fissa">{esempio('20')}</span><span class="spunta-mini on">✓</span></span>versato</span>
+              <span><span class="riporto mini"><span class="cifra-mini">{esempio('0')}</span><span class="spunta-mini off"></span></span>nessun debito</span>
+              <span><span class="riporto debito mini"><span class="cifra-mini mano">{esempio('25')}</span><span class="spunta-mini"></span><span class="torna-mini">↺</span></span>cifra scritta a mano (↺ torna al calcolo)</span>
             </div>
           )}
         </div>
@@ -326,7 +330,9 @@ const SIMBOLO = { pagata: '✓', esonerato: 'E', 'da-pagare': '' } as const;
   const SIMBOLO: Record<string, string> = { pagata: '✓', esonerato: 'E', 'da-pagare': '' };
   const ETICHETTA: Record<string, string> = { pagata: 'pagata', esonerato: 'esonerato', 'da-pagare': 'da pagare' };
   const PROSSIMO: Record<string, string> = { 'da-pagare': 'pagata', pagata: 'esonerato', esonerato: 'da-pagare' };
-  const euro = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(n).replace(/,00(?=\s?€)/, '');
+  // Gruppo Demo: le cifre non arrivano al browser, e quelle calcolate qui restano nascoste
+  const demo = Boolean(document.querySelector('[data-demo]'));
+  const euro = (n: number) => (demo ? 'xxx €' : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(n).replace(/,00(?=\s?€)/, ''));
   const meseLungo = (m: string) => new Date(`${m}-15`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
   const numero = (v: string) => Number(v.replace(/\./g, '').replace(',', '.'));
   const base = (mese: string) => Number(document.querySelector<HTMLElement>(`.testa-mese[data-mese="${mese}"]`)?.dataset.base ?? 0);
