@@ -4,8 +4,8 @@
 // a cui ha diritto (apriSessioneAree): un solo passaggio da Google. Se la richiesta era silenziosa
 // (accedi.astro) e qualcosa non va, si riprova subito facendo scegliere l'account.
 import { completaAccesso } from '../../admin/google';
-import { decifra, salvaSessione } from '../../admin/sessione';
-import { apriSessioneAree, ricordaAccount } from '../../area/accesso';
+import { decifra, leggiSessione, salvaSessione } from '../../admin/sessione';
+import { apriSessioneAree, leggiCorista, ricordaAccount } from '../../area/accesso';
 
 export const prerender = false;
 
@@ -15,6 +15,9 @@ Astro.cookies.delete('hv-stato', { path: '/admin' });
 const errore = (m: string) => Astro.redirect(`/admin/accedi?${new URLSearchParams(atteso?.silenzioso ? { scegli: '1', dopo: atteso.dopo } : { errore: m, dopo: atteso?.dopo ?? '/admin' })}`);
 
 if (p.get('error')) return errore('Accesso annullato su Google.');
+// Il vecchio indirizzo di ritorno riaperto (tasto Indietro, completamento della barra degli indirizzi)
+// non ha più lo state: chi ha già la sessione (dell'Amministrazione o delle aree) entra, senza l'errore (il caso di Emanuela dell'8/10/2026)
+if ((!atteso || atteso.stato !== p.get('state')) && (leggiSessione(Astro.cookies) ?? leggiCorista(Astro.cookies))) return Astro.redirect(atteso?.dopo ?? '/admin');
 if (!atteso || atteso.stato !== p.get('state') || !p.get('code')) return errore('Accesso scaduto o non valido: riprova.');
 let esito;
 try {

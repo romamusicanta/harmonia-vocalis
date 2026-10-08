@@ -32,6 +32,9 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   }
 
   if (p.get('error')) return errore('Accesso annullato su Google.');
+  // Il vecchio indirizzo di ritorno riaperto (tasto Indietro, completamento della barra degli indirizzi):
+  // chi ha già la sessione va nella sua area, senza l'errore
+  if ((!atteso || atteso.stato !== p.get('state')) && sessione) return redirect(atteso?.dopo ?? areaDi(sessione));
   if (!atteso || atteso.stato !== p.get('state') || !p.get('code')) return errore('Accesso scaduto o non valido: riprova.');
   let esito;
   try {
