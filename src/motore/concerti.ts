@@ -161,7 +161,7 @@ export function linkCalendario() {
   if (!google) return undefined;
   const ics = `https://calendar.google.com/calendar/ical/${encodeURIComponent(coro.calendario.id!)}/public/basic.ics`;
   const outlook = (dominio: string) =>
-    `https://${dominio}/calendar/0/addfromweb?${new URLSearchParams({ url: ics, name: `${coro.nome} – Concerti` })}`;
+    `https://${dominio}/calendar/0/addfromweb?${new URLSearchParams({ url: ics, name: 'Concerti Harmonia Vocalis' })}`;
   return {
     google,
     ics,
