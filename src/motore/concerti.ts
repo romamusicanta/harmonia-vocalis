@@ -152,3 +152,21 @@ export const linkMappa = (luogo: string) => `https://www.google.com/maps/search/
 // Iscrizione al calendario Google "Concerti", se configurato
 export const linkIscrizioneCalendario = () =>
   coro.calendario.id ? `https://calendar.google.com/calendar/u/0?cid=${encodeURIComponent(coro.calendario.id)}` : undefined;
+
+// I link della finestra "Iscriviti al calendario", uno per app (dal 10/10/2026): l'indirizzo
+// iCal pubblico vale per tutte (abbonamento, si aggiorna da solo), webcal:// lo apre in
+// Calendario di iPhone e Mac, Outlook ha la sua pagina "aggiungi da web"
+export function linkCalendario() {
+  const google = linkIscrizioneCalendario();
+  if (!google) return undefined;
+  const ics = `https://calendar.google.com/calendar/ical/${encodeURIComponent(coro.calendario.id!)}/public/basic.ics`;
+  const outlook = (dominio: string) =>
+    `https://${dominio}/calendar/0/addfromweb?${new URLSearchParams({ url: ics, name: `${coro.nome} – Concerti` })}`;
+  return {
+    google,
+    ics,
+    webcal: ics.replace(/^https:/, 'webcal:'),
+    outlook: outlook('outlook.live.com'),
+    outlookLavoro: outlook('outlook.office.com'),
+  };
+}

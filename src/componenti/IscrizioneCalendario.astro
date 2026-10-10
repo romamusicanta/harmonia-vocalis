@@ -1,0 +1,165 @@
+---
+// Finestra "Iscriviti al calendario" (dal 10/10/2026): si apre da ogni link con data-iscrizione
+// (che senza JavaScript porta a Google Calendar) e spiega passo passo come abbonarsi al calendario
+// "Concerti" con Calendario di Apple, Google Calendar, Outlook o qualsiasi altra app (indirizzo
+// iCal da copiare). La scelta adatta al dispositivo (Apple su iPhone/iPad/Mac, Google su Android)
+// va in cima, aperta e segnata "Consigliato". Una sola per pagina.
+import Icona from './Icona.astro';
+import { linkCalendario } from '../motore/concerti';
+import { linguaDi } from '../motore/lingua';
+
+const en = linguaDi(Astro.url) === 'en';
+const l = linkCalendario();
+---
+{l && (
+<dialog class="finestra-cal" aria-labelledby="finestra-cal-titolo">
+  <div class="fc-testa">
+    <h2 id="finestra-cal-titolo">{en ? 'Add our concerts to your calendar' : 'I nostri concerti nel tuo calendario'}</h2>
+    <button type="button" class="fc-chiudi" aria-label={en ? 'Close' : 'Chiudi'}><Icona nome="chiudi" classe="" /></button>
+  </div>
+  <div class="fc-corpo">
+    <p class="fc-intro">{en
+      ? 'You subscribe once and that’s it: new concerts, and any change of time or venue, appear in your calendar by themselves. No account to create, nothing to download.'
+      : 'Ti iscrivi una volta e basta: i nuovi concerti, e ogni cambio di orario o di luogo, compaiono da soli nel tuo calendario. Non devi creare account né scaricare niente.'}</p>
+    <p class="fc-scegli">{en ? 'Choose the app you normally use:' : 'Scegli l’app che usi di solito:'}</p>
+
+    <div class="fc-opzioni">
+      <details class="fc-opzione" data-app="apple">
+        <summary><span class="fc-nome">{en ? 'iPhone, iPad or Mac Calendar' : 'Calendario di iPhone, iPad o Mac'}</span><span class="fc-consigliato">{en ? 'Recommended for this device' : 'Consigliato per questo dispositivo'}</span></summary>
+        <a class="btn" href={l.webcal}><Icona nome="calendario-piu" />{en ? 'Add to Apple Calendar' : 'Aggiungi a Calendario'}</a>
+        <ol>
+          <li>{en ? <>Tap the button above.</> : <>Tocca il pulsante qui sopra.</>}</li>
+          <li>{en ? <>A message asks <q>Subscribe to “Concerti”?</q>: tap <b>Subscribe</b>.</> : <>Compare la domanda <q>Abbonarsi a “Concerti”?</q>: tocca <b>Abbonati</b>.</>}</li>
+          <li>{en ? <>If another screen opens, tap <b>Add</b> or <b>Done</b> at the top right. That’s it: you will find the concerts in the Calendar app, in a calendar called <b>Concerti</b>.</> : <>Se si apre un’altra schermata, tocca <b>Aggiungi</b> o <b>Fine</b> in alto a destra. Fatto: trovi i concerti nell’app Calendario, in un calendario che si chiama <b>Concerti</b>.</>}</li>
+          <li>{en ? <>On a Mac the Calendar app opens: click <b>Subscribe</b>, under <q>Location</q> choose <b>iCloud</b> (so you also see it on your iPhone) and click <b>OK</b>.</> : <>Sul Mac si apre l’app Calendario: premi <b>Abbonati</b>, in <q>Posizione</q> scegli <b>iCloud</b> (così lo vedi anche sull’iPhone) e premi <b>OK</b>.</>}</li>
+        </ol>
+        <p class="fc-nota">{en ? 'Nothing happens? Use “Other app” below: copy the address and paste it in Settings → Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed Calendar.' : 'Non succede niente? Usa «Un’altra app» qui sotto: copia l’indirizzo e incollalo in Impostazioni → App → Calendario → Account → Aggiungi account → Altro → Aggiungi calendario sottoscritto.'}</p>
+      </details>
+
+      <details class="fc-opzione" data-app="google">
+        <summary><span class="fc-nome">{en ? 'Google Calendar (also on Android phones)' : 'Google Calendar (anche sui telefoni Android)'}</span><span class="fc-consigliato">{en ? 'Recommended for this device' : 'Consigliato per questo dispositivo'}</span></summary>
+        <a class="btn" href={l.google} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Add to Google Calendar' : 'Aggiungi a Google Calendar'}</a>
+        <ol>
+          <li>{en ? <>Tap the button above: Google Calendar opens in the browser.</> : <>Tocca il pulsante qui sopra: Google Calendar si apre nel browser.</>}</li>
+          <li>{en ? <>If asked, sign in with your Google account (the one you use for Gmail).</> : <>Se te lo chiede, entra con il tuo account Google (quello che usi per Gmail).</>}</li>
+          <li>{en ? <>A box asks whether to add the calendar: click <b>Add</b>. That’s it: the calendar is called <b>Concerti</b>.</> : <>Compare la domanda se aggiungere il calendario: premi <b>Aggiungi</b>. Fatto: il calendario si chiama <b>Concerti</b>.</>}</li>
+          <li>{en ? <>On an Android phone it also appears in the Google Calendar app. If you don’t see it, open the menu ☰ at the top left, scroll down and tick <b>Concerti</b>.</> : <>Sul telefono Android compare anche nell’app Google Calendar. Se non lo vedi, apri il menu ☰ in alto a sinistra, scorri in basso e metti la spunta su <b>Concerti</b>.</>}</li>
+        </ol>
+      </details>
+
+      <details class="fc-opzione" data-app="outlook">
+        <summary><span class="fc-nome">{en ? 'Outlook (Hotmail, Outlook.com, Microsoft 365)' : 'Outlook (Hotmail, Outlook.com, Microsoft 365)'}</span><span class="fc-consigliato">{en ? 'Recommended for this device' : 'Consigliato per questo dispositivo'}</span></summary>
+        <a class="btn" href={l.outlook} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Add to Outlook' : 'Aggiungi a Outlook'}</a>
+        <ol>
+          <li>{en ? <>Tap the button above: Outlook opens in the browser.</> : <>Tocca il pulsante qui sopra: Outlook si apre nel browser.</>}</li>
+          <li>{en ? <>If asked, sign in with your Microsoft account (Hotmail, Outlook.com, Live).</> : <>Se te lo chiede, entra con il tuo account Microsoft (Hotmail, Outlook.com, Live).</>}</li>
+          <li>{en ? <>The calendar address is already filled in: click <b>Import</b>. That’s it.</> : <>L’indirizzo del calendario è già scritto: premi <b>Importa</b>. Fatto.</>}</li>
+          <li>{en ? <>In the Outlook app on your phone it appears by itself after a few minutes.</> : <>Nell’app Outlook del telefono compare da solo dopo qualche minuto.</>}</li>
+        </ol>
+        <p class="fc-nota">{en ? <>Work or school account? Use <a href={l.outlookLavoro} target="_blank" rel="noopener">this link</a> instead.</> : <>Account di lavoro o della scuola? Usa invece <a href={l.outlookLavoro} target="_blank" rel="noopener">questo link</a>.</>}</p>
+      </details>
+
+      <details class="fc-opzione" data-app="altra">
+        <summary><span class="fc-nome">{en ? 'Another app (Thunderbird, Proton, Fastmail…)' : 'Un’altra app (Thunderbird, Proton, Fastmail…)'}</span></summary>
+        <div class="fc-indirizzo">
+          <input type="text" readonly value={l.ics} aria-label={en ? 'Calendar address' : 'Indirizzo del calendario'} />
+          <button type="button" class="btn fc-copia" data-copiato={en ? 'Copied!' : 'Copiato!'}>{en ? 'Copy the address' : 'Copia l’indirizzo'}</button>
+        </div>
+        <ol>
+          <li>{en ? <>Press <b>Copy the address</b>.</> : <>Premi <b>Copia l’indirizzo</b>.</>}</li>
+          <li>{en ? <>In your calendar app look for an option like <q>New calendar</q>, <q>Subscribe</q>, <q>From the internet</q> or <q>From URL</q>.</> : <>Nella tua app del calendario cerca una voce come <q>Nuovo calendario</q>, <q>Abbonamento</q>, <q>Da Internet</q> o <q>Da URL</q>.</>}</li>
+          <li>{en ? <>Paste the address and confirm.</> : <>Incolla l’indirizzo e conferma.</>}</li>
+        </ol>
+        <p class="fc-nota">{en ? <>Always choose <b>subscribe</b> (or <q>from URL</q>), never <q>import file</q>: an imported file is a snapshot of today and never updates.</> : <>Scegli sempre <b>abbonamento</b> (o <q>da URL</q>), mai <q>importa file</q>: un file importato è una fotografia di oggi e non si aggiorna più.</>}</p>
+      </details>
+    </div>
+
+    <div class="fc-sapere">
+      <h3>{en ? 'Good to know' : 'Buono a sapersi'}</h3>
+      <ul>
+        <li>{en ? 'Changes arrive by themselves, sometimes a few hours late (Google Calendar can take up to a day).' : 'Le novità arrivano da sole, a volte con qualche ora di ritardo (Google Calendar può metterci fino a un giorno).'}</li>
+        <li>{en ? 'You can only view the calendar: nothing you do can change the concerts.' : 'Il calendario si può solo guardare: qualunque cosa tu faccia, i concerti non cambiano.'}</li>
+        <li>{en ? 'To remove it, delete it from your app like any other calendar.' : 'Per toglierlo, eliminalo dalla tua app come un qualsiasi calendario.'}</li>
+      </ul>
+    </div>
+  </div>
+</dialog>
+)}
+
+<style>
+  .finestra-cal { margin: auto; border: 0; padding: 0; width: min(600px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); box-shadow: var(--ombra); }
+  .finestra-cal::backdrop { background: rgb(8 12 16 / .6); }
+  .finestra-cal[open] { display: flex; flex-direction: column; }
+  .fc-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 12px 22px; border-bottom: 1px solid var(--linea); }
+  .fc-testa h2 { margin: 0; font-size: 20px; line-height: 1.25; }
+  .fc-chiudi { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--fondo); color: var(--testo); cursor: pointer; }
+  .fc-chiudi:hover { background: var(--fondo-2); }
+  .fc-chiudi :global(svg) { width: 20px; height: 20px; }
+  .fc-corpo { overflow-y: auto; padding: 16px 22px 22px; font-size: 15px; line-height: 1.5; }
+  .fc-intro { margin: 0 0 12px; }
+  .fc-scegli { margin: 0 0 10px; font-weight: 700; }
+  .fc-opzioni { display: grid; gap: 10px; }
+  .fc-opzione { border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); }
+  .fc-opzione[open] { border-color: var(--primario); }
+  .fc-opzione summary { cursor: pointer; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: 700; list-style: none; min-height: 44px; }
+  .fc-opzione summary::-webkit-details-marker { display: none; }
+  .fc-opzione summary::after { content: ''; margin-left: auto; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-3px); transition: transform .15s; }
+  .fc-opzione[open] summary::after { transform: rotate(-135deg) translateY(-3px); }
+  .fc-consigliato { display: none; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--accento); color: var(--testo); }
+  .fc-opzione.consigliata .fc-consigliato { display: inline-block; }
+  .fc-opzione > :not(summary) { margin-left: 16px; margin-right: 16px; }
+  .fc-opzione > .btn { margin-top: 2px; }
+  .fc-opzione ol { margin-top: 14px; margin-bottom: 14px; padding-left: 22px; display: grid; gap: 6px; }
+  .fc-opzione q { quotes: '«' '»'; font-style: italic; }
+  .fc-nota { margin-top: 0; margin-bottom: 16px; font-size: 14px; color: var(--tenue); }
+  .fc-nota a { color: inherit; text-decoration: underline; }
+  .fc-indirizzo { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fc-indirizzo input { flex: 1 1 220px; min-width: 0; padding: 11px 12px; font: inherit; font-size: 13px; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--fondo); color: var(--testo); }
+  .fc-sapere { margin-top: 18px; padding: 14px 16px; background: var(--fondo); border-radius: var(--raggio); }
+  .fc-sapere h3 { margin: 0 0 6px; font-size: 15px; }
+  .fc-sapere ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+  @media (max-width: 559.98px) {
+    .finestra-cal { width: 100vw; max-width: none; max-height: 100dvh; height: 100dvh; margin: 0; border-radius: 0; }
+    .fc-corpo { padding: 14px 16px 22px; }
+    .fc-opzione > .btn { display: flex; }
+    .fc-copia { width: 100%; }
+  }
+</style>
+
+<script>
+  const f = document.querySelector<HTMLDialogElement>('.finestra-cal');
+  if (f) {
+    // In cima, aperta, la scelta adatta al dispositivo (i Mac e gli iPad recenti si dichiarano "Macintosh")
+    const ua = navigator.userAgent;
+    const app = /iPhone|iPad|iPod|Macintosh/.test(ua) ? 'apple' : /Android/.test(ua) ? 'google' : undefined;
+    const scelta = app && f.querySelector<HTMLDetailsElement>(`.fc-opzione[data-app="${app}"]`);
+    if (scelta) {
+      scelta.classList.add('consigliata');
+      scelta.open = true;
+      scelta.parentElement!.prepend(scelta);
+    }
+    document.addEventListener('click', (e) => {
+      const a = (e.target as Element).closest('[data-iscrizione]');
+      if (!a) return;
+      e.preventDefault();
+      f.showModal();
+    });
+    f.querySelector('.fc-chiudi')!.addEventListener('click', () => f.close());
+    // Un tocco fuori dalla finestra la chiude
+    f.addEventListener('click', (e) => {
+      if (e.target !== f) return;
+      const r = f.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) f.close();
+    });
+    const copia = f.querySelector<HTMLButtonElement>('.fc-copia')!;
+    const campo = f.querySelector<HTMLInputElement>('.fc-indirizzo input')!;
+    const testo = copia.textContent;
+    copia.addEventListener('click', async () => {
+      campo.select();
+      try { await navigator.clipboard.writeText(campo.value); } catch { document.execCommand('copy'); }
+      copia.textContent = copia.dataset.copiato!;
+      setTimeout(() => { copia.textContent = testo; }, 2000);
+    });
+    campo.addEventListener('focus', () => campo.select());
+  }
+</script>

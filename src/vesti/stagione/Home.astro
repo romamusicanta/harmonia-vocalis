@@ -3,6 +3,7 @@
 // sulla foto, schede dei concerti, le foto più belle dei concerti, fascia video, porte verso le pagine del coro.
 import ConLink from '../../componenti/ConLink.astro';
 import Icona from '../../componenti/Icona.astro';
+import IscrizioneCalendario from '../../componenti/IscrizioneCalendario.astro';
 import Foto from '../../componenti/Foto.astro';
 import Video from '../../componenti/Video.astro';
 import NotaVideo from '../../componenti/NotaVideo.astro';
@@ -75,7 +76,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
         <div class="bottoni" style="margin-top:24px">
           <a class="btn" href={l('/concerti')}>{en ? 'All concerts' : 'Tutti i concerti'}</a>
           {iscrizione
-            ? <a class="btn o" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
+            ? <a class="btn o" href={iscrizione} target="_blank" rel="noopener" data-iscrizione><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
             : <a class="btn o" href={l('/concerti#in-programma')}><Icona nome="calendario" />{en ? 'Calendar' : 'Calendario'}</a>}
         </div>
       </div>
@@ -184,12 +185,14 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
     <h2>{en ? 'Don’t miss the next concert' : 'Non perdere il prossimo concerto'}</h2>
     <div class="bottoni">
       {iscrizione
-        ? <a class="btn" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
+        ? <a class="btn" href={iscrizione} target="_blank" rel="noopener" data-iscrizione><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
         : <a class="btn" href={l('/concerti#in-programma')}><Icona nome="calendario-piu" />{en ? 'Upcoming concerts' : 'Concerti in programma'}</a>}
       {coro.link.youtube && <a class="btn o" href={coro.link.youtube}><Icona nome="youtube" />{en ? 'Subscribe to the channel' : 'Iscriviti al canale'}</a>}
     </div>
   </div>
 </section>
+
+<IscrizioneCalendario />
 
 <script>
   // Carosello delle schede: le frecce ai lati compaiono se le schede non entrano tutte e scorrono

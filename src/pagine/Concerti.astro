@@ -4,6 +4,7 @@ import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Icona from '../componenti/Icona.astro';
+import IscrizioneCalendario from '../componenti/IscrizioneCalendario.astro';
 import Foto from '../componenti/Foto.astro';
 import { Image } from 'astro:assets';
 import { immagine } from '../motore/coro';
@@ -67,7 +68,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
       <div class="testa">
         <h2>{en ? 'Upcoming' : 'In programma'}</h2>
         {iscrizione
-          ? <a class="btn o" href={iscrizione} target="_blank" rel="noopener"><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
+          ? <a class="btn o" href={iscrizione} target="_blank" rel="noopener" data-iscrizione><Icona nome="calendario-piu" />{en ? 'Subscribe to the calendar' : 'Iscriviti al calendario'}</a>
           : DEMO && <a class="btn o" href="#" data-finto-avviso="Nel sito vero apre il calendario Google «Concerti»"><Icona nome="calendario-piu" />Iscriviti al calendario</a>}
       </div>
       {/* Dati: Google Calendar "Concerti" */}
@@ -167,6 +168,7 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
       <div class="w"><h2>{en ? 'Organising a concert series?' : 'Organizzi una rassegna?'}</h2><div class="bottoni"><a class="btn" href={l('/organizzatori')}>{en ? 'For organisers' : 'Per gli organizzatori'}</a><a class="btn o" href={l('/contatti')}>{en ? 'Write to us' : 'Scrivici'}</a></div></div>
     </section>
   )}
+  <IscrizioneCalendario />
 </Base>
 
 <style>
