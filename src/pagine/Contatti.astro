@@ -107,6 +107,13 @@ const profiloInstagram = coro.link.instagram && `@${coro.link.instagram.replace(
               <div><span class="eti" style="margin-bottom:4px">Instagram</span><a class="link-freccia" href={coro.link.instagram}>{profiloInstagram} <Icona nome="esterno" /></a></div>
             </div>
           )}
+          {coro.link.facebook && (
+            <div class="riquadro" style="margin:0;display:flex;gap:16px;align-items:center">
+              {/* Dati: coro.link in coro.config.ts */}
+              <span class="icona-q g"><Icona nome="facebook" classe="" /></span>
+              <div><span class="eti" style="margin-bottom:4px">Facebook</span><a class="link-freccia" href={coro.link.facebook}>{coro.nome} <Icona nome="esterno" /></a></div>
+            </div>
+          )}
         </aside>
       </div>
     </div>

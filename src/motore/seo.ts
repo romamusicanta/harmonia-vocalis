@@ -43,7 +43,7 @@ export function datiCoro(coro: Coro, lingua: 'it' | 'en', immagine?: string): Da
       address: indirizzo(coro.sede),
       parentOrganization: { '@type': 'Organization', name: coro.associazione },
       member: { '@type': 'OrganizationRole', roleName: lingua === 'en' ? 'Conductor' : 'Direttore', member: { '@type': 'Person', name: coro.maestro.nome } },
-      sameAs: [coro.link.youtube, ...coro.associatoA.map((a) => a.url).filter((u) => u.includes('italiacori'))].filter(Boolean),
+      sameAs: [coro.link.youtube, coro.link.facebook, coro.link.instagram, ...coro.associatoA.map((a) => a.url).filter((u) => u.includes('italiacori'))].filter(Boolean),
     },
     {
       '@context': 'https://schema.org',

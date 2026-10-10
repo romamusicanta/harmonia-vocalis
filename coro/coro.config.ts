@@ -142,6 +142,9 @@ export default {
   link: {
     youtube: 'https://www.youtube.com/@romamusicanta',
     youtubeCanale: '@romamusicanta',
+    // Pagina Facebook del coro (dal 10/10/2026): link nel piè di pagina e in Contatti, e nei dati
+    // strutturati (sameAs) perché Google colleghi la pagina al sito ufficiale
+    facebook: 'https://www.facebook.com/profile.php?id=100089274537275',
     // Area coristi esterna: non serve, il sito ha la sua (per ora in anteprima, vedi funzioni)
     areaCoristi: undefined,
     schedaPdf: undefined,
