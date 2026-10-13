@@ -231,7 +231,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
             <div class="cc" style="display:grid;gap:12px">
               {foto.length > 0 ? (
                 <ul class="ultime-foto">
-                  {foto.map((f) => <li><a href={`/area/foto#c-${f.evento ?? f.data}`} title={`${f.titolo} · ${f.chi}`}><img src={`/area/foto/miniatura/${f.id}`} alt={`${f.titolo}, foto di ${f.chi}`} loading="lazy" /></a></li>)}
+                  {foto.map((f) => <li><a href={`/area/foto?concerto=${encodeURIComponent(f.evento ?? f.data)}#foto`} title={`${f.titolo} · ${f.chi}`}><img src={`/area/foto/miniatura/${f.id}`} alt={`${f.titolo}, foto di ${f.chi}`} loading="lazy" /></a></li>)}
                 </ul>
               ) : <span class="tenue" style="font-size:14px">Ancora nessuna foto dei concerti.</span>}
               <a class="btn o piccolo" style="justify-self:start" href="/area/foto#carica"><Icona nome="fotocamera" />Carica le tue foto</a>

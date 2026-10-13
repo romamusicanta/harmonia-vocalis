@@ -13,7 +13,7 @@ import { concertoIn, videoIn } from '../../motore/inglese';
 import { archivio, linkIscrizioneCalendario, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
 import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
 import type { Veste } from '../../motore/aspetto';
-import { albumFoto, fotoInHome } from '../../motore/coro';
+import { albumFoto, fotoInHome, LIMITE_CAROSELLO } from '../../motore/coro';
 import Galleria from '../../componenti/Galleria.astro';
 
 interface Props { veste: Veste }
@@ -39,10 +39,10 @@ const schede = [
 ];
 
 // Le foto scelte per la home tra quelle dei coristi (src/area/fotoConcerti.ts, visibilità «home»): le più
-// belle di tutti i concerti, dal più recente; al più 9, nel carosello della foto di apertura, ognuna con
+// belle di tutti i concerti, nell'ordine scelto dai redattori; al più 10, nel carosello della foto di apertura, ognuna con
 // il nome del concerto e il link alle sue foto
 const tuttiConcerti = [...prossimi, ...archivio];
-const fotoHome = fotoInHome().slice(0, 9).map((f, n) => {
+const fotoHome = fotoInHome().slice(0, LIMITE_CAROSELLO).map((f, n) => {
   const c = tuttiConcerti.find((x) => !x.dataIncerta && x.data.slice(0, 10) === f.data);
   const t = c && concertoIn(c, lingua);
   const nome = t ? [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ') : '';

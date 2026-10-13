@@ -21,6 +21,7 @@ export type Visibilita = 'coristi' | 'pubblica' | 'home' | 'nascosta';
 export const VISIBILITA: Visibilita[] = ['nascosta', 'coristi', 'pubblica', 'home'];
 // Sul sito pubblico: nella pagina del concerto (e, per home, anche nella home)
 export const sulSito = (v: Visibilita) => v === 'pubblica' || v === 'home';
+export { LIMITE_CAROSELLO } from '../motore/coro';
 
 export interface FotoConcerto {
   id: string;
@@ -35,6 +36,8 @@ export interface FotoConcerto {
   byte?: number;
   md5?: string;            // per riconoscere i file identici
   copertina?: boolean;     // la copertina del concerto, scelta dai redattori (dal 13/10/2026)
+  decisa?: boolean;        // un redattore ne ha già scelto la visibilità (proprietà decisaDa)
+  ordineHome?: number;     // posizione nel carosello della home, scelta dai redattori (dal 13/10/2026)
 }
 
 // Un concerto a cui si possono legare le foto: uno recente del calendario (id dell'evento) o uno
@@ -101,7 +104,7 @@ async function leggiFoto(): Promise<ConcertoConFoto[]> {
       if (!perConcerto.has(k)) perConcerto.set(k, { data, titolo: evento?.titolo ?? (c.name.slice(11) || 'Concerto'), evento, foto: [] });
       const email = p.caricatoDa ?? '';
       const cc = elenco.find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
-      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum, copertina: p.copertina === 'sì' });
+      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum, copertina: p.copertina === 'sì', decisa: Boolean(p.decisaDa), ordineHome: p.ordineHome ? Number(p.ordineHome) : undefined });
     }
   }
   return [...perConcerto.values()].sort((a, b) => b.data.localeCompare(a.data));
@@ -150,7 +153,7 @@ const proprieta = (id: string, appProperties: Record<string, string | null>) =>
 export async function cambiaVisibilita(id: string, visibilita: Visibilita, email: string) {
   if (!VISIBILITA.includes(visibilita)) throw new Error('Visibilità non valida.');
   await controlla(id);
-  await proprieta(id, { visibilita, decisaDa: email, ...(sulSito(visibilita) ? {} : { copertina: null }) });
+  await proprieta(id, { visibilita, decisaDa: email, ...(sulSito(visibilita) ? {} : { copertina: null }), ...(visibilita === 'home' ? {} : { ordineHome: null }) });
   dimentica(id);
   svuota();
 }
@@ -173,4 +176,24 @@ export async function scegliCopertina(id: string, si: boolean, email: string): P
   dimentica(id);
   svuota();
   return visibilita;
+}
+
+// Le foto «Home» nell'ordine del carosello: prima quelle messe in ordine dai redattori, poi le altre
+// (le ultime messe «Home»), dal concerto più recente. Le stesse regole di fotoInHome in src/motore/coro.ts
+export async function fotoDelCarosello() {
+  return (await fotoDeiConcerti(true))
+    .flatMap((g) => g.foto.filter((f) => f.visibilita === 'home').map((f) => ({ ...f, titolo: g.titolo })))
+    .sort((a, b) => (a.ordineHome ?? Infinity) - (b.ordineHome ?? Infinity) || b.data.localeCompare(a.data) || b.caricata.localeCompare(a.caricata));
+}
+
+// I redattori riordinano il carosello: ids = tutte le foto «Home» nel nuovo ordine. Si riscrive solo la
+// posizione di quelle che cambiano
+export async function ordinaCarosello(ids: string[]) {
+  const attuali = new Map((await fotoDelCarosello()).map((f) => [f.id, f]));
+  if (ids.some((id) => !attuali.has(id))) throw new Error('Una delle foto non è più «Home»: ricarica la pagina.');
+  const cambiate = ids.map((id, i) => ({ id, ordine: i + 1 })).filter(({ id, ordine }) => attuali.get(id)!.ordineHome !== ordine);
+  for (let i = 0; i < cambiate.length; i += 5) {
+    await Promise.all(cambiate.slice(i, i + 5).map(({ id, ordine }) => proprieta(id, { ordineHome: String(ordine) })));
+  }
+  svuota();
 }

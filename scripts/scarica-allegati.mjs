@@ -8,7 +8,8 @@
 //   (cartella Foto dei concerti, DRIVE_CARTELLA_FOTO_CONCERTI, una sottocartella per concerto, proprietà
 //   visibilita = pubblica o home, vedi src/area/fotoConcerti.ts) in coro/immagini/drive/concerti/<data>/<id>.jpg:
 //   la pagina del concerto di quella data le mostra; l'elenco di tutte, con data, ora del caricamento,
-//   scelta per la home (le più belle) e copertina del concerto (proprietà copertina = sì, dal 13/10/2026),
+//   scelta per la home (le più belle) con la posizione nel carosello (ordineHome) e copertina del concerto
+//   (proprietà copertina = sì, dal 13/10/2026),
 //   va in coro/immagini/drive/concerti/elenco.json. Quelle non più pubbliche si cancellano.
 // - i testi del sito cambiati dall'Amministrazione (file "Testi del sito.json" della cartella Sito,
 //   quella che contiene Sito/Foto; vedi src/motore/testiSito.ts) in coro/immagini/drive/testi/testi.json,
@@ -170,7 +171,7 @@ async function fotoConcerti(token) {
       const dove = new URL(`${data}/`, cartellaConcerti);
       const file = new URL(`${f.id}.${estensioni[f.mimeType]}`, dove);
       volute.add(file.pathname);
-      pubbliche.push({ file: `drive/concerti/${data}/${f.id}.${estensioni[f.mimeType]}`, data, caricata: f.createdTime, home: f.appProperties?.visibilita === 'home', copertina: f.appProperties?.copertina === 'sì' });
+      pubbliche.push({ file: `drive/concerti/${data}/${f.id}.${estensioni[f.mimeType]}`, data, caricata: f.createdTime, home: f.appProperties?.visibilita === 'home', copertina: f.appProperties?.copertina === 'sì', ...(f.appProperties?.ordineHome ? { ordineHome: Number(f.appProperties.ordineHome) } : {}) });
       if (existsSync(file)) continue;
       mkdirSync(dove, { recursive: true });
       await scarica(token, f.id, `Foto dei concerti/${c.name}/${f.name}`, file);

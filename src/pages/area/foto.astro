@@ -1,8 +1,9 @@
 ---
-// Area coristi: foto dei concerti (/area/foto, src/area/fotoConcerti.ts). In alto il caricamento:
-// si sceglie un concerto già fatto, anche vecchio (di base il più recente) e una o più foto; il browser le riduce
-// (lato lungo 2400 px, JPEG) e le carica una dopo l'altra (/area/foto/carica). Sotto, per concerto,
-// le foto che vedono i coristi (miniature da /area/foto/miniatura, la foto intera da /area/file),
+// Area coristi: foto dei concerti (/area/foto, src/area/fotoConcerti.ts). In alto si sceglie un concerto
+// già fatto, anche vecchio (?concerto=<id del concerto o data>; di base il più recente che ha foto): dal
+// 13/10/2026 la pagina mostra solo le sue foto, per non caricare centinaia di miniature, e le foto caricate
+// vanno in quel concerto. Il caricamento: una o più foto; il browser le riduce (lato lungo 2400 px, JPEG)
+// e le carica una dopo l'altra (/area/foto/carica). Sotto, le foto del concerto che vedono i coristi (miniature da /area/foto/miniatura, la foto intera da /area/file),
 // con chi le ha caricate e "Sul sito" per quelle che i redattori hanno messo nel sito pubblico; chi
 // ha caricato una foto la può togliere, finché non è sul sito pubblico (poi solo i redattori).
 import Base from '../../layouts/Base.astro';
@@ -29,6 +30,14 @@ else {
   }
 }
 const quando = (iso: string) => { const d = parti({ data: iso }); return `${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+// Le foto di un concerto: quelle legate al suo evento o, per i concerti vecchi, dello stesso giorno
+const fotoDi = (c: ConcertoScelta) => gallerie.filter((g) => g.evento?.id === c.id || (!g.evento && g.data === c.data)).flatMap((g) => g.foto);
+const richiesto = Astro.url.searchParams.get('concerto');
+const scelto = concerti.find((c) => c.id === richiesto || c.data === richiesto)
+  ?? concerti.find((c) => gallerie[0] && (gallerie[0].evento?.id === c.id || gallerie[0].data === c.data))
+  ?? concerti[0];
+const foto = scelto ? fotoDi(scelto) : [];
+const caricate = Number(Astro.url.searchParams.get('caricate')) || 0;
 ---
 
 <Base veste={veste} titolo="Foto · Area coristi" area={{ sezione: 'foto' }}>
@@ -46,53 +55,62 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
     <div class="w">
       {errore && <Errore e={errore} />}
 
-      {concerti.length > 0 && (
-        <form class="carta carica-foto" id="carica">
-          <div class="ct"><h2>Carica le foto</h2></div>
+      {scelto && (
+        <form method="get" class="scelta-concerto">
+          <label>Concerto
+            <select name="concerto">
+              {concerti.map((c) => { const n = fotoDi(c).length; return <option value={c.id} selected={c === scelto}>{quando(c.data)} · {c.titolo}{n > 0 ? ` · ${n} foto` : ''}</option>; })}
+            </select>
+          </label>
+          <noscript><button class="btn o piccolo" type="submit">Mostra</button></noscript>
+        </form>
+      )}
+      {configurato() && !errore && concerti.length === 0 && <p class="tenue">Nessun concerto già fatto: le foto si caricano dopo il concerto.</p>}
+
+      {scelto && (
+        <form class="carta carica-foto" id="carica" data-evento={scelto.id}>
+          <div class="ct"><h2>Carica le tue foto di questo concerto</h2></div>
           <div class="cc">
-            <label>Concerto
-              <select name="evento" required>
-                {concerti.map((e) => <option value={e.id}>{quando(e.data)} · {e.titolo}</option>)}
-              </select>
-            </label>
             <label class="scegli-foto">
               <span><Icona nome="fotocamera" />Scegli le foto</span>
               <input type="file" name="foto" accept="image/*" multiple required />
             </label>
             <p class="scelte tenue"></p>
             <div class="avanza" hidden><progress max="100" value="0" aria-label="Caricamento"></progress><small>Tieni aperta questa pagina fino alla fine.</small></div>
-            <p class="stato" role="status"></p>
+            <p class="stato" role="status">{caricate > 0 && `${caricate} ${caricate === 1 ? 'foto caricata' : 'foto caricate'}.`}</p>
             <button class="btn g" type="submit" disabled><Icona nome="spunta" />Carica</button>
           </div>
         </form>
       )}
-      {configurato() && !errore && concerti.length === 0 && <p class="tenue">Nessun concerto già fatto: le foto si caricano dopo il concerto.</p>}
 
-      {gallerie.map((g) => (
-        <div class="carta galleria" id={`c-${g.evento?.id ?? g.data}`}>
-          <div class="ct"><h2>{g.titolo}</h2><span class="tenue" style="font-size:14px">{quando(g.data)} · {g.foto.length} {g.foto.length === 1 ? 'foto' : 'foto'}</span></div>
-          <ul class="foto-griglia">
-            {g.foto.map((f) => (
-              <li>
-                <a href={`/area/file/${f.id}`} target="_blank" rel="noopener"><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
-                <span class="chi">{f.chi}{f.visibilita === 'home' ? <span class="tag">In home</span> : f.visibilita === 'pubblica' && <span class="tag grigio">Sul sito</span>}</span>
-                {normalizza(f.caricatoDa) === email && !sulSito(f.visibilita) && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
-              </li>
-            ))}
-          </ul>
+      {scelto && (
+        <div class="carta galleria" id="foto">
+          <div class="ct"><h2>{scelto.titolo}</h2><span class="tenue" style="font-size:14px">{quando(scelto.data)} · {foto.length} foto</span></div>
+          {foto.length > 0 ? (
+            <ul class="foto-griglia">
+              {foto.map((f) => (
+                <li>
+                  <a href={`/area/file/${f.id}`} target="_blank" rel="noopener"><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
+                  <span class="chi">{f.chi}{f.visibilita === 'home' ? <span class="tag">In home</span> : f.visibilita === 'pubblica' && <span class="tag grigio">Sul sito</span>}</span>
+                  {normalizza(f.caricatoDa) === email && !sulSito(f.visibilita) && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
+                </li>
+              ))}
+            </ul>
+          ) : <p class="tenue" style="padding:14px 18px 18px;margin:0">Ancora nessuna foto di questo concerto: carica la prima!</p>}
         </div>
-      ))}
-      {configurato() && !errore && gallerie.length === 0 && concerti.length > 0 && <p class="tenue" style="margin-top:20px">Ancora nessuna foto: carica la prima!</p>}
+      )}
     </div>
   </div>
 </Base>
 
 <style>
+  .scelta-concerto { margin-bottom: 16px; }
+  .scelta-concerto label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); max-width: 640px; }
+  .scelta-concerto select { width: 100%; font: inherit; font-weight: 400; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
   .carica-foto { margin-bottom: 24px; }
   .carica-foto .cc { display: grid; gap: 14px; }
   .carica-foto label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); }
   .carica-foto > .cc > label { max-width: 640px; }
-  .carica-foto select { width: 100%; font: inherit; font-weight: 400; padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
   .scegli-foto { cursor: pointer; }
   .scegli-foto span { display: inline-flex; align-items: center; gap: 8px; justify-self: start; padding: 12px 18px; border: 2px dashed var(--linea); border-radius: var(--raggio); background: var(--fondo); }
   .scegli-foto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -118,6 +136,9 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
   import { carica } from '../../area/caricamento-client';
   import { riduci } from '../../admin/immagini';
 
+  // Il concerto si cambia dal menu: la pagina si ricarica con le sue foto
+  document.querySelector<HTMLSelectElement>('.scelta-concerto select')?.addEventListener('change', (e) => (e.target as HTMLSelectElement).form!.submit());
+
   const f = document.querySelector<HTMLFormElement>('.carica-foto');
   if (f) {
     const input = f.querySelector<HTMLInputElement>('input[type=file]')!;
@@ -137,7 +158,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
       if (!file.length) return;
       bottone.disabled = true;
       avanza.hidden = false;
-      const evento = (f.elements.namedItem('evento') as HTMLSelectElement).value;
+      const evento = f.dataset.evento!;
       let fatte = 0;
       const errori: string[] = [];
       for (const [i, originale] of file.entries()) {
@@ -156,7 +177,7 @@ const quando = (iso: string) => { const d = parti({ data: iso }); return `${Numb
       }
       barra.value = 100;
       stato.textContent = `${fatte} ${fatte === 1 ? 'foto caricata' : 'foto caricate'}.${errori.length ? ` Non caricate: ${errori.join(' · ')}` : ''}`;
-      if (fatte && !errori.length) location.href = `/area/foto?caricate=${fatte}#c-${evento}`;
+      if (fatte && !errori.length) location.href = `/area/foto?concerto=${encodeURIComponent(evento)}&caricate=${fatte}#foto`;
       else if (fatte) setTimeout(() => location.reload(), 4000);
       bottone.disabled = false;
     });

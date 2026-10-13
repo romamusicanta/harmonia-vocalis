@@ -45,7 +45,7 @@ export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in imma
 // Le foto dei concerti messe nel sito pubblico (src/area/fotoConcerti.ts), dall'elenco scritto da
 // scripts/scarica-allegati.mjs: data del concerto, ora del caricamento, scelta per la home, copertina.
 // Senza elenco (build di prima del 13/10/2026), quelle presenti nelle cartelle, senza scelte
-interface FotoPubblica { file: string; data: string; caricata?: string; home?: boolean; copertina?: boolean }
+interface FotoPubblica { file: string; data: string; caricata?: string; home?: boolean; copertina?: boolean; ordineHome?: number }
 const elencoFoto = import.meta.glob<FotoPubblica[]>('/coro/immagini/drive/concerti/elenco.json', { eager: true, import: 'default' });
 const fotoPubbliche = (): FotoPubblica[] => {
   if (DEMO) return [];
@@ -59,12 +59,17 @@ const fotoPubbliche = (): FotoPubblica[] => {
 // Nell'ordine di un album: prima la copertina, poi nell'ordine in cui sono state caricate
 const ordineAlbum = (a: FotoPubblica, b: FotoPubblica) => Number(Boolean(b.copertina)) - Number(Boolean(a.copertina)) || (a.caricata ?? a.file).localeCompare(b.caricata ?? b.file);
 
-// Le foto scelte per la home (le più belle dei concerti): dal concerto più recente, come nomi per
-// immagine() con la data del concerto
+// Quante foto «Home» scorrono nel carosello della home (dal 13/10/2026, decisione di Mario): il browser le
+// scarica tutte all'apertura, quindi poche. Le altre restano «Home» ma non si vedono
+export const LIMITE_CAROSELLO = 10;
+
+// Le foto scelte per la home (le più belle dei concerti), nell'ordine del carosello scelto dai redattori
+// (ordineHome; quelle senza, dopo, dal concerto più recente), come nomi per immagine() con la data del
+// concerto. Le stesse regole di fotoDelCarosello in src/area/fotoConcerti.ts
 export const fotoInHome = () =>
   fotoPubbliche()
     .filter((f) => f.home)
-    .sort((a, b) => b.data.localeCompare(a.data) || (b.caricata ?? '').localeCompare(a.caricata ?? ''))
+    .sort((a, b) => (a.ordineHome ?? Infinity) - (b.ordineHome ?? Infinity) || b.data.localeCompare(a.data) || (b.caricata ?? '').localeCompare(a.caricata ?? ''))
     .map((f) => ({ nome: f.file, data: f.data }));
 
 // Le foto del concerto di quel giorno (AAAA-MM-GG), copertina per prima, come nomi per immagine()
