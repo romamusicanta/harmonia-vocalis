@@ -63,7 +63,7 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
             : erroreFoto ? <Errore e={erroreFoto} />
             : <>
                 <p class="tenue" style="max-width:64ch;font-size:15px">Quelle caricate dai coristi e da qui. Per ognuna scegli chi la vede: <b>Coristi</b> (com'è appena caricata), <b>Sito</b> (anche nella pagina del concerto), <b>Home</b> (anche tra le foto più belle della home), oppure <b>Nascosta</b>. Si salva subito; Sito e Home valgono dopo la prossima pubblicazione.{fotoCoristi.length > 0 && <> Ora: {fotoCoristi.length} foto, {fotoCoristi.filter((f) => sulSito(f.visibilita)).length} sul sito.</>}</p>
-                {fotoCoristi.length ? <FotoAdmin foto={fotoCoristi} /> : <p class="tenue">Ancora nessuna foto.</p>}
+                {fotoCoristi.length ? <FotoAdmin foto={fotoCoristi} doppioni /> : <p class="tenue">Ancora nessuna foto.</p>}
                 {perFoto && (
                   <form class="carica-foto" data-evento={perFoto.id}>
                     <label class="carica">Carica foto <small>(anche più di una; si riducono prima di partire)</small><input type="file" accept="image/*,.heic,.heif" multiple /></label>

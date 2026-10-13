@@ -2,18 +2,31 @@
 // Le foto dei coristi di un concerto per i redattori: per ognuna chi la vede (Nascosta, Coristi, Sito,
 // Home: ogni livello comprende quello prima) e «Togli» (cestino del Drive condiviso). Si salva subito
 // (/admin/foto-concerti/stato). Lo usano Amministrazione → Foto dei concerti e la Modifica del concerto.
+// Con doppioni (nella Modifica del concerto, dal 13/10/2026) c'è anche «Cerca le foto doppie»: il browser
+// confronta le miniature (stesso file, oppure stessa forma e quasi gli stessi pixel a 64×64: la stessa
+// foto caricata due volte, anche ridotta), mostra i gruppi e, se confermato, di ogni gruppo tiene quella a
+// risoluzione più alta, con la visibilità più ampia del gruppo, e toglie le altre.
 import type { FotoConcerto } from '../area/fotoConcerti';
 
-interface Props { foto: FotoConcerto[] }
-const { foto } = Astro.props;
+interface Props { foto: FotoConcerto[]; doppioni?: boolean }
+const { foto, doppioni = false } = Astro.props;
+const misura = (f: FotoConcerto) => (f.larghezza && f.altezza ? `${f.larghezza}×${f.altezza}` : f.byte ? `${Math.round(f.byte / 1024)} KB` : '');
 const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', home: 'Home' } as const;
 ---
 
+{doppioni && foto.length > 1 && (
+  <div class="doppioni">
+    <button type="button" class="btn o piccolo cerca-doppie">Cerca le foto doppie</button>
+    <p class="esito" role="status" hidden></p>
+    <span class="conferma-doppie" hidden><button type="button" class="btn g piccolo togli-doppie"></button> <button type="button" class="btn o piccolo annulla-doppie">Annulla</button></span>
+  </div>
+)}
 <ul class="foto-admin">
   {foto.map((f) => (
-    <li class:list={[f.visibilita]} data-id={f.id}>
+    <li class:list={[f.visibilita]} data-id={f.id} data-pixel={f.larghezza && f.altezza ? f.larghezza * f.altezza : 0} data-byte={f.byte ?? 0} data-md5={f.md5 ?? ''} data-caricata={f.caricata} data-misura={misura(f)}>
       <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
       <small class="tenue">{f.chi}</small>
+      <small class="doppia" hidden></small>
       <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
         {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
       </span>
@@ -38,6 +51,12 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
   .scelta-visibilita button[aria-pressed='true'][data-v='coristi'] { background: var(--primario); color: #fff; }
   .scelta-visibilita button[aria-pressed='true'][data-v='nascosta'] { background: #6b6b6b; color: #fff; }
   .foto-admin .in-corso { opacity: .5; pointer-events: none; }
+  .doppioni { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 14px; }
+  .doppioni .esito { margin: 0; font-weight: 600; font-size: 14px; flex-basis: 100%; }
+  .doppia { font-size: 12px; font-weight: 700; padding: 3px 6px; border-radius: 6px; justify-self: start; background: #e3f1e8; color: #2e7d4f; }
+  .foto-admin li.si-toglie .doppia { background: #fbe4e2; color: var(--rosso); }
+  .foto-admin li.si-toglie a { outline: 3px solid var(--rosso); }
+  .foto-admin li.si-toglie img { opacity: .55; }
   .togli { justify-self: start; font: inherit; font-size: 13px; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 4px 0; }
 </style>
 
@@ -64,6 +83,110 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
       if (!confirm('Togliere questa foto? Va nel cestino del Drive condiviso (si recupera per 30 giorni).')) return;
       try { await chiama({ id: li.dataset.id, togli: true }); li.remove(); }
       catch (err) { alert(`Non tolta: ${(err as Error).message}`); }
+    });
+  });
+
+  // Foto doppie. Ogni miniatura (stessa origine: il canvas si legge) diventa 64×64 in grigio; due foto
+  // sono la stessa se hanno lo stesso file (md5) oppure la stessa forma (entro il 2%) e in media meno di
+  // 4 livelli di grigio su 255 di differenza: la stessa foto ridotta resta sotto 2, due scatti di fila
+  // di solito sopra. Prima di togliere si mostrano i gruppi, per controllare.
+  const LATO = 64;
+  const ORDINE = ['nascosta', 'coristi', 'pubblica', 'home'];
+  const leggi = (li: HTMLLIElement) => new Promise<{ grigi: Float32Array; forma: number }>((ok, no) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = c.height = LATO;
+      const x = c.getContext('2d', { willReadFrequently: true })!;
+      x.drawImage(img, 0, 0, LATO, LATO);
+      const d = x.getImageData(0, 0, LATO, LATO).data;
+      const grigi = new Float32Array(LATO * LATO);
+      for (let i = 0; i < grigi.length; i++) grigi[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+      ok({ grigi, forma: img.naturalWidth / img.naturalHeight });
+    };
+    img.onerror = () => no(new Error('miniatura non letta'));
+    img.src = `/admin/foto-concerti/miniatura/${li.dataset.id}`;
+  });
+  const differenza = (a: Float32Array, b: Float32Array) => { let t = 0; for (let i = 0; i < a.length; i++) t += Math.abs(a[i] - b[i]); return t / a.length; };
+  // La più grande: più pixel, poi file più pesante, poi la caricata prima
+  const meglio = (a: HTMLLIElement, b: HTMLLIElement) =>
+    Number(b.dataset.pixel) - Number(a.dataset.pixel) || Number(b.dataset.byte) - Number(a.dataset.byte) || a.dataset.caricata!.localeCompare(b.dataset.caricata!);
+
+  document.querySelectorAll<HTMLElement>('.doppioni').forEach((box) => {
+    const lista = box.nextElementSibling as HTMLUListElement;
+    const cerca = box.querySelector<HTMLButtonElement>('.cerca-doppie')!;
+    const esito = box.querySelector<HTMLElement>('.esito')!;
+    const conferma = box.querySelector<HTMLElement>('.conferma-doppie')!;
+    const togliTutte = box.querySelector<HTMLButtonElement>('.togli-doppie')!;
+    let gruppi: HTMLLIElement[][] = [];
+    const scrivi = (t: string) => { esito.hidden = false; esito.textContent = t; };
+    const pulisci = () => {
+      lista.querySelectorAll<HTMLLIElement>('li').forEach((li) => { li.classList.remove('si-toglie'); const b = li.querySelector<HTMLElement>('.doppia')!; b.hidden = true; b.textContent = ''; });
+      conferma.hidden = true;
+      gruppi = [];
+    };
+
+    cerca.addEventListener('click', async () => {
+      pulisci();
+      const foto = [...lista.querySelectorAll<HTMLLIElement>('li[data-id]')];
+      cerca.disabled = true;
+      scrivi(`Confronto ${foto.length} foto…`);
+      const lette = await Promise.all(foto.map((li) => leggi(li).catch(() => undefined)));
+      // Gruppi: ogni foto va con il primo gruppo che ne contiene una uguale
+      const capo = foto.map((_, i) => i);
+      const radice = (i: number): number => (capo[i] === i ? i : (capo[i] = radice(capo[i])));
+      for (let i = 0; i < foto.length; i++) for (let j = i + 1; j < foto.length; j++) {
+        const a = lette[i], b = lette[j];
+        const stessoFile = Boolean(foto[i].dataset.md5) && foto[i].dataset.md5 === foto[j].dataset.md5;
+        const simili = a && b && Math.abs(a.forma / b.forma - 1) < 0.02 && differenza(a.grigi, b.grigi) < 4;
+        if (stessoFile || simili) capo[radice(j)] = radice(i);
+      }
+      const perCapo = new Map<number, HTMLLIElement[]>();
+      foto.forEach((li, i) => perCapo.set(radice(i), [...(perCapo.get(radice(i)) ?? []), li]));
+      gruppi = [...perCapo.values()].filter((g) => g.length > 1).map((g) => g.sort(meglio));
+      cerca.disabled = false;
+      const nonLette = lette.filter((l) => !l).length;
+      const avviso = nonLette ? ` (${nonLette} ${nonLette === 1 ? 'foto non letta, esclusa' : 'foto non lette, escluse'})` : '';
+      if (!gruppi.length) { scrivi(`Nessuna foto doppia${avviso}.`); return; }
+      const daTogliere = gruppi.reduce((t, g) => t + g.length - 1, 0);
+      gruppi.forEach((g, n) => g.forEach((li, k) => {
+        const b = li.querySelector<HTMLElement>('.doppia')!;
+        b.hidden = false;
+        b.textContent = `Doppia ${n + 1} · ${k === 0 ? 'si tiene' : 'si toglie'}${li.dataset.misura ? ` · ${li.dataset.misura}` : ''}`;
+        if (k > 0) li.classList.add('si-toglie');
+      }));
+      scrivi(`${gruppi.length === 1 ? 'Un gruppo' : `${gruppi.length} gruppi`} di foto uguali${avviso}: di ognuno si tiene quella a risoluzione più alta, con la visibilità più ampia del gruppo. Controlla i segni sulle foto prima di confermare.`);
+      togliTutte.textContent = `Togli ${daTogliere === 1 ? 'la foto doppia' : `le ${daTogliere} foto doppie`}`;
+      conferma.hidden = false;
+    });
+
+    box.querySelector('.annulla-doppie')!.addEventListener('click', () => { pulisci(); esito.hidden = true; });
+
+    togliTutte.addEventListener('click', async () => {
+      conferma.hidden = true;
+      cerca.disabled = true;
+      let tolte = 0;
+      const errori: string[] = [];
+      for (const [tenuta, ...altre] of gruppi) {
+        // La tenuta prende la visibilità più ampia del gruppo (se una copia era sul sito, ci resta)
+        const massima = [tenuta, ...altre].map((li) => ORDINE.indexOf(li.className.split(' ').find((c) => ORDINE.includes(c)) ?? 'coristi')).reduce((a, b) => Math.max(a, b));
+        const attuale = ORDINE.indexOf(tenuta.querySelector<HTMLElement>('[aria-pressed="true"]')?.dataset.v ?? 'coristi');
+        try {
+          if (massima > attuale) {
+            await chiama({ id: tenuta.dataset.id, visibilita: ORDINE[massima] });
+            tenuta.querySelectorAll<HTMLButtonElement>('.scelta-visibilita button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === ORDINE[massima])));
+            tenuta.className = ORDINE[massima];
+          }
+        } catch (err) { errori.push((err as Error).message); continue; }
+        for (const li of altre) {
+          scrivi(`Tolgo le foto doppie… ${tolte + 1}`);
+          try { await chiama({ id: li.dataset.id, togli: true }); li.remove(); tolte++; }
+          catch (err) { errori.push((err as Error).message); }
+        }
+      }
+      pulisci();
+      cerca.disabled = false;
+      scrivi(`${tolte === 1 ? 'Tolta 1 foto doppia' : `Tolte ${tolte} foto doppie`} (nel cestino del Drive condiviso per 30 giorni).${errori.length ? ` Non riuscite: ${[...new Set(errori)].join(' · ')}` : ''}`);
     });
   });
 </script>

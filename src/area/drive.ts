@@ -22,6 +22,8 @@ export interface FileDrive {
   createdTime: string;
   description?: string;
   appProperties?: Record<string, string>;
+  md5Checksum?: string;
+  imageMediaMetadata?: { width?: number; height?: number };
 }
 
 // I file (o le cartelle) dentro una cartella
@@ -41,7 +43,7 @@ export async function fileInCartelle(cartelle: string[]): Promise<Map<string, Fi
     const q = `(${gruppo.map((c) => `'${c}' in parents`).join(' or ')}) and trashed = false`;
     let pagina: string | undefined;
     do {
-      const p = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,size,createdTime,description,appProperties,parents)', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '1000', orderBy: 'createdTime', ...(pagina ? { pageToken: pagina } : {}) });
+      const p = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,size,createdTime,description,appProperties,parents,md5Checksum,imageMediaMetadata(width,height))', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '1000', orderBy: 'createdTime', ...(pagina ? { pageToken: pagina } : {}) });
       const r = await google<{ files: (FileDrive & { parents?: string[] })[]; nextPageToken?: string }>(`${DRIVE}/files?${p}`);
       for (const f of r.files) for (const c of f.parents ?? []) perCartella.get(c)?.push(f);
       pagina = r.nextPageToken;

@@ -30,6 +30,10 @@ export interface FotoConcerto {
   chi: string;             // "Giulia R." (dalla scheda Coristi), o l'email
   visibilita: Visibilita;
   caricata: string;        // quando (ISO)
+  larghezza?: number;      // in pixel, se Drive la conosce
+  altezza?: number;
+  byte?: number;
+  md5?: string;            // per riconoscere i file identici
 }
 
 // Un concerto a cui si possono legare le foto: uno recente del calendario (id dell'evento) o uno
@@ -96,7 +100,7 @@ async function leggiFoto(): Promise<ConcertoConFoto[]> {
       if (!perConcerto.has(k)) perConcerto.set(k, { data, titolo: evento?.titolo ?? (c.name.slice(11) || 'Concerto'), evento, foto: [] });
       const email = p.caricatoDa ?? '';
       const cc = elenco.find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
-      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime });
+      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum });
     }
   }
   return [...perConcerto.values()].sort((a, b) => b.data.localeCompare(a.data));
