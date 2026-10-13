@@ -1,0 +1,42 @@
+---
+// Area redattori, Repertorio (src/area/GestioneRepertorio.astro): la riga di un pezzo nella lista,
+// da sola o dentro una raccolta. Si apre con tutto il materiale, «Modifica» e «Togli dal repertorio».
+// ancora = false per le copie di un pezzo che sta in più raccolte: l'ancora #p-<id> va alla prima.
+// altre: le altre raccolte in cui sta (dentro una raccolta, quella in cui si è non si ripete).
+// Gli stili sono nel blocco globale .lista-repertorio di GestioneRepertorio.
+import Icona from '../componenti/Icona.astro';
+import type { Pezzo } from './repertorio';
+import { comeHtml } from './testo';
+
+interface Props { p: Pezzo; base: string; attivo: boolean; ancora?: boolean; altre: string[]; cerca: string }
+const { p, base, attivo, ancora = true, altre, cerca } = Astro.props;
+const quante = (n: number, uno: string, tanti: string) => `${n} ${n === 1 ? uno : tanti}`;
+---
+
+<li id={ancora ? `p-${p.id}` : undefined} class:list={['voce-pezzo', { attivo }]} data-cerca={cerca}>
+  <details>
+    <summary>
+      <span class="testa-pezzo"><span class="aut">{p.autore}{p.arrangiatore && <> · arr. {p.arrangiatore}</>}</span><b>{p.titolo}</b></span>
+      <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
+      {altre.map((n) => <span class="tag grigio tag-raccolta" title="Sta anche in questa raccolta"><Icona nome="cartella" />{n}</span>)}
+      <span class="tenue dettagli">{[p.spartito && 'spartito', p.brani.length && quante(p.brani.length, 'parte', 'parti'), p.brani.some((b) => b.tracce.length) && 'tracce delle parti', p.tracce.length && quante(p.tracce.length, 'traccia', 'tracce'), p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
+    </summary>
+    <div class="corpo-pezzo">
+      <dl>
+        <dt>Spartito</dt><dd>{p.spartito ? <a href={p.spartito} target="_blank" rel="noopener">Apri lo spartito</a> : <span class="tenue">—</span>}</dd>
+        {p.arrangiatore && <><dt>Arrangiamento</dt><dd>{p.arrangiatore}</dd></>}
+        <dt>Parti</dt><dd>{p.brani.length ? p.brani.map((b, i) => <>{i > 0 && ' · '}<a href={b.link} target="_blank" rel="noopener">{b.nome}</a>{b.tracce.length > 0 && <small class="tenue"> ({quante(b.tracce.length, 'traccia', 'tracce')})</small>}</>) : <span class="tenue">—</span>}</dd>
+        <dt>Tracce</dt><dd>{p.tracce.length ? p.tracce.map((t, i) => <>{i > 0 && ' · '}<a href={t.link} target="_blank" rel="noopener">{t.sezione}</a></>) : <span class="tenue">—</span>}</dd>
+        <dt>Esecuzione</dt><dd>{p.esecuzione ? <a href={p.esecuzione} target="_blank" rel="noopener">Ascolta</a> : <span class="tenue">—</span>}</dd>
+        <dt>Note del Maestro</dt><dd>{p.note ? <div set:html={comeHtml(p.note)} /> : <span class="tenue">—</span>}</dd>
+      </dl>
+      <div class="azioni-pezzo">
+        <a class="btn o piccolo" href={`${base}/repertorio?modifica=${p.id}#modulo`}>Modifica</a>
+        <form method="post" onsubmit="return confirm('Togliere questo pezzo dal repertorio (e dalle sue raccolte)? I file restano su Drive.')">
+          <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={p.id} />
+          <button class="btn o piccolo cancella" type="submit">Togli dal repertorio</button>
+        </form>
+      </div>
+    </div>
+  </details>
+</li>

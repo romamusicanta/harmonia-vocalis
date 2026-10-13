@@ -6,11 +6,13 @@
 //   riferimento, note del Maestro; spartito, parti (movimenti o estratti) e tracce, anche per ogni
 //   parte, si caricano su Drive dal modulo (a pezzi, con lo script in fondo, verso <base>/repertorio/file);
 // - raccolte (?modifica=id, ?nuova-raccolta): nome, nota e i pezzi, scelti e ordinati con SceltaPezzi.
-// Sotto, l'elenco delle raccolte e quello di tutti i pezzi, ognuno con le sue raccolte.
+// Sotto, un'unica lista: le raccolte, ognuna con dentro i suoi pezzi, poi le opere che non stanno in
+// nessuna raccolta (riga del pezzo in src/area/VocePezzo.astro).
 import Icona from '../componenti/Icona.astro';
 import { catalogo, configurato, nomeCompleto, sezioniTracce, STATI, type Pezzo, type Raccolta } from './repertorio';
 import Errore from './Errore.astro';
 import SceltaPezzi from './SceltaPezzi.astro';
+import VocePezzo from './VocePezzo.astro';
 import { comeHtml } from './testo';
 
 interface Props { base: '/admin' | '/maestro' }
@@ -34,6 +36,12 @@ const raccolteScelte = new Set(inModifica?.raccolte ?? [q.get('raccolta') ?? '']
 const pezzoDi = new Map(elenco.map((p) => [p.id, p]));
 const nomiRaccolte = (p: Pezzo) => raccolte.filter((r) => p.raccolte.includes(r.id)).map((r) => r.titolo);
 const quante = (n: number, uno: string, tanti: string) => `${n} ${n === 1 ? uno : tanti}`;
+// Le opere che non stanno in nessuna raccolta: le altre si vedono dentro le loro raccolte
+const opere = elenco.filter((p) => !p.raccolte.length);
+// L'ancora #p-<id> di un pezzo in più raccolte sta nella prima
+const giaVisti = new Set<string>();
+const prima = (id: string) => !giaVisti.has(id) && Boolean(giaVisti.add(id));
+const cerca = (p: Pezzo) => semplice(`${p.autore} ${p.titolo} ${p.arrangiatore} ${p.brani.map((b) => b.nome).join(' ')} ${nomiRaccolte(p).join(' ')}`);
 const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sezione === s)?.link ?? '';
 // Pezzo appena aggiunto: si propone di caricare spartito, brani e tracce
 const appena = elenco.find((p) => p.id === q.get('file'));
@@ -180,66 +188,39 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   </section>
 )}
 
-{raccolte.length > 0 && (
-  <>
-    <h2 class="titolo-elenco">Raccolte<small> · {raccolte.length}</small></h2>
-    <ul class="carta elenco-pezzi">
-      {raccolte.map((r) => (
-        <li id={`r-${r.id}`} class:list={['raccolta', { attivo: r.id === raccoltaInModifica?.id }]}>
-          <details>
-            <summary>
-              <span class="testa-pezzo"><span class="aut"><Icona nome="cartella" /> Raccolta</span><b>{r.titolo}</b></span>
-              <span class="tenue dettagli">{r.contenuto.length ? quante(r.contenuto.length, 'pezzo', 'pezzi') : 'vuota'}</span>
-            </summary>
-            <div class="corpo-pezzo">
-              {r.note && <div set:html={comeHtml(r.note)} />}
-              {r.contenuto.length > 0 && <ol class="pezzi-raccolta">{r.contenuto.map((id) => <li><a href={`#p-${id}`}>{nomeCompleto(pezzoDi.get(id)!)}</a></li>)}</ol>}
-              <div class="azioni-pezzo">
-                <a class="btn o piccolo" href={`${base}/repertorio?modifica=${r.id}#modulo`}>Modifica</a>
-                <a class="btn o piccolo" href={`${base}/repertorio?nuovo&raccolta=${r.id}#modulo`}>Aggiungi un pezzo nuovo</a>
-              </div>
-            </div>
-          </details>
-        </li>
-      ))}
-    </ul>
-  </>
-)}
-
-<h2 class="titolo-elenco">{raccolte.length ? 'Tutti i pezzi' : 'Repertorio'}{elenco.length > 0 && <small> · {quante(elenco.length, 'pezzo', 'pezzi')}</small>}</h2>
-{elenco.length === 0 && !errore && <p class="tenue">Ancora nessun pezzo.</p>}
+{/* Un'unica lista (dal 13/10/2026, richiesta di Mario): prima le raccolte, poi le opere che non
+    stanno in nessuna raccolta; i pezzi di una raccolta si vedono solo dentro la raccolta */}
+<h2 class="titolo-elenco">Repertorio{(raccolte.length > 0 || elenco.length > 0) && <small> · {[raccolte.length && quante(raccolte.length, 'raccolta', 'raccolte'), elenco.length && quante(elenco.length, 'pezzo', 'pezzi')].filter(Boolean).join(', ')}</small>}</h2>
+{elenco.length === 0 && raccolte.length === 0 && !errore && <p class="tenue">Ancora nessun pezzo.</p>}
 {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca per autore, titolo o raccolta…" aria-label="Cerca nel repertorio" />}
-<ul class="carta elenco-pezzi tutti-pezzi">
-  {elenco.map((p) => (
-    <li id={`p-${p.id}`} class:list={{ attivo: p.id === inModifica?.id }} data-cerca={semplice(`${p.autore} ${p.titolo} ${p.arrangiatore} ${nomiRaccolte(p).join(' ')}`)}>
+<ul class="carta elenco-pezzi lista-repertorio">
+  {raccolte.map((r) => (
+    <li id={`r-${r.id}`} class:list={['voce-raccolta', { attivo: r.id === raccoltaInModifica?.id }]} data-cerca={semplice(r.titolo)}>
       <details>
         <summary>
-          <span class="testa-pezzo"><span class="aut">{p.autore}{p.arrangiatore && <> · arr. {p.arrangiatore}</>}</span><b>{p.titolo}</b></span>
-          <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
-          {nomiRaccolte(p).map((n) => <span class="tag grigio tag-raccolta"><Icona nome="cartella" />{n}</span>)}
-          <span class="tenue dettagli">{[p.spartito && 'spartito', p.brani.length && quante(p.brani.length, 'parte', 'parti'), p.brani.some((b) => b.tracce.length) && 'tracce delle parti', p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
+          <span class="icona-raccolta" aria-hidden="true"><Icona nome="cartella" classe="" /></span>
+          <span class="testa-pezzo"><span class="aut">Raccolta</span><b>{r.titolo}</b></span>
+          <span class="tenue dettagli">{r.contenuto.length ? quante(r.contenuto.length, 'pezzo', 'pezzi') : 'vuota'}</span>
         </summary>
-        <div class="corpo-pezzo">
-          <dl>
-            <dt>Spartito</dt><dd>{p.spartito ? <a href={p.spartito} target="_blank" rel="noopener">Apri lo spartito</a> : <span class="tenue">—</span>}</dd>
-            {p.arrangiatore && <><dt>Arrangiamento</dt><dd>{p.arrangiatore}</dd></>}
-            <dt>Raccolte</dt><dd>{nomiRaccolte(p).join(' · ') || <span class="tenue">—</span>}</dd>
-            <dt>Parti</dt><dd>{p.brani.length ? p.brani.map((b, i) => <>{i > 0 && ' · '}<a href={b.link} target="_blank" rel="noopener">{b.nome}</a>{b.tracce.length > 0 && <small class="tenue"> ({quante(b.tracce.length, 'traccia', 'tracce')})</small>}</>) : <span class="tenue">—</span>}</dd>
-            <dt>Tracce</dt><dd>{p.tracce.length ? p.tracce.map((t, i) => <>{i > 0 && ' · '}<a href={t.link} target="_blank" rel="noopener">{t.sezione}</a></>) : <span class="tenue">—</span>}</dd>
-            <dt>Esecuzione</dt><dd>{p.esecuzione ? <a href={p.esecuzione} target="_blank" rel="noopener">Ascolta</a> : <span class="tenue">—</span>}</dd>
-            <dt>Note del Maestro</dt><dd>{p.note ? <div set:html={comeHtml(p.note)} /> : <span class="tenue">—</span>}</dd>
-          </dl>
+        <div class="corpo-raccolta">
+          {r.note && <div class="nota-raccolta" set:html={comeHtml(r.note)} />}
           <div class="azioni-pezzo">
-            <a class="btn o piccolo" href={`${base}/repertorio?modifica=${p.id}#modulo`}>Modifica</a>
-            <form method="post" onsubmit="return confirm('Togliere questo pezzo dal repertorio? I file restano su Drive.')">
-              <input type="hidden" name="azione" value="cancella" /><input type="hidden" name="id" value={p.id} />
-              <button class="btn o piccolo cancella" type="submit">Togli dal repertorio</button>
-            </form>
+            <a class="btn o piccolo" href={`${base}/repertorio?modifica=${r.id}#modulo`}>Modifica la raccolta</a>
+            <a class="btn o piccolo" href={`${base}/repertorio?nuovo&raccolta=${r.id}#modulo`}>Aggiungi un pezzo nuovo</a>
           </div>
+          {r.contenuto.length > 0 && (
+            <ul class="pezzi-raccolta">
+              {r.contenuto.map((id) => {
+                const p = pezzoDi.get(id)!;
+                return <VocePezzo p={p} base={base} attivo={p.id === inModifica?.id} ancora={prima(id)} altre={nomiRaccolte(p).filter((n) => n !== r.titolo)} cerca={cerca(p)} />;
+              })}
+            </ul>
+          )}
         </div>
       </details>
     </li>
   ))}
+  {opere.map((p) => <VocePezzo p={p} base={base} attivo={p.id === inModifica?.id} ancora={prima(p.id)} altre={[]} cerca={cerca(p)} />)}
 </ul>
 
 <script>
@@ -260,12 +241,14 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
 </script>
 
 <script>
-  // Elenco: si apre il pezzo o la raccolta indicati nell'indirizzo (#p-<id>, #r-<id>), anche quando
-  // cambia (i pezzi di una raccolta portano al pezzo); ricerca per autore, titolo o raccolta
+  // Lista: si apre il pezzo o la raccolta indicati nell'indirizzo (#p-<id>, #r-<id>), anche quando
+  // cambia; un pezzo dentro una raccolta apre anche la raccolta. Ricerca per autore, titolo o
+  // raccolta: una raccolta si vede se il suo nome o uno dei suoi pezzi corrisponde, e si apre
   const apri = () => {
     const el = /^#[pr]-/.test(location.hash) && document.querySelector<HTMLElement>(location.hash);
     if (!el) return;
     el.hidden = false;
+    el.parentElement?.closest('.voce-raccolta')?.querySelector('details')?.setAttribute('open', '');
     el.querySelector('details')?.setAttribute('open', '');
     el.scrollIntoView({ block: 'start' });
   };
@@ -274,7 +257,15 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   const filtro = document.querySelector<HTMLInputElement>('.filtra-pezzi');
   filtro?.addEventListener('input', () => {
     const parole = filtro.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
-    document.querySelectorAll<HTMLElement>('.tutti-pezzi > li').forEach((li) => { li.hidden = !parole.every((p) => li.dataset.cerca!.includes(p)); });
+    const vale = (el: HTMLElement) => parole.every((p) => el.dataset.cerca!.includes(p));
+    document.querySelectorAll<HTMLElement>('.lista-repertorio .voce-pezzo').forEach((li) => { li.hidden = !vale(li); });
+    document.querySelectorAll<HTMLElement>('.lista-repertorio > .voce-raccolta').forEach((r) => {
+      const pezzi = [...r.querySelectorAll<HTMLElement>('.voce-pezzo')];
+      if (parole.length && vale(r)) pezzi.forEach((li) => { li.hidden = false; });
+      const trovati = pezzi.some((li) => !li.hidden) || (parole.length > 0 && vale(r));
+      r.hidden = parole.length > 0 && !trovati;
+      r.querySelector('details')!.open = parole.length > 0 && pezzi.some((li) => !li.hidden);
+    });
   });
 </script>
 
@@ -348,28 +339,9 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .avanza-file small { color: var(--tenue); font-size: 13px; }
   #file { scroll-margin-top: 140px; }
   .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
-  .elenco-pezzi { list-style: none; margin: 0; padding: 0; }
-  .elenco-pezzi li { border-bottom: 1px solid var(--linea); scroll-margin-top: 140px; }
-  .elenco-pezzi summary { display: flex; gap: 6px 14px; align-items: center; flex-wrap: wrap; padding: 14px 20px; cursor: pointer; list-style: none; }
-  .elenco-pezzi summary::-webkit-details-marker { display: none; }
-  .elenco-pezzi summary::before { content: '▸'; color: var(--tenue); transition: transform .15s; }
-  .elenco-pezzi details[open] summary::before { transform: rotate(90deg); }
-  .elenco-pezzi .testa-pezzo { flex: 1 1 260px; min-width: 0; }
-  .elenco-pezzi .dettagli { flex-basis: 100%; padding-left: 22px; }
-  .corpo-pezzo { padding: 0 20px 18px 42px; display: grid; gap: 14px; }
-  .corpo-pezzo dl { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 15px; }
-  .corpo-pezzo dt { font-weight: 700; color: var(--primario); }
-  .corpo-pezzo dd { margin: 0; overflow-wrap: anywhere; }
-  .corpo-pezzo a { text-decoration: underline; }
-  @media (max-width: 560px) { .corpo-pezzo { padding-left: 20px; } .corpo-pezzo dl { grid-template-columns: 1fr; gap: 2px; } .corpo-pezzo dd { margin-bottom: 8px; } }
   .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 12px; }
   .titolo-elenco small { font-size: 15px; font-family: var(--f-testo); color: var(--tenue); font-weight: 400; }
-  .elenco-pezzi li:last-child { border-bottom: 0; }
-  .elenco-pezzi li.attivo { box-shadow: inset 4px 0 0 var(--accento); }
-  .elenco-pezzi b { display: block; font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }
-  .elenco-pezzi .aut { display: block; }
-  .elenco-pezzi .dettagli { font-size: 14px; }
-  .azioni-pezzo { display: flex; gap: 8px; }
+  .azioni-pezzo { display: flex; gap: 8px; flex-wrap: wrap; }
   .azioni-pezzo form, .file-riga form { display: contents; }
   .riga-brano { flex-wrap: wrap; }
   .riga-brano .azioni-file { display: flex; gap: 8px; flex-shrink: 0; }
@@ -384,11 +356,47 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .tracce-parte summary { cursor: pointer; font-size: 14px; color: var(--tenue); padding: 4px 0; }
   .tracce-parte[open] summary { margin-bottom: 6px; }
   .tracce-parte .traccia-riga { background: var(--bianco); margin-top: 6px; }
-  .tag-raccolta { display: inline-flex; align-items: center; gap: 4px; }
-  .elenco-pezzi .aut :global(svg) { vertical-align: -3px; }
-  .pezzi-raccolta { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
   .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
   .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
   .messaggio.ok { border-color: #2e7d4f; }
   .messaggio.errore { border-color: #b3261e; color: #b3261e; }
+</style>
+
+<style is:global>
+  /* La lista del repertorio: globale perché le righe dei pezzi stanno in src/area/VocePezzo.astro */
+  .lista-repertorio { list-style: none; margin: 0; padding: 0; }
+  .lista-repertorio li { border-bottom: 1px solid var(--linea); scroll-margin-top: 140px; }
+  .lista-repertorio li:last-child { border-bottom: 0; }
+  .lista-repertorio li.attivo { box-shadow: inset 4px 0 0 var(--accento); }
+  .lista-repertorio summary { display: flex; gap: 6px 14px; align-items: center; flex-wrap: wrap; padding: 14px 20px; cursor: pointer; list-style: none; }
+  .lista-repertorio summary::-webkit-details-marker { display: none; }
+  .lista-repertorio summary::before { content: '▸'; color: var(--tenue); transition: transform .15s; }
+  .lista-repertorio details[open] > summary::before { transform: rotate(90deg); }
+  .lista-repertorio .testa-pezzo { flex: 1 1 260px; min-width: 0; }
+  .lista-repertorio .testa-pezzo b { display: block; font-family: var(--f-titoli); font-size: 18px; color: var(--primario); }
+  .lista-repertorio .aut { display: block; }
+  .lista-repertorio .dettagli { flex-basis: 100%; padding-left: 22px; font-size: 14px; }
+  .lista-repertorio .tag-raccolta { display: inline-flex; align-items: center; gap: 4px; }
+  .lista-repertorio .azioni-pezzo { display: flex; gap: 8px; flex-wrap: wrap; }
+  .lista-repertorio .azioni-pezzo form { display: contents; }
+  .lista-repertorio .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
+  .lista-repertorio .corpo-pezzo { padding: 0 20px 18px 42px; display: grid; gap: 14px; }
+  .lista-repertorio .corpo-pezzo dl { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 15px; }
+  .lista-repertorio .corpo-pezzo dt { font-weight: 700; color: var(--primario); }
+  .lista-repertorio .corpo-pezzo dd { margin: 0; overflow-wrap: anywhere; }
+  .lista-repertorio .corpo-pezzo a { text-decoration: underline; }
+  /* Raccolta: cartella con l'icona, che si apre sui suoi pezzi, rientrati in un riquadro */
+  .lista-repertorio .icona-raccolta { width: 36px; height: 36px; display: grid; place-items: center; background: var(--fondo); color: var(--primario); border-radius: var(--raggio); flex-shrink: 0; }
+  .lista-repertorio .voce-raccolta > details > summary .dettagli { padding-left: 72px; }
+  .lista-repertorio .voce-raccolta > details[open] { background: var(--fondo); }
+  .lista-repertorio .voce-raccolta > details[open] .icona-raccolta { background: var(--bianco); }
+  .lista-repertorio .corpo-raccolta { padding: 0 20px 18px 42px; display: grid; gap: 12px; }
+  .lista-repertorio .nota-raccolta p { margin: 0; }
+  .lista-repertorio .pezzi-raccolta { list-style: none; margin: 0; padding: 0; background: var(--bianco); border: 1px solid var(--linea); border-radius: var(--raggio); }
+  @media (max-width: 560px) {
+    .lista-repertorio .corpo-pezzo, .lista-repertorio .corpo-raccolta { padding-left: 14px; padding-right: 14px; }
+    .lista-repertorio .corpo-pezzo dl { grid-template-columns: 1fr; gap: 2px; }
+    .lista-repertorio .corpo-pezzo dd { margin-bottom: 8px; }
+    .lista-repertorio .voce-raccolta > details > summary .dettagli { padding-left: 22px; }
+  }
 </style>
