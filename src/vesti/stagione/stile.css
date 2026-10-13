@@ -170,6 +170,17 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 .blocco-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .8; filter: brightness(.72) contrast(1.1); }
 .blocco-foto .scheda { position: absolute; left: 0; bottom: 0; background: var(--accento); color: var(--primario); padding: 24px 28px; max-width: 380px; transition: padding .2s; }
 .blocco-foto a.scheda:hover { padding-bottom: 32px; }
+.blocco-foto .diapo { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; }
+.blocco-foto .diapo.attiva { opacity: 1; z-index: 1; }
+.blocco-foto .didascalia { position: absolute; top: 14px; left: 14px; max-width: calc(100% - 28px); background: rgba(15, 27, 35, .72); color: #fff; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 6px; text-decoration: none; }
+.blocco-foto a.didascalia:hover { background: var(--primario); }
+.blocco-foto .scheda { z-index: 2; }
+.blocco-foto .pallini { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; gap: 2px; }
+.blocco-foto .pallini button { width: 24px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.blocco-foto .pallini button::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, .55); box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); transition: background .2s; }
+.blocco-foto .pallini button[aria-pressed='true']::after { background: var(--accento); }
+@media (max-width: 560px) { .blocco-foto .pallini { top: 10px; right: 10px; bottom: auto; } .blocco-foto .didascalia { max-width: calc(100% - 140px); } }
+@media (prefers-reduced-motion: reduce) { .blocco-foto .diapo { transition: none; } }
 .scheda .n { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 52px; line-height: .85; letter-spacing: -0.012em; }
 .scheda .n small { font-family: var(--f-titoli); font-size: 18px; letter-spacing: .04em; font-weight: var(--peso-titoli); display: block; margin-top: 8px; text-transform: uppercase; }
 .scheda p { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 21px; line-height: 1.2; margin-top: 14px; }

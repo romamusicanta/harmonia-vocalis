@@ -81,8 +81,24 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
         </div>
       </div>
     </div>
-    <div class="blocco-foto">
-      <Foto nome={coro.foto.apertura} alt={en ? `The ${coro.nome} in concert` : `Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" />
+    {/* Le foto «Home» dei concerti (dal 13/10/2026): con una sola, quella al posto della foto di apertura;
+        con più di una, un carosello che le alterna in dissolvenza (pallini per sceglierle). Senza, la foto di apertura */}
+    <div class="blocco-foto" data-diapositive={fotoHome.length > 1 ? '' : undefined}>
+      {fotoHome.length === 0
+        ? <Foto nome={coro.foto.apertura} alt={en ? `The ${coro.nome} in concert` : `Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" />
+        : fotoHome.map((f, n) => (
+            <div class:list={['diapo', { attiva: n === 0 }]} aria-hidden={n === 0 ? undefined : 'true'}>
+              <Foto nome={f.nome} alt={f.alt} caricamento={n === 0 ? 'eager' : 'lazy'} sizes="(min-width: 980px) 50vw, 100vw" />
+              {f.didascalia && (f.href
+                ? <a class="didascalia" href={f.href} tabindex={n === 0 ? undefined : -1}>{f.didascalia}</a>
+                : <span class="didascalia">{f.didascalia}</span>)}
+            </div>
+          ))}
+      {fotoHome.length > 1 && (
+        <div class="pallini" role="group" aria-label={en ? 'Concert photos' : 'Foto dei concerti'}>
+          {fotoHome.map((f, n) => <button type="button" aria-label={en ? `Photo ${n + 1} of ${fotoHome.length}` : `Foto ${n + 1} di ${fotoHome.length}`} aria-pressed={n === 0 ? 'true' : 'false'} />)}
+        </div>
+      )}
       {prossimo && d && (
         <a class="scheda" href={l(`/concerti/${slug(prossimo)}`)}>
           <div class="n">{d.giorno}<small>{d.mese} · {d.giornoSettimana}</small></div>
@@ -217,6 +233,33 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
     carosello.addEventListener('scroll', aggiorna, { passive: true });
     new ResizeObserver(aggiorna).observe(carosello);
     aggiorna();
+  }
+
+  // Carosello della foto di apertura (foto «Home» dei concerti): cambia ogni 6 secondi in dissolvenza,
+  // si ferma con il mouse sopra, con il fuoco dentro o con la pagina nascosta; con «riduci movimento»
+  // non parte da solo. I pallini scelgono la foto.
+  for (const blocco of document.querySelectorAll<HTMLElement>('[data-diapositive]')) {
+    const diapo = [...blocco.querySelectorAll<HTMLElement>('.diapo')];
+    const pallini = [...blocco.querySelectorAll<HTMLButtonElement>('.pallini button')];
+    let ora = 0;
+    const mostra = (n: number) => {
+      ora = (n + diapo.length) % diapo.length;
+      diapo.forEach((d, i) => {
+        d.classList.toggle('attiva', i === ora);
+        if (i === ora) d.removeAttribute('aria-hidden'); else d.setAttribute('aria-hidden', 'true');
+        d.querySelector('a')?.setAttribute('tabindex', i === ora ? '0' : '-1');
+      });
+      pallini.forEach((p, i) => p.setAttribute('aria-pressed', String(i === ora)));
+    };
+    let fermo = false;
+    pallini.forEach((p, i) => p.addEventListener('click', () => mostra(i)));
+    blocco.addEventListener('mouseenter', () => { fermo = true; });
+    blocco.addEventListener('mouseleave', () => { fermo = false; });
+    blocco.addEventListener('focusin', () => { fermo = true; });
+    blocco.addEventListener('focusout', () => { fermo = false; });
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setInterval(() => { if (!fermo && !document.hidden) mostra(ora + 1); }, 6000);
+    }
   }
 </script>
 
