@@ -147,8 +147,8 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         <span style="font-size:15px">Foto principale caricata prima: {evento?.copertina ? <a href={evento.copertina.fileUrl} target="_blank" rel="noopener" style="text-decoration:underline">{evento.copertina.title}</a> : v?.rigaFoto}. Vale finché non scegli una copertina.</span>
       )}
       <span class="aiuto">{modifica
-        ? <>Dopo il concerto, la foto delle schede è la <b>copertina</b>: si sceglie con la stella ☆ tra le foto dei coristi, <a href="#foto" style="text-decoration:underline">in fondo a questa pagina</a> o in Foto dei concerti. Senza copertina, nelle schede si vede la locandina.</>
-        : 'Dopo il concerto, la foto delle schede si sceglie con la stella «Copertina» tra le foto caricate dai coristi (in fondo alla Modifica del concerto o in Foto dei concerti).'}</span></div>
+        ? <>Nelle schede si vede la locandina. Senza locandina, dopo il concerto, la <b>copertina</b>: si sceglie con la stella ☆ tra le foto dei coristi, <a href="#foto" style="text-decoration:underline">in fondo a questa pagina</a> o in Foto dei concerti.</>
+        : 'Nelle schede si vede la locandina. Senza locandina, dopo il concerto, la copertina scelta con la stella tra le foto caricate dai coristi (in fondo alla Modifica del concerto o in Foto dei concerti).'}</span></div>
   </div>
 
   <div class="bottoni" style="margin-top:12px">

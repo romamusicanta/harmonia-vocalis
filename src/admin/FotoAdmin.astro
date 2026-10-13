@@ -1,7 +1,7 @@
 ---
 // Le foto dei coristi di un concerto per i redattori: per ognuna chi la vede (Nascosta, Coristi, Sito,
 // Home: ogni livello comprende quello prima), la stella «Copertina» (una per concerto, dal 13/10/2026: la
-// foto delle schede e dell'album nella pagina Foto; la copertina è sempre almeno «Sito») e «Togli»
+// copertina dell'album nella pagina Foto, e la foto delle schede dei concerti senza locandina; la copertina è sempre almeno «Sito») e «Togli»
 // (cestino del Drive condiviso). Si salva subito
 // (/admin/foto-concerti/stato). Lo usano Amministrazione → Foto dei concerti e la Modifica del concerto.
 // Con doppioni (nella Modifica del concerto, dal 13/10/2026) c'è anche «Cerca le foto doppie»: il browser
@@ -33,7 +33,7 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
         {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
       </span>
       <span class="azioni-foto">
-        <button type="button" class="stella" aria-pressed={f.copertina ? 'true' : 'false'} title="La foto delle schede del concerto e del suo album nella pagina Foto: una per concerto"><span aria-hidden="true">{f.copertina ? '★' : '☆'}</span> Copertina</button>
+        <button type="button" class="stella" aria-pressed={f.copertina ? 'true' : 'false'} title="La copertina dell'album del concerto nella pagina Foto (e la foto della sua scheda, se non ha la locandina): una per concerto"><span aria-hidden="true">{f.copertina ? '★' : '☆'}</span> Copertina</button>
         <button type="button" class="togli">Togli</button>
       </span>
     </li>

@@ -18,11 +18,10 @@ const { concerto, href, etichetta, grigia, azione, conFoto = true } = Astro.prop
 const lingua = linguaDi(Astro.url);
 const c = concertoIn(concerto, lingua);
 const d = parti(c, lingua);
-// La copertina scelta dai redattori tra le foto dei coristi (dal 13/10/2026), ritagliata; senza, la
-// locandina intera (non ritagliata) sul fondo della scheda; senza nemmeno quella, la foto principale
-// scritta nell'evento prima del 13/10/2026
-const anteprima = c.copertina ?? c.locandina ?? c.foto;
-const eLocandina = !c.copertina && Boolean(c.locandina);
+// La locandina intera (non ritagliata) sul fondo della scheda; senza, la copertina scelta dai redattori
+// tra le foto dei coristi (dal 13/10/2026), poi la foto principale scritta nell'evento prima
+const anteprima = c.locandina ?? c.copertina ?? c.foto;
+const eLocandina = Boolean(c.locandina);
 ---
 
 <a class="sc" href={href}>
