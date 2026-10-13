@@ -47,7 +47,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import ical from 'node-ical';
-import { coro } from './coro';
+import { copertinaDelConcerto, coro } from './coro';
 import { daEvento, giornoIso, semplifica, stagione } from './calendario';
 import type { Concerto } from './tipi';
 import { localeDi, type Lingua } from './lingua';
@@ -61,7 +61,9 @@ async function carica(): Promise<Concerto[]> {
     if (!dati) throw new Error('CALENDARIO_CONCERTI_ICS non impostata');
     return Object.values(dati)
       .filter((c): c is ical.VEvent => c?.type === 'VEVENT' && (c as ical.VEvent).status !== 'CANCELLED')
-      .map((e) => daEvento(e));
+      .map((e) => daEvento(e))
+      // La copertina scelta dai redattori tra le foto dei coristi (Foto dei concerti, la stella)
+      .map((c) => { const copertina = c.dataIncerta ? undefined : copertinaDelConcerto(c.data.slice(0, 10)); return copertina ? { ...c, copertina } : c; });
   } catch (err) {
     console.warn(`[calendario] non raggiungibile, nessun concerto: ${err}`);
     return [];

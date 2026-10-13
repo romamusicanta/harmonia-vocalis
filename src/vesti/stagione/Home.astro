@@ -13,7 +13,7 @@ import { concertoIn, videoIn } from '../../motore/inglese';
 import { archivio, linkIscrizioneCalendario, parti, prossimiConcerti, slug, stagione } from '../../motore/concerti';
 import { elencoVideo, titoloCompleto, videoInEvidenza } from '../../motore/video';
 import type { Veste } from '../../motore/aspetto';
-import { fotoInHome } from '../../motore/coro';
+import { albumFoto, fotoInHome } from '../../motore/coro';
 import Galleria from '../../componenti/Galleria.astro';
 
 interface Props { veste: Veste }
@@ -39,8 +39,8 @@ const schede = [
 ];
 
 // Le foto scelte per la home tra quelle dei coristi (src/area/fotoConcerti.ts, visibilità «home»): le più
-// belle di tutti i concerti, dal più recente; al più 9 (una grande e otto piccole), ognuna con il nome
-// del concerto e il link alla sua pagina
+// belle di tutti i concerti, dal più recente; al più 9, nel carosello della foto di apertura, ognuna con
+// il nome del concerto e il link alle sue foto
 const tuttiConcerti = [...prossimi, ...archivio];
 const fotoHome = fotoInHome().slice(0, 9).map((f, n) => {
   const c = tuttiConcerti.find((x) => !x.dataIncerta && x.data.slice(0, 10) === f.data);
@@ -56,6 +56,22 @@ const fotoHome = fotoInHome().slice(0, 9).map((f, n) => {
     testoLink: en ? 'The concert →' : 'Il concerto →',
   };
 });
+
+// L'ultimo concerto in foto (dal 13/10/2026, al posto del mosaico delle foto «Home», che ripeteva quelle
+// dell'apertura): le prime 6 foto del concerto più recente che ne ha, il visore le scorre tutte
+const ultimoAlbum = albumFoto()[0];
+const ultimo = ultimoAlbum && (() => {
+  const c = tuttiConcerti.find((x) => !x.dataIncerta && x.data.slice(0, 10) === ultimoAlbum.data);
+  const t = c && concertoIn(c, lingua);
+  const nome = t ? [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ') : (en ? 'Concert' : 'Concerto');
+  const pd = parti({ data: ultimoAlbum.data }, lingua);
+  const giorno = `${Number(pd.giorno)} ${en ? pd.mese : pd.mese.toLowerCase()} ${pd.anno}`;
+  return {
+    nome, giorno, luogo: t?.luogo,
+    href: c ? `${l(`/concerti/${slug(c)}`)}#foto` : undefined,
+    foto: ultimoAlbum.foto.map((nomeFile, n) => ({ nome: nomeFile, alt: en ? `${nome}: photo ${n + 1}` : `${nome}: foto ${n + 1}`, didascalia: `${nome} · ${giorno}` })),
+  };
+})();
 
 const evidenza = videoIn(coro.funzioni.ascolta ? await videoInEvidenza() : undefined, lingua);
 const altriVideo = (await elencoVideo()).filter((v) => v.id !== evidenza?.id).slice(0, 3).map((v) => videoIn(v, lingua));
@@ -124,12 +140,16 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
   </div>
 </section>
 
-{fotoHome.length > 0 && (
+{ultimo && (
   <section style="padding-top:0">
     <div class="w">
-      <div class="testa"><h2>{en ? 'From our concerts' : 'Dai nostri concerti'}</h2></div>
-      <!-- Dati: foto dei coristi scelte una per una dai redattori per la home -->
-      <Galleria foto={fotoHome} mosaico en={en} />
+      <div class="testa">
+        <h2>{en ? 'Our latest concert in photos' : "L'ultimo concerto in foto"}</h2>
+        <a class="btn o" href={l('/foto')}>{en ? 'All photos' : 'Tutte le foto'}</a>
+      </div>
+      <!-- Dati: foto dei coristi messe nel sito pubblico dai redattori, del concerto più recente che ne ha -->
+      <p class="ultimo-album">{ultimo.href ? <a href={ultimo.href}>{ultimo.nome}</a> : ultimo.nome} <span class="tenue">· {[ultimo.giorno, ultimo.luogo].filter(Boolean).join(' · ')} · {ultimo.foto.length} {en ? (ultimo.foto.length === 1 ? 'photo' : 'photos') : 'foto'}</span></p>
+      <Galleria foto={ultimo.foto} miniature={6} en={en} />
     </div>
   </section>
 )}
@@ -264,4 +284,9 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
 </script>
 
 <style>
+  .ultimo-album { margin: -8px 0 16px; font-weight: 600; }
+  .ultimo-album a { color: inherit; }
+  .ultimo-album .tenue { font-weight: 500; }
+  .ultimo-album + :global(.galleria-foto) { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 759.98px) { .ultimo-album + :global(.galleria-foto) { grid-template-columns: repeat(2, 1fr); } }
 </style>

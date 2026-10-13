@@ -1,0 +1,99 @@
+---
+// Pagina "Foto" (dal 13/10/2026; /foto, /en/photos): un album per concerto, dal più recente, divisi per
+// stagione, con tutte le foto dei coristi messe nel sito pubblico dai redattori (visibilità Sito e Home,
+// src/area/fotoConcerti.ts). Ogni album ha la copertina scelta dai redattori (la stella in Foto dei
+// concerti; senza, la prima foto), titolo, data, luogo e numero di foto: un tocco apre il visore della
+// Galleria su quelle foto, il titolo porta alla pagina del concerto.
+import type { Veste } from '../motore/aspetto';
+import Base from '../layouts/Base.astro';
+import Foto from '../componenti/Foto.astro';
+import Galleria from '../componenti/Galleria.astro';
+import Icona from '../componenti/Icona.astro';
+import { contesto } from '../motore/url';
+import { concertoIn } from '../motore/inglese';
+import { archivio, parti, prossimiConcerti, slug, stagione } from '../motore/concerti';
+import { albumFoto } from '../motore/coro';
+
+interface Props { veste: Veste }
+const { veste } = Astro.props;
+const { en, l, lingua, coro } = contesto(Astro.url, veste);
+
+const tutti = [...(await prossimiConcerti()), ...archivio];
+const album = albumFoto().map((a) => {
+  const c = tutti.find((x) => !x.dataIncerta && x.data.slice(0, 10) === a.data);
+  const t = c && concertoIn(c, lingua);
+  const nome = t ? [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ') : (en ? 'Concert' : 'Concerto');
+  const pd = parti({ data: a.data }, lingua);
+  const giorno = `${Number(pd.giorno)} ${en ? pd.mese : pd.mese.toLowerCase()} ${pd.anno}`;
+  return {
+    id: `album-${a.data}`,
+    data: a.data,
+    nome,
+    giorno,
+    luogo: t?.luogo,
+    href: c ? l(`/concerti/${slug(c)}`) : undefined,
+    stagione: stagione({ data: a.data }),
+    foto: a.foto.map((f, n) => ({ nome: f, alt: en ? `${nome}: photo ${n + 1}` : `${nome}: foto ${n + 1}`, didascalia: `${nome} · ${giorno}`, href: c ? `${l(`/concerti/${slug(c)}`)}#foto` : undefined, testoLink: en ? 'The concert →' : 'Il concerto →' })),
+  };
+});
+// Per stagione, dalla più recente
+const stagioni = [...new Map(album.map((a) => [a.stagione.id, a.stagione])).values()];
+const totale = album.reduce((t, a) => t + a.foto.length, 0);
+---
+
+<Base veste={veste} titolo={en ? 'Photos' : 'Foto'} pagina="foto" anteprima={album[0]?.foto[0]?.nome} descrizione={en ? `Photos from the concerts of the ${coro.nome}, taken by our choir members.` : `Le foto dei concerti del ${coro.nome}, scattate dai nostri coristi.`}>
+  <header class="intesta blu">
+    <div class="w due">
+      <div>
+        <span class="eti" style="margin-bottom:20px">{en ? 'From our concerts' : 'Dai nostri concerti'}</span>
+        <h1>{en ? 'Photos' : 'Foto'}<span>.</span></h1>
+      </div>
+      <div>
+        <p class="lead">{album.length
+          ? (en ? `${album.length === 1 ? 'One concert' : `${album.length} concerts`}, ${totale} ${totale === 1 ? 'photo' : 'photos'} taken by our choir members. Tap an album to browse it.` : `${album.length === 1 ? 'Un concerto' : `${album.length} concerti`}, ${totale} foto scattate dai nostri coristi. Tocca un album per sfogliarlo.`)
+          : (en ? 'Photos from our concerts will be here soon.' : 'Presto qui le foto dei nostri concerti.')}</p>
+        <div class="bottoni" style="margin-top:24px"><a class="btn g" href={l('/concerti')}>{en ? 'Season and archive' : 'Stagione e archivio'}</a></div>
+      </div>
+    </div>
+  </header>
+
+  {stagioni.map((s) => (
+    <section class="album-stagione">
+      <div class="w">
+        <div class="testa"><h2>{en ? 'Season' : 'Stagione'} {s.sigla}</h2></div>
+        <ul class="album">
+          {album.filter((a) => a.stagione.id === s.id).map((a) => (
+            <li>
+              <button type="button" class="copertina-album" data-apri-foto={`${a.id}:0`} aria-label={en ? `Browse the photos: ${a.nome}, ${a.giorno}` : `Sfoglia le foto: ${a.nome}, ${a.giorno}`}>
+                <Foto nome={a.foto[0].nome} alt="" sizes="(min-width: 980px) 400px, 100vw" />
+                <span class="quante"><Icona nome="fotocamera" />{a.foto.length}</span>
+              </button>
+              <div class="album-testo">
+                <h3>{a.href ? <a href={a.href}>{a.nome}</a> : a.nome}</h3>
+                <span class="tenue">{[a.giorno, a.luogo].filter(Boolean).join(' · ')}</span>
+              </div>
+              <Galleria id={a.id} foto={a.foto} miniature={0} en={en} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .album-stagione + .album-stagione { padding-top: 0; }
+  .album { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 28px 20px; }
+  .album li { display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .copertina-album { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 0; overflow: hidden; border-radius: var(--raggio); background: var(--fondo); cursor: zoom-in; }
+  .copertina-album :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .copertina-album:hover :global(img) { transform: scale(1.03); }
+  .copertina-album:focus-visible { outline: 3px solid var(--accento); outline-offset: 2px; }
+  .quante { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; background: rgba(15, 27, 35, .78); color: #fff; font-size: 14px; font-weight: 700; padding: 5px 10px; border-radius: 6px; }
+  .quante :global(svg) { width: 16px; height: 16px; }
+  .album-testo { display: grid; gap: 2px; }
+  .album-testo h3 { margin: 0; font-size: 19px; }
+  .album-testo h3 a { color: inherit; text-decoration: none; }
+  .album-testo h3 a:hover { text-decoration: underline; }
+  .album-testo .tenue { font-size: 14px; }
+</style>

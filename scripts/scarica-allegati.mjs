@@ -7,8 +7,9 @@
 // - le foto dei concerti caricate dai coristi che i redattori hanno messo nel sito pubblico
 //   (cartella Foto dei concerti, DRIVE_CARTELLA_FOTO_CONCERTI, una sottocartella per concerto, proprietà
 //   visibilita = pubblica o home, vedi src/area/fotoConcerti.ts) in coro/immagini/drive/concerti/<data>/<id>.jpg:
-//   la pagina del concerto di quella data le mostra; l'elenco di quelle scelte per la home (le più belle)
-//   va in coro/immagini/drive/concerti/home.json. Quelle non più pubbliche si cancellano.
+//   la pagina del concerto di quella data le mostra; l'elenco di tutte, con data, ora del caricamento,
+//   scelta per la home (le più belle) e copertina del concerto (proprietà copertina = sì, dal 13/10/2026),
+//   va in coro/immagini/drive/concerti/elenco.json. Quelle non più pubbliche si cancellano.
 // - i testi del sito cambiati dall'Amministrazione (file "Testi del sito.json" della cartella Sito,
 //   quella che contiene Sito/Foto; vedi src/motore/testiSito.ts) in coro/immagini/drive/testi/testi.json,
 //   più i corpi in Markdown in coro/immagini/drive/testi/<nome>.md e en/<nome>.md, con l'intestazione
@@ -160,7 +161,7 @@ async function fotoConcerti(token) {
   };
   const cartelle = await elenco(`'${radice}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`, 'id,name');
   const volute = new Set();
-  const home = [];
+  const pubbliche = [];
   for (const c of cartelle) {
     const foto = await elenco(`'${c.id}' in parents and trashed = false and (appProperties has { key='visibilita' and value='pubblica' } or appProperties has { key='visibilita' and value='home' })`, 'id,name,mimeType,appProperties,createdTime');
     for (const f of foto) {
@@ -169,16 +170,16 @@ async function fotoConcerti(token) {
       const dove = new URL(`${data}/`, cartellaConcerti);
       const file = new URL(`${f.id}.${estensioni[f.mimeType]}`, dove);
       volute.add(file.pathname);
-      if (f.appProperties?.visibilita === 'home') home.push({ file: `drive/concerti/${data}/${f.id}.${estensioni[f.mimeType]}`, data, caricata: f.createdTime });
+      pubbliche.push({ file: `drive/concerti/${data}/${f.id}.${estensioni[f.mimeType]}`, data, caricata: f.createdTime, home: f.appProperties?.visibilita === 'home', copertina: f.appProperties?.copertina === 'sì' });
       if (existsSync(file)) continue;
       mkdirSync(dove, { recursive: true });
       await scarica(token, f.id, `Foto dei concerti/${c.name}/${f.name}`, file);
     }
   }
   mkdirSync(cartellaConcerti, { recursive: true });
-  const elencoHome = new URL('home.json', cartellaConcerti);
-  writeFileSync(elencoHome, JSON.stringify(home, null, 2));
-  volute.add(elencoHome.pathname);
+  writeFileSync(new URL('elenco.json', cartellaConcerti), JSON.stringify(pubbliche, null, 2));
+  // home.json, l'elenco di prima del 13/10/2026: non serve più
+  rmSync(new URL('home.json', cartellaConcerti), { force: true });
   for (const giorno of readdirSync(cartellaConcerti)) {
     if (!statSync(new URL(giorno, cartellaConcerti)).isDirectory()) continue;
     const dove = new URL(`${giorno}/`, cartellaConcerti);

@@ -34,6 +34,7 @@ const inHome = gallerie.reduce((t, g) => t + g.foto.filter((f) => f.visibilita =
     <li><b>Home</b>: anche nella home, nella foto grande in apertura (con più foto Home scorrono una dopo l'altra) e tra le foto più belle dei nostri concerti (si vedono le 9 dei concerti più recenti).</li>
     <li><b>Nascosta</b>: la vedono solo i redattori.</li>
   </ul>
+  <p class="tenue" style="max-width:64ch">Con la stella <b>☆ Copertina</b> scegli, per ogni concerto, la foto che si vede nella sua scheda (al posto della locandina) e sulla copertina del suo album nella pagina Foto del sito; è anche la prima della galleria. Una per concerto, e sempre almeno «Sito».</p>
   <p class="tenue" style="max-width:64ch">Sito e Home valgono dopo la prossima <a href="/admin">pubblicazione</a>. Le foto di un concerto si caricano e si gestiscono anche dalla sua Modifica (Concerti → Modifica, in fondo). Con «Cerca le foto doppie», sopra le foto di ogni concerto, si tolgono le copie della stessa foto e resta quella a risoluzione più alta.{inHome > 0 && <> Ora in home: <b>{inHome}</b> {inHome === 1 ? 'foto' : 'foto'}{inHome > 9 && ' (si vedono le 9 dei concerti più recenti)'}.</>}</p>
   {errore && <Errore e={errore} />}
   {!errore && gallerie.length === 0 && <p class="tenue">Ancora nessuna foto.</p>}

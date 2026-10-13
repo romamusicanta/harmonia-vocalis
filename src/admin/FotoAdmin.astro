@@ -1,6 +1,8 @@
 ---
 // Le foto dei coristi di un concerto per i redattori: per ognuna chi la vede (Nascosta, Coristi, Sito,
-// Home: ogni livello comprende quello prima) e «Togli» (cestino del Drive condiviso). Si salva subito
+// Home: ogni livello comprende quello prima), la stella «Copertina» (una per concerto, dal 13/10/2026: la
+// foto delle schede e dell'album nella pagina Foto; la copertina è sempre almeno «Sito») e «Togli»
+// (cestino del Drive condiviso). Si salva subito
 // (/admin/foto-concerti/stato). Lo usano Amministrazione → Foto dei concerti e la Modifica del concerto.
 // Con doppioni (nella Modifica del concerto, dal 13/10/2026) c'è anche «Cerca le foto doppie»: il browser
 // confronta le miniature (stesso file, oppure stessa forma e quasi gli stessi pixel a 64×64: la stessa
@@ -30,7 +32,10 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
       <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
         {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
       </span>
-      <button type="button" class="togli">Togli</button>
+      <span class="azioni-foto">
+        <button type="button" class="stella" aria-pressed={f.copertina ? 'true' : 'false'} title="La foto delle schede del concerto e del suo album nella pagina Foto: una per concerto"><span aria-hidden="true">{f.copertina ? '★' : '☆'}</span> Copertina</button>
+        <button type="button" class="togli">Togli</button>
+      </span>
     </li>
   ))}
 </ul>
@@ -57,6 +62,11 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
   .foto-admin li.si-toglie .doppia { background: #fbe4e2; color: var(--rosso); }
   .foto-admin li.si-toglie a { outline: 3px solid var(--rosso); }
   .foto-admin li.si-toglie img { opacity: .55; }
+  .azioni-foto { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .stella { font: inherit; font-size: 13px; font-weight: 600; background: none; border: 2px solid var(--linea); border-radius: var(--raggio); color: var(--tenue); cursor: pointer; padding: 4px 10px; min-height: 32px; }
+  .stella span { font-size: 15px; }
+  .stella[aria-pressed='true'] { background: var(--accento); border-color: var(--accento); color: var(--testo); }
+  .foto-admin li:has(.stella[aria-pressed='true']) a { outline-color: var(--accento); outline-width: 4px; }
   .togli { justify-self: start; font: inherit; font-size: 13px; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 4px 0; }
 </style>
 
@@ -65,6 +75,16 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
     const r = await fetch('/admin/foto-concerti/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
     const j = await r.json().catch(() => ({ ok: false }));
     if (!j.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
+    return j as { ok: true; visibilita?: string };
+  };
+  const segnaStella = (li: HTMLLIElement, si: boolean) => {
+    const b = li.querySelector<HTMLButtonElement>('.stella')!;
+    b.setAttribute('aria-pressed', String(si));
+    b.querySelector('span')!.textContent = si ? '★' : '☆';
+  };
+  const segnaVisibilita = (li: HTMLLIElement, v: string) => {
+    li.querySelectorAll<HTMLButtonElement>('.scelta-visibilita button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v)));
+    li.className = v;
   };
   document.querySelectorAll<HTMLLIElement>('.foto-admin li[data-id]').forEach((li) => {
     const gruppo = li.querySelector<HTMLElement>('.scelta-visibilita')!;
@@ -72,12 +92,31 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
       const b = (e.target as Element).closest<HTMLButtonElement>('button');
       if (!b || b.getAttribute('aria-pressed') === 'true') return;
       const prima = gruppo.querySelector<HTMLElement>('[aria-pressed="true"]')?.dataset.v ?? 'coristi';
-      const mostra = (v: string) => { gruppo.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v))); li.className = v; };
-      mostra(b.dataset.v!);
+      const eraCopertina = li.querySelector('.stella')!.getAttribute('aria-pressed') === 'true';
+      segnaVisibilita(li, b.dataset.v!);
+      // Fuori dal sito pubblico non è più la copertina (lo fa anche il server)
+      const esce = b.dataset.v === 'nascosta' || b.dataset.v === 'coristi';
+      if (esce) segnaStella(li, false);
       gruppo.classList.add('in-corso');
       try { await chiama({ id: li.dataset.id, visibilita: b.dataset.v }); }
-      catch (err) { mostra(prima); alert(`Non salvato: ${(err as Error).message}`); }
+      catch (err) { segnaVisibilita(li, prima); segnaStella(li, eraCopertina); alert(`Non salvato: ${(err as Error).message}`); }
       finally { gruppo.classList.remove('in-corso'); }
+    });
+    // La copertina: una per concerto, le altre stelle dello stesso elenco si spengono
+    const stella = li.querySelector<HTMLButtonElement>('.stella')!;
+    stella.addEventListener('click', async () => {
+      const si = stella.getAttribute('aria-pressed') !== 'true';
+      const elenco = [...li.parentElement!.querySelectorAll<HTMLLIElement>('li[data-id]')];
+      const prima = elenco.find((x) => x.querySelector('.stella')!.getAttribute('aria-pressed') === 'true');
+      elenco.forEach((x) => segnaStella(x, si && x === li));
+      stella.disabled = true;
+      try {
+        const j = await chiama({ id: li.dataset.id, copertina: si });
+        if (j.visibilita) segnaVisibilita(li, j.visibilita);
+      } catch (err) {
+        elenco.forEach((x) => segnaStella(x, x === prima));
+        alert(`Non salvato: ${(err as Error).message}`);
+      } finally { stella.disabled = false; }
     });
     li.querySelector('.togli')!.addEventListener('click', async () => {
       if (!confirm('Togliere questa foto? Va nel cestino del Drive condiviso (si recupera per 30 giorni).')) return;
@@ -176,6 +215,13 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
             await chiama({ id: tenuta.dataset.id, visibilita: ORDINE[massima] });
             tenuta.querySelectorAll<HTMLButtonElement>('.scelta-visibilita button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === ORDINE[massima])));
             tenuta.className = ORDINE[massima];
+          }
+          // Se la copertina era una delle copie, la diventa quella che resta
+          const stellaDi = (x: HTMLLIElement) => x.querySelector('.stella')!.getAttribute('aria-pressed') === 'true';
+          if (!stellaDi(tenuta) && altre.some(stellaDi)) {
+            await chiama({ id: tenuta.dataset.id, copertina: true });
+            altre.forEach((x) => segnaStella(x, false));
+            segnaStella(tenuta, true);
           }
         } catch (err) { errori.push((err as Error).message); continue; }
         for (const li of altre) {

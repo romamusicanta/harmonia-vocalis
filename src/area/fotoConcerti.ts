@@ -34,6 +34,7 @@ export interface FotoConcerto {
   altezza?: number;
   byte?: number;
   md5?: string;            // per riconoscere i file identici
+  copertina?: boolean;     // la copertina del concerto, scelta dai redattori (dal 13/10/2026)
 }
 
 // Un concerto a cui si possono legare le foto: uno recente del calendario (id dell'evento) o uno
@@ -100,7 +101,7 @@ async function leggiFoto(): Promise<ConcertoConFoto[]> {
       if (!perConcerto.has(k)) perConcerto.set(k, { data, titolo: evento?.titolo ?? (c.name.slice(11) || 'Concerto'), evento, foto: [] });
       const email = p.caricatoDa ?? '';
       const cc = elenco.find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
-      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum });
+      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum, copertina: p.copertina === 'sì' });
     }
   }
   return [...perConcerto.values()].sort((a, b) => b.data.localeCompare(a.data));
@@ -141,14 +142,35 @@ export async function togliFoto(id: string, email: string, redattore = false) {
   svuota();
 }
 
-// I redattori decidono chi la vede
+const proprieta = (id: string, appProperties: Record<string, string | null>) =>
+  google(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?supportsAllDrives=true&fields=id`, { method: 'PATCH', body: JSON.stringify({ appProperties }) });
+
+// I redattori decidono chi la vede. Una foto che esce dal sito pubblico non è più la copertina
+// (su Drive una proprietà si toglie scrivendola null)
 export async function cambiaVisibilita(id: string, visibilita: Visibilita, email: string) {
   if (!VISIBILITA.includes(visibilita)) throw new Error('Visibilità non valida.');
   await controlla(id);
-  await google(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?supportsAllDrives=true&fields=id`, {
-    method: 'PATCH',
-    body: JSON.stringify({ appProperties: { visibilita, decisaDa: email } }),
-  });
+  await proprieta(id, { visibilita, decisaDa: email, ...(sulSito(visibilita) ? {} : { copertina: null }) });
   dimentica(id);
   svuota();
+}
+
+// La copertina del concerto (dal 13/10/2026): una sola per concerto, cioè per cartella; nelle schede del
+// sito, nell'album della pagina Foto e per prima nella galleria. La copertina è sempre sul sito: una foto
+// solo per i coristi o nascosta diventa «Sito». Risponde con la visibilità che ha ora
+export async function scegliCopertina(id: string, si: boolean, email: string): Promise<Visibilita> {
+  const f = await controlla(id);
+  const prima = (VISIBILITA.find((v) => v === f.appProperties?.visibilita) ?? 'coristi') as Visibilita;
+  if (!si) {
+    await proprieta(id, { copertina: null });
+    svuota();
+    return prima;
+  }
+  const altre = (await fileIn(f.parents![0])).filter((x) => x.id !== id && x.appProperties?.copertina === 'sì');
+  await Promise.all(altre.map((x) => proprieta(x.id, { copertina: null })));
+  const visibilita = sulSito(prima) ? prima : 'pubblica';
+  await proprieta(id, { copertina: 'sì', visibilita, decisaDa: email });
+  dimentica(id);
+  svuota();
+  return visibilita;
 }

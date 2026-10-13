@@ -139,15 +139,16 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
       </div>
       <input id="locandina" name="locandina" type="file" accept="image/jpeg,image/png,image/webp" />
       <span class="aiuto">{modifica ? 'Caricandone una, prende il posto di quella attuale (che resta su Drive).' : 'La locandina ufficiale (JPEG o PNG; un PDF va prima salvato come immagine).'}</span></div>
-    <div class="campo"><label for="copertina">Foto principale</label>
-      {evento?.copertina && <span style="font-size:15px">Ora: <a href={evento.copertina.fileUrl} target="_blank" rel="noopener" style="text-decoration:underline">{evento.copertina.title}</a></span>}
-      {!evento?.copertina && v?.rigaFoto && <span style="font-size:15px">Ora: {v.rigaFoto} (nel sito)</span>}
-      <div class="anteprime-file" data-tipo="copertina">
-        {anteprima(evento?.copertina) && <figure class="attuale"><img src={anteprima(evento?.copertina)} alt="" loading="lazy" /><figcaption>Ora</figcaption></figure>}
-        <figure class="da-salvare" data-per="copertina" hidden><img alt="" /><figcaption>{modifica ? 'Nuova, da salvare' : 'Scelta'}</figcaption></figure>
-      </div>
-      <input id="copertina" name="copertina" type="file" accept="image/jpeg,image/png,image/webp" />
-      <span class="aiuto">Una foto del coro in questo concerto, la più bella: nelle schede del sito si vede solo se il concerto non ha la locandina, che ha la precedenza. Solo con il consenso delle persone riconoscibili.</span></div>
+    {/* Dal 13/10/2026 la foto delle schede si sceglie con la stella «Copertina» tra le foto dei coristi
+        (Foto dei concerti, o in fondo alla Modifica dopo il concerto): qui non si carica più. Quella
+        caricata prima resta valida finché non c'è una copertina */}
+    <div class="campo"><span class="lab">Foto del concerto</span>
+      {(evento?.copertina || v?.rigaFoto) && (
+        <span style="font-size:15px">Foto principale caricata prima: {evento?.copertina ? <a href={evento.copertina.fileUrl} target="_blank" rel="noopener" style="text-decoration:underline">{evento.copertina.title}</a> : v?.rigaFoto}. Vale finché non scegli una copertina.</span>
+      )}
+      <span class="aiuto">{modifica
+        ? <>Dopo il concerto, la foto delle schede è la <b>copertina</b>: si sceglie con la stella ☆ tra le foto dei coristi, <a href="#foto" style="text-decoration:underline">in fondo a questa pagina</a> o in Foto dei concerti. Senza copertina, nelle schede si vede la locandina.</>
+        : 'Dopo il concerto, la foto delle schede si sceglie con la stella «Copertina» tra le foto caricate dai coristi (in fondo alla Modifica del concerto o in Foto dei concerti).'}</span></div>
   </div>
 
   <div class="bottoni" style="margin-top:12px">
@@ -163,7 +164,6 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   .anteprime-file figure { margin: 0; width: 160px; }
   .anteprime-file img { display: block; width: 100%; height: 200px; border-radius: var(--raggio); background: var(--fondo); }
   .anteprime-file[data-tipo='locandina'] img { object-fit: contain; }
-  .anteprime-file[data-tipo='copertina'] img { object-fit: cover; }
   .anteprime-file figcaption { font-size: 13px; margin-top: 4px; color: var(--tenue); }
   .anteprime-file .da-salvare figcaption { font-weight: 700; color: var(--primario); }
   .anteprime-file .da-salvare img { outline: 3px solid var(--accento); outline-offset: -3px; }
@@ -205,7 +205,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     if (file) img.src = URL.createObjectURL(file);
     else img.removeAttribute('src');
   }
-  for (const campo of ['locandina', 'copertina']) document.getElementById(campo)!.addEventListener('change', () => aggiornaAnteprima(campo));
+  for (const campo of ['locandina']) document.getElementById(campo)!.addEventListener('change', () => aggiornaAnteprima(campo));
 
   // Righe ripetibili: si copia la prima, svuotata
   function aggiungiRiga(id: string) {
@@ -312,7 +312,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     const indirizzo = modifica ? '/admin/concerti/aggiorna' : '/admin/concerti/crea';
     try {
       const dati = new FormData(modulo);
-      for (const campo of ['locandina', 'copertina']) {
+      for (const campo of ['locandina']) {
         const f = dati.get(campo);
         if (f instanceof File && f.size) dati.set(campo, await riduci(f));
         else dati.delete(campo);
@@ -336,9 +336,8 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         : `${statoScelto?.closest('label') ? `Stato «${statoScelto.closest('label')!.querySelector('b')?.textContent ?? ''}»: non` : 'Non'} è sul sito pubblico, coristi e Maestro lo vedono già.${pulsanti.replace('<button type="button" class="btn g piccolo" data-pubblica>Pubblica ora</button>', '')}`;
       if (modifica) {
         (document.getElementById('locandina') as HTMLInputElement).value = '';
-        (document.getElementById('copertina') as HTMLInputElement).value = '';
         // Le immagini appena salvate prendono il posto di quelle attuali nelle anteprime
-        for (const campo of ['locandina', 'copertina']) {
+        for (const campo of ['locandina']) {
           const scelta = document.querySelector<HTMLElement>(`.da-salvare[data-per="${campo}"]`)!;
           if (scelta.hidden) continue;
           scelta.parentElement!.querySelector('.attuale')?.remove();
@@ -363,7 +362,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         mostra(`Modifiche salvate. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
       } else {
         modulo.reset();
-        for (const campo of ['locandina', 'copertina']) aggiornaAnteprima(campo);
+        for (const campo of ['locandina']) aggiornaAnteprima(campo);
         letto.className = '';
         letto.textContent = '';
         mostra(`Concerto creato. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');

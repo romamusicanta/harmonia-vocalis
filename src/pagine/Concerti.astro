@@ -7,7 +7,7 @@ import Icona from '../componenti/Icona.astro';
 import IscrizioneCalendario from '../componenti/IscrizioneCalendario.astro';
 import Foto from '../componenti/Foto.astro';
 import { Image } from 'astro:assets';
-import { immagine } from '../motore/coro';
+import { fotoDelConcerto, immagine } from '../motore/coro';
 import { DEMO } from '../motore/coro';
 import { contesto } from '../motore/url';
 import { archivio, chiaveAutore, linkIscrizioneCalendario, luogoCompleto, parti, perStagione, prossimiConcerti, slug } from '../motore/concerti';
@@ -152,7 +152,12 @@ const linkVideo = (id: string) => (coro.funzioni.ascolta ? l(`/ascolta#${id}`) :
                     </div>
                   </div>
                   <span class="dove">{dove ? <><Icona nome="luogo" />{dove}</> : <span class="tenue" style="font-size:14px">{en ? 'Venue not given' : 'Luogo non indicato'}</span>}</span>
-                  <span class="azione">{c.video && <a href={p.incerta ? linkVideo(c.video) : l(`/concerti/${slug(c)}#registrazione`)}><Icona nome="play" />{en ? 'Watch the video' : 'Guarda il video'}</a>}</span>
+                  {/* Le foto dei coristi del concerto (dal 13/10/2026): quante sono, con il link alla galleria della sua pagina */}
+                  {(() => { const nFoto = p.incerta ? 0 : fotoDelConcerto(c.data.slice(0, 10)).length; return (
+                  <span class="azione">
+                    {c.video && <a href={p.incerta ? linkVideo(c.video) : l(`/concerti/${slug(c)}#registrazione`)}><Icona nome="play" />{en ? 'Watch the video' : 'Guarda il video'}</a>}
+                    {nFoto > 0 && <a href={l(`/concerti/${slug(c)}#foto`)}><Icona nome="fotocamera" />{nFoto} foto{en && nFoto !== 1 ? 's' : ''}</a>}
+                  </span>); })()}
                 </div>
               );
             })}

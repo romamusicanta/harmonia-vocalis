@@ -3,20 +3,23 @@
 // tocco, il visore a schermo intero con la foto grande (1600 px), didascalia, link al concerto, frecce,
 // tastiera (← → Esc) e scorrimento col dito. Nella pagina del concerto una griglia regolare; in home
 // (mosaico) la prima foto è più grande e ognuna ha sotto il nome del concerto.
+// Con miniature, solo le prime N miniature (il visore le scorre tutte; 0 = nessuna, per gli album della
+// pagina Foto). Con id, il visore si apre anche da fuori: un elemento con data-apri-foto="<id>:<indice>"
+// (la fila di foto in cima alla pagina del concerto, la copertina di un album).
 import { getImage } from 'astro:assets';
 import Foto from './Foto.astro';
 import Icona from './Icona.astro';
 import { immagine } from '../motore/coro';
 
 export interface FotoGalleria { nome: string; alt: string; didascalia?: string; href?: string; testoLink?: string }
-interface Props { foto: FotoGalleria[]; mosaico?: boolean; en?: boolean }
-const { foto, mosaico = false, en = false } = Astro.props;
+interface Props { foto: FotoGalleria[]; mosaico?: boolean; en?: boolean; id?: string; miniature?: number }
+const { foto, mosaico = false, en = false, id, miniature = foto.length } = Astro.props;
 const grandi = await Promise.all(foto.map((f) => getImage({ src: immagine(f.nome), width: 1600 })));
 const dati = foto.map((f, i) => ({ src: grandi[i].src, alt: f.alt, didascalia: f.didascalia, href: f.href, testoLink: f.testoLink }));
 ---
 
-<ul class:list={['galleria-foto', { mosaico }]} data-galleria={JSON.stringify(dati)}>
-  {foto.map((f, i) => (
+<ul class:list={['galleria-foto', { mosaico }]} data-galleria={JSON.stringify(dati)} data-id-galleria={id} hidden={miniature === 0 || undefined}>
+  {foto.slice(0, miniature).map((f, i) => (
     <li>
       <button type="button" class="apri-foto" data-indice={i} aria-label={en ? `Enlarge: ${f.alt}` : `Ingrandisci: ${f.alt}`}>
         <Foto nome={f.nome} alt={f.alt} sizes={mosaico && i === 0 ? '(min-width: 980px) 600px, 100vw' : '(min-width: 980px) 300px, 50vw'} />
@@ -40,6 +43,7 @@ const dati = foto.map((f, i) => ({ src: grandi[i].src, alt: f.alt, didascalia: f
 </dialog>
 
 <style>
+  .galleria-foto[hidden] { display: none; }
   .galleria-foto { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
   .galleria-foto.mosaico { grid-template-columns: repeat(4, 1fr); }
   .galleria-foto.mosaico li:first-child { grid-column: span 2; grid-row: span 2; }
@@ -106,6 +110,14 @@ const dati = foto.map((f, i) => ({ src: grandi[i].src, alt: f.alt, didascalia: f
       if (dati.length > 1) new Image().src = dati[(i + 1) % dati.length].src;
     };
     ul.querySelectorAll<HTMLButtonElement>('.apri-foto').forEach((b) => b.addEventListener('click', () => { mostra(Number(b.dataset.indice)); v.showModal(); }));
+    // Dall'esterno: data-apri-foto="<id della galleria>:<indice>"
+    if (ul.dataset.idGalleria) {
+      document.querySelectorAll<HTMLElement>(`[data-apri-foto^="${ul.dataset.idGalleria}:"]`).forEach((b) => b.addEventListener('click', (e) => {
+        e.preventDefault();
+        mostra(Number(b.dataset.apriFoto!.split(':').at(-1)));
+        v.showModal();
+      }));
+    }
     v.querySelector('.chiudi-visore')!.addEventListener('click', () => v.close());
     prec.addEventListener('click', () => mostra(i - 1));
     succ.addEventListener('click', () => mostra(i + 1));

@@ -1,0 +1,8 @@
+---
+import PaginaFoto from '../../pagine/PaginaFoto.astro';
+import { percorsiVesti, vesteCorrente } from '../../motore/url';
+
+export const getStaticPaths = () => percorsiVesti();
+---
+
+<PaginaFoto veste={vesteCorrente(Astro.params.veste)} />

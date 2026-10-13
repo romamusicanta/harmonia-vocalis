@@ -29,6 +29,7 @@ export type Concerto = {
   video?: string;        // ID del video YouTube, se c'è la registrazione
   altriVideo?: string[]; // altri video del concerto (estratti, altre parti): righe "Video:" dopo la prima
   foto?: string;         // nome del file in coro/immagini
+  copertina?: string;    // la copertina scelta tra le foto dei coristi (dal 13/10/2026): nelle schede prima della locandina
   locandina?: string;    // locandina ufficiale (file in coro/immagini), al posto di quella generata
   evidenza?: string;     // etichetta speciale: "Il primo concerto del coro"
   home?: boolean;        // in home page (riga "Home: sì/no" dell'evento); senza, solo se è in programma

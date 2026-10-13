@@ -42,18 +42,42 @@ export function immagine(nome: string) {
 
 export const esisteImmagine = (nome: string) => `/coro/immagini/${nome}` in immagini;
 
-// Le foto scelte per la home (le più belle dei concerti), dall'elenco scritto da scripts/scarica-allegati.mjs:
-// dal concerto più recente, come nomi per immagine() con la data del concerto
-const elencoHome = import.meta.glob<{ file: string; data: string; caricata?: string }[]>('/coro/immagini/drive/concerti/home.json', { eager: true, import: 'default' });
+// Le foto dei concerti messe nel sito pubblico (src/area/fotoConcerti.ts), dall'elenco scritto da
+// scripts/scarica-allegati.mjs: data del concerto, ora del caricamento, scelta per la home, copertina.
+// Senza elenco (build di prima del 13/10/2026), quelle presenti nelle cartelle, senza scelte
+interface FotoPubblica { file: string; data: string; caricata?: string; home?: boolean; copertina?: boolean }
+const elencoFoto = import.meta.glob<FotoPubblica[]>('/coro/immagini/drive/concerti/elenco.json', { eager: true, import: 'default' });
+const fotoPubbliche = (): FotoPubblica[] => {
+  if (DEMO) return [];
+  const elenco = Object.values(elencoFoto)[0];
+  if (elenco) return elenco.filter((f) => `/coro/immagini/${f.file}` in immagini);
+  return Object.keys(immagini)
+    .map((k) => k.match(/^\/coro\/immagini\/(drive\/concerti\/(\d{4}-\d{2}-\d{2})\/[^/]+)$/))
+    .filter((m): m is RegExpMatchArray => Boolean(m))
+    .map((m) => ({ file: m[1], data: m[2] }));
+};
+// Nell'ordine di un album: prima la copertina, poi nell'ordine in cui sono state caricate
+const ordineAlbum = (a: FotoPubblica, b: FotoPubblica) => Number(Boolean(b.copertina)) - Number(Boolean(a.copertina)) || (a.caricata ?? a.file).localeCompare(b.caricata ?? b.file);
+
+// Le foto scelte per la home (le più belle dei concerti): dal concerto più recente, come nomi per
+// immagine() con la data del concerto
 export const fotoInHome = () =>
-  DEMO ? [] : (Object.values(elencoHome)[0] ?? [])
-    .filter((f) => `/coro/immagini/${f.file}` in immagini)
+  fotoPubbliche()
+    .filter((f) => f.home)
     .sort((a, b) => b.data.localeCompare(a.data) || (b.caricata ?? '').localeCompare(a.caricata ?? ''))
     .map((f) => ({ nome: f.file, data: f.data }));
 
-// Le foto dei coristi del concerto di quel giorno (AAAA-MM-GG) messe nel sito pubblico, come nomi per immagine()
-export const fotoDelConcerto = (data: string) =>
-  DEMO ? [] : Object.keys(immagini).filter((k) => k.startsWith(`/coro/immagini/drive/concerti/${data}/`)).sort().map((k) => k.slice('/coro/immagini/'.length));
+// Le foto del concerto di quel giorno (AAAA-MM-GG), copertina per prima, come nomi per immagine()
+export const fotoDelConcerto = (data: string) => fotoPubbliche().filter((f) => f.data === data).sort(ordineAlbum).map((f) => f.file);
+
+// La copertina scelta dai redattori tra le foto del concerto di quel giorno (la stella in Foto dei concerti)
+export const copertinaDelConcerto = (data: string) => fotoPubbliche().find((f) => f.data === data && f.copertina)?.file;
+
+// Gli album: un concerto (giorno) con le sue foto, dal più recente
+export const albumFoto = () => {
+  const giorni = [...new Set(fotoPubbliche().map((f) => f.data))].sort((a, b) => b.localeCompare(a));
+  return giorni.map((data) => ({ data, foto: fotoDelConcerto(data) }));
+};
 
 // Sezioni dell'organico. Al singolare parola per parola, per le voci del modulo di candidatura:
 // "Tenori" → "Tenore", "Baritoni e bassi" → "Baritono e basso".

@@ -19,6 +19,7 @@ export const localeDi = (lingua: Lingua) => (lingua === 'en' ? 'en-GB' : 'it-IT'
 const PAGINE_EN: Record<string, string> = {
   concerti: 'concerts',
   ascolta: 'listen',
+  foto: 'photos',
   'il-coro': 'the-choir',
   'il-maestro': 'conductor',
   'canta-con-noi': 'sing-with-us',

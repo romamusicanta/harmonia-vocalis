@@ -3,6 +3,7 @@
 import ConLink from '../../componenti/ConLink.astro';
 import Marchio from './Marchio.astro';
 import { contesto, linkArea } from '../../motore/url';
+import { albumFoto } from '../../motore/coro';
 import type { Veste } from '../../motore/aspetto';
 
 interface Props { veste: Veste }
@@ -33,6 +34,7 @@ const l = coro.link;
         <ul>
           <li><a href={link('/concerti')}>{en ? 'Season and archive' : 'Stagione e archivio'}</a></li>
           {f.ascolta && <li><a href={link('/ascolta')}>{en ? 'Recordings' : 'Registrazioni'}</a></li>}
+          {albumFoto().length > 0 && <li><a href={link('/foto')}>{en ? 'Concert photos' : 'Foto dei concerti'}</a></li>}
           {l.youtube && <li><a href={l.youtube}>{en ? 'YouTube channel' : 'Canale YouTube'}</a></li>}
           {l.instagram && <li><a href={l.instagram}>Instagram</a></li>}
           {l.facebook && <li><a href={l.facebook}>Facebook</a></li>}

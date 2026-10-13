@@ -266,14 +266,14 @@ a.sc:hover { box-shadow: var(--ombra); }
 .riga .cosa b { display: block; font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 21px; color: var(--primario); letter-spacing: 0; line-height: 1.2; }
 .riga .cosa .aut { display: block; margin-bottom: 2px; }
 .riga .dove { color: var(--tenue); font-size: 15px; display: flex; gap: 6px; align-items: center; }
-.riga .azione { grid-column: 2; }
+.riga .azione { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 18px; }
 .riga .azione a { font-weight: 700; font-size: 14px; color: var(--primario); display: inline-flex; gap: 8px; align-items: center; }
 .riga .azione a:hover { text-decoration: underline; }
 .riga .azione .senza { font-size: 13px; color: var(--tenue); }
 @media (min-width: 860px) {
   .riga { grid-template-columns: 110px minmax(0, 1.4fr) minmax(0, 1fr) 190px; }
   .riga .quando { grid-row: auto; align-self: center; }
-  .riga .azione { grid-column: auto; text-align: right; }
+  .riga .azione { grid-column: auto; text-align: right; flex-direction: column; align-items: flex-end; }
 }
 .nessun-risultato { padding: 40px 0; color: var(--tenue); }
 
