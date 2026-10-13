@@ -5,6 +5,8 @@ import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Foto from '../componenti/Foto.astro';
+import CaroselloFoto from '../componenti/CaroselloFoto.astro';
+import { fotoCaroselloMaestro } from '../motore/coro';
 import Video from '../componenti/Video.astro';
 import NotaVideo from '../componenti/NotaVideo.astro';
 
@@ -27,6 +29,7 @@ type Dati = {
 };
 const { dati, Contenuto, titoli } = testo<Dati>('maestro', lingua);
 const m = coro.maestro;
+const caroselloMaestro = fotoCaroselloMaestro();
 const nome = (dati.titolo ?? m.nome).replace(/\.$/, '');
 const lavori = dati.lavori ?? [];
 const repertorio = dati.repertorio ?? [];
@@ -61,7 +64,10 @@ const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(
         {dati.ruoli && <ul class="ruoli" aria-label={en ? 'Roles' : 'Ruoli'}>{dati.ruoli.map((r) => <li>{r}</li>)}</ul>}
       </div>
       <div class="blocco-foto" style="min-height:520px">
-        <Foto nome={m.foto} alt={en ? `Maestro ${m.nome}` : `Il M° ${m.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="object-position:center 20%;mix-blend-mode:normal;opacity:1" />
+        {/* Le foto scelte dai redattori per il carosello (Foto del sito → Il Maestro, dal 13/10/2026); senza, la foto del Maestro */}
+        {caroselloMaestro.length
+          ? <CaroselloFoto foto={caroselloMaestro.map((nome, n) => ({ nome, alt: en ? `Maestro ${m.nome}, photo ${n + 1}` : `Il M° ${m.nome}, foto ${n + 1}` }))} etichetta={en ? `Photos of Maestro ${m.nome}` : `Foto del M° ${m.nome}`} stile="object-position:center 20%" />
+          : <Foto nome={m.foto} alt={en ? `Maestro ${m.nome}` : `Il M° ${m.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="object-position:center 20%;mix-blend-mode:normal;opacity:1" />}
         {m.anniPodio ? (
           <div class="scheda" style="max-width:300px"><div class="n" style="font-size:44px">{m.anniPodio}<small>{en ? 'years on the podium' : 'anni sul podio'}</small></div><p style="font-size:16px;font-weight:600">{en ? `Leading the ${coro.nome}.` : `Alla guida del ${coro.nome}.`}</p></div>
         ) : null}

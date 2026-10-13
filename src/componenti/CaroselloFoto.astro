@@ -1,0 +1,59 @@
+---
+// Carosello di foto dentro la foto grande di una pagina (.blocco-foto della veste Stagione): in cima alla
+// home le foto «Home» dei concerti, nella pagina «Il Maestro» le sue foto (dal 13/10/2026). Con una sola
+// foto, solo quella; con più di una cambiano ogni 6 secondi in dissolvenza, si fermano con il mouse
+// sopra, con il fuoco dentro o con la pagina nascosta, con «riduci movimento» non partono da sole; i
+// pallini scelgono la foto. Didascalia facoltativa in alto a sinistra, con il link.
+import Foto from './Foto.astro';
+import { linguaDi } from '../motore/lingua';
+
+export interface FotoCarosello { nome: string; alt: string; didascalia?: string; href?: string }
+interface Props { foto: FotoCarosello[]; etichetta: string; sizes?: string; stile?: string }
+const { foto, etichetta, sizes = '(min-width: 980px) 50vw, 100vw', stile } = Astro.props;
+const en = linguaDi(Astro.url) === 'en';
+---
+
+<div class="diapositive" data-diapositive={foto.length > 1 ? '' : undefined}>
+  {foto.map((f, n) => (
+    <div class:list={['diapo', { attiva: n === 0 }]} aria-hidden={n === 0 ? undefined : 'true'}>
+      <Foto nome={f.nome} alt={f.alt} caricamento={n === 0 ? 'eager' : 'lazy'} {sizes} style={stile} />
+      {f.didascalia && (f.href
+        ? <a class="didascalia" href={f.href} tabindex={n === 0 ? undefined : -1}>{f.didascalia}</a>
+        : <span class="didascalia">{f.didascalia}</span>)}
+    </div>
+  ))}
+  {foto.length > 1 && (
+    <div class="pallini" role="group" aria-label={etichetta}>
+      {foto.map((_, n) => <button type="button" aria-label={en ? `Photo ${n + 1} of ${foto.length}` : `Foto ${n + 1} di ${foto.length}`} aria-pressed={n === 0 ? 'true' : 'false'} />)}
+    </div>
+  )}
+</div>
+
+<script>
+  // Ogni carosello con più foto: cambia ogni 6 secondi in dissolvenza, si ferma con il mouse sopra, con
+  // il fuoco dentro o con la pagina nascosta; con «riduci movimento» non parte da solo. I pallini
+  // scelgono la foto.
+  for (const blocco of document.querySelectorAll<HTMLElement>('[data-diapositive]')) {
+    const diapo = [...blocco.querySelectorAll<HTMLElement>('.diapo')];
+    const pallini = [...blocco.querySelectorAll<HTMLButtonElement>('.pallini button')];
+    let ora = 0;
+    const mostra = (n: number) => {
+      ora = (n + diapo.length) % diapo.length;
+      diapo.forEach((d, i) => {
+        d.classList.toggle('attiva', i === ora);
+        if (i === ora) d.removeAttribute('aria-hidden'); else d.setAttribute('aria-hidden', 'true');
+        d.querySelector('a')?.setAttribute('tabindex', i === ora ? '0' : '-1');
+      });
+      pallini.forEach((p, i) => p.setAttribute('aria-pressed', String(i === ora)));
+    };
+    let fermo = false;
+    pallini.forEach((p, i) => p.addEventListener('click', () => mostra(i)));
+    blocco.addEventListener('mouseenter', () => { fermo = true; });
+    blocco.addEventListener('mouseleave', () => { fermo = false; });
+    blocco.addEventListener('focusin', () => { fermo = true; });
+    blocco.addEventListener('focusout', () => { fermo = false; });
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setInterval(() => { if (!fermo && !document.hidden) mostra(ora + 1); }, 6000);
+    }
+  }
+</script>

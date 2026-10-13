@@ -11,6 +11,10 @@
 //   scelta per la home (le più belle) con la posizione nel carosello (ordineHome) e copertina del concerto
 //   (proprietà copertina = sì, dal 13/10/2026),
 //   va in coro/immagini/drive/concerti/elenco.json. Quelle non più pubbliche si cancellano.
+// - le foto del carosello della pagina «Il Maestro» (dal 13/10/2026; sottocartella Maestro di Sito/Foto,
+//   proprietà carosello = sì e ordine, vedi src/admin/fotoMaestro.ts) in coro/immagini/drive/maestro/<id>.jpg,
+//   con l'elenco in ordine in coro/immagini/drive/maestro/elenco.json; quelle non più nel carosello si
+//   cancellano;
 // - i testi del sito cambiati dall'Amministrazione (file "Testi del sito.json" della cartella Sito,
 //   quella che contiene Sito/Foto; vedi src/motore/testiSito.ts) in coro/immagini/drive/testi/testi.json,
 //   più i corpi in Markdown in coro/immagini/drive/testi/<nome>.md e en/<nome>.md, con l'intestazione
@@ -189,6 +193,35 @@ async function fotoConcerti(token) {
   }
 }
 
+// Carosello del Maestro: una foto non cambia (si scarica una volta), l'elenco si riscrive sempre
+async function fotoMaestro(token) {
+  const radice = process.env.DRIVE_CARTELLA_FOTO;
+  if (!radice) return;
+  const elenco = async (q, campi) => {
+    const p = new URLSearchParams({ q, fields: `files(${campi})`, supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', pageSize: '200' });
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?${p}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error(`cartella Sito/Foto/Maestro non leggibile (${r.status})`);
+    return (await r.json()).files;
+  };
+  const dove = new URL('maestro/', cartella);
+  const [sotto] = await elenco(`'${radice}' in parents and trashed = false and name = 'Maestro' and mimeType = 'application/vnd.google-apps.folder'`, 'id');
+  const foto = sotto ? await elenco(`'${sotto.id}' in parents and trashed = false and appProperties has { key='carosello' and value='sì' }`, 'id,name,mimeType,appProperties,createdTime') : [];
+  const scelte = foto
+    .filter((f) => estensioni[f.mimeType])
+    .sort((a, b) => (Number(a.appProperties?.ordine) || Infinity) - (Number(b.appProperties?.ordine) || Infinity) || a.createdTime.localeCompare(b.createdTime));
+  mkdirSync(dove, { recursive: true });
+  const volute = new Set();
+  for (const f of scelte) {
+    const file = new URL(`${f.id}.${estensioni[f.mimeType]}`, dove);
+    volute.add(file.pathname);
+    if (!existsSync(file)) await scarica(token, f.id, `Sito/Foto/Maestro/${f.name}`, file);
+  }
+  const fileElenco = new URL('elenco.json', dove);
+  writeFileSync(fileElenco, JSON.stringify(scelte.map((f) => `drive/maestro/${f.id}.${estensioni[f.mimeType]}`), null, 2));
+  volute.add(fileElenco.pathname);
+  for (const nome of readdirSync(dove)) if (!volute.has(new URL(nome, dove).pathname)) rmSync(new URL(nome, dove));
+}
+
 // Testi del sito: si riscaricano sempre; senza il file, restano quelli del codice
 async function testiSito(token) {
   const foto = process.env.DRIVE_CARTELLA_FOTO;
@@ -229,6 +262,7 @@ async function main() {
   await allegatiCalendario(token).catch((err) => avviso(`allegati: ${err.message ?? err}`));
   await fotoSito(token).catch((err) => avviso(`foto del sito: ${err.message ?? err}`));
   await fotoConcerti(token).catch((err) => avviso(`foto dei concerti: ${err.message ?? err}`));
+  await fotoMaestro(token).catch((err) => avviso(`foto del Maestro: ${err.message ?? err}`));
   await testiSito(token).catch((err) => avviso(`testi del sito: ${err.message ?? err}`));
 }
 

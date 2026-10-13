@@ -170,6 +170,7 @@ h3 { font-family: var(--f-titoli); font-weight: var(--peso-titoli); letter-spaci
 .blocco-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: luminosity; opacity: .8; filter: brightness(.72) contrast(1.1); }
 .blocco-foto .scheda { position: absolute; left: 0; bottom: 0; background: var(--accento); color: var(--primario); padding: 24px 28px; max-width: 380px; transition: padding .2s; }
 .blocco-foto a.scheda:hover { padding-bottom: 32px; }
+.blocco-foto .diapositive { position: absolute; inset: 0; }
 .blocco-foto .diapo { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; }
 .blocco-foto .diapo.attiva { opacity: 1; z-index: 1; }
 .blocco-foto .didascalia { position: absolute; top: 14px; left: 14px; max-width: calc(100% - 28px); background: rgba(15, 27, 35, .72); color: #fff; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 6px; text-decoration: none; }

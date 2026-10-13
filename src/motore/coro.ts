@@ -24,7 +24,7 @@ export const DEMO = process.env.DEMO === '1';
 // scripts/scarica-allegati.mjs porta da Drive in coro/immagini/drive/ quelle allegate agli eventi
 // del calendario ("drive/<id>.<ext>"), le foto del sito della cartella Sito/Foto ("drive/sito/…") e le
 // foto dei concerti messe nel sito pubblico dai redattori ("drive/concerti/<data>/<id>.jpg").
-const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*,drive/sito/*,drive/concerti/*/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
+const immagini = import.meta.glob<{ default: ImageMetadata }>('/coro/immagini/{*,drive/*,drive/sito/*,drive/maestro/*,drive/concerti/*/*}.{jpg,jpeg,png,webp,avif,svg}', { eager: true });
 
 // Foto del sito: quelle della cartella Sito/Foto di Drive, se ci sono, al posto di coro.config.ts
 const fotoDrive = (nome: string) => !DEMO ? Object.keys(immagini).find((k) => k.startsWith(`/coro/immagini/drive/sito/${nome}.`))?.slice('/coro/immagini/'.length) : undefined;
@@ -77,6 +77,12 @@ export const fotoDelConcerto = (data: string) => fotoPubbliche().filter((f) => f
 
 // La copertina scelta dai redattori tra le foto del concerto di quel giorno (la stella in Foto dei concerti)
 export const copertinaDelConcerto = (data: string) => fotoPubbliche().find((f) => f.data === data && f.copertina)?.file;
+
+// Il carosello della pagina «Il Maestro» (dal 13/10/2026, src/admin/fotoMaestro.ts): le foto scelte dai
+// redattori, nel loro ordine, al più LIMITE_CAROSELLO, dall'elenco scritto da scripts/scarica-allegati.mjs
+const elencoMaestro = import.meta.glob<string[]>('/coro/immagini/drive/maestro/elenco.json', { eager: true, import: 'default' });
+export const fotoCaroselloMaestro = () =>
+  DEMO ? [] : (Object.values(elencoMaestro)[0] ?? []).filter((f) => `/coro/immagini/${f}` in immagini).slice(0, LIMITE_CAROSELLO);
 
 // Gli album: un concerto (giorno) con le sue foto, dal più recente
 export const albumFoto = () => {

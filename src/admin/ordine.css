@@ -1,0 +1,20 @@
+/* Elenco di foto da riordinare (src/admin/ordine-client.ts): carosello della home in Foto dei concerti,
+   carosello del Maestro in Foto del sito */
+.ordine-carosello { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ordine-carosello li { position: relative; display: grid; gap: 6px; align-content: start; padding: 6px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); cursor: grab; }
+.ordine-carosello li.trascinata { opacity: .4; }
+.ordine-carosello li.sopra { border-color: var(--accento); }
+.ordine-carosello img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block; }
+.ordine-carosello small { font-size: 12px; line-height: 1.3; color: var(--tenue); }
+.ordine-carosello .posto { position: absolute; top: 10px; left: 10px; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px; background: var(--accento); color: var(--testo); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+.ordine-carosello .non-scorre { display: none; color: var(--rosso); font-weight: 700; }
+.ordine-carosello li.fuori { border-style: dashed; }
+.ordine-carosello li.fuori img { opacity: .4; }
+.ordine-carosello li.fuori .posto { background: var(--linea); }
+.ordine-carosello li.fuori .non-scorre { display: inline; }
+.frecce { display: flex; gap: 6px; }
+.frecce button { flex: 1; font: inherit; font-weight: 700; min-height: 36px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--primario); cursor: pointer; }
+.frecce button:disabled { opacity: .35; cursor: default; }
+.togli-carosello { font: inherit; font-size: 13px; font-weight: 600; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 2px 0; justify-self: start; }
+.esito-ordine { font-size: 14px; margin: 10px 0 0; min-height: 1.2em; }
+.azioni-ordine { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
