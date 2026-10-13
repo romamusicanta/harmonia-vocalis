@@ -34,14 +34,14 @@ const inHome = gallerie.reduce((t, g) => t + g.foto.filter((f) => f.visibilita =
     <li><b>Home</b>: anche nella home, tra le foto più belle dei nostri concerti (si vedono le 9 dei concerti più recenti).</li>
     <li><b>Nascosta</b>: la vedono solo i redattori.</li>
   </ul>
-  <p class="tenue" style="max-width:64ch">Sito e Home valgono dopo la prossima <a href="/admin">pubblicazione</a>. Le foto di un concerto si caricano e si gestiscono anche dalla sua Modifica (Concerti → Modifica, in fondo).{inHome > 0 && <> Ora in home: <b>{inHome}</b> {inHome === 1 ? 'foto' : 'foto'}{inHome > 9 && ' (si vedono le 9 dei concerti più recenti)'}.</>}</p>
+  <p class="tenue" style="max-width:64ch">Sito e Home valgono dopo la prossima <a href="/admin">pubblicazione</a>. Le foto di un concerto si caricano e si gestiscono anche dalla sua Modifica (Concerti → Modifica, in fondo). Con «Cerca le foto doppie», sopra le foto di ogni concerto, si tolgono le copie della stessa foto e resta quella a risoluzione più alta.{inHome > 0 && <> Ora in home: <b>{inHome}</b> {inHome === 1 ? 'foto' : 'foto'}{inHome > 9 && ' (si vedono le 9 dei concerti più recenti)'}.</>}</p>
   {errore && <Errore e={errore} />}
   {!errore && gallerie.length === 0 && <p class="tenue">Ancora nessuna foto.</p>}
 
   {gallerie.map((g) => (
     <section class="scheda-admin galleria-admin">
       <h2>{g.titolo} <small class="tenue">· {quando(g.data)} · {g.foto.length} foto, {g.foto.filter((f) => sulSito(f.visibilita)).length} sul sito, {g.foto.filter((f) => f.visibilita === 'home').length} in home</small></h2>
-      <FotoAdmin foto={g.foto} />
+      <FotoAdmin foto={g.foto} doppioni />
     </section>
   ))}
 </LayoutAdmin>
