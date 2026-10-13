@@ -1,11 +1,11 @@
 ---
 // Area del Maestro: le sue note sull'esecuzione di ogni pezzo del repertorio, l'unica cosa che
-// scrive qui (spartiti, brani e tracce li caricano i redattori). Le note compaiono ai coristi nella
-// pagina Repertorio.
+// scrive qui (spartiti, parti e tracce li caricano i redattori). Le note compaiono ai coristi nella
+// pagina Repertorio. Tutti i pezzi, anche quelli delle raccolte, con le loro raccolte accanto.
 import Base from '../../../layouts/Base.astro';
 import Errore from '../../../area/Errore.astro';
 import Icona from '../../../componenti/Icona.astro';
-import { nomeCompleto, repertorio, salvaNote, type Pezzo } from '../../../area/repertorio';
+import { catalogo, salvaNote, type Pezzo, type Raccolta } from '../../../area/repertorio';
 import { spiegaTesto } from '../../../area/errori';
 import { vesteCorrente } from '../../../motore/url';
 
@@ -20,7 +20,9 @@ const q = Astro.url.searchParams;
 const semplice = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 let errore: unknown;
 let elenco: Pezzo[] = [];
-try { elenco = await repertorio(); } catch (e) { errore = e; }
+let raccolte: Raccolta[] = [];
+try { ({ pezzi: elenco, raccolte } = await catalogo()); } catch (e) { errore = e; }
+const nomiRaccolte = (p: Pezzo) => raccolte.filter((r) => p.raccolte.includes(r.id)).map((r) => r.titolo);
 ---
 
 <Base veste={veste} titolo="Note sul repertorio · Area del Maestro" area={{ maestro: true, sezione: 'repertorio' }}>
@@ -38,16 +40,16 @@ try { elenco = await repertorio(); } catch (e) { errore = e; }
       {q.get('esito') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} role="status">{q.get('esito')}</p>}
       {errore && <Errore e={errore} />}
       {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio è ancora vuoto: i pezzi li aggiungono i redattori.</p>}
-      {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca nel repertorio per autore o titolo…" aria-label="Cerca nel repertorio" />}
+      {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca per autore, titolo o raccolta…" aria-label="Cerca nel repertorio" />}
       {elenco.length > 0 && (
         <ul class="carta elenco-pezzi">
           {elenco.map((p) => (
-            <li id={`p-${p.id}`} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
+            <li id={`p-${p.id}`} data-cerca={semplice(`${p.autore} ${p.titolo} ${p.arrangiatore} ${nomiRaccolte(p).join(' ')}`)}>
               <details>
                 <summary>
-                  <span class="testa-pezzo"><span class="aut">{p.autore}</span><b>{p.titolo}</b></span>
+                  <span class="testa-pezzo"><span class="aut">{p.autore}{p.arrangiatore && <> · arr. {p.arrangiatore}</>}</span><b>{p.titolo}</b></span>
                   <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
-                  <span class="tenue dettagli">{p.note ? 'con le sue note' : 'nessuna nota'}</span>
+                  <span class="tenue dettagli">{[p.note ? 'con le sue note' : 'nessuna nota', ...nomiRaccolte(p).map((n) => `nella raccolta «${n}»`)].join(' · ')}</span>
                 </summary>
                 <form method="post" class="corpo-pezzo">
                   <input type="hidden" name="id" value={p.id} />

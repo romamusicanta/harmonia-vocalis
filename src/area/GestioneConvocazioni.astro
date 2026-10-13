@@ -7,7 +7,7 @@ import { parti } from '../motore/concerti';
 import { concertiInArrivo, convocazionePerWhatsapp, convocazioni, proveVicine, vuota, type Convocazione } from './convocazioni';
 import { linkWhatsapp } from './bacheca';
 import InvioNotifica from './InvioNotifica.astro';
-import { repertorio, type Pezzo } from './repertorio';
+import { catalogo, type Pezzo, type Raccolta } from './repertorio';
 import SceltaPezzi from './SceltaPezzi.astro';
 import { eventi, luogoBreveDi, nomeEvento, oggi, piuGiorni, type Evento } from './dati';
 import Errore from './Errore.astro';
@@ -20,9 +20,10 @@ let errore: unknown;
 let concerti: Evento[] = [];
 let tutte = new Map<string, Convocazione>();
 let pezzi: Pezzo[] = [];
+let raccolte: Raccolta[] = [];
 let prove: Evento[] = [];
 try {
-  [concerti, tutte, pezzi, prove] = await Promise.all([concertiInArrivo(), convocazioni(), repertorio().catch(() => []), eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 366)).then((x) => x.filter((e) => e.tipo === 'prova'))]);
+  [concerti, tutte, { pezzi, raccolte }, prove] = await Promise.all([concertiInArrivo(), convocazioni(), catalogo().catch(() => ({ pezzi: [] as Pezzo[], raccolte: [] as Raccolta[] })), eventi(piuGiorni(oggi(), -14), piuGiorni(oggi(), 366)).then((x) => x.filter((e) => e.tipo === 'prova'))]);
 } catch (e) {
   errore = e;
 }
@@ -84,8 +85,8 @@ const whatsapp = appena && convAppena && !vuota(convAppena)
       <label>Cosa portare <small>(una riga per cosa)</small><textarea name="portare" rows="3" placeholder={'Spartito con le note del Maestro\nBottiglietta d’acqua'}>{c?.portare.join('\n')}</textarea></label>
       <label>Come arrivare<textarea name="arrivare" rows="2" placeholder="Parcheggi, mezzi pubblici, ZTL…">{c?.arrivare}</textarea></label>
 
-      <SceltaPezzi nome="repertorio" etichetta="Pezzi del repertorio in programma" pezzi={pezzi} scelti={c?.repertorio ?? []} aiuto="Nell'ordine del concerto: si aggiungono in fondo." />
-      <SceltaPezzi nome="bis" etichetta="Bis" pezzi={pezzi} scelti={c?.bis ?? []} aiuto="Solo per i coristi: i bis non compaiono mai nel sito pubblico." />
+      <SceltaPezzi nome="repertorio" etichetta="Pezzi del repertorio in programma" pezzi={pezzi} raccolte={raccolte} scelti={c?.repertorio ?? []} aiuto="Nell'ordine del concerto: si aggiungono in fondo e si spostano con le frecce." />
+      <SceltaPezzi nome="bis" etichetta="Bis" pezzi={pezzi} raccolte={raccolte} scelti={c?.bis ?? []} aiuto="Solo per i coristi: i bis non compaiono mai nel sito pubblico." />
 
       <label>Note per i coristi<textarea name="note" rows="3">{c?.note}</textarea></label>
       <button class="btn" type="submit"><Icona nome="spunta" />Salva la convocazione</button>

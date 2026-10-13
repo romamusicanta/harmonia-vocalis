@@ -1,32 +1,41 @@
 ---
-// Area coristi, pagina Repertorio nel sito vero: i pezzi della scheda Repertorio
-// (src/area/repertorio.ts), prima quelli in studio. Per ognuno tracce per sezione (in evidenza
-// quella del corista), esecuzione di riferimento, spartito, brani separati e note del Maestro.
-// Ogni pezzo è una riga che si apre (con la ricerca in testa se sono molti); l'ancora #<id>, usata
-// da Calendario, Concerti e Registrazioni, apre quel pezzo. I file del Drive del
-// coro si aprono dal sito (src/area/file.ts); per i link che restano su Drive, l'aiuto per entrarci.
+// Area coristi, pagina Repertorio nel sito vero: le opere della scheda Repertorio
+// (src/area/repertorio.ts) e, dal 13/10/2026, le raccolte, come cartelle che si aprono sui loro
+// pezzi (un pezzo che sta in una raccolta non si ripete tra le opere; in più raccolte compare in
+// ognuna). Ogni pezzo è una scheda che si apre (src/area/SchedaPezzo.astro), con la ricerca in testa
+// se sono molti; l'ancora #<id>, usata da Calendario, Concerti e Registrazioni, apre quel pezzo, e
+// la raccolta che lo contiene. I file del Drive del coro si aprono dal sito (src/area/file.ts); per
+// i link che restano su Drive, l'aiuto per entrarci.
 import Icona from '../componenti/Icona.astro';
 import { coristaDi } from './dati';
-import { nomeCompleto, repertorio, type Pezzo } from './repertorio';
+import { catalogo, nomeCompleto, type Pezzo, type Raccolta } from './repertorio';
 import { comeHtml } from './testo';
 import Errore from './Errore.astro';
 import AiutoDrive from './AiutoDrive.astro';
+import SchedaPezzo from './SchedaPezzo.astro';
 import { linkDelSito, suDrive } from './file';
 
 let errore: unknown;
 let elenco: Pezzo[] = [];
+let raccolte: Raccolta[] = [];
 let sezione: string | undefined;
 try {
-  [elenco, sezione] = await Promise.all([repertorio(), coristaDi(Astro.locals.corista!.email).then((c) => c?.sezione)]);
+  [{ pezzi: elenco, raccolte }, sezione] = await Promise.all([catalogo(), coristaDi(Astro.locals.corista!.email).then((c) => c?.sezione)]);
 } catch (e) {
   errore = e;
 }
-// La propria sezione prima, poi le altre nell'ordine del coro
-const tracce = (p: Pezzo) => [...p.tracce.filter((t) => t.sezione === sezione), ...p.tracce.filter((t) => t.sezione !== sezione)];
 // I file del Drive del coro passano dal sito
-elenco = elenco.map((p) => ({ ...p, spartito: linkDelSito(p.spartito), brani: p.brani.map((b) => ({ ...b, link: linkDelSito(b.link) })), tracce: p.tracce.map((t) => ({ ...t, link: linkDelSito(t.link) })) }));
-const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), ...p.tracce.map((t) => t.link)].some(suDrive));
+const sulSito = <T extends { link: string }>(x: T) => ({ ...x, link: linkDelSito(x.link) ?? x.link });
+elenco = elenco.map((p) => ({ ...p, spartito: linkDelSito(p.spartito), brani: p.brani.map((b) => ({ ...sulSito(b), tracce: b.tracce.map(sulSito) })), tracce: p.tracce.map(sulSito) }));
+const semplice = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.flatMap((b) => [b.link, ...b.tracce.map((t) => t.link)]), ...p.tracce.map((t) => t.link)].some(suDrive));
+const pezzoDi = new Map(elenco.map((p) => [p.id, p]));
+const opere = elenco.filter((p) => !p.raccolte.length);
+raccolte = raccolte.filter((r) => r.contenuto.length);
+// L'ancora #<id> di un pezzo in più raccolte sta nella prima
+const giaVisti = new Set<string>();
+const prima = (id: string) => !giaVisti.has(id) && Boolean(giaVisti.add(id));
+const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.arrangiatore, ...p.brani.map((b) => b.nome), ...altro].join(' '));
 ---
 
 <div class="area-intesta">
@@ -43,119 +52,86 @@ const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.map((b) => b.link), 
   <div class="w">
     {errore && <Errore e={errore} />}
     {suGoogle && <AiutoDrive />}
-    {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca nel repertorio per autore o titolo…" aria-label="Cerca nel repertorio" />}
+    {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca per autore, titolo o raccolta…" aria-label="Cerca nel repertorio" />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
-    {elenco.map((p) => {
-      // Si apre solo se sotto c'è qualcosa: tracce, brani separati, esecuzione, note del Maestro
-      const espandibile = Boolean(p.tracce.length || p.brani.length || p.esecuzione || p.note);
-      const Riga = espandibile ? 'details' : 'div';
-      const Testa = espandibile ? 'summary' : 'div';
-      return (
-        <Riga class:list={['opera-studio', { fisso: !espandibile }]} id={p.id} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
-          <Testa class="intest">
-            <div class="testo-pezzo">
-              {p.autore && <span class="aut">{p.autore}</span>}
-              <h2 style="margin-top:6px">{p.titolo}</h2>
-              <span class="tenue indicatori">{[p.tracce.some((t) => t.sezione === sezione) && 'la tua traccia', p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano separato' : 'brani separati'}`, p.note && 'note del Maestro'].filter(Boolean).join(' · ') || (p.spartito ? '' : 'materiali in arrivo')}</span>
+    {opere.length > 0 && raccolte.length > 0 && <h2 class="titolo-gruppo">Opere</h2>}
+    {opere.map((p) => <SchedaPezzo p={p} sezione={sezione} cerca={cerca(p)} />)}
+    {raccolte.length > 0 && (
+      <>
+        <h2 class="titolo-gruppo">Raccolte</h2>
+        {raccolte.map((r) => (
+          <details class="raccolta-studio" id={`r-${r.id}`} data-cerca={semplice(r.titolo)}>
+            <summary>
+              <span class="icona-q"><Icona nome="cartella" classe="" /></span>
+              <span class="testo-raccolta"><b>{r.titolo}</b><small>{r.contenuto.length} {r.contenuto.length === 1 ? 'pezzo' : 'pezzi'}: {r.contenuto.map((id) => pezzoDi.get(id)!.titolo).join(' · ')}</small></span>
+              <Icona nome="giu" classe="freccina" />
+            </summary>
+            <div class="dentro">
+              {r.note && <div class="nota-raccolta" set:html={comeHtml(r.note)} />}
+              {r.contenuto.map((id) => { const p = pezzoDi.get(id)!; return <SchedaPezzo p={p} sezione={sezione} ancora={prima(id)} cerca={cerca(p, r.titolo)} />; })}
             </div>
-            <div class="lato-pezzo">
-              <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
-              {p.spartito && <a class="btn piccolo" href={p.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Apri lo spartito</a>}
-            </div>
-          </Testa>
-          {espandibile && (
-            <div class="corpo-o">
-              {(p.tracce.length > 0 || p.esecuzione) && (
-                <div class="colonna">
-                  {p.tracce.length > 0 && (
-                    <>
-                      <h3>Tracce per lo studio</h3>
-                      <div class="basi">
-                        {tracce(p).map((t) => (
-                          <div class:list={['base', { tua: t.sezione === sezione }]}>
-                            <div><b>{t.sezione}{t.sezione === sezione && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
-                            {t.link.startsWith('/area/file/')
-                              ? <audio controls preload="none" src={t.link} aria-label={`Traccia: ${t.sezione}`}></audio>
-                              : <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {p.esecuzione && (
-                    <>
-                      <h3 style={p.tracce.length ? 'margin-top:28px' : undefined}>Esecuzione di riferimento</h3>
-                      <a class="btn o piccolo" href={p.esecuzione} target="_blank" rel="noopener"><Icona nome="cuffie" />Ascolta</a>
-                    </>
-                  )}
-                </div>
-              )}
-              {(p.brani.length > 0 || p.note) && (
-                <div class="colonna">
-                  {p.brani.length > 0 && (
-                    <>
-                      <h3>Brani cantati separatamente</h3>
-                      <div class="scorciatoie" style="border:1px solid var(--linea)">
-                        {p.brani.map((b) => <a href={b.link} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><span><b>{b.nome}</b></span><Icona nome="esterno" /></a>)}
-                      </div>
-                    </>
-                  )}
-                  {p.note && (
-                    <div class="nota-maestro" style={p.brani.length ? undefined : 'margin-top:0'}>
-                      <span class="eti">Note del Maestro</span>
-                      <div set:html={comeHtml(p.note)} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </Riga>
-      );
-    })}
+          </details>
+        ))}
+      </>
+    )}
     {elenco.length > 0 && <p class="tenue" style="margin-top:24px;font-size:14px">{elenco.length} {elenco.length === 1 ? 'pezzo' : 'pezzi'}: {elenco.map(nomeCompleto).join(' · ')}</p>}
   </div>
 </div>
 
 <script>
-  // Si apre il pezzo indicato nell'indirizzo (#<id>), anche quando cambia; ricerca per autore o titolo
+  // Si apre il pezzo indicato nell'indirizzo (#<id>), con la raccolta che lo contiene, anche quando
+  // cambia; ricerca per autore, titolo o raccolta (una raccolta si vede se il suo nome o uno dei suoi
+  // pezzi corrisponde, e si apre sui pezzi trovati)
   const apri = () => {
     const el = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!(el instanceof HTMLElement)) return;
+    const raccolta = el.parentElement?.closest<HTMLDetailsElement>('.raccolta-studio');
+    if (raccolta) raccolta.open = true;
     if (el instanceof HTMLDetailsElement) el.open = true;
-    if (el instanceof HTMLElement && el.classList.contains('opera-studio')) el.scrollIntoView({ block: 'start' });
+    if (el.classList.contains('opera-studio') || el.classList.contains('raccolta-studio')) el.scrollIntoView({ block: 'start' });
   };
   apri();
   addEventListener('hashchange', apri);
   const filtro = document.querySelector<HTMLInputElement>('.filtra-pezzi');
   filtro?.addEventListener('input', () => {
-    const parole = filtro.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
-    document.querySelectorAll<HTMLElement>('.opera-studio').forEach((d) => { d.hidden = !parole.every((p) => d.dataset.cerca!.includes(p)); });
+    const parole = filtro.value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
+    const vale = (el: HTMLElement) => parole.every((p) => el.dataset.cerca!.includes(p));
+    document.querySelectorAll<HTMLElement>('.opera-studio').forEach((d) => { d.hidden = !vale(d); });
+    document.querySelectorAll<HTMLDetailsElement>('.raccolta-studio').forEach((r) => {
+      const pezzi = [...r.querySelectorAll<HTMLElement>('.opera-studio')];
+      // Il nome della raccolta corrisponde: tutti i suoi pezzi
+      if (parole.length && vale(r)) pezzi.forEach((d) => { d.hidden = false; });
+      const trovati = pezzi.some((d) => !d.hidden);
+      r.hidden = !trovati;
+      r.open = parole.length > 0 && trovati;
+    });
+    document.querySelectorAll<HTMLElement>('.titolo-gruppo').forEach((h) => {
+      let el = h.nextElementSibling, visibili = false;
+      while (el && !el.classList.contains('titolo-gruppo')) { if (el instanceof HTMLElement && !el.hidden && (el.matches('.opera-studio, .raccolta-studio'))) visibili = true; el = el.nextElementSibling; }
+      h.hidden = !visibili;
+    });
   });
 </script>
 
 <style>
-  /* Una riga per pezzo, che si apre */
-  .opera-studio + .opera-studio { margin-top: 10px; }
-  .opera-studio > .intest { padding: 18px 22px; border-bottom: 0; scroll-margin-top: 150px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; align-items: stretch; }
-  .opera-studio > summary { cursor: pointer; list-style: none; }
-  .opera-studio.fisso { scroll-margin-top: 150px; }
-  .lato-pezzo { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 12px; }
-  .lato-pezzo .btn { white-space: nowrap; }
-  /* Telefono: stato sempre in alto a destra, pulsante dello spartito sotto il titolo */
-  @media (max-width: 560px) {
-    .opera-studio > .intest { grid-template-columns: 1fr; position: relative; }
-    .lato-pezzo { display: block; }
-    .lato-pezzo .tag { position: absolute; top: 18px; right: 22px; }
-    .testo-pezzo .aut { display: block; padding-right: 130px; min-height: 1.4em; }
-  }
-  .opera-studio > summary::-webkit-details-marker { display: none; }
-  .opera-studio[open] > summary { border-bottom: 1px solid var(--linea); }
-  .opera-studio > .intest h2 { font-size: clamp(22px, 2.4vw, 28px); }
-  .opera-studio > summary h2::after { content: ' ▸'; color: var(--tenue); font-size: .7em; }
-  .opera-studio[open] > summary h2::after { content: ' ▾'; }
-  .indicatori { display: block; font-size: 14px; margin-top: 4px; }
   .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 14px; }
-  /* Tracce caricate come file: lettore audio nella riga della sezione */
-  .base:has(audio) { grid-template-columns: minmax(0, 1fr); }
-  .base audio { width: 100%; height: 40px; }
+  .titolo-gruppo { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); font-weight: 800; margin: 28px 0 12px; }
+  .titolo-gruppo:first-of-type { margin-top: 8px; }
+  /* Raccolta: una cartella che si apre sulle schede dei suoi pezzi */
+  .raccolta-studio { background: var(--bianco); border: 1px solid var(--linea); scroll-margin-top: 150px; }
+  .raccolta-studio + .raccolta-studio { margin-top: 10px; }
+  .raccolta-studio > summary { display: flex; gap: 14px; align-items: center; padding: 16px 22px; cursor: pointer; list-style: none; }
+  .raccolta-studio > summary::-webkit-details-marker { display: none; }
+  .raccolta-studio[open] > summary { border-bottom: 1px solid var(--linea); }
+  /* Blocco, non griglia: dentro una griglia il troncamento a due righe di small non vale */
+  .testo-raccolta { flex: 1; min-width: 0; display: block; }
+  .testo-raccolta b { display: block; margin-bottom: 4px; font-family: var(--f-titoli); font-size: clamp(22px, 2.4vw, 28px); color: var(--primario); line-height: 1.15; }
+  .testo-raccolta small { color: var(--tenue); font-size: 14px; }
+  /* I titoli dei pezzi, al più due righe: per vederli tutti si apre la raccolta */
+  .testo-raccolta small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  @media (max-width: 560px) { .raccolta-studio > summary { padding: 14px 16px; gap: 12px; } .dentro { padding: 10px; } }
+  .raccolta-studio :global(.freccina) { color: var(--tenue); transition: transform .15s; flex-shrink: 0; }
+  .raccolta-studio[open] > summary :global(.freccina) { transform: rotate(180deg); }
+  .dentro { padding: 14px; background: var(--fondo); }
+  .nota-raccolta { margin: 0 4px 14px; color: var(--testo); }
 </style>

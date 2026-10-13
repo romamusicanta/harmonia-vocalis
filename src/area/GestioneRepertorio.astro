@@ -1,12 +1,16 @@
 ---
 // Gestione del repertorio (src/area/repertorio.ts) nell'Amministrazione (/admin/repertorio; il
-// Maestro scrive solo le note, da /maestro/repertorio): elenco dei pezzi e modulo per
-// aggiungerne uno o modificarlo (?modifica=id, ?nuovo): autore, titolo, stato, link alle tracce per
-// sezione, esecuzione di riferimento, note del Maestro; spartito e brani separati si caricano su
-// Drive dal modulo (a pezzi, con lo script in fondo, verso <base>/repertorio/file).
+// Maestro scrive solo le note, da /maestro/repertorio). Due tipi (dal 13/10/2026):
+// - opere (?modifica=id, ?nuovo, ?nuovo&raccolta=id per una nuova già dentro una raccolta): autore,
+//   titolo, arrangiatore, stato, raccolte (caselle), link alle tracce per sezione, esecuzione di
+//   riferimento, note del Maestro; spartito, parti (movimenti o estratti) e tracce, anche per ogni
+//   parte, si caricano su Drive dal modulo (a pezzi, con lo script in fondo, verso <base>/repertorio/file);
+// - raccolte (?modifica=id, ?nuova-raccolta): nome, nota e i pezzi, scelti e ordinati con SceltaPezzi.
+// Sotto, l'elenco delle raccolte e quello di tutti i pezzi, ognuno con le sue raccolte.
 import Icona from '../componenti/Icona.astro';
-import { configurato, nomeCompleto, repertorio, sezioniTracce, STATI, type Pezzo } from './repertorio';
+import { catalogo, configurato, nomeCompleto, sezioniTracce, STATI, type Pezzo, type Raccolta } from './repertorio';
 import Errore from './Errore.astro';
+import SceltaPezzi from './SceltaPezzi.astro';
 import { comeHtml } from './testo';
 
 interface Props { base: '/admin' | '/maestro' }
@@ -15,24 +19,56 @@ const q = Astro.url.searchParams;
 
 let errore: unknown;
 let elenco: Pezzo[] = [];
+let raccolte: Raccolta[] = [];
 try {
-  elenco = await repertorio();
+  ({ pezzi: elenco, raccolte } = await catalogo());
 } catch (e) {
   errore = e;
 }
 const inModifica = elenco.find((p) => p.id === q.get('modifica'));
-const nuovo = q.has('nuovo') || (!inModifica && elenco.length === 0);
+const raccoltaInModifica = raccolte.find((r) => r.id === q.get('modifica'));
+const nuovaRaccolta = q.has('nuova-raccolta');
+const nuovo = q.has('nuovo') || (!inModifica && !raccoltaInModifica && !nuovaRaccolta && elenco.length === 0 && !errore);
+// Raccolte del pezzo nel modulo: le sue, o quella da cui si è partiti con «Aggiungi un pezzo nuovo»
+const raccolteScelte = new Set(inModifica?.raccolte ?? [q.get('raccolta') ?? '']);
+const pezzoDi = new Map(elenco.map((p) => [p.id, p]));
+const nomiRaccolte = (p: Pezzo) => raccolte.filter((r) => p.raccolte.includes(r.id)).map((r) => r.titolo);
+const quante = (n: number, uno: string, tanti: string) => `${n} ${n === 1 ? uno : tanti}`;
 const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sezione === s)?.link ?? '';
 // Pezzo appena aggiunto: si propone di caricare spartito, brani e tracce
 const appena = elenco.find((p) => p.id === q.get('file'));
 const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 ---
 
-{q.get('esito') && !q.has('caricato') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Carica spartito, brani e tracce</a></>}</p>}
+{q.get('esito') && !q.has('caricato') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Carica spartito, parti e tracce</a></>}</p>}
 {errore && <Errore e={errore} />}
 {!configurato() && <p class="messaggio errore">Il caricamento dei file non è ancora attivo: manca la cartella Spartiti (variabile DRIVE_CARTELLA_SPARTITI) sul server.</p>}
 
-{(inModifica || nuovo) ? (
+{raccoltaInModifica || nuovaRaccolta ? (
+  <>
+    <form method="post" class="carta modulo-pezzo" id="modulo">
+      <div class="ct"><h2>{raccoltaInModifica ? <><Icona nome="cartella" /> {raccoltaInModifica.titolo}</> : 'Nuova raccolta'}</h2><a class="link-freccia" href={`${base}/repertorio`}>{raccoltaInModifica ? 'Chiudi' : 'Annulla'}</a></div>
+      <div class="cc">
+        <p class="tenue" style="margin:0">Una raccolta è una cartella di pezzi (canti natalizi, brani per i bis…). Ogni pezzo resta un pezzo del repertorio, con spartito, tracce e note propri, e può stare in più raccolte.</p>
+        <input type="hidden" name="azione" value="salva-raccolta" />
+        {raccoltaInModifica && <input type="hidden" name="id" value={raccoltaInModifica.id} />}
+        <label>Nome della raccolta<input name="titolo" required maxlength="140" value={raccoltaInModifica?.titolo} placeholder="Es. Canti natalizi" /></label>
+        <label>Nota per i coristi <small>(facoltativa)</small><textarea name="note" rows="3" maxlength="4000" placeholder="Per esempio: il programma del concerto di Natale.">{raccoltaInModifica?.note}</textarea></label>
+        <SceltaPezzi nome="contenuto" etichetta="Pezzi della raccolta" pezzi={elenco} raccolte={raccolte} soloPezzi scelti={(raccoltaInModifica?.contenuto ?? []).map((id) => nomeCompleto(pezzoDi.get(id)!))} aiuto="Nell'ordine in cui i coristi li vedono: si aggiungono in fondo e si spostano con le frecce. Un pezzo che non è ancora nel repertorio si aggiunge con «Aggiungi un pezzo nuovo»." />
+        <div class="azioni-pezzo">
+          <button class="btn" type="submit"><Icona nome="spunta" />{raccoltaInModifica ? 'Salva la raccolta' : 'Crea la raccolta'}</button>
+          {raccoltaInModifica && <a class="btn o" href={`${base}/repertorio?nuovo&raccolta=${raccoltaInModifica.id}#modulo`}>Aggiungi un pezzo nuovo</a>}
+        </div>
+      </div>
+    </form>
+    {raccoltaInModifica && (
+      <form method="post" class="cancella-raccolta" onsubmit="return confirm('Togliere questa raccolta? I suoi pezzi restano nel repertorio.')">
+        <input type="hidden" name="azione" value="cancella-raccolta" /><input type="hidden" name="id" value={raccoltaInModifica.id} />
+        <button class="btn o piccolo cancella" type="submit">Togli la raccolta</button>
+      </form>
+    )}
+  </>
+) : (inModifica || nuovo) ? (
   <form method="post" class="carta modulo-pezzo" id="modulo">
     <div class="ct"><h2>{inModifica ? nomeCompleto(inModifica) : 'Nuovo pezzo'}</h2><a class="link-freccia" href={`${base}/repertorio`}>{inModifica ? 'Chiudi' : 'Annulla'}</a></div>
     <div class="cc">
@@ -41,13 +77,24 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
       <div class="riga-campi">
         <label>Autore <small>(iniziali e cognome, come «W. A. Mozart», oppure «Anonimo» o «Tradizionale»)</small><input name="autore" maxlength="100" value={inModifica?.autore} placeholder="W. A. Mozart" /></label>
         <label>Titolo<input name="titolo" required maxlength="140" value={inModifica?.titolo} placeholder="Es. Requiem in re minore K 626" /></label>
+        <label>Arrangiamento <small>(facoltativo: chi l'ha arrangiato, come «M. Micheli»)</small><input name="arrangiatore" maxlength="100" value={inModifica?.arrangiatore} /></label>
         <label>Stato
           <select name="stato">{STATI.map((s) => <option selected={(inModifica?.stato ?? STATI[0]) === s}>{s}</option>)}</select>
         </label>
       </div>
 
+      {raccolte.length > 0 && (
+        <fieldset>
+          <input type="hidden" name="raccolte-nel-modulo" value="1" />
+          <legend>Raccolte <small>(facoltative: un pezzo può stare in più raccolte, per esempio nei canti natalizi e nei bis)</small></legend>
+          <div class="caselle">
+            {raccolte.map((r) => <label class="casella"><input type="checkbox" name="raccolta" value={r.id} checked={raccolteScelte.has(r.id)} /><Icona nome="cartella" />{r.titolo}</label>)}
+          </div>
+        </fieldset>
+      )}
+
       <fieldset>
-        <legend>Tracce per lo studio <small>(link a YouTube o altro sito, uno per sezione; i file audio si caricano qui sotto, in «File del pezzo»)</small></legend>
+        <legend>Tracce per lo studio dell'opera intera <small>(link a YouTube o altro sito, uno per sezione; i file audio si caricano qui sotto, in «File del pezzo»)</small></legend>
         <div class="riga-campi">
           {sezioniTracce.map((s) => <label>{s}<input name={`tracce-${s}`} type="url" value={traccia(inModifica, s)} placeholder="https://…" /></label>)}
         </div>
@@ -59,7 +106,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
     </div>
   </form>
 ) : (
-  <p style="margin:24px 0"><a class="btn" href={`${base}/repertorio?nuovo`}><Icona nome="libro" />Aggiungi un pezzo</a></p>
+  <p class="azioni-pezzo" style="margin:24px 0"><a class="btn" href={`${base}/repertorio?nuovo#modulo`}><Icona nome="libro" />Aggiungi un pezzo</a><a class="btn o" href={`${base}/repertorio?nuova-raccolta#modulo`}><Icona nome="cartella" />Nuova raccolta</a></p>
 )}
 
 {inModifica && (
@@ -76,12 +123,13 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         <label class="carica">{inModifica.spartito ? 'Sostituisci lo spartito' : 'Carica lo spartito'} <small>(PDF)</small><input type="file" data-uso="spartito" accept="application/pdf,image/*" /></label>
       </div>
       <div class="file-gruppo">
-        <h3>Brani cantati separatamente</h3>
+        <h3>Parti dell'opera</h3>
+        <p class="tenue" style="margin:0">Movimenti o estratti cantati da soli (Kyrie, Gloria, Lacrimosa…), ognuno con il suo spartito e, se ci sono, le sue tracce. In una prova si può chiedere di preparare una sola parte.</p>
         {inModifica.brani.length ? inModifica.brani.map((b, i) => (
           <div class="file-riga riga-brano"><a href={b.link} target="_blank" rel="noopener"><Icona nome="documento" />{b.nome}</a>
             <span class="azioni-file">
               <button class="btn o piccolo apri-rinomina" type="button" aria-expanded="false">Rinomina</button>
-              <form method="post" onsubmit="return confirm('Togliere questo brano dal pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form>
+              <form method="post" onsubmit="return confirm('Togliere questa parte dall\'opera, con le sue tracce? I file restano su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form>
             </span>
             <form class="rinomina-brano" method="post" hidden>
               <input type="hidden" name="azione" value="rinomina-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} />
@@ -89,14 +137,28 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
               <button class="btn piccolo" type="submit">Salva</button>
               <button class="btn o piccolo chiudi-rinomina" type="button">Annulla</button>
             </form>
+            <details class="tracce-parte" open={b.tracce.length > 0 && q.get('parte') === b.nome}>
+              <summary>{b.tracce.length ? `Tracce della parte: ${b.tracce.map((x) => x.sezione).join(', ')}` : 'Tracce della parte: nessuna'}</summary>
+              {sezioniTracce.map((s) => {
+                const t = b.tracce.find((x) => x.sezione === s)?.link;
+                return (
+                  <div class="file-riga traccia-riga">
+                    <b>{s}</b>
+                    {t ? <a href={t} target="_blank" rel="noopener"><Icona nome="cuffie" />File audio</a> : <span class="tenue">Nessuna traccia</span>}
+                    {t && <form method="post" onsubmit={`return confirm('Togliere la traccia ${s} da questa parte? Il file resta su Drive.')`}><input type="hidden" name="azione" value="togli-traccia-parte" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><input type="hidden" name="sezione" value={s} /><button class="btn o piccolo" type="submit">Togli</button></form>}
+                    <label class="btn o piccolo carica-traccia">{t ? 'Sostituisci' : 'Carica'}<input type="file" data-uso="traccia-parte" data-parte={b.nome} data-sezione={s} accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" class="sr" /></label>
+                  </div>
+                );
+              })}
+            </details>
           </div>
-        )) : <p class="tenue">Nessun brano. Il nome del file diventa il nome del brano.</p>}
-        {inModifica.brani.length > 0 && <p class="tenue" style="margin:0">Il nome del brano è quello che leggono i coristi nelle prove: con «Rinomina» si scrive per bene (per esempio «Va' pensiero (Nabucco)»). Le prove già scritte con il nome di prima continuano a trovarlo.</p>}
-        <label class="carica">Aggiungi brani <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
+        )) : <p class="tenue">Nessuna parte. Il nome del file diventa il nome della parte.</p>}
+        {inModifica.brani.length > 0 && <p class="tenue" style="margin:0">Il nome della parte è quello che leggono i coristi nelle prove: con «Rinomina» si scrive per bene (per esempio «Lacrimosa»). Le prove già scritte con il nome di prima continuano a trovarla.</p>}
+        <label class="carica">Aggiungi parti <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
       </div>
       <div class="file-gruppo">
-        <h3>Tracce per lo studio</h3>
-        <p class="tenue" style="margin:0 0 4px">Un file audio per sezione: prende il posto del link o del file di prima. I coristi lo ascoltano nella pagina Repertorio.</p>
+        <h3>Tracce per lo studio dell'opera intera</h3>
+        <p class="tenue" style="margin:0 0 4px">Un file audio per sezione: prende il posto del link o del file di prima. I coristi lo ascoltano nella pagina Repertorio. Le tracce di una sola parte si caricano qui sopra, sotto la parte.</p>
         {sezioniTracce.map((s) => {
           const t = traccia(inModifica, s);
           return (
@@ -118,22 +180,51 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   </section>
 )}
 
-<h2 class="titolo-elenco">Repertorio{elenco.length > 0 && <small> · {elenco.length} {elenco.length === 1 ? 'pezzo' : 'pezzi'}</small>}</h2>
+{raccolte.length > 0 && (
+  <>
+    <h2 class="titolo-elenco">Raccolte<small> · {raccolte.length}</small></h2>
+    <ul class="carta elenco-pezzi">
+      {raccolte.map((r) => (
+        <li id={`r-${r.id}`} class:list={['raccolta', { attivo: r.id === raccoltaInModifica?.id }]}>
+          <details>
+            <summary>
+              <span class="testa-pezzo"><span class="aut"><Icona nome="cartella" /> Raccolta</span><b>{r.titolo}</b></span>
+              <span class="tenue dettagli">{r.contenuto.length ? quante(r.contenuto.length, 'pezzo', 'pezzi') : 'vuota'}</span>
+            </summary>
+            <div class="corpo-pezzo">
+              {r.note && <div set:html={comeHtml(r.note)} />}
+              {r.contenuto.length > 0 && <ol class="pezzi-raccolta">{r.contenuto.map((id) => <li><a href={`#p-${id}`}>{nomeCompleto(pezzoDi.get(id)!)}</a></li>)}</ol>}
+              <div class="azioni-pezzo">
+                <a class="btn o piccolo" href={`${base}/repertorio?modifica=${r.id}#modulo`}>Modifica</a>
+                <a class="btn o piccolo" href={`${base}/repertorio?nuovo&raccolta=${r.id}#modulo`}>Aggiungi un pezzo nuovo</a>
+              </div>
+            </div>
+          </details>
+        </li>
+      ))}
+    </ul>
+  </>
+)}
+
+<h2 class="titolo-elenco">{raccolte.length ? 'Tutti i pezzi' : 'Repertorio'}{elenco.length > 0 && <small> · {quante(elenco.length, 'pezzo', 'pezzi')}</small>}</h2>
 {elenco.length === 0 && !errore && <p class="tenue">Ancora nessun pezzo.</p>}
-{elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca nel repertorio per autore o titolo…" aria-label="Cerca nel repertorio" />}
-<ul class="carta elenco-pezzi">
+{elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca per autore, titolo o raccolta…" aria-label="Cerca nel repertorio" />}
+<ul class="carta elenco-pezzi tutti-pezzi">
   {elenco.map((p) => (
-    <li id={`p-${p.id}`} class:list={{ attivo: p.id === inModifica?.id }} data-cerca={semplice(`${p.autore} ${p.titolo}`)}>
+    <li id={`p-${p.id}`} class:list={{ attivo: p.id === inModifica?.id }} data-cerca={semplice(`${p.autore} ${p.titolo} ${p.arrangiatore} ${nomiRaccolte(p).join(' ')}`)}>
       <details>
         <summary>
-          <span class="testa-pezzo"><span class="aut">{p.autore}</span><b>{p.titolo}</b></span>
+          <span class="testa-pezzo"><span class="aut">{p.autore}{p.arrangiatore && <> · arr. {p.arrangiatore}</>}</span><b>{p.titolo}</b></span>
           <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
-          <span class="tenue dettagli">{[p.spartito && 'spartito', p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'brano' : 'brani'}`, p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
+          {nomiRaccolte(p).map((n) => <span class="tag grigio tag-raccolta"><Icona nome="cartella" />{n}</span>)}
+          <span class="tenue dettagli">{[p.spartito && 'spartito', p.brani.length && quante(p.brani.length, 'parte', 'parti'), p.brani.some((b) => b.tracce.length) && 'tracce delle parti', p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
         </summary>
         <div class="corpo-pezzo">
           <dl>
             <dt>Spartito</dt><dd>{p.spartito ? <a href={p.spartito} target="_blank" rel="noopener">Apri lo spartito</a> : <span class="tenue">—</span>}</dd>
-            <dt>Brani</dt><dd>{p.brani.length ? p.brani.map((b, i) => <>{i > 0 && ' · '}<a href={b.link} target="_blank" rel="noopener">{b.nome}</a></>) : <span class="tenue">—</span>}</dd>
+            {p.arrangiatore && <><dt>Arrangiamento</dt><dd>{p.arrangiatore}</dd></>}
+            <dt>Raccolte</dt><dd>{nomiRaccolte(p).join(' · ') || <span class="tenue">—</span>}</dd>
+            <dt>Parti</dt><dd>{p.brani.length ? p.brani.map((b, i) => <>{i > 0 && ' · '}<a href={b.link} target="_blank" rel="noopener">{b.nome}</a>{b.tracce.length > 0 && <small class="tenue"> ({quante(b.tracce.length, 'traccia', 'tracce')})</small>}</>) : <span class="tenue">—</span>}</dd>
             <dt>Tracce</dt><dd>{p.tracce.length ? p.tracce.map((t, i) => <>{i > 0 && ' · '}<a href={t.link} target="_blank" rel="noopener">{t.sezione}</a></>) : <span class="tenue">—</span>}</dd>
             <dt>Esecuzione</dt><dd>{p.esecuzione ? <a href={p.esecuzione} target="_blank" rel="noopener">Ascolta</a> : <span class="tenue">—</span>}</dd>
             <dt>Note del Maestro</dt><dd>{p.note ? <div set:html={comeHtml(p.note)} /> : <span class="tenue">—</span>}</dd>
@@ -169,13 +260,21 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
 </script>
 
 <script>
-  // Elenco: si apre il pezzo indicato nell'indirizzo (#p-<id>); ricerca per autore o titolo
-  const daAprire = location.hash.startsWith('#p-') && document.querySelector<HTMLElement>(location.hash);
-  if (daAprire) daAprire.querySelector('details')?.setAttribute('open', '');
+  // Elenco: si apre il pezzo o la raccolta indicati nell'indirizzo (#p-<id>, #r-<id>), anche quando
+  // cambia (i pezzi di una raccolta portano al pezzo); ricerca per autore, titolo o raccolta
+  const apri = () => {
+    const el = /^#[pr]-/.test(location.hash) && document.querySelector<HTMLElement>(location.hash);
+    if (!el) return;
+    el.hidden = false;
+    el.querySelector('details')?.setAttribute('open', '');
+    el.scrollIntoView({ block: 'start' });
+  };
+  apri();
+  addEventListener('hashchange', apri);
   const filtro = document.querySelector<HTMLInputElement>('.filtra-pezzi');
   filtro?.addEventListener('input', () => {
     const parole = filtro.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
-    document.querySelectorAll<HTMLElement>('.elenco-pezzi > li').forEach((li) => { li.hidden = !parole.every((p) => li.dataset.cerca!.includes(p)); });
+    document.querySelectorAll<HTMLElement>('.tutti-pezzi > li').forEach((li) => { li.hidden = !parole.every((p) => li.dataset.cerca!.includes(p)); });
   });
 </script>
 
@@ -207,13 +306,13 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         modificato = false;
       }
       for (const [i, f] of file.entries()) {
-        await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso!, ...(input.dataset.sezione ? { sezione: input.dataset.sezione } : {}) }, (q) => {
+        await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso!, ...(input.dataset.sezione ? { sezione: input.dataset.sezione } : {}), ...(input.dataset.parte ? { parte: input.dataset.parte } : {}) }, (q) => {
           barra!.value = Math.round(((i + q) / file.length) * 100);
           stato!.textContent = `Carico «${f.name}»${file.length > 1 ? ` (${i + 1} di ${file.length})` : ''}: ${Math.round(q * 100)}%`;
         });
       }
       stato!.textContent = 'Caricato. Aggiorno la pagina…';
-      location.href = `${box.dataset.ritorno}&ok=1&caricato=1&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato.` : `${file.length} file caricati.`)}#file`;
+      location.href = `${box.dataset.ritorno}&ok=1&caricato=1${input.dataset.parte ? `&parte=${encodeURIComponent(input.dataset.parte)}` : ''}&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato.` : `${file.length} file caricati.`)}#file`;
     } catch (e) {
       stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
       barra!.value = 0;
@@ -277,6 +376,17 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .riga-brano form.rinomina-brano { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
   .riga-brano form.rinomina-brano[hidden] { display: none; }
   .rinomina-brano input[type=text] { flex: 1 1 220px; min-width: 0; font: inherit; padding: 8px 10px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
+  .caselle { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .modulo-pezzo label.casella { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--testo); cursor: pointer; }
+  .modulo-pezzo label.casella input { width: 18px; height: 18px; accent-color: var(--primario); }
+  .cancella-raccolta { margin: 0 0 8px; display: flex; justify-content: flex-end; }
+  .tracce-parte { flex-basis: 100%; }
+  .tracce-parte summary { cursor: pointer; font-size: 14px; color: var(--tenue); padding: 4px 0; }
+  .tracce-parte[open] summary { margin-bottom: 6px; }
+  .tracce-parte .traccia-riga { background: var(--bianco); margin-top: 6px; }
+  .tag-raccolta { display: inline-flex; align-items: center; gap: 4px; }
+  .elenco-pezzi .aut :global(svg) { vertical-align: -3px; }
+  .pezzi-raccolta { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
   .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
   .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
   .messaggio.ok { border-color: #2e7d4f; }
