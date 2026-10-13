@@ -7,7 +7,8 @@
 // che si apre con l'hamburger di una testata stretta (hamburger, logo con il nome dell'area, foto
 // dell'utente). Sul telefono (sotto 760px) le sezioni principali dell'area in cui si è stanno anche in
 // una barra fissa in basso, con icona e scritta. Con conBarra = false (pagine di accesso) niente
-// utente né menu, solo la barra scura con la tendina delle aree e "Torna al sito".
+// utente né menu, solo la barra scura con la tendina delle aree e "Torna al sito". Il logo porta sempre
+// alla home del sito pubblico (dal 13/10/2026, richiesta di Mario).
 import Icona, { type NomeIcona } from '../../componenti/Icona.astro';
 import Marchio from './Marchio.astro';
 import MenuRiservato from './MenuRiservato.astro';
@@ -130,7 +131,7 @@ const conMenu = conBarra && Boolean(utente);
     <header class="testata testata-area">
       <div class="w">
         <button class="hamb hamb-area" type="button" aria-label="Apri il menu" aria-expanded="false" aria-controls="menu-area"><Icona nome="menu" classe="apri" spessore={2} /><Icona nome="chiudi" classe="chiudi" spessore={2} /></button>
-        <span class="marchio-area"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
+        <span class="marchio-area"><Marchio href={link(veste, '/')} /><span class="etichetta-area">{nomeArea}</span></span>
         <div class="azioni">
           <span class="utente"><span class="av" aria-hidden="true"><Icona nome="persona" classe="" spessore={2} />{utente!.foto && <img src={utente!.foto} alt="" referrerpolicy="no-referrer" onerror="this.remove()" />}</span></span>
         </div>
@@ -138,7 +139,7 @@ const conMenu = conBarra && Boolean(utente);
     </header>
     <aside class="laterale" id="menu-area" aria-label="Aree riservate">
       <div class="lat-testa">
-        <span class="lat-marchio"><Marchio href={casa} /></span>
+        <span class="lat-marchio"><Marchio href={link(veste, '/')} /></span>
         <button class="lat-riduci" type="button" aria-label="Riduci il menu" title="Riduci il menu" aria-expanded="true"><Icona nome="pannello" classe="" /></button>
         <button class="lat-chiudi" type="button" aria-label="Chiudi il menu"><Icona nome="chiudi" classe="" spessore={2} /></button>
       </div>
@@ -182,7 +183,7 @@ const conMenu = conBarra && Boolean(utente);
     </div>
     <header class="testata">
       <div class="w">
-        <span class="marchio-area"><Marchio href={casa} /><span class="etichetta-area">{nomeArea}</span></span>
+        <span class="marchio-area"><Marchio href={link(veste, '/')} /><span class="etichetta-area">{nomeArea}</span></span>
         <div class="azioni"><a class="btn o piccolo" href={link(veste, '/')}><Icona nome="indietro" />Torna al sito</a></div>
       </div>
     </header>
