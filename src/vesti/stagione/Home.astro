@@ -40,21 +40,16 @@ const schede = [
 ];
 
 // Le foto scelte per la home tra quelle dei coristi (src/area/fotoConcerti.ts, visibilità «home»): le più
-// belle di tutti i concerti, nell'ordine scelto dai redattori; al più 10, nel carosello della foto di apertura, ognuna con
-// il nome del concerto e il link alle sue foto
+// belle di tutti i concerti, nell'ordine scelto dai redattori; al più 10, nel carosello della foto di apertura.
+// Senza didascalia (dal 13/10/2026, richiesta di Mario): il concerto si dice solo nel testo alternativo
 const tuttiConcerti = [...prossimi, ...archivio];
 const fotoHome = fotoInHome().slice(0, LIMITE_CAROSELLO).map((f, n) => {
   const c = tuttiConcerti.find((x) => !x.dataIncerta && x.data.slice(0, 10) === f.data);
   const t = c && concertoIn(c, lingua);
   const nome = t ? [t.autore?.split(/\s+/).at(-1), t.titolo].filter(Boolean).join(', ') : '';
-  const pd = c && parti(c, lingua);
-  const giorno = pd ? `${Number(pd.giorno)} ${en ? pd.mese : pd.mese.toLowerCase()} ${pd.anno}` : '';
   return {
     nome: f.nome,
     alt: nome ? (en ? `Photo from the concert: ${nome}` : `Foto dal concerto: ${nome}`) : (en ? `Concert photo ${n + 1}` : `Foto di un concerto ${n + 1}`),
-    didascalia: [nome, giorno].filter(Boolean).join(' · ') || undefined,
-    href: c ? `${l(`/concerti/${slug(c)}`)}#foto` : undefined,
-    testoLink: en ? 'The concert →' : 'Il concerto →',
   };
 });
 
