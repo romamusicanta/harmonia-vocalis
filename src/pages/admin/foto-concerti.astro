@@ -53,7 +53,7 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
       {carosello.length === 0
         ? <p class="tenue">Nessuna foto «Home»: in apertura della home c'è la foto di apertura di Foto del sito. Scegli «Home» sotto le foto di un concerto.</p>
         : <>
-            <p class="tenue" style="max-width:64ch;font-size:15px">Scorrono in quest'ordine, al massimo {LIMITE_CAROSELLO}: riordinale trascinandole o con le frecce. {carosello.length > LIMITE_CAROSELLO && <>Le foto oltre la {LIMITE_CAROSELLO}ª restano «Home» ma non si vedono: spostale più in alto o toglile da «Home».</>} Una foto messa «Home» da poco va in fondo; ricarica la pagina per vederla qui.</p>
+            <p class="tenue" style="max-width:64ch;font-size:15px">Scorrono in quest'ordine, al massimo {LIMITE_CAROSELLO}: riordinale trascinandole o con le frecce. «Togli dal carosello» la rimette «Sito»: resta nella pagina del concerto. {carosello.length > LIMITE_CAROSELLO && <>Le foto oltre la {LIMITE_CAROSELLO}ª restano «Home» ma non si vedono: spostale più in alto o toglile da «Home».</>} Una foto messa «Home» da poco va in fondo; ricarica la pagina per vederla qui.</p>
             <ol class="ordine-carosello" data-limite={LIMITE_CAROSELLO}>
               {carosello.map((f, i) => (
                 <li draggable="true" data-id={f.id} class:list={{ fuori: i >= LIMITE_CAROSELLO }}>
@@ -64,6 +64,7 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
                     <button type="button" class="su" aria-label="Sposta prima">↑</button>
                     <button type="button" class="giu" aria-label="Sposta dopo">↓</button>
                   </span>
+                  <button type="button" class="togli-carosello" title="Togli dal carosello: la foto torna «Sito» e resta nella pagina del concerto">Togli dal carosello</button>
                 </li>
               ))}
             </ol>
@@ -115,6 +116,7 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
   .frecce { display: flex; gap: 6px; }
   .frecce button { flex: 1; font: inherit; font-weight: 700; min-height: 36px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--primario); cursor: pointer; }
   .frecce button:disabled { opacity: .35; cursor: default; }
+  .togli-carosello { font: inherit; font-size: 13px; font-weight: 600; background: none; border: 0; color: var(--rosso); cursor: pointer; padding: 2px 0; justify-self: start; }
   .esito-ordine { font-size: 14px; margin: 10px 0 0; min-height: 1.2em; }
 </style>
 
@@ -153,6 +155,31 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
       }, 800);
     };
     numera();
+    // Togli dal carosello: la foto torna «Sito» (/admin/foto-concerti/stato, che cancella anche la sua
+    // posizione); le altre si rinumerano e il nuovo ordine si salva
+    lista.addEventListener('click', async (e) => {
+      const b = (e.target as Element).closest<HTMLButtonElement>('.togli-carosello');
+      if (!b) return;
+      const li = b.closest('li')!;
+      if (!confirm('Togliere questa foto dal carosello della home? Resta sul sito, nella pagina del concerto.')) return;
+      b.disabled = true;
+      try {
+        const r = await fetch('/admin/foto-concerti/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: li.dataset.id, visibilita: 'pubblica' }) });
+        const j = await r.json().catch(() => ({ ok: false }));
+        if (!j.ok) throw new Error(j.errore ?? `Errore ${r.status}`);
+        li.remove();
+        // La stessa foto nell'elenco del concerto qui sotto, se c'è, passa a «Sito»
+        const sotto = document.querySelector<HTMLLIElement>(`.foto-admin li[data-id="${li.dataset.id}"]`);
+        if (sotto) {
+          sotto.querySelectorAll<HTMLButtonElement>('.scelta-visibilita button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === 'pubblica')));
+          sotto.className = 'pubblica';
+        }
+        if (voci().length) salva(); else esito.textContent = 'Nessuna foto nel carosello: in apertura della home tornerà la foto di apertura.';
+      } catch (err) {
+        b.disabled = false;
+        alert(`Non tolta: ${(err as Error).message}`);
+      }
+    });
     lista.addEventListener('click', (e) => {
       const b = (e.target as Element).closest<HTMLButtonElement>('.su, .giu');
       if (!b) return;
