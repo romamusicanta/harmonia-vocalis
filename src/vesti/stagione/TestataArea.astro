@@ -16,6 +16,7 @@ import { areeRiservate, type AreaRiservata } from './aree';
 import InvitoApp from '../../area/InvitoApp.astro';
 import InterruttoreNotifiche from '../../area/InterruttoreNotifiche.astro';
 import CaricamentoPagina from '../../area/CaricamentoPagina.astro';
+import VisoreFile from '../../area/VisoreFile.astro';
 import { ANTEPRIMA_AREA, coro, DEMO } from '../../motore/coro';
 import { link } from '../../motore/url';
 import { corista } from '../../demo/area';
@@ -121,6 +122,7 @@ const primaPagina = sezione === sezioni[0]?.id;
 const conMenu = conBarra && Boolean(utente);
 ---
 <CaricamentoPagina />
+<VisoreFile />
 
 {conMenu ? (
   <>

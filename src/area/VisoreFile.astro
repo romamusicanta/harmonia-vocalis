@@ -1,0 +1,246 @@
+---
+// Aree riservate (incluso da TestataArea.astro): nell'app installata su iPhone e iPad i file serviti dal
+// sito (/area/file/<id>, /maestro/file/<id>: spartiti, tracce, registrazioni, foto) si aprono in un
+// visore sopra la pagina, con «Chiudi». Senza, iOS li apriva a tutto schermo dentro l'app, senza barra
+// né gesto per tornare indietro: l'unico modo era chiudere l'app (segnalato da Mario il 14/10/2026).
+// I PDF si disegnano con PDF.js (caricato solo alla prima apertura), audio e video con il lettore del
+// browser, le foto come immagine. Nel browser e su Android i link restano come sono.
+---
+
+<div class="visore-file" hidden role="dialog" aria-modal="true" aria-labelledby="visore-titolo">
+  <div class="vf-barra">
+    <button class="vf-chiudi" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Chiudi</button>
+    <span class="vf-titolo" id="visore-titolo"></span>
+    <span class="vf-zoom" hidden>
+      <button type="button" data-zoom="-1" aria-label="Rimpicciolisci">−</button>
+      <button type="button" data-zoom="1" aria-label="Ingrandisci">+</button>
+    </span>
+    <button class="vf-condividi" type="button" hidden aria-label="Condividi o salva il file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3.5M7.5 8 12 3.5 16.5 8M6 11H5v9.5h14V11h-1"/></svg></button>
+  </div>
+  <div class="vf-corpo"></div>
+</div>
+
+<style is:global>
+  .visore-file {
+    position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column;
+    background: #3a3d44; color: #fff;
+  }
+  .visore-file[hidden] { display: none; }
+  .vf-barra {
+    display: flex; align-items: center; gap: 8px; flex: none;
+    padding: calc(env(safe-area-inset-top) + 6px) calc(env(safe-area-inset-right) + 8px) 6px calc(env(safe-area-inset-left) + 8px);
+    background: var(--primario); color: var(--bianco, #fff);
+  }
+  .vf-barra button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px;
+    padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer;
+  }
+  .vf-barra button:active { background: rgb(255 255 255 / .12); }
+  .vf-barra svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .vf-titolo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; opacity: .85; }
+  .vf-zoom { display: inline-flex; }
+  .vf-zoom[hidden], .vf-condividi[hidden] { display: none; }
+  .vf-zoom button { font-size: 24px; font-weight: 400; }
+  .vf-corpo {
+    flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .vf-corpo.centro { display: grid; place-items: center; padding: 16px; }
+  .vf-pagine { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px; width: max-content; min-width: 100%; box-sizing: border-box; }
+  .vf-pagine canvas { display: block; background: #fff; box-shadow: 0 2px 10px rgb(0 0 0 / .35); }
+  .vf-corpo img, .vf-corpo video { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+  .vf-corpo audio { width: min(100%, 520px); }
+  .vf-messaggio { max-width: 420px; text-align: center; font-size: 15px; line-height: 1.5; }
+</style>
+
+<script>
+  const visore = document.querySelector<HTMLElement>('.visore-file');
+  // Solo nell'app installata su iPhone e iPad (iPadOS si presenta come un Mac con lo schermo tattile)
+  const apple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  const installata = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  if (visore && apple && installata) {
+    const corpo = visore.querySelector<HTMLElement>('.vf-corpo')!;
+    const titolo = visore.querySelector<HTMLElement>('.vf-titolo')!;
+    const zoom = visore.querySelector<HTMLElement>('.vf-zoom')!;
+    const condividi = visore.querySelector<HTMLButtonElement>('.vf-condividi')!;
+    let file: File | undefined;
+    let chiusura: (() => void) | undefined;
+    let tornaA: HTMLElement | null = null;
+
+    const messaggio = (testo: string) => {
+      corpo.className = 'vf-corpo centro';
+      corpo.innerHTML = '';
+      const p = document.createElement('p');
+      p.className = 'vf-messaggio';
+      p.textContent = testo;
+      corpo.append(p);
+    };
+
+    const chiudi = () => {
+      if (visore.hidden) return;
+      try { chiusura?.(); } catch {}
+      chiusura = undefined;
+      file = undefined;
+      corpo.innerHTML = '';
+      visore.hidden = true;
+      document.documentElement.style.overflow = '';
+      tornaA?.focus();
+    };
+
+    // Il nome del file arriva da Content-Disposition (filename*=UTF-8''…)
+    const nomeDa = (r: Response, riserva: string) => {
+      const m = r.headers.get('content-disposition')?.match(/filename\*=UTF-8''([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : riserva;
+    };
+
+    async function mostraPdf(url: string) {
+      messaggio('Sto aprendo lo spartito…');
+      const [pdfjs, lavoratore, risposta] = await Promise.all([
+        import('pdfjs-dist/legacy/build/pdf.min.mjs'),
+        import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'),
+        fetch(url),
+      ]);
+      if (!risposta.ok) throw new Error(String(risposta.status));
+      const nome = nomeDa(risposta, titolo.textContent || 'spartito.pdf');
+      titolo.textContent = nome;
+      const dati = await risposta.arrayBuffer();
+      file = new File([dati], nome, { type: 'application/pdf' });
+      condividi.hidden = !navigator.canShare?.({ files: [file] });
+      pdfjs.GlobalWorkerOptions.workerSrc = lavoratore.default;
+      const caricamento = pdfjs.getDocument({ data: new Uint8Array(dati) });
+      const doc = await caricamento.promise;
+      if (visore.hidden) { caricamento.destroy(); return; }
+
+      corpo.className = 'vf-corpo';
+      corpo.innerHTML = '';
+      const pagine = document.createElement('div');
+      pagine.className = 'vf-pagine';
+      corpo.append(pagine);
+      zoom.hidden = false;
+
+      // Ogni pagina si disegna quando si avvicina allo schermo, alla larghezza del visore per l'ingrandimento
+      const LIVELLI = [1, 1.5, 2, 3];
+      let livello = 0;
+      const tele: HTMLCanvasElement[] = [];
+      const disegnate = new Map<HTMLCanvasElement, number>();
+      const prime = await doc.getPage(1);
+      const base = prime.getViewport({ scale: 1 });
+      const larghezza = () => (corpo.clientWidth - 20) * LIVELLI[livello];
+
+      const disegna = async (tela: HTMLCanvasElement) => {
+        const n = Number(tela.dataset.pagina);
+        const scala = larghezza();
+        if (disegnate.get(tela) === scala) return;
+        disegnate.set(tela, scala);
+        const pagina = n === 1 ? prime : await doc.getPage(n);
+        const vista = pagina.getViewport({ scale: scala / pagina.getViewport({ scale: 1 }).width });
+        // Al più 4 volte i pixel dello schermo e mai oltre i 16 milioni di pixel di Safari
+        const dpr = Math.min(devicePixelRatio || 1, 3, Math.sqrt(16e6 / (vista.width * vista.height)));
+        tela.width = Math.floor(vista.width * dpr);
+        tela.height = Math.floor(vista.height * dpr);
+        tela.style.width = `${Math.floor(vista.width)}px`;
+        tela.style.height = `${Math.floor(vista.height)}px`;
+        await pagina.render({ canvas: tela, viewport: vista, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise.catch(() => {});
+      };
+
+      const osserva = new IntersectionObserver((voci) => {
+        for (const v of voci) if (v.isIntersecting) disegna(v.target as HTMLCanvasElement);
+      }, { root: corpo, rootMargin: '600px 0px' });
+
+      const dimensiona = () => {
+        for (const tela of tele) {
+          // Prima del disegno ogni pagina ha già la sua misura, così la pagina non salta mentre scorre
+          const w = larghezza();
+          tela.style.width = `${Math.floor(w)}px`;
+          tela.style.height = `${Math.floor(w * base.height / base.width)}px`;
+        }
+      };
+      for (let n = 1; n <= doc.numPages; n++) {
+        const tela = document.createElement('canvas');
+        tela.dataset.pagina = String(n);
+        tela.setAttribute('aria-label', `Pagina ${n} di ${doc.numPages}`);
+        tele.push(tela);
+        pagine.append(tela);
+      }
+      dimensiona();
+      tele.forEach((t) => osserva.observe(t));
+
+      const ingrandisci = (e: Event) => {
+        const b = (e.target as Element).closest<HTMLButtonElement>('[data-zoom]');
+        if (!b) return;
+        const nuovo = Math.max(0, Math.min(LIVELLI.length - 1, livello + Number(b.dataset.zoom)));
+        if (nuovo === livello) return;
+        // Tiene ferma la parte dello spartito che si sta guardando
+        const rx = (corpo.scrollLeft + corpo.clientWidth / 2) / corpo.scrollWidth;
+        const ry = (corpo.scrollTop + corpo.clientHeight / 2) / corpo.scrollHeight;
+        livello = nuovo;
+        dimensiona();
+        corpo.scrollLeft = rx * corpo.scrollWidth - corpo.clientWidth / 2;
+        corpo.scrollTop = ry * corpo.scrollHeight - corpo.clientHeight / 2;
+        osserva.disconnect();
+        tele.forEach((t) => osserva.observe(t));
+      };
+      zoom.addEventListener('click', ingrandisci);
+      chiusura = () => { zoom.removeEventListener('click', ingrandisci); osserva.disconnect(); caricamento.destroy(); };
+    }
+
+    async function apri(a: HTMLAnchorElement) {
+      tornaA = a;
+      const url = a.href;
+      titolo.textContent = (a.textContent || '').trim() || a.getAttribute('aria-label') || a.title || 'File';
+      zoom.hidden = true;
+      condividi.hidden = true;
+      visore.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      visore.querySelector<HTMLButtonElement>('.vf-chiudi')!.focus();
+      messaggio('Sto aprendo il file…');
+      try {
+        // Il tipo del file, chiedendo un solo byte
+        const prova = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+        if (!prova.ok) throw new Error(String(prova.status));
+        const tipo = prova.headers.get('content-type') ?? '';
+        titolo.textContent = nomeDa(prova, titolo.textContent);
+        prova.body?.cancel().catch(() => {});
+        if (visore.hidden) return;
+        if (tipo.startsWith('application/pdf')) return await mostraPdf(url);
+        corpo.className = 'vf-corpo centro';
+        corpo.innerHTML = '';
+        if (tipo.startsWith('audio/') || tipo.startsWith('video/')) {
+          const m = document.createElement(tipo.startsWith('audio/') ? 'audio' : 'video');
+          m.controls = true;
+          m.setAttribute('playsinline', '');
+          m.src = url;
+          corpo.append(m);
+          m.play().catch(() => {});
+          chiusura = () => { m.pause(); m.removeAttribute('src'); m.load(); };
+        } else if (tipo.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.alt = titolo.textContent || 'Foto';
+          img.src = url;
+          corpo.append(img);
+        } else {
+          messaggio('Questo file non si può mostrare qui.');
+        }
+      } catch {
+        if (!visore.hidden) messaggio('Il file non si è aperto. Controlla la connessione e riprova.');
+      }
+    }
+
+    visore.querySelector('.vf-chiudi')!.addEventListener('click', chiudi);
+    addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudi(); });
+    condividi.addEventListener('click', () => {
+      if (file) navigator.share({ files: [file] }).catch(() => {});
+    });
+
+    // In fase di cattura, prima di CaricamentoPagina e degli altri script
+    document.addEventListener('click', (e) => {
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!a || e.button !== 0 || a.hasAttribute('download')) return;
+      const u = new URL(a.href, location.href);
+      if (u.origin !== location.origin || !/^\/(area|maestro)\/file\//.test(u.pathname)) return;
+      e.preventDefault();
+      apri(a);
+    }, true);
+  }
+</script>
