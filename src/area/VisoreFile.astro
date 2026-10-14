@@ -35,6 +35,7 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px;
     padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer;
   }
+  .vf-barra button:focus:not(:focus-visible), .visore-file[data-tocco] .vf-barra button:focus { outline: none; }
   .vf-barra button:active { background: rgb(255 255 255 / .12); }
   .vf-barra button[aria-busy] { opacity: .5; animation: vf-pulsa 1s ease-in-out infinite alternate; }
   @keyframes vf-pulsa { to { opacity: .2; } }
@@ -243,8 +244,10 @@
       zoom.hidden = true;
       condividi.hidden = true;
       visore.hidden = false;
+      visore.dataset.tocco = '';
       document.documentElement.style.overflow = 'hidden';
-      visore.querySelector<HTMLButtonElement>('.vf-chiudi')!.focus();
+      // Il fuoco passa al visore (per la tastiera e i lettori di schermo), senza il bordo del fuoco al tocco
+      visore.querySelector<HTMLButtonElement>('.vf-chiudi')!.focus({ focusVisible: false } as FocusOptions);
       messaggio('Sto aprendo il file…');
       try {
         // Il tipo del file, chiedendo un solo byte
@@ -279,7 +282,7 @@
     }
 
     visore.querySelector('.vf-chiudi')!.addEventListener('click', chiudi);
-    addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudi(); });
+    addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudi(); else if (e.key === 'Tab') delete visore.dataset.tocco; });
     // Condividi (per salvare il PDF in File o aprirlo in un'altra app): il file si scarica al primo tocco;
     // se intanto iOS non considera più il tocco «recente», ne serve un secondo
     condividi.addEventListener('click', async () => {
