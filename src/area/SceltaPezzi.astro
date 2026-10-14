@@ -8,11 +8,12 @@
 // scegliere anche i singoli brani ("Autore – Titolo › Brano", dal 6/10/2026): nell'area coristi il
 // brano apre il suo spartito. Con raccolte, un pezzo si trova anche cercando il nome della sua
 // raccolta ("natalizi"); con soloPezzi (contenuto di una raccolta) niente parti delle opere. I pezzi
-// scelti si riordinano con le frecce (dal 13/10/2026).
+// scelti si riordinano con le frecce (dal 13/10/2026), tranne con senzaOrdine (le raccolte, i cui
+// pezzi stanno in ordine di autore dal 14/10/2026).
 import { nomeBrano, nomeCompleto, trovaVoce, type Pezzo, type Raccolta } from './repertorio';
 
-interface Props { nome: string; etichetta: string; pezzi: Pezzo[]; scelti: string[]; aiuto?: string; raccolte?: Raccolta[]; soloPezzi?: boolean }
-const { nome, etichetta, pezzi, scelti, aiuto, raccolte = [], soloPezzi = false } = Astro.props;
+interface Props { nome: string; etichetta: string; pezzi: Pezzo[]; scelti: string[]; aiuto?: string; raccolte?: Raccolta[]; soloPezzi?: boolean; senzaOrdine?: boolean }
+const { nome, etichetta, pezzi, scelti, aiuto, raccolte = [], soloPezzi = false, senzaOrdine = false } = Astro.props;
 const nomiRaccolte = (p: Pezzo) => raccolte.filter((r) => p.raccolte.includes(r.id)).map((r) => r.titolo);
 const id = `scelta-${nome}`;
 const cerca = (...v: string[]) => v.join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -23,7 +24,7 @@ const voce = (nome: string) => {
 };
 ---
 
-<fieldset class="scelta-pezzi" data-nome={nome}>
+<fieldset class:list={['scelta-pezzi', { 'senza-ordine': senzaOrdine }]} data-nome={nome}>
   <legend>{etichetta}</legend>
   {pezzi.length === 0 && scelti.length === 0 ? (
     <small class="aiuto">Il repertorio è vuoto: i pezzi si aggiungono dalla pagina Repertorio.</small>
@@ -71,7 +72,7 @@ const voce = (nome: string) => {
   .scelta-pezzi .scelti li span { flex: 1; min-width: 0; font-weight: 500; color: var(--testo); }
   .scelta-pezzi .sposta-pezzo { background: none; border: 1px solid var(--linea); border-radius: var(--raggio); color: var(--primario); font: inherit; font-size: 15px; line-height: 1; padding: 5px 8px; cursor: pointer; }
   .scelta-pezzi .scelti li:first-child .sposta-pezzo[data-verso="-1"], .scelta-pezzi .scelti li:last-child .sposta-pezzo[data-verso="1"] { visibility: hidden; }
-  .scelta-pezzi .scelti li:only-child .sposta-pezzo { display: none; }
+  .scelta-pezzi .scelti li:only-child .sposta-pezzo, .scelta-pezzi.senza-ordine .sposta-pezzo { display: none; }
   .scelta-pezzi .togli-pezzo { background: none; border: 0; color: var(--rosso); font: inherit; font-size: 14px; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 4px; }
   .scelta-pezzi .aiuto { color: var(--tenue); font-size: 13px; font-weight: 400; }
   .scelta-pezzi .scelti:has(li) + .vuoto-scelti { display: none; }

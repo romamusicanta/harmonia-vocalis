@@ -56,7 +56,7 @@ export interface Raccolta {
   id: string;
   titolo: string;
   note: string;
-  contenuto: string[];               // ID dei pezzi, nell'ordine (solo quelli che esistono)
+  contenuto: string[];               // ID dei pezzi (solo quelli che esistono), per autore come il repertorio
   aggiornato: string;
 }
 
@@ -146,8 +146,13 @@ export async function catalogo(): Promise<{ pezzi: Pezzo[]; raccolte: Raccolta[]
     contenuto: [...new Set(righe(r['Contenuto']))].filter((id) => ids.has(id)),
     aggiornato: r['Aggiornato il'],
   })).sort((a, b) => confronta(a.titolo, b.titolo));
+  // Dentro una raccolta i pezzi stanno in ordine di autore, come nel resto del repertorio (dal
+  // 14/10/2026, richiesta di Mario; prima nell'ordine scelto con le frecce)
+  pezzi.sort(perAutore);
+  const posto = new Map(pezzi.map((p, i) => [p.id, i]));
+  for (const r of raccolte) r.contenuto.sort((a, b) => posto.get(a)! - posto.get(b)!);
   for (const p of pezzi) p.raccolte = raccolte.filter((r) => r.contenuto.includes(p.id)).map((r) => r.id);
-  return { pezzi: pezzi.sort(perAutore), raccolte };
+  return { pezzi, raccolte };
 }
 
 // Le opere (i pezzi), senza le raccolte: è quello che serve a prove, convocazioni e bacheca

@@ -62,7 +62,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         {raccoltaInModifica && <input type="hidden" name="id" value={raccoltaInModifica.id} />}
         <label>Nome della raccolta<input name="titolo" required maxlength="140" value={raccoltaInModifica?.titolo} placeholder="Es. Canti natalizi" /></label>
         <label>Nota per i coristi <small>(facoltativa)</small><textarea name="note" rows="3" maxlength="4000" placeholder="Per esempio: il programma del concerto di Natale.">{raccoltaInModifica?.note}</textarea></label>
-        <SceltaPezzi nome="contenuto" etichetta="Pezzi della raccolta" pezzi={elenco} raccolte={raccolte} soloPezzi scelti={(raccoltaInModifica?.contenuto ?? []).map((id) => nomeCompleto(pezzoDi.get(id)!))} aiuto="Nell'ordine in cui i coristi li vedono: si aggiungono in fondo e si spostano con le frecce. Un pezzo che non è ancora nel repertorio si aggiunge con «Aggiungi un pezzo nuovo»." />
+        <SceltaPezzi nome="contenuto" etichetta="Pezzi della raccolta" pezzi={elenco} raccolte={raccolte} soloPezzi senzaOrdine scelti={(raccoltaInModifica?.contenuto ?? []).map((id) => nomeCompleto(pezzoDi.get(id)!))} aiuto="Nella raccolta i pezzi stanno sempre in ordine di autore. Un pezzo che non è ancora nel repertorio si aggiunge con «Aggiungi un pezzo nuovo»." />
         <div class="azioni-pezzo">
           <button class="btn" type="submit"><Icona nome="spunta" />{raccoltaInModifica ? 'Salva la raccolta' : 'Crea la raccolta'}</button>
           {raccoltaInModifica && <a class="btn o" href={`${base}/repertorio?nuovo&raccolta=${raccoltaInModifica.id}#modulo`}>Aggiungi un pezzo nuovo</a>}
