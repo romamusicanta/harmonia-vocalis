@@ -114,7 +114,11 @@
       motore ??= { worker: new pdfjs.PDFWorker() };
       // A pezzi, con le richieste parziali (Range): gli spartiti scansionati pesano anche 80 MB e il
       // telefono non deve tenerli tutti in memoria; arrivano solo le pagine che si guardano
-      const caricamento = pdfjs.getDocument({ url, worker: motore.worker as InstanceType<typeof pdfjs.PDFWorker>, disableAutoFetch: true, disableStream: true, rangeChunkSize: 1 << 20 });
+      const caricamento = pdfjs.getDocument({ url, worker: motore.worker as InstanceType<typeof pdfjs.PDFWorker>, disableAutoFetch: true, disableStream: true, rangeChunkSize: 1 << 20,
+        // Moduli e dati che PDF.js carica da sé (copiati da scripts/pdfjs.mjs): senza wasm le scansioni
+        // JBIG2 (Beethoven, Magnificat di J.S. Bach) restavano bianche
+        wasmUrl: '/pdfjs/wasm/', cMapUrl: '/pdfjs/cmaps/', standardFontDataUrl: '/pdfjs/standard_fonts/', iccUrl: '/pdfjs/iccs/',
+      });
       chiusura = () => { caricamento.destroy(); };
       const doc = await caricamento.promise;
       if (visore.hidden) return;
