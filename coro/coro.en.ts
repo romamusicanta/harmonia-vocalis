@@ -15,6 +15,7 @@ export default {
   },
   maestro: {
     presentazione: 'On the podium of Roman choirs for over thirty years, a collaborator of Ennio Morricone, arranger and singing teacher.',
+    riquadro: { etichetta: 'years on the podium', frase: 'Leading the Coro Harmonia Vocalis.' },
   },
   direttivo: [{ ruolo: 'President' }, { ruolo: 'Vice-president' }, { ruolo: 'Conductor' }, { ruolo: 'Treasurer' }],
   organico: [{ sezione: 'Sopranos' }, { sezione: 'Altos' }, { sezione: 'Tenors' }, { sezione: 'Basses' }],

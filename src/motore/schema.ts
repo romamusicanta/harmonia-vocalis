@@ -50,6 +50,9 @@ export const schemaCoro = z.object({
     // Frase di presentazione breve, sotto il nome
     presentazione: z.string(),
     anniPodio: z.number().int().optional(),
+    // Riquadro giallo sopra la foto della pagina "Il Maestro" (Testi del sito, dal 14/10/2026):
+    // numero grande, scritta sotto il numero, frase. Senza numero, anniPodio
+    riquadro: z.object({ numero: z.string().optional(), etichetta: z.string().optional(), frase: z.string().optional() }).optional(),
     foto: z.string(),
   }),
 
