@@ -4,18 +4,18 @@
 
 /* Logo del coro (coro/Logo.astro), quando c'è: sostituisce sigla e nome nei marchi di tutte le vesti.
    Disegna con currentColor; ogni veste ne regola colore e misura. */
-.logo-coro { display: block; width: 150px; flex-shrink: 0; }
+.logo-coro { display: block; width: 128px; flex-shrink: 0; }
 .logo-coro svg, .logo-coro img { display: block; width: 100%; height: auto; overflow: visible; }
-@media (min-width: 560px) { .logo-coro { width: 190px; } }
+@media (min-width: 560px) { .logo-coro { width: 162px; } }
 /* Logo con due disegni (su una riga e su due righe): di base due righe; .logo-largo per quello su una riga */
 .logo-coro .logo-riga { display: none; }
 .logo-coro.logo-largo .logo-riga { display: block; }
 .logo-coro.logo-largo .logo-righe { display: none; }
 .con-logo { color: var(--primario); }
-.locandina-logo { width: 34cqw; color: #fff; }
+.locandina-logo { width: 29cqw; color: #fff; }
 /* Su fondo scuro il logo è bianco: piè di pagina di Stagione e Calda, tutta la veste Palco al buio */
 .piede-sito .con-logo, [data-veste="palco"] .con-logo { color: #fff; }
-.piede-sito .logo-coro { width: 200px; }
+.piede-sito .logo-coro { width: 170px; }
 
 /* Menu a tendina del sito (src/motore/tendine.ts): il <select> chiuso con la freccia del sito,
    l'elenco aperto disegnato come le schede. Vale per tutte le vesti, aree riservate comprese. */

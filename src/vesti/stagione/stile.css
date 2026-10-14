@@ -82,7 +82,7 @@ svg { flex-shrink: 0; }
 /* Logo su una riga nella testata dove c'è spazio: tra 760 e 1000px (il menu è nell'hamburger) e dai
    1200px; sul telefono e accanto al menu stretto, su due righe */
 @media (min-width: 760px) and (max-width: 999.98px), (min-width: 1200px) {
-  .testata .logo-coro { width: 300px; }
+  .testata .logo-coro { width: 248px; }
   .testata .logo-coro .logo-riga { display: block; }
   .testata .logo-coro .logo-righe { display: none; }
 }
@@ -514,7 +514,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 .lat-testa { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 80px; padding: 0 12px 0 20px; }
 .lat-marchio { min-width: 0; }
 .lat-marchio .con-logo { color: #fff; }
-.lat-marchio .logo-coro { width: 160px; }
+.lat-marchio .logo-coro { width: 136px; }
 .lat-testa button { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; background: none; border: 0; border-radius: var(--raggio); color: inherit; cursor: pointer; }
 .lat-testa button:hover { background: color-mix(in srgb, #fff 10%, transparent); color: #fff; }
 .lat-voci { flex: 1; overflow-y: auto; padding: 0 10px 12px; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, #fff 25%, transparent) transparent; }
