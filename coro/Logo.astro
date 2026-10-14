@@ -1,14 +1,29 @@
 ---
-// Logo del Coro Harmonia Vocalis: proposta 3 "Diapason orizzontale" (public/mockup/logo/, sezione 3).
-// Disegna con currentColor, così la veste lo fa scuro sul chiaro e bianco sullo scuro; il punto è
-// nel colore d'accento. Il carattere Archivo largo è dichiarato in coro.config.ts (aspetto.caratteriLogo).
+// Logo del Coro Harmonia Vocalis (dal 14/10/2026): il diapason dell'icona dell'app (public/favicon.svg),
+// senza il quadrato di fondo, e accanto la scritta HARMONIA VOCALIS in Archivo largo (900 e 300).
+// Disegna con currentColor, così la veste lo fa blu notte sul chiaro e bianco sullo scuro; il punto è
+// nel colore d'accento. Due disegni: su una riga (.logo-riga) e, dove lo spazio non basta, su due righe
+// (.logo-righe); quale si vede lo decide il CSS di ogni posto (src/stile/comune.css e la veste).
+// Il carattere Archivo largo è dichiarato in coro.config.ts (aspetto.caratteriLogo).
 ---
 
-<svg viewBox="0 0 600 150" role="img" aria-label="Harmonia Vocalis">
-  <g fill="none" stroke="currentColor" stroke-width="9"><path d="M40 60H420a20 20 0 0 1 0 40H40" /><path d="M440 80H540" /></g>
-  <circle cx="552" cy="80" r="11" style="fill:var(--accento)" />
+<svg class="logo-riga" viewBox="0 -2 590 32" role="img" aria-label="Harmonia Vocalis">
+  <g transform="translate(-7.35 -19.6) scale(1.05)">
+    <g fill="none" stroke="currentColor" stroke-width="5.5"><path d="M7 21H25a11 11 0 0 1 0 22H7" /><path d="M36 32H46" /></g>
+    <circle cx="51.5" cy="32" r="5.5" style="fill:var(--accento)" />
+  </g>
   <g fill="currentColor" style="font-family:Archivo,system-ui,sans-serif;font-stretch:125%">
-    <text x="40" y="46" font-size="40" font-weight="900" letter-spacing="-1.4">HARMONIA</text>
-    <text x="150" y="140" font-size="40" font-weight="300" letter-spacing="-1">VOCALIS</text>
+    <text x="78.5" y="28" font-size="40" font-weight="900" letter-spacing="-1.4">HARMONIA</text>
+    <text x="376" y="28" font-size="40" font-weight="300" letter-spacing="-1">VOCALIS</text>
+  </g>
+</svg>
+<svg class="logo-righe" viewBox="0 0 390 66" role="img" aria-label="Harmonia Vocalis">
+  <g transform="translate(-9.8 -12.3) scale(1.4)">
+    <g fill="none" stroke="currentColor" stroke-width="5.5"><path d="M7 21H25a11 11 0 0 1 0 22H7" /><path d="M36 32H46" /></g>
+    <circle cx="51.5" cy="32" r="5.5" style="fill:var(--accento)" />
+  </g>
+  <g fill="currentColor" style="font-family:Archivo,system-ui,sans-serif;font-stretch:125%">
+    <text x="100" y="28" font-size="40" font-weight="900" letter-spacing="-1.4">HARMONIA</text>
+    <text x="100" y="65" font-size="40" font-weight="300" letter-spacing="-1">VOCALIS</text>
   </g>
 </svg>
