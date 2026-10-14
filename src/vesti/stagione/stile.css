@@ -79,12 +79,15 @@ svg { flex-shrink: 0; }
 .nav a { padding: 28px 0; border-bottom: 3px solid transparent; white-space: nowrap; }
 .nav a:hover, .nav a.on { border-color: var(--accento); }
 .testata .azioni { display: flex; align-items: center; gap: 10px; }
-/* Logo su una riga nella testata dove c'è spazio: tra 760 e 1000px (il menu è nell'hamburger) e dai
-   1200px; sul telefono e accanto al menu stretto, su due righe */
-@media (min-width: 760px) and (max-width: 999.98px), (min-width: 1200px) {
-  .testata .logo-coro { width: 248px; }
-  .testata .logo-coro .logo-riga { display: block; }
-  .testata .logo-coro .logo-righe { display: none; }
+/* Logo su una riga nella testata, anche sul telefono; su due righe solo tra 1000 e 1200px, accanto al
+   menu delle pagine */
+.testata .logo-coro { width: 248px; max-width: calc(100vw - 120px); }
+.testata .logo-coro .logo-riga { display: block; }
+.testata .logo-coro .logo-righe { display: none; }
+@media (min-width: 1000px) and (max-width: 1199.98px) {
+  .testata .logo-coro { width: 162px; }
+  .testata .logo-coro .logo-riga { display: none; }
+  .testata .logo-coro .logo-righe { display: block; }
 }
 .testata .azioni .btn { display: none; }
 .hamb { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; color: var(--primario); border-radius: var(--raggio); }
