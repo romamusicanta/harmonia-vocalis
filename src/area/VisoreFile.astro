@@ -52,6 +52,11 @@
   .vf-pagine canvas { display: block; background: #fff; box-shadow: 0 2px 10px rgb(0 0 0 / .35); }
   .vf-corpo img, .vf-corpo video { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
   .vf-corpo audio { width: min(100%, 520px); }
+  .vf-avviso {
+    position: sticky; bottom: 0; margin: 0; padding: 10px 14px calc(env(safe-area-inset-bottom) + 10px);
+    background: #8a1c1c; color: #fff; font-size: 14px; line-height: 1.4;
+  }
+  .vf-avviso[hidden] { display: none; }
   .vf-messaggio { max-width: 420px; text-align: center; font-size: 15px; line-height: 1.5; }
 </style>
 
@@ -69,6 +74,9 @@
     let file: File | undefined;
     let chiusura: (() => void) | undefined;
     let tornaA: HTMLElement | null = null;
+    // Un solo motore di PDF.js (il suo «worker») per tutti gli spartiti aperti: crearne uno nuovo a ogni
+    // apertura sull'iPhone vero lasciava la memoria piena, e dal secondo spartito le pagine restavano bianche
+    let motore: { worker: unknown } | undefined;
 
     const messaggio = (testo: string) => {
       corpo.className = 'vf-corpo centro';
@@ -103,9 +111,10 @@
         import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'),
       ]);
       pdfjs.GlobalWorkerOptions.workerSrc = lavoratore.default;
+      motore ??= { worker: new pdfjs.PDFWorker() };
       // A pezzi, con le richieste parziali (Range): gli spartiti scansionati pesano anche 80 MB e il
       // telefono non deve tenerli tutti in memoria; arrivano solo le pagine che si guardano
-      const caricamento = pdfjs.getDocument({ url, disableAutoFetch: true, disableStream: true, rangeChunkSize: 1 << 20 });
+      const caricamento = pdfjs.getDocument({ url, worker: motore.worker as InstanceType<typeof pdfjs.PDFWorker>, disableAutoFetch: true, disableStream: true, rangeChunkSize: 1 << 20 });
       chiusura = () => { caricamento.destroy(); };
       const doc = await caricamento.promise;
       if (visore.hidden) return;
@@ -117,6 +126,7 @@
       pagine.className = 'vf-pagine';
       corpo.append(pagine);
       zoom.hidden = false;
+
 
       // Si disegnano solo le pagine vicine allo schermo, una alla volta, e quelle lontane si svuotano:
       // Safari su iPhone ha poca memoria per le tele e, superato il limite, le lascia bianche senza errori
@@ -132,28 +142,29 @@
 
       const svuota = (tela: HTMLCanvasElement) => { tela.width = 0; tela.height = 0; disegnate.delete(tela); };
 
+      // Se una pagina non si disegna lo si dice, invece di lasciarla bianca
+      const avviso = document.createElement('p');
+      avviso.className = 'vf-avviso';
+      avviso.hidden = true;
       const disegna = async (tela: HTMLCanvasElement) => {
         const scala = larghezza();
         disegnate.set(tela, scala);
         const pagina = await doc.getPage(Number(tela.dataset.pagina));
         const vista = pagina.getViewport({ scale: scala / pagina.getViewport({ scale: 1 }).width });
-        // Al più 2 pixel per punto e 5 milioni di pixel per pagina
-        const dpr = Math.min(devicePixelRatio || 1, 2, Math.sqrt(5e6 / (vista.width * vista.height)));
-        // Si disegna su una tela nuova e poi si copia, così la pagina già disegnata resta visibile intanto
-        const nuova = document.createElement('canvas');
-        nuova.width = Math.floor(vista.width * dpr);
-        nuova.height = Math.floor(vista.height * dpr);
+        // Al più 2 pixel per punto e 4 milioni di pixel per pagina
+        const dpr = Math.min(devicePixelRatio || 1, 2, Math.sqrt(4e6 / (vista.width * vista.height)));
+        tela.width = Math.floor(vista.width * dpr);
+        tela.height = Math.floor(vista.height * dpr);
         try {
-          await pagina.render({ canvas: nuova, viewport: vista, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
-          if (!chiuso && vicine.has(tela) && disegnate.get(tela) === scala) {
-            tela.width = nuova.width;
-            tela.height = nuova.height;
-            tela.getContext('2d')!.drawImage(nuova, 0, 0);
+          await pagina.render({ canvas: tela, viewport: vista, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
+          if (chiuso || !vicine.has(tela)) svuota(tela);
+        } catch (e) {
+          svuota(tela);
+          if (!chiuso) {
+            avviso.textContent = `La pagina ${tela.dataset.pagina} non si è disegnata: chiudi lo spartito e riaprilo; se succede ancora, chiudi l'app e riaprila. (${(e as Error)?.message ?? e})`;
+            avviso.hidden = false;
           }
-        } catch {
-          disegnate.delete(tela);
         } finally {
-          nuova.width = 0; nuova.height = 0;
           // Libera le immagini decodificate della pagina
           pagina.cleanup();
         }
@@ -180,7 +191,7 @@
           else { vicine.delete(tela); svuota(tela); }
         }
         prossima();
-      }, { root: corpo, rootMargin: '50% 0px' });
+      }, { root: corpo, rootMargin: '30% 0px' });
 
       const dimensiona = () => {
         for (const tela of tele) {
@@ -199,6 +210,7 @@
         pagine.append(tela);
       }
       dimensiona();
+      corpo.append(avviso);
       tele.forEach((t) => osserva.observe(t));
 
       const ingrandisci = (e: Event) => {
