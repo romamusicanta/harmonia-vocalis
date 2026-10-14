@@ -36,6 +36,8 @@
     padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer;
   }
   .vf-barra button:active { background: rgb(255 255 255 / .12); }
+  .vf-barra button[aria-busy] { opacity: .5; animation: vf-pulsa 1s ease-in-out infinite alternate; }
+  @keyframes vf-pulsa { to { opacity: .2; } }
   .vf-barra svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .vf-titolo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; opacity: .85; }
   .vf-zoom { display: inline-flex; }
@@ -94,23 +96,20 @@
       return m ? decodeURIComponent(m[1]) : riserva;
     };
 
-    async function mostraPdf(url: string) {
+    async function mostraPdf(url: string, nome: string) {
       messaggio('Sto aprendo lo spartito…');
-      const [pdfjs, lavoratore, risposta] = await Promise.all([
+      const [pdfjs, lavoratore] = await Promise.all([
         import('pdfjs-dist/legacy/build/pdf.min.mjs'),
         import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'),
-        fetch(url),
       ]);
-      if (!risposta.ok) throw new Error(String(risposta.status));
-      const nome = nomeDa(risposta, titolo.textContent || 'spartito.pdf');
-      titolo.textContent = nome;
-      const dati = await risposta.arrayBuffer();
-      file = new File([dati], nome, { type: 'application/pdf' });
-      condividi.hidden = !navigator.canShare?.({ files: [file] });
       pdfjs.GlobalWorkerOptions.workerSrc = lavoratore.default;
-      const caricamento = pdfjs.getDocument({ data: new Uint8Array(dati) });
+      // A pezzi, con le richieste parziali (Range): gli spartiti scansionati pesano anche 80 MB e il
+      // telefono non deve tenerli tutti in memoria; arrivano solo le pagine che si guardano
+      const caricamento = pdfjs.getDocument({ url, disableAutoFetch: true, disableStream: true, rangeChunkSize: 1 << 20 });
+      chiusura = () => { caricamento.destroy(); };
       const doc = await caricamento.promise;
-      if (visore.hidden) { caricamento.destroy(); return; }
+      if (visore.hidden) return;
+      condividi.hidden = !navigator.canShare?.({ files: [new File([''], nome, { type: 'application/pdf' })] });
 
       corpo.className = 'vf-corpo';
       corpo.innerHTML = '';
@@ -119,38 +118,73 @@
       corpo.append(pagine);
       zoom.hidden = false;
 
-      // Ogni pagina si disegna quando si avvicina allo schermo, alla larghezza del visore per l'ingrandimento
+      // Si disegnano solo le pagine vicine allo schermo, una alla volta, e quelle lontane si svuotano:
+      // Safari su iPhone ha poca memoria per le tele e, superato il limite, le lascia bianche senza errori
       const LIVELLI = [1, 1.5, 2, 3];
       let livello = 0;
+      let chiuso = false;
       const tele: HTMLCanvasElement[] = [];
       const disegnate = new Map<HTMLCanvasElement, number>();
+      const vicine = new Set<HTMLCanvasElement>();
       const prime = await doc.getPage(1);
       const base = prime.getViewport({ scale: 1 });
       const larghezza = () => (corpo.clientWidth - 20) * LIVELLI[livello];
 
+      const svuota = (tela: HTMLCanvasElement) => { tela.width = 0; tela.height = 0; disegnate.delete(tela); };
+
       const disegna = async (tela: HTMLCanvasElement) => {
-        const n = Number(tela.dataset.pagina);
         const scala = larghezza();
-        if (disegnate.get(tela) === scala) return;
         disegnate.set(tela, scala);
-        const pagina = n === 1 ? prime : await doc.getPage(n);
+        const pagina = await doc.getPage(Number(tela.dataset.pagina));
         const vista = pagina.getViewport({ scale: scala / pagina.getViewport({ scale: 1 }).width });
-        // Al più 4 volte i pixel dello schermo e mai oltre i 16 milioni di pixel di Safari
-        const dpr = Math.min(devicePixelRatio || 1, 3, Math.sqrt(16e6 / (vista.width * vista.height)));
-        tela.width = Math.floor(vista.width * dpr);
-        tela.height = Math.floor(vista.height * dpr);
-        tela.style.width = `${Math.floor(vista.width)}px`;
-        tela.style.height = `${Math.floor(vista.height)}px`;
-        await pagina.render({ canvas: tela, viewport: vista, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise.catch(() => {});
+        // Al più 2 pixel per punto e 5 milioni di pixel per pagina
+        const dpr = Math.min(devicePixelRatio || 1, 2, Math.sqrt(5e6 / (vista.width * vista.height)));
+        // Si disegna su una tela nuova e poi si copia, così la pagina già disegnata resta visibile intanto
+        const nuova = document.createElement('canvas');
+        nuova.width = Math.floor(vista.width * dpr);
+        nuova.height = Math.floor(vista.height * dpr);
+        try {
+          await pagina.render({ canvas: nuova, viewport: vista, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
+          if (!chiuso && vicine.has(tela) && disegnate.get(tela) === scala) {
+            tela.width = nuova.width;
+            tela.height = nuova.height;
+            tela.getContext('2d')!.drawImage(nuova, 0, 0);
+          }
+        } catch {
+          disegnate.delete(tela);
+        } finally {
+          nuova.width = 0; nuova.height = 0;
+          // Libera le immagini decodificate della pagina
+          pagina.cleanup();
+        }
+      };
+
+      // Una pagina alla volta, prima quella più vicina al centro dello schermo
+      let inCorso = false;
+      const prossima = async () => {
+        if (inCorso || chiuso) return;
+        const centro = corpo.getBoundingClientRect().top + corpo.clientHeight / 2;
+        const distanza = (t: HTMLCanvasElement) => { const r = t.getBoundingClientRect(); return Math.abs(r.top + r.height / 2 - centro); };
+        const tela = [...vicine].filter((t) => disegnate.get(t) !== larghezza()).sort((x, y) => distanza(x) - distanza(y))[0];
+        if (!tela) return;
+        inCorso = true;
+        await disegna(tela);
+        inCorso = false;
+        prossima();
       };
 
       const osserva = new IntersectionObserver((voci) => {
-        for (const v of voci) if (v.isIntersecting) disegna(v.target as HTMLCanvasElement);
-      }, { root: corpo, rootMargin: '600px 0px' });
+        for (const v of voci) {
+          const tela = v.target as HTMLCanvasElement;
+          if (v.isIntersecting) vicine.add(tela);
+          else { vicine.delete(tela); svuota(tela); }
+        }
+        prossima();
+      }, { root: corpo, rootMargin: '50% 0px' });
 
       const dimensiona = () => {
         for (const tela of tele) {
-          // Prima del disegno ogni pagina ha già la sua misura, così la pagina non salta mentre scorre
+          // Ogni pagina ha già la sua misura prima del disegno, così la pagina non salta mentre scorre
           const w = larghezza();
           tela.style.width = `${Math.floor(w)}px`;
           tela.style.height = `${Math.floor(w * base.height / base.width)}px`;
@@ -158,6 +192,7 @@
       };
       for (let n = 1; n <= doc.numPages; n++) {
         const tela = document.createElement('canvas');
+        tela.width = 0; tela.height = 0;
         tela.dataset.pagina = String(n);
         tela.setAttribute('aria-label', `Pagina ${n} di ${doc.numPages}`);
         tele.push(tela);
@@ -182,7 +217,7 @@
         tele.forEach((t) => osserva.observe(t));
       };
       zoom.addEventListener('click', ingrandisci);
-      chiusura = () => { zoom.removeEventListener('click', ingrandisci); osserva.disconnect(); caricamento.destroy(); };
+      chiusura = () => { chiuso = true; zoom.removeEventListener('click', ingrandisci); osserva.disconnect(); tele.forEach(svuota); caricamento.destroy(); };
     }
 
     async function apri(a: HTMLAnchorElement) {
@@ -203,7 +238,7 @@
         titolo.textContent = nomeDa(prova, titolo.textContent);
         prova.body?.cancel().catch(() => {});
         if (visore.hidden) return;
-        if (tipo.startsWith('application/pdf')) return await mostraPdf(url);
+        if (tipo.startsWith('application/pdf')) return await mostraPdf(url, titolo.textContent || 'spartito.pdf');
         corpo.className = 'vf-corpo centro';
         corpo.innerHTML = '';
         if (tipo.startsWith('audio/') || tipo.startsWith('video/')) {
@@ -229,7 +264,24 @@
 
     visore.querySelector('.vf-chiudi')!.addEventListener('click', chiudi);
     addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudi(); });
-    condividi.addEventListener('click', () => {
+    // Condividi (per salvare il PDF in File o aprirlo in un'altra app): il file si scarica al primo tocco;
+    // se intanto iOS non considera più il tocco «recente», ne serve un secondo
+    condividi.addEventListener('click', async () => {
+      const url = tornaA instanceof HTMLAnchorElement ? tornaA.href : '';
+      if (!file && url) {
+        condividi.disabled = true;
+        condividi.setAttribute('aria-busy', 'true');
+        try {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(String(r.status));
+          file = new File([await r.blob()], titolo.textContent || 'spartito.pdf', { type: 'application/pdf' });
+        } catch {
+          return;
+        } finally {
+          condividi.disabled = false;
+          condividi.removeAttribute('aria-busy');
+        }
+      }
       if (file) navigator.share({ files: [file] }).catch(() => {});
     });
 
