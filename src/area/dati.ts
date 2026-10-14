@@ -336,7 +336,7 @@ export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da
     return;
   }
   const descrizione = e.tipo === 'concerto' ? `Concerto · ${e.titolo}` : /^prova\b/i.test(e.titolo) ? e.titolo : `Prova · ${e.titolo}`;
-  const riga = [e.data, descrizione, e.id, `${c.nome} ${c.cognome}`, c.email, c.sezione, nota, adesso(), da];
+  const riga = [e.data, descrizione, `'${e.id}`, `${c.nome} ${c.cognome}`, c.email, c.sezione, nota, adesso(), da];
   // OVERWRITE: la riga va nella prima vuota sotto la tabella e prende il formato delle colonne (date)
   await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`Assenze!A:${String.fromCharCode(64 + COLONNE_ASSENZE.length)}`)}:append?${new URLSearchParams({ valueInputOption: 'USER_ENTERED', insertDataOption: 'OVERWRITE' })}`, {
     method: 'POST', body: JSON.stringify({ values: [riga] }),

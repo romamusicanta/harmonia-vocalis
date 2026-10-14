@@ -447,7 +447,7 @@ export async function gestisciMovimento(f: FormData, email: string): Promise<{ o
     return { ok: false, messaggio: `L'avanzo di cassa della stagione ${nomeStagione(stagioneDi(data))} lo calcola il sito dal saldo finale della stagione prima: non serve scriverlo.` };
   }
   const nuovoId = esistente?.id ?? randomBytes(4).toString('hex');
-  const valori = [nuovoId, perFoglio(data), tipo, testo(categoria), testo(descrizione), centesimi(importo), testo(v('note').slice(0, 500)), email, esistente ? adesso() : ''];
+  const valori = [testo(nuovoId), perFoglio(data), tipo, testo(categoria), testo(descrizione), centesimi(importo), testo(v('note').slice(0, 500)), email, esistente ? adesso() : ''];
   await scriviRiga(MOVIMENTI, valori, esistente?.riga, FOGLIO_TESORERIA_ID);
   return { ok: true, messaggio: esistente ? 'Movimento aggiornato.' : `${tipo === 'Uscita' ? 'Uscita' : tipo === 'Entrata' ? 'Entrata' : 'Avanzo di cassa'} di ${euroEsatto(importo)} registrata.`, data };
 }
@@ -477,7 +477,7 @@ export async function gestisciVerifica(f: FormData, email: string): Promise<{ ok
   const data = v('data');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { ok: false, messaggio: 'Data non valida.' };
   if (!v('conto') && !v('contanti')) return { ok: false, messaggio: 'Scrivi il saldo del conto corrente e i contanti in cassa.' };
-  await scriviRiga(VERIFICHE, [randomBytes(4).toString('hex'), perFoglio(data), centesimi(numero(v('conto'))), centesimi(numero(v('contanti'))), testo(v('note').slice(0, 300)), email], undefined, FOGLIO_TESORERIA_ID);
+  await scriviRiga(VERIFICHE, [testo(randomBytes(4).toString('hex')), perFoglio(data), centesimi(numero(v('conto'))), centesimi(numero(v('contanti'))), testo(v('note').slice(0, 300)), email], undefined, FOGLIO_TESORERIA_ID);
   return { ok: true, messaggio: 'Verifica di cassa registrata.', data };
 }
 

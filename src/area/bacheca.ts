@@ -114,7 +114,7 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
   const nuovoId = esistente?.id ?? randomBytes(4).toString('hex');
   const pubblicato = esistente?.pubblicato || oggi();
   // Il testo si scrive come testo (apostrofo iniziale): niente formule né date interpretate
-  const valori = [nuovoId, perFoglio(pubblicato), ruolo.id, `'${titolo}`, `'${testo}`, finoAl ? perFoglio(finoAl) : '', esistente?.scrittoDa || email, esistente ? adesso() : ''];
+  const valori = [`'${nuovoId}`, perFoglio(pubblicato), ruolo.id, `'${titolo}`, `'${testo}`, finoAl ? perFoglio(finoAl) : '', esistente?.scrittoDa || email, esistente ? adesso() : ''];
   await scriviRiga(SCHEDA, valori, esistente?.riga);
   const salvato: Avviso = { riga: esistente?.riga ?? 0, id: nuovoId, pubblicato, ruolo, firma: ruolo.id, titolo, testo, finoAl: finoAl || undefined, scrittoDa: email };
   return { ok: true, messaggio: esistente ? 'Avviso aggiornato.' : 'Avviso pubblicato in bacheca.', salvato };

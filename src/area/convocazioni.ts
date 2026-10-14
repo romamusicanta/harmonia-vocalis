@@ -91,9 +91,9 @@ export async function gestisci(f: FormData, email: string): Promise<{ ok: boolea
   if (v('convocazione') && !/^\d{2}:\d{2}$/.test(v('convocazione'))) return { ok: false, messaggio: 'Orario non valido.', evento: idEvento };
   const esistente = (await convocazioni()).get(idEvento);
   const valori = [
-    idEvento, perFoglio(e.data), t(e.titolo),
+    t(idEvento), perFoglio(e.data), t(e.titolo),
     t(v('convocazione')), t(v('ritrovo')),
-    v('generale'),
+    t(v('generale')),
     t(v('programma')), t(v('abito')), t(v('portare')), t(v('arrivare')),
     t(f.getAll('repertorio').map(String).filter(Boolean).join(SEPARATORE_PEZZI)),
     t(v('note')), adesso(), email,
