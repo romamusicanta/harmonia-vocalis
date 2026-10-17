@@ -2,7 +2,7 @@
 // prove e concerti non ancora iniziati: dopo, le correggono i redattori dall'area Amministrazione.
 // azione=segna (evento, nota: se c'è già aggiorna la nota) · togli (evento) · periodo (dal, al, nota)
 import type { APIRoute } from 'astro';
-import { aperto, coristaDi, eventi, eventoDa, segnaAssenza, togliAssenza } from '../../area/dati';
+import { aperto, coristaDi, eventi, eventoDa, segnaAssenza, segnaPresenze, togliAssenza } from '../../area/dati';
 import { spiegaTesto } from '../../area/errori';
 
 export const prerender = false;
@@ -13,6 +13,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const io = await coristaDi(locals.corista!.email);
     if (!io) return json({ ok: false, errore: 'Il tuo indirizzo non è nella scheda Coristi: scrivi ai redattori.' }, 403);
+    if (!segnaPresenze(io)) return json({ ok: false, errore: 'Il Maestro non segna assenze: non conta nelle presenze.' }, 403);
     const f = await request.formData();
     const azione = f.get('azione');
     const nota = String(f.get('nota') ?? '').trim().slice(0, 300);

@@ -91,6 +91,8 @@ export const SEZIONE_MAESTRO = 'Maestro';
 // Le sezioni che si scelgono nella scheda Coristi
 export const SEZIONI_ELENCO = [...SEZIONI, SEZIONE_MAESTRO];
 export const pagaLeQuote = (c: Pick<SchedaCorista, 'sezione'>) => c.sezione !== SEZIONE_MAESTRO;
+// Chi conta nelle presenze e segna le sue assenze («Non ci sarò»): tutti tranne la sezione Maestro
+export const segnaPresenze = (c: Pick<SchedaCorista, 'sezione'>) => c.sezione !== SEZIONE_MAESTRO;
 export const nomeBreve = (c: Pick<SchedaCorista, 'nome' | 'cognome'>) => `${c.nome.split(' ')[0]} ${c.cognome.charAt(0)}.`;
 
 let coristiInCache: { elenco: SchedaCorista[]; letti: number } | undefined;
@@ -165,7 +167,7 @@ export async function coristi(): Promise<SchedaCorista[]> {
 }
 
 // Chi faceva parte del coro quel giorno, per presenze e attesi: senza la sezione Maestro (dal 17/10/2026)
-export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => c.sezione !== SEZIONE_MAESTRO && nelCoro(c, giorno));
+export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => segnaPresenze(c) && nelCoro(c, giorno));
 
 // Il corista di un indirizzo, dell'associazione o personale. In modalità demo chi guarda, che non è
 // nella scheda, è un contralto inventato senza assenze né quote (dall'8/10/2026): così l'area coristi

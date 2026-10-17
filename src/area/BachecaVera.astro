@@ -10,7 +10,7 @@ import { coro } from '../motore/coro';
 import ContoQuote from './ContoQuote.astro';
 import { configurato as fotoConfigurate, ultimeFoto } from './fotoConcerti';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, eventi, pagaLeQuote, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, pagaLeQuote, segnaPresenze, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
@@ -48,6 +48,8 @@ const rProva: Riepilogo | undefined = prova && tutti.length ? riepilogo(prova, t
 const mie = new Map(tutte.filter((a) => a.email === io?.email).map((a) => [a.idEvento, a.nota]));
 const bacheca = inBacheca(elencoAvvisi);
 const sezione = io?.sezione;
+// La sezione Maestro non segna assenze e non paga le quote: niente «Non ci sarò» né riquadro delle quote
+const segna = io && segnaPresenze(io);
 const ultima = regs.find((g) => g.tracce.length || g.link);
 // Il conto per i bonifici delle quote
 const t = coro.coristi?.tesoreria;
@@ -130,7 +132,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
                   {riga(prova, 'Note') && <p style="margin-top:6px;color:var(--primario-chiaro);font-size:15px"><ConLink testo={riga(prova, 'Note')} /></p>}
                 </div>
               </div>
-              {io && aperto(prova) && (
+              {segna && aperto(prova) && (
                 <div class:list={['assenza', { segnalata: assente }]} data-evento={prova.id} data-etichetta={`${quando(prova.data)} · ${prova.titolo}`}>
                   <div class="da-fare"><button class="btn btn-assenza segna" type="button"><Icona nome="chiudi" />Non ci sarò</button></div>
                   <div class="fatto">
@@ -164,7 +166,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
                   {cv.abito && <li><b><Icona nome="gruccia" /></b><span>{cv.abito}</span></li>}
                 </ul>
               ) : <p class="tenue" style="margin-top:16px;font-size:15px">Convocazione e prova generale in arrivo.</p>}
-              {io && aperto(concerto) ? (
+              {segna && aperto(concerto) ? (
                 <div class:list={['assenza', { segnalata: assente }]} data-evento={concerto.id} data-etichetta={`${quando(concerto.data)} · concerto ${nomeEvento(concerto)}`} style="margin-top:20px">
                   <div class="da-fare"><button class="btn btn-assenza piccolo segna" type="button"><Icona nome="chiudi" />Non ci sarò</button></div>
                   <div class="fatto">
@@ -219,7 +221,7 @@ const generale = pg ? `${pg.data !== concerto!.data ? `${quando(pg.data)}, ` : '
             {conto && <ContoQuote {...conto} />}
           </article>
         )}
-        {!(mieQuote && (mieQuote.stati.length > 0 || mieQuote.riporto)) && conto && (
+        {!(mieQuote && (mieQuote.stati.length > 0 || mieQuote.riporto)) && conto && (!io || pagaLeQuote(io)) && (
           <article class="carta" id="quote">
             <div class="ct"><h2>Quote del coro</h2></div>
             <ContoQuote {...conto} />

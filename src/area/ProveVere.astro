@@ -6,7 +6,7 @@
 import ConLink from '../componenti/ConLink.astro';
 import Icona from '../componenti/Icona.astro';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, configurati, coristaDi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, type Evento, etichettaStato, linkCalendarioProve } from './dati';
+import { aperto, assenze, configurati, coristaDi, eventi, segnaPresenze, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, type Evento, etichettaStato, linkCalendarioProve } from './dati';
 import { repertorio, type Pezzo } from './repertorio';
 import LinkPezzo from './LinkPezzo.astro';
 import { SEPARATORE_PEZZI } from '../admin/prove';
@@ -65,7 +65,7 @@ const righe = (e: Evento) => e.righe.filter(([k]) => k !== 'Registrazione');
   <div class="w">
     {Astro.url.searchParams.get('esito') && <p class:list={['messaggio', Astro.url.searchParams.get('ok') === '1' ? 'ok' : 'errore']} role="status">{Astro.url.searchParams.get('esito')}</p>}
     {errore && <Errore e={errore} />}
-    {io && !errore && (
+    {io && segnaPresenze(io) && !errore && (
       <details class="carta periodo-box">
         <summary><Icona nome="calendario" />Sarò via per un periodo</summary>
         <form class="periodo">
@@ -90,7 +90,7 @@ const righe = (e: Evento) => e.righe.filter(([k]) => k !== 'Registrazione');
           {gruppo.map((e) => {
             const d = parti({ data: e.data });
             const assente = mie.has(e.id);
-            const modificabile = io && aperto(e);
+            const modificabile = io && segnaPresenze(io) && aperto(e);
             return (
               <article class:list={['prova', { speciale: e.tipo === 'concerto' }]}>
                 <div class="quando"><b>{d.giorno}</b><span>{d.giornoSettimana}</span><small>{e.inizio ? `${e.inizio}–${e.fine}` : 'orario da definire'}</small></div>
