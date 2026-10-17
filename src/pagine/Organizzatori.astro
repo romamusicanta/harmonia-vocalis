@@ -164,18 +164,16 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
         {/* Dati: opere «In repertorio» del foglio "Coristi e assenze" (coro/immagini/drive/repertorio.json), archivio (calendario "Concerti") e canale YouTube */}
         <div class="schede-opere">
           {inScheda.map((o) => {
-            // Ogni scheda porta da qualche parte: al video, all'archivio o, se non è ancora stata eseguita, ai contatti
+            // Con il video la scheda porta ad Ascolta; le altre dicono solo «In repertorio» (dal 17/10/2026, richiesta di Mario)
             const conVideo = conAscolta && o.eseguita?.video;
-            const [href, azione] = conVideo ? [l(`/ascolta#${o.eseguita!.video}`), en ? 'Listen' : 'Ascolta']
-              : o.eseguita ? [l('/concerti#archivio'), en ? 'In the archive' : 'Nell’archivio']
-              : ['#contatti-ingaggi', en ? 'Ask for it' : 'Chiedila'];
-            return (
-              <a class="opera" href={href}>
-                <span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span>
-                <h3>{o.titolo}</h3>
-                <span class:list={['azione', { ascolto: conVideo }]}>{conVideo && <Icona nome="play" classe="" />}{azione} →</span>
-              </a>
-            );
+            const contenuto = <>
+              <span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span>
+              <h3>{o.titolo}</h3>
+              {conVideo
+                ? <span class="azione ascolto"><Icona nome="play" classe="" />{en ? 'Listen' : 'Ascolta'} →</span>
+                : <span class="azione">{en ? 'In the repertoire' : 'In repertorio'}</span>}
+            </>;
+            return conVideo ? <a class="opera" href={l(`/ascolta#${o.eseguita!.video}`)}>{contenuto}</a> : <div class="opera">{contenuto}</div>;
           })}
         </div>
       </div>
