@@ -85,6 +85,12 @@ export interface SchedaCorista {
 }
 
 export const SEZIONI = ['Soprani', 'Contralti', 'Tenori', 'Bassi'];
+// La sezione del Maestro (dal 17/10/2026): chi ne fa parte sta nella scheda Coristi, ma non canta in
+// una sezione, è esonerato dalle quote e non compare nella tesoreria (pagaLeQuote)
+export const SEZIONE_MAESTRO = 'Maestro';
+// Le sezioni che si scelgono nella scheda Coristi
+export const SEZIONI_ELENCO = [...SEZIONI, SEZIONE_MAESTRO];
+export const pagaLeQuote = (c: Pick<SchedaCorista, 'sezione'>) => c.sezione !== SEZIONE_MAESTRO;
 export const nomeBreve = (c: Pick<SchedaCorista, 'nome' | 'cognome'>) => `${c.nome.split(' ')[0]} ${c.cognome.charAt(0)}.`;
 
 let coristiInCache: { elenco: SchedaCorista[]; letti: number } | undefined;
@@ -173,7 +179,7 @@ export async function coristaDi(email: string): Promise<SchedaCorista | undefine
 }
 
 // Sezioni nell'ordine del coro, più quelle non previste scritte nel foglio
-export const sezioniDi = (elenco: { sezione: string }[]) => [...SEZIONI, ...new Set(elenco.map((c) => c.sezione).filter((s) => !SEZIONI.includes(s)))];
+export const sezioniDi = (elenco: { sezione: string }[]) => [...SEZIONI_ELENCO, ...new Set(elenco.map((c) => c.sezione).filter((s) => !SEZIONI_ELENCO.includes(s)))];
 
 // ——— Prove e concerti ———
 

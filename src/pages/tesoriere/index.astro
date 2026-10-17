@@ -20,8 +20,9 @@ import Icona from '../../componenti/Icona.astro';
 import Sollecito from '../../area/Sollecito.astro';
 import { vesteCorrente } from '../../motore/url';
 import { scriveTesoriere } from '../../area/accesso';
-import { coristi, oggi, type SchedaCorista } from '../../area/dati';
+import { oggi, type SchedaCorista } from '../../area/dati';
 import {
+  coristiDelleQuote,
   arretrati, attiviNelMese, cassa, configurata, euro, indice, quotaBase, riporti, riportoDi, meseBreve, meseEsteso, mesiDelleQuote, mesiDovuti, mesiSenzaQuota, movimenti, nomeStagione, questoMese,
   quotaDi, quotaMensile, quote, situazioneMese, stagioneCorrente, stagioneDi, statoDi, tutteLeQuote, valoreVisto, NASCOSTO, type Cassa, type Quota, intestazioneStampa,
 } from '../../area/tesoreria';
@@ -45,7 +46,7 @@ let stagioni: number[] = [];
 if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
 else {
   try {
-    const [c, q, m] = await Promise.all([coristi(), quote(), movimenti()]);
+    const [c, q, m] = await Promise.all([coristiDelleQuote(), quote(), movimenti()]);
     elenco = c; tutte = q;
     conti = cassa(anno, q, m);
     stagioni = [...new Set([corrente + 1, corrente, ...q.map((x) => stagioneDi(`${x.mese}-15`)), ...m.map((x) => stagioneDi(x.data))])].filter((x) => x <= corrente + 1).sort((a, b) => b - a);

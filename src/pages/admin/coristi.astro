@@ -6,7 +6,7 @@
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
 import Icona from '../../componenti/Icona.astro';
 import Errore from '../../area/Errore.astro';
-import { configurati, coristi, oggi, SEZIONI, type SchedaCorista } from '../../area/dati';
+import { configurati, coristi, oggi, SEZIONI_ELENCO, type SchedaCorista } from '../../area/dati';
 import { ancora, attuale, dopoIlModulo } from '../../admin/coristi';
 import { coro } from '../../motore/coro';
 
@@ -48,7 +48,7 @@ const dominio = coro.amministrazione?.dominio ?? 'romamusicanta.org';
         <div class="riga-campi">
           <label>Nome<input name="nome" required maxlength="60" autocomplete="off" /></label>
           <label>Cognome<input name="cognome" required maxlength="60" autocomplete="off" /></label>
-          <label>Sezione<select name="sezione" required><option value="">Scegli…</option>{SEZIONI.map((s) => <option>{s}</option>)}</select></label>
+          <label>Sezione<select name="sezione" required><option value="">Scegli…</option>{SEZIONI_ELENCO.map((s) => <option>{s}</option>)}</select></label>
         </div>
         <div class="riga-campi">
           <label>Email dell'associazione <small>(proposta dal nome; nomi composti uniti)</small><input name="emailAssociazione" type="email" maxlength="120" placeholder={`nome.cognome@${dominio}`} data-dominio={dominio} autocomplete="off" /></label>
@@ -92,7 +92,7 @@ const dominio = coro.amministrazione?.dominio ?? 'romamusicanta.org';
                     <div class="riga-campi">
                       <label>Nome<input name="nome" required maxlength="60" value={c.nome} /></label>
                       <label>Cognome<input name="cognome" required maxlength="60" value={c.cognome} /></label>
-                      <label>Sezione<select name="sezione" required>{!SEZIONI.includes(c.sezione) && <option value="" selected>Scegli…</option>}{SEZIONI.map((s) => <option selected={s === c.sezione}>{s}</option>)}</select></label>
+                      <label>Sezione<select name="sezione" required>{!SEZIONI_ELENCO.includes(c.sezione) && <option value="" selected>Scegli…</option>}{SEZIONI_ELENCO.map((s) => <option selected={s === c.sezione}>{s}</option>)}</select></label>
                     </div>
                     <div class="riga-campi">
                       <label>Email personale<input name="emailPersonale" type="email" maxlength="120" value={c.emailPersonale} /></label>

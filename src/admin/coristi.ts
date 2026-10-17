@@ -6,7 +6,7 @@
 // Il sito scrive solo il foglio: l'account @romamusicanta.org e l'iscrizione al gruppo coro@ si fanno
 // dalla console di Workspace.
 import { coro } from '../motore/coro';
-import { cancellaRiga, coristiVeri, dimenticaCoristi, intestazioneScheda, leggiScheda, oggi, scriviRiga, SEZIONI, type SchedaCorista } from '../area/dati';
+import { cancellaRiga, coristiVeri, dimenticaCoristi, intestazioneScheda, leggiScheda, oggi, scriviRiga, SEZIONI_ELENCO, type SchedaCorista } from '../area/dati';
 import { normalizza } from '../area/servizio';
 import { spiegaTesto } from '../area/errori';
 
@@ -53,7 +53,7 @@ const data = (f: FormData, nome: string) => {
 function leggiDati(f: FormData): Dati {
   const d = { nome: campo(f, 'nome', 60), cognome: campo(f, 'cognome', 60), sezione: campo(f, 'sezione', 30), emailPersonale: campo(f, 'emailPersonale', 120).toLowerCase(), numeroSocio: campo(f, 'numeroSocio', 10) };
   if (!d.nome || !d.cognome) throw new Error('Scrivi nome e cognome.');
-  if (!SEZIONI.includes(d.sezione)) throw new Error('Scegli la sezione.');
+  if (!SEZIONI_ELENCO.includes(d.sezione)) throw new Error('Scegli la sezione.');
   if (d.emailPersonale && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.emailPersonale)) throw new Error('L’email personale non sembra un indirizzo valido.');
   return d;
 }

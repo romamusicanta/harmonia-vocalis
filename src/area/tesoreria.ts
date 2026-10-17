@@ -34,7 +34,7 @@
 import { randomBytes } from 'node:crypto';
 import { FOGLIO_TESORERIA_ID } from 'astro:env/server';
 import { coro } from '../motore/coro';
-import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, nelCoro, dataFoglio, eventi, fintoDi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
+import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, coristi, nelCoro, pagaLeQuote, dataFoglio, eventi, fintoDi, idScheda, inizioStagione, intestazioneScheda, leggiScheda, oggi, scriviRiga, type SchedaCorista } from './dati';
 import { inDemo } from './demo';
 import { normalizza } from './servizio';
 
@@ -110,6 +110,9 @@ export const mesiDovuti = (anno: number, tutte?: Quota[]) => mesiDelleQuote(anno
 
 const ultimoGiorno = (mese: string) => new Date(Date.UTC(Number(mese.slice(0, 4)), Number(mese.slice(5, 7)), 0)).toISOString().slice(0, 10);
 // Chi faceva parte del coro in quel mese (anche solo per qualche giorno)
+// I coristi tenuti alle quote: tutti quelli della scheda Coristi tranne la sezione Maestro (dal
+// 17/10/2026), che non paga e non compare in tabella, sollecito, rendiconto né «Le tue quote»
+export const coristiDelleQuote = async () => (await coristi()).filter(pagaLeQuote);
 export const attiviNelMese = (elenco: SchedaCorista[], mese: string) =>
   elenco.filter((c) => nelCoro(c, `${mese}-01`, ultimoGiorno(mese)));
 
@@ -272,7 +275,7 @@ export function riporti(tutte: Quota[], elenco: SchedaCorista[]): Map<string, Ri
 // versato (oggi, o il giorno dato). Senza cifra scritta a mano, né versamento, né nota, la riga si toglie.
 export async function segnaRiporto(email: string, anno: number, d: { cifra?: number | null; versato?: boolean; versatoIl?: string }, da: string) {
   if (!(anno >= 2000)) throw new Error('Stagione non valida.');
-  const elenco = await coristi();
+  const elenco = await coristiDelleQuote();
   const c = elenco.find((x) => x.email === email.toLowerCase());
   if (!c) throw new Error('Corista non trovato nella scheda Coristi.');
   const tutte = await quote();
@@ -363,7 +366,7 @@ export async function segnaQuotaBase(mese: string, importo: number, da: string) 
 // l'importo dato), esonerato (con il motivo nella nota) o da pagare (si cancella la riga)
 export async function segnaQuota(email: string, mese: string, stato: StatoQuota, nota: string, da: string, pagataIl?: string, importo?: number) {
   if (!/^\d{4}-\d{2}$/.test(mese)) throw new Error('Mese non valido.');
-  const elenco = await coristi();
+  const elenco = await coristiDelleQuote();
   const c = elenco.find((x) => x.email === email.toLowerCase());
   if (!c) throw new Error('Corista non trovato nella scheda Coristi.');
   const tutte = await quote();

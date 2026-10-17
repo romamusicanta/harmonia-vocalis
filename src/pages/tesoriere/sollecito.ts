@@ -3,8 +3,7 @@
 // azione=quanti: l'elenco di chi deve pagare (nomi, mesi, importo, email) e quanti hanno le notifiche
 // accese, senza mandare niente; azione=invia: a ciascuno la sua notifica personale (src/area/notifiche.ts).
 import type { APIRoute } from 'astro';
-import { arretrati, configurata, euro, indice, riporti, indirizziDi, MODELLO_SOLLECITO, mesiDovuti, nomeMese, quote, stagioneCorrente, testoSollecito } from '../../area/tesoreria';
-import { coristi } from '../../area/dati';
+import { arretrati, configurata, coristiDelleQuote, euro, indice, riporti, indirizziDi, MODELLO_SOLLECITO, mesiDovuti, nomeMese, quote, stagioneCorrente, testoSollecito } from '../../area/tesoreria';
 import { inviaPersonali } from '../../area/notifiche';
 import { spiegaTesto } from '../../area/errori';
 
@@ -15,7 +14,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!configurata()) return json({ errore: 'Manca il foglio della tesoreria sul server.' }, 500);
   try {
     const d = await request.json();
-    const [elenco, tutte] = await Promise.all([coristi(), quote()]);
+    const [elenco, tutte] = await Promise.all([coristiDelleQuote(), quote()]);
     const mesi = d.mese && /^\d{4}-\d{2}$/.test(d.mese) ? [String(d.mese)] : mesiDovuti(stagioneCorrente(), tutte);
     // Per un mese solo, solo quel mese; altrimenti anche il riporto della stagione prima
     const chi = arretrati(mesi, elenco, indice(tutte), d.mese ? undefined : riporti(tutte, elenco), stagioneCorrente());

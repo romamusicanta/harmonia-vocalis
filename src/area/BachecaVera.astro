@@ -10,7 +10,7 @@ import { coro } from '../motore/coro';
 import ContoQuote from './ContoQuote.astro';
 import { configurato as fotoConfigurate, ultimeFoto } from './fotoConcerti';
 import { parti } from '../motore/concerti';
-import { aperto, assenze, coristaDi, coristi, eventi, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
+import { aperto, assenze, coristaDi, coristi, eventi, pagaLeQuote, luogoBreveDi, luogoDi, nomeEvento, oggi, piuGiorni, riepilogo, type Evento, type Riepilogo, etichettaStato, linkCalendarioProve } from './dati';
 import { avvisi, firmaDi, inBacheca, nuovo, ruoliDi } from './bacheca';
 import { linkDelSito } from './file';
 import { convocazioni, type Convocazione } from './convocazioni';
@@ -53,7 +53,7 @@ const ultima = regs.find((g) => g.tracce.length || g.link);
 const t = coro.coristi?.tesoreria;
 const conto = t?.iban ? { iban: t.iban, intestatario: t.intestatario ?? coro.associazione ?? coro.nome } : undefined;
 // Le mie quote della stagione: un pallino per mese; dovute quelle fino al mese in corso
-const mieQuote = leQuote && io ? (() => {
+const mieQuote = leQuote && io && pagaLeQuote(io) ? (() => {
   const idx = indice(leQuote);
   // Il riporto della stagione prima, se c'è qualcosa da versare (o è stato versato)
   const r = riportoDi(riporti(leQuote, tutti), io.email, stagioneCorrente());

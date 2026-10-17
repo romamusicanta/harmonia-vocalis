@@ -8,9 +8,10 @@ import Base from '../../layouts/Base.astro';
 import Errore from '../../area/Errore.astro';
 import Icona from '../../componenti/Icona.astro';
 import { vesteCorrente } from '../../motore/url';
-import { coristi, sezioniDi, type SchedaCorista } from '../../area/dati';
+import { sezioniDi, type SchedaCorista } from '../../area/dati';
 import { inDemo } from '../../area/demo';
 import {
+  coristiDelleQuote,
   attiviNelMese, cassa, COMPENSI_CONCERTI, configurata, exCoristi, meseBreve, questoMese, direttore, euro, euroEsatto, giornoBreve, indice, maiuscola, meseDi, meseEsteso, mesiSenzaQuota, movimenti, nomeMese, nomeStagione,
   nomeStagioneLungo, nomiSedi, onorari, riporti, riportoDi, sedeDi, onorariPerMese, PARTITE_DI_GIRO, proveDeiMaestri, quotaDi, quote, situazioneMese, stagioneCorrente, statoDi, tutteLeQuote,
   verifiche, type Cassa, type ProvaMaestro, type Quota, type Verifica, intestazioneStampa,
@@ -34,7 +35,7 @@ let leVerifiche: Verifica[] = [];
 if (!configurata()) errore = 'L’area del tesoriere non è ancora collegata al suo foglio: manca la variabile FOGLIO_TESORERIA_ID sul server.';
 else {
   try {
-    const [c, q, m, p, v] = await Promise.all([coristi(), quote(), movimenti(), proveDeiMaestri(anno), verifiche()]);
+    const [c, q, m, p, v] = await Promise.all([coristiDelleQuote(), quote(), movimenti(), proveDeiMaestri(anno), verifiche()]);
     elenco = c; tutte = q; prove = p;
     conti = cassa(anno, q, m);
     leVerifiche = v.filter((x) => x.data >= `${anno}-09-01` && x.data <= `${anno + 1}-08-31`);
