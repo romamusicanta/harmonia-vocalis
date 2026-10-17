@@ -53,7 +53,8 @@ const repertorio = [...opere.values()].sort((a, b) => b.concerti.length - a.conc
 
 // Le schede (dal 17/10/2026, richiesta di Mario): tutte le opere «In repertorio» del repertorio dell'area
 // riservata, in ordine di cognome dell'autore, scaricate alla build da scripts/scarica-allegati.mjs in
-// coro/immagini/drive/repertorio.json; un'opera già eseguita prende video e titolo inglese dall'archivio.
+// coro/immagini/drive/repertorio.json, con il titolo così come è scritto lì (anche in inglese); un'opera già
+// eseguita prende il video dall'archivio.
 // Senza il file (demo, foglio che non risponde) le opere dell'archivio, sempre per autore.
 type Pronta = { autore: string; titolo: string; arrangiatore?: string };
 const filePronte = import.meta.glob<Pronta[]>('/coro/immagini/drive/repertorio.json', { eager: true, import: 'default' });
@@ -68,7 +69,7 @@ const inScheda: Scheda[] = (pronte?.length
   ? pronte.map((p) => {
       // Stessa chiave dell'archivio, oppure lo stesso titolo se è uno solo ("Haendel" e "Händel")
       const eseguita = opere.get(chiaveOpera(p.autore, p.titolo)) ?? perTitolo(p.titolo);
-      return { ...p, titolo: en && eseguita ? eseguita.titolo : p.titolo, eseguita };
+      return { ...p, eseguita };
     })
   : repertorio.map((o) => ({ autore: o.autore, titolo: o.titolo, eseguita: o }))
 ).sort(perAutore);
@@ -164,7 +165,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
         <div class="schede">
           {inScheda.map((o) => {
             const conVideo = conAscolta && o.eseguita?.video;
-            const corpo = <><span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span><h3>{o.titolo.replace(CATALOGO, '')}</h3></>;
+            const corpo = <><span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span><h3>{o.titolo}</h3></>;
             return o.eseguita ? (
               <a class="sc opera" href={conVideo ? l(`/ascolta#${o.eseguita.video}`) : l('/concerti#archivio')}>
                 <div class="top">{conVideo ? <span class="tag">Video</span> : <span class="tag grigio">{en ? 'Archive' : 'Archivio'}</span>}</div>
