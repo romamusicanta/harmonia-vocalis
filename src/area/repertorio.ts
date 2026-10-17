@@ -41,7 +41,8 @@ import { confronta, perAutore } from '../motore/autori';
 
 const SCHEDA = 'Repertorio';
 const SCHEDA_FILE = 'File del repertorio';
-export const STATI = ['In studio', 'In repertorio'] as const;
+// «In archivio» (dal 17/10/2026, richiesta di Mario): un'opera che non si propone più, fuori dal «Repertorio pronto»
+export const STATI = ['In studio', 'In repertorio', 'In archivio'] as const;
 const TRACCE_VECCHIE = [...SEZIONI, 'Tutte le voci'];
 // Le colonne nuove sempre in fondo (idScheda le aggiunge all'intestazione delle schede già create)
 const COLONNE = ['ID', 'Autore', 'Titolo', 'Stato', 'Spartito', 'Brani separati', ...TRACCE_VECCHIE.map((t) => `Tracce ${t}`), 'Esecuzione di riferimento', 'Note del Maestro', 'Cartella', 'Aggiornato il', 'Aggiornato da', 'Tipo', 'Arrangiatore', 'Contenuto', 'Tracce delle parti', 'Nomi di prima', 'Brani'];
