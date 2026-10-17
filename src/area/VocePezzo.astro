@@ -11,6 +11,7 @@ import { comeHtml } from './testo';
 interface Props { p: Pezzo; base: string; attivo: boolean; ancora?: boolean; altre: string[]; cerca: string }
 const { p, base, attivo, ancora = true, altre, cerca } = Astro.props;
 const quante = (n: number, uno: string, tanti: string) => `${n} ${n === 1 ? uno : tanti}`;
+const nTracce = p.tracce.reduce((n, g) => n + g.tracce.length, 0);
 ---
 
 <li id={ancora ? `p-${p.id}` : undefined} class:list={['voce-pezzo', { attivo }]} data-cerca={cerca}>
@@ -19,14 +20,14 @@ const quante = (n: number, uno: string, tanti: string) => `${n} ${n === 1 ? uno 
       <span class="testa-pezzo"><span class="aut">{p.autore}{p.arrangiatore && <> · arr. {p.arrangiatore}</>}</span><b>{p.titolo}</b></span>
       <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
       {altre.map((n) => <span class="tag grigio tag-raccolta" title="Sta anche in questa raccolta"><Icona nome="cartella" />{n}</span>)}
-      <span class="tenue dettagli">{[p.spartito && 'spartito', p.brani.length && quante(p.brani.length, 'parte', 'parti'), p.brani.some((b) => b.tracce.length) && 'tracce delle parti', p.tracce.length && quante(p.tracce.length, 'traccia', 'tracce'), p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
+      <span class="tenue dettagli">{[p.spartiti.length && quante(p.spartiti.length, 'spartito', 'spartiti'), p.brani.length && quante(p.brani.length, 'brano', 'brani'), nTracce && quante(nTracce, 'traccia', 'tracce'), p.esecuzione && 'esecuzione', p.note && 'note'].filter(Boolean).join(' · ') || 'nessun materiale'}</span>
     </summary>
     <div class="corpo-pezzo">
       <dl>
-        <dt>Spartito</dt><dd>{p.spartito ? <a href={p.spartito} target="_blank" rel="noopener">Apri lo spartito</a> : <span class="tenue">—</span>}</dd>
+        <dt>Spartiti</dt><dd>{p.spartiti.length ? p.spartiti.map((s, i) => <>{i > 0 && ' · '}<a href={s.link} target="_blank" rel="noopener">{s.titolo}</a></>) : <span class="tenue">—</span>}</dd>
         {p.arrangiatore && <><dt>Arrangiamento</dt><dd>{p.arrangiatore}</dd></>}
-        <dt>Parti</dt><dd>{p.brani.length ? p.brani.map((b, i) => <>{i > 0 && ' · '}<a href={b.link} target="_blank" rel="noopener">{b.nome}</a>{b.tracce.length > 0 && <small class="tenue"> ({quante(b.tracce.length, 'traccia', 'tracce')})</small>}</>) : <span class="tenue">—</span>}</dd>
-        <dt>Tracce</dt><dd>{p.tracce.length ? p.tracce.map((t, i) => <>{i > 0 && ' · '}<a href={t.link} target="_blank" rel="noopener">{t.sezione}</a></>) : <span class="tenue">—</span>}</dd>
+        <dt>Brani</dt><dd>{p.brani.length ? p.brani.map((b) => b.nome).join(' · ') : <span class="tenue">—</span>}</dd>
+        <dt>Tracce</dt><dd>{p.tracce.length ? p.tracce.map((g, i) => <>{i > 0 && <br />}<b>{g.titolo}:</b> {g.tracce.map((t, j) => <>{j > 0 && ' · '}<a href={t.link} target="_blank" rel="noopener">{t.voce}</a></>)}</>) : <span class="tenue">—</span>}</dd>
         <dt>Esecuzione</dt><dd>{p.esecuzione ? <a href={p.esecuzione} target="_blank" rel="noopener">Ascolta</a> : <span class="tenue">—</span>}</dd>
         <dt>Note del Maestro</dt><dd>{p.note ? <div set:html={comeHtml(p.note)} /> : <span class="tenue">—</span>}</dd>
       </dl>

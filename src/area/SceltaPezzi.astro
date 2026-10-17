@@ -36,7 +36,7 @@ const voce = (nome: string) => {
           {pezzi.map((p) => (
             <>
               <li role="option" data-titolo={nomeCompleto(p)} data-testo={nomeCompleto(p)} data-cerca={cerca(p.autore, p.titolo, p.arrangiatore, ...nomiRaccolte(p), ...(soloPezzi ? [] : p.brani.map((b) => b.nome)))}><b>{p.titolo}</b><small>{[p.autore, p.arrangiatore && `arr. ${p.arrangiatore}`, ...nomiRaccolte(p)].filter(Boolean).join(' · ')}</small></li>
-              {!soloPezzi && p.brani.map((b) => <li role="option" class="brano" data-titolo={nomeBrano(p, b)} data-testo={nomeBrano(p, b)} data-cerca={cerca(p.autore, p.titolo, b.nome)}><b>{b.nome}</b><small>Parte di {nomeCompleto(p)}</small></li>)}
+              {!soloPezzi && p.brani.map((b) => <li role="option" class="brano" data-titolo={nomeBrano(p, b)} data-testo={nomeBrano(p, b)} data-cerca={cerca(p.autore, p.titolo, b.nome)}><b>{b.nome}</b><small>Brano di {nomeCompleto(p)}</small></li>)}
             </>
           ))}
           <li class="nessuno" hidden>Nessun pezzo trovato</li>

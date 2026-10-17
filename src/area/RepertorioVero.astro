@@ -26,16 +26,16 @@ try {
 }
 // I file del Drive del coro passano dal sito
 const sulSito = <T extends { link: string }>(x: T) => ({ ...x, link: linkDelSito(x.link) ?? x.link });
-elenco = elenco.map((p) => ({ ...p, spartito: linkDelSito(p.spartito), brani: p.brani.map((b) => ({ ...sulSito(b), tracce: b.tracce.map(sulSito) })), tracce: p.tracce.map(sulSito) }));
+elenco = elenco.map((p) => ({ ...p, spartiti: p.spartiti.map(sulSito), tracce: p.tracce.map((g) => ({ ...g, tracce: g.tracce.map(sulSito) })) }));
 const semplice = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const suGoogle = elenco.some((p) => [p.spartito, ...p.brani.flatMap((b) => [b.link, ...b.tracce.map((t) => t.link)]), ...p.tracce.map((t) => t.link)].some(suDrive));
+const suGoogle = elenco.some((p) => [...p.spartiti.map((s) => s.link), ...p.tracce.flatMap((g) => g.tracce.map((t) => t.link))].some(suDrive));
 const pezzoDi = new Map(elenco.map((p) => [p.id, p]));
 const opere = elenco.filter((p) => !p.raccolte.length);
 raccolte = raccolte.filter((r) => r.contenuto.length);
 // L'ancora #<id> di un pezzo in più raccolte sta nella prima
 const giaVisti = new Set<string>();
 const prima = (id: string) => !giaVisti.has(id) && Boolean(giaVisti.add(id));
-const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.arrangiatore, ...p.brani.map((b) => b.nome), ...altro].join(' '));
+const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.arrangiatore, ...p.brani.map((b) => b.nome), ...p.spartiti.map((s) => s.titolo), ...p.tracce.map((g) => g.titolo), ...altro].join(' '));
 ---
 
 <div class="area-intesta">
@@ -43,7 +43,7 @@ const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.
     <div>
       <span class="eti" style="margin-bottom:12px">Repertorio</span>
       <h1>Repertorio</h1>
-      <p>Spartiti, tracce per lo studio di ogni sezione, esecuzioni di riferimento e note del Maestro.</p>
+      <p>Spartiti, brani, tracce per lo studio di ogni voce, esecuzioni di riferimento e note del Maestro.</p>
     </div>
   </div>
 </div>

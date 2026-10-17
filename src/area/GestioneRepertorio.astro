@@ -2,14 +2,19 @@
 // Gestione del repertorio (src/area/repertorio.ts) nell'Amministrazione (/admin/repertorio; il
 // Maestro scrive solo le note, da /maestro/repertorio). Due tipi (dal 13/10/2026):
 // - opere (?modifica=id, ?nuovo, ?nuovo&raccolta=id per una nuova già dentro una raccolta): autore,
-//   titolo, arrangiatore, stato, raccolte (caselle), link alle tracce per sezione, esecuzione di
-//   riferimento, note del Maestro; spartito, parti (movimenti o estratti) e tracce, anche per ogni
-//   parte, si caricano su Drive dal modulo (a pezzi, con lo script in fondo, verso <base>/repertorio/file);
+//   titolo, arrangiatore, stato, raccolte (caselle), esecuzione di riferimento, note del Maestro;
+//   sotto, nel riquadro #file (dal 17/10/2026, vedi in testa a src/area/repertorio.ts), i brani
+//   dell'opera (#brani), gli spartiti con i brani che contengono e le loro pagine (#spartiti) e le
+//   tracce di studio a gruppi, una per voce (#tracce, voci in src/area/voci.ts); i file si caricano
+//   su Drive a pezzi, con lo script in fondo, verso <base>/repertorio/file. Dopo un'azione su brani
+//   o file si torna al riquadro toccato (?in=…), con l'esito lì;
 // - raccolte (?modifica=id, ?nuova-raccolta): nome, nota e i pezzi, scelti e ordinati con SceltaPezzi.
 // Sotto, un'unica lista: le raccolte, ognuna con dentro i suoi pezzi, poi le opere che non stanno in
 // nessuna raccolta (riga del pezzo in src/area/VocePezzo.astro).
 import Icona from '../componenti/Icona.astro';
-import { catalogo, configurato, nomeCompleto, sezioniTracce, STATI, type Pezzo, type Raccolta } from './repertorio';
+import { catalogo, configurato, nomeCompleto, spartitoDi, STATI, vociDi, type Pezzo, type Raccolta } from './repertorio';
+import SceltaVoce from './SceltaVoce.astro';
+import { SEZIONI } from './dati';
 import Errore from './Errore.astro';
 import SceltaPezzi from './SceltaPezzi.astro';
 import VocePezzo from './VocePezzo.astro';
@@ -42,13 +47,18 @@ const opere = elenco.filter((p) => !p.raccolte.length);
 const giaVisti = new Set<string>();
 const prima = (id: string) => !giaVisti.has(id) && Boolean(giaVisti.add(id));
 const cerca = (p: Pezzo) => semplice(`${p.autore} ${p.titolo} ${p.arrangiatore} ${p.brani.map((b) => b.nome).join(' ')} ${nomiRaccolte(p).join(' ')}`);
-const traccia = (p: Pezzo | undefined, s: string) => p?.tracce.find((t) => t.sezione === s)?.link ?? '';
+// Le voci delle tracce, raggruppate per sezione nei menu (quelle per tutti in fondo)
+const voci = vociDi(elenco);
+const gruppiVoci = [...SEZIONI, ''].map((s) => [s || 'Per tutti', voci.filter((v) => v.sezione === s)] as [string, typeof voci]).filter(([, v]) => v.length);
+// L'esito delle azioni su brani e file si mostra nel loro riquadro
+const esitoQui = Boolean(q.get('esito') && (q.has('caricato') || q.has('in')));
+const inSez = q.get('in') ?? '';
 // Pezzo appena aggiunto: si propone di caricare spartito, brani e tracce
 const appena = elenco.find((p) => p.id === q.get('file'));
 const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 ---
 
-{q.get('esito') && !q.has('caricato') && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Carica spartito, parti e tracce</a></>}</p>}
+{q.get('esito') && !esitoQui && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']}>{q.get('esito')}{appena && <> <a class="btn g piccolo" style="margin-left:8px" href={`${base}/repertorio?modifica=${appena.id}#file`}>Aggiungi brani, spartiti e tracce</a></>}</p>}
 {errore && <Errore e={errore} />}
 {!configurato() && <p class="messaggio errore">Il caricamento dei file non è ancora attivo: manca la cartella Spartiti (variabile DRIVE_CARTELLA_SPARTITI) sul server.</p>}
 
@@ -101,13 +111,6 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         </fieldset>
       )}
 
-      <fieldset>
-        <legend>Tracce per lo studio dell'opera intera <small>(link a YouTube o altro sito, uno per sezione; i file audio si caricano qui sotto, in «File del pezzo»)</small></legend>
-        <div class="riga-campi">
-          {sezioniTracce.map((s) => <label>{s}<input name={`tracce-${s}`} type="url" value={traccia(inModifica, s)} placeholder="https://…" /></label>)}
-        </div>
-      </fieldset>
-
       <label>Esecuzione di riferimento <small>(link, per esempio a YouTube)</small><input name="esecuzione" type="url" value={inModifica?.esecuzione} placeholder="https://…" /></label>
       <label>Note del Maestro sull'esecuzione<textarea name="note" rows="6" maxlength="4000" placeholder="Tempi, respiri, attacchi, pronuncia… Una riga vuota separa i paragrafi.">{inModifica?.note}</textarea></label>
       <button class="btn" type="submit"><Icona nome="spunta" />{inModifica ? 'Salva le modifiche' : 'Aggiungi al repertorio'}</button>
@@ -118,66 +121,156 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
 )}
 
 {inModifica && (
-  <section class="carta modulo-pezzo" id="file" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`}>
-    <div class="ct"><h2>File del pezzo</h2><span class="tenue" style="font-size:14px">Su Drive, nella cartella Spartiti; i coristi li aprono dal sito</span></div>
-    {q.has('caricato') && q.get('esito') && <p class="messaggio ok" style="margin:16px 24px 0">{q.get('esito')}</p>}
+  <section class="carta modulo-pezzo" id="file" data-file={`${base}/repertorio/file`} data-pezzo={inModifica.id} data-ritorno={`${base}/repertorio?modifica=${inModifica.id}`} data-voci={JSON.stringify(voci)}>
+    <div class="ct"><h2>Brani, spartiti e tracce</h2><span class="tenue" style="font-size:14px">I file vanno su Drive, nella cartella Spartiti; i coristi li aprono dal sito</span></div>
+    {esitoQui && !['brani', 'spartiti', 'tracce'].includes(inSez) && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} style="margin:16px 24px 0">{q.get('esito')}</p>}
     <div class="cc">
-      <div class="file-gruppo">
-        <h3>Spartito</h3>
-        {inModifica.spartito ? (
-          <div class="file-riga"><a href={inModifica.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Spartito</a>
-            <form method="post" onsubmit="return confirm('Togliere lo spartito da questo pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-spartito" /><input type="hidden" name="id" value={inModifica.id} /><button class="btn o piccolo" type="submit">Togli</button></form></div>
-        ) : <p class="tenue">Nessuno spartito.</p>}
-        <label class="carica">{inModifica.spartito ? 'Sostituisci lo spartito' : 'Carica lo spartito'} <small>(PDF)</small><input type="file" data-uso="spartito" accept="application/pdf,image/*" /></label>
-      </div>
-      <div class="file-gruppo">
-        <h3>Parti dell'opera</h3>
-        <p class="tenue" style="margin:0">Movimenti o estratti cantati da soli (Kyrie, Gloria, Lacrimosa…), ognuno con il suo spartito e, se ci sono, le sue tracce. In una prova si può chiedere di preparare una sola parte.</p>
-        {inModifica.brani.length ? inModifica.brani.map((b, i) => (
-          <div class="file-riga riga-brano"><a href={b.link} target="_blank" rel="noopener"><Icona nome="documento" />{b.nome}</a>
-            <span class="azioni-file">
-              <button class="btn o piccolo apri-rinomina" type="button" aria-expanded="false">Rinomina</button>
-              <form method="post" onsubmit="return confirm('Togliere questa parte dall\'opera, con le sue tracce? I file restano su Drive.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form>
-            </span>
-            <form class="rinomina-brano" method="post" hidden>
-              <input type="hidden" name="azione" value="rinomina-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} />
-              <input type="text" name="nome" value={b.nome} required maxlength="140" aria-label={`Nuovo nome di ${b.nome}`} />
-              <button class="btn piccolo" type="submit">Salva</button>
-              <button class="btn o piccolo chiudi-rinomina" type="button">Annulla</button>
-            </form>
-            <details class="tracce-parte" open={b.tracce.length > 0 && q.get('parte') === b.nome}>
-              <summary>{b.tracce.length ? `Tracce della parte: ${b.tracce.map((x) => x.sezione).join(', ')}` : 'Tracce della parte: nessuna'}</summary>
-              {sezioniTracce.map((s) => {
-                const t = b.tracce.find((x) => x.sezione === s)?.link;
-                return (
-                  <div class="file-riga traccia-riga">
-                    <b>{s}</b>
-                    {t ? <a href={t} target="_blank" rel="noopener"><Icona nome="cuffie" />File audio</a> : <span class="tenue">Nessuna traccia</span>}
-                    {t && <form method="post" onsubmit={`return confirm('Togliere la traccia ${s} da questa parte? Il file resta su Drive.')`}><input type="hidden" name="azione" value="togli-traccia-parte" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><input type="hidden" name="sezione" value={s} /><button class="btn o piccolo" type="submit">Togli</button></form>}
-                    <label class="btn o piccolo carica-traccia">{t ? 'Sostituisci' : 'Carica'}<input type="file" data-uso="traccia-parte" data-parte={b.nome} data-sezione={s} accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" class="sr" /></label>
-                  </div>
-                );
-              })}
-            </details>
-          </div>
-        )) : <p class="tenue">Nessuna parte. Il nome del file diventa il nome della parte.</p>}
-        {inModifica.brani.length > 0 && <p class="tenue" style="margin:0">Il nome della parte è quello che leggono i coristi nelle prove: con «Rinomina» si scrive per bene (per esempio «Lacrimosa»). Le prove già scritte con il nome di prima continuano a trovarla.</p>}
-        <label class="carica">Aggiungi parti <small>(PDF, anche più di uno)</small><input type="file" data-uso="brano" accept="application/pdf,image/*" multiple /></label>
-      </div>
-      <div class="file-gruppo">
-        <h3>Tracce per lo studio dell'opera intera</h3>
-        <p class="tenue" style="margin:0 0 4px">Un file audio per sezione: prende il posto del link o del file di prima. I coristi lo ascoltano nella pagina Repertorio. Le tracce di una sola parte si caricano qui sopra, sotto la parte.</p>
-        {sezioniTracce.map((s) => {
-          const t = traccia(inModifica, s);
+      <div class="file-gruppo" id="brani">
+        <h3>Brani dell'opera</h3>
+        {esitoQui && inSez === 'brani' && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} style="margin:0">{q.get('esito')}</p>}
+        <p class="tenue" style="margin:0">La struttura dell'opera (Kyrie, Gloria, Lacrimosa…): non sono file. Sono i nomi che i coristi leggono nelle prove, dove si può chiedere di preparare un solo brano, e ognuno apre lo spartito che lo contiene, alla sua pagina.</p>
+        {inModifica.brani.map((b, i) => {
+          const s = spartitoDi(inModifica, b.nome);
           return (
-            <div class="file-riga traccia-riga">
-              <b>{s}</b>
-              {t ? <a href={t} target="_blank" rel="noopener"><Icona nome="cuffie" />{/^https:\/\/drive\.google\.com\/file\//.test(t) ? 'File audio' : 'Link'}</a> : <span class="tenue">Nessuna traccia</span>}
-              {t && <form method="post" onsubmit={`return confirm('Togliere la traccia ${s} da questo pezzo? Se è un file, resta su Drive.')`}><input type="hidden" name="azione" value="togli-traccia" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="sezione" value={s} /><button class="btn o piccolo" type="submit">Togli</button></form>}
-              <label class="btn o piccolo carica-traccia">{t ? 'Sostituisci' : 'Carica'}<input type="file" data-uso="traccia" data-sezione={s} accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" class="sr" /></label>
+            <div class="file-riga riga-modificabile">
+              <span class="nome-brano"><b>{b.nome}</b><small class="tenue">{!s ? 'nessuno spartito' : s.spartito.brani.length === 1 ? 'ha il suo spartito' : `nello spartito «${s.spartito.titolo}»${s.pagina ? `, da pagina ${s.pagina}` : ''}`}</small></span>
+              <span class="azioni-file">
+                {i > 0 && <form method="post"><input type="hidden" name="azione" value="sposta-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><input type="hidden" name="verso" value="-1" /><button class="btn o piccolo" type="submit" aria-label={`Sposta ${b.nome} su`}>↑</button></form>}
+                {i < inModifica.brani.length - 1 && <form method="post"><input type="hidden" name="azione" value="sposta-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><input type="hidden" name="verso" value="1" /><button class="btn o piccolo" type="submit" aria-label={`Sposta ${b.nome} giù`}>↓</button></form>}
+                <button class="btn o piccolo apri-modifica" type="button" aria-expanded="false">Rinomina</button>
+                <form method="post" onsubmit="return confirm('Togliere questo brano dall\'opera? Spartiti e tracce restano.')"><input type="hidden" name="azione" value="togli-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} /><button class="btn o piccolo" type="submit">Togli</button></form>
+              </span>
+              <form class="modifica in-riga" method="post" hidden>
+                <input type="hidden" name="azione" value="rinomina-brano" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="indice" value={i} />
+                <input type="text" name="nome" value={b.nome} required maxlength="140" aria-label={`Nuovo nome di ${b.nome}`} />
+                <button class="btn piccolo" type="submit">Salva</button>
+                <button class="btn o piccolo chiudi-modifica" type="button">Annulla</button>
+              </form>
             </div>
           );
         })}
+        {inModifica.brani.length > 0 && <p class="tenue" style="margin:0">Con «Rinomina» il nome si scrive per bene (per esempio «Lacrimosa»): le prove già scritte con il nome di prima continuano a trovarlo, e spartiti e tracce che lo contengono si aggiornano.</p>}
+        <form method="post" class="aggiungi-brani">
+          <input type="hidden" name="azione" value="aggiungi-brani" /><input type="hidden" name="id" value={inModifica.id} />
+          <label>{inModifica.brani.length ? 'Aggiungi brani' : 'Brani dell\'opera'} <small>(uno per riga, nell'ordine dell'opera)</small><textarea name="testo" rows="3" placeholder={'Kyrie\nGloria\nCredo'}></textarea></label>
+          <button class="btn o piccolo" type="submit">Aggiungi</button>
+        </form>
+      </div>
+
+      <div class="file-gruppo" id="spartiti">
+        <h3>Spartiti</h3>
+        {esitoQui && inSez === 'spartiti' && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} style="margin:0">{q.get('esito')}</p>}
+        <p class="tenue" style="margin:0">Uno o più PDF: la partitura completa, uno spartito per brano, un misto, oppure volumi che non corrispondono ai brani. Con «Brani e pagine» si indicano i brani che ogni spartito contiene e, se si vuole, la pagina dove comincia ciascuno.</p>
+        {inModifica.spartiti.map((s) => (
+          <div class="file-riga riga-modificabile">
+            <span class="nome-brano"><a href={s.link} target="_blank" rel="noopener"><Icona nome="documento" />{s.titolo}</a><small class="tenue">{s.brani.length ? s.brani.map((b) => (b.pagina ? `${b.nome} (p. ${b.pagina})` : b.nome)).join(' · ') : 'nessun brano indicato'}</small></span>
+            <span class="azioni-file">
+              <button class="btn o piccolo apri-modifica" type="button" aria-expanded="false">{inModifica.brani.length ? 'Brani e pagine' : 'Rinomina'}</button>
+              <form method="post" onsubmit="return confirm('Togliere questo spartito dal pezzo? Il file resta su Drive.')"><input type="hidden" name="azione" value="togli-file" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="file" value={s.id} /><button class="btn o piccolo" type="submit">Togli</button></form>
+            </span>
+            <form class="modifica" method="post" hidden>
+              <input type="hidden" name="azione" value="salva-spartito" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="file" value={s.id} />
+              <label>Titolo dello spartito<input type="text" name="titolo" value={s.titolo} required maxlength="140" placeholder="Es. Partitura completa, Volume 1, Gloria" /></label>
+              {inModifica.brani.length > 0 && (
+                <fieldset>
+                  <legend>Brani che contiene <small>(con la pagina dove comincia, se si vuole)</small></legend>
+                  <div class="brani-pagine">
+                    {inModifica.brani.map((b, i) => {
+                      const dentro = s.brani.find((x) => x.nome === b.nome);
+                      return (
+                        <div class="brano-pagina">
+                          <label class="casella"><input type="checkbox" name="brano" value={i} checked={Boolean(dentro)} />{b.nome}</label>
+                          <input type="number" name={`pagina-${i}`} min="1" max="9999" value={dentro?.pagina} placeholder="pag." aria-label={`Pagina di ${b.nome}`} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              )}
+              <div class="azioni-pezzo"><button class="btn piccolo" type="submit">Salva</button><button class="btn o piccolo chiudi-modifica" type="button">Annulla</button></div>
+            </form>
+          </div>
+        ))}
+        {!inModifica.spartiti.length && <p class="tenue">Nessuno spartito.</p>}
+        <label class="carica">Carica spartiti <small>(PDF, anche più di uno: il nome del file diventa il titolo; se è il nome di un brano, lo spartito contiene quel brano)</small><input type="file" data-uso="spartito" accept="application/pdf,image/*" multiple /></label>
+      </div>
+
+      <div class="file-gruppo" id="tracce">
+        <h3>Tracce per lo studio</h3>
+        {esitoQui && inSez === 'tracce' && <p class:list={['messaggio', q.get('ok') === '1' ? 'ok' : 'errore']} style="margin:0">{q.get('esito')}</p>}
+        <p class="tenue" style="margin:0">A gruppi con un titolo («Opera intera», «Kyrie – tempo lento», «Gloria, battute 1–80»), facoltativamente legati a dei brani, con una traccia per voce. Le voci possono essere divise (Soprani I e II, Baritoni e Bassi…): ai coristi di una sezione si mostrano prima le voci della loro sezione.</p>
+        {inModifica.tracce.map((g) => (
+          <div class="gruppo-admin riga-modificabile">
+            <div class="testa-gruppo">
+              <span class="nome-brano"><b>{g.titolo}</b>{g.brani.length > 0 && <small class="tenue">{g.brani.join(' · ')}</small>}</span>
+              <span class="azioni-file">
+                <button class="btn o piccolo apri-modifica" type="button" aria-expanded="false">Modifica</button>
+                <form method="post" onsubmit="return confirm('Togliere tutte le tracce di questo gruppo dal pezzo? I file restano su Drive.')"><input type="hidden" name="azione" value="togli-gruppo" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="gruppo" value={g.titolo} /><button class="btn o piccolo" type="submit">Togli il gruppo</button></form>
+              </span>
+            </div>
+            <form class="modifica" method="post" hidden>
+              <input type="hidden" name="azione" value="salva-gruppo" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="gruppo" value={g.titolo} />
+              <label>Titolo del gruppo<input type="text" name="titolo" value={g.titolo} required maxlength="140" /></label>
+              {inModifica.brani.length > 0 && (
+                <fieldset><legend>Brani a cui si riferisce <small>(facoltativi)</small></legend>
+                  <div class="caselle">{inModifica.brani.map((b, i) => <label class="casella"><input type="checkbox" name="brano" value={i} checked={g.brani.includes(b.nome)} />{b.nome}</label>)}</div>
+                </fieldset>
+              )}
+              <div class="azioni-pezzo"><button class="btn piccolo" type="submit">Salva</button><button class="btn o piccolo chiudi-modifica" type="button">Annulla</button></div>
+            </form>
+            {g.tracce.map((t) => (
+              <div class="file-riga traccia-riga">
+                <form method="post" class="cambia-voce">
+                  <input type="hidden" name="azione" value="cambia-voce" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="file" value={t.id} />
+                  <select name="voce" aria-label="Voce della traccia" data-invia>{gruppiVoci.map(([nome, elenco]) => <optgroup label={nome}>{elenco.map((v) => <option value={v.nome} selected={v.nome === t.voce}>{v.nome}</option>)}</optgroup>)}</select>
+                  <noscript><button class="btn o piccolo" type="submit">Cambia</button></noscript>
+                </form>
+                <a href={t.link} target="_blank" rel="noopener"><Icona nome="cuffie" />{/^https:\/\/drive\.google\.com\/file\//.test(t.link) ? 'File audio' : 'Link'}</a>
+                <form method="post" onsubmit={`return confirm('Togliere la traccia ${t.voce} da questo gruppo? Se è un file, resta su Drive.')`}><input type="hidden" name="azione" value="togli-file" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="file" value={t.id} /><button class="btn o piccolo" type="submit">Togli</button></form>
+              </div>
+            ))}
+            <form method="post" class="carica-gruppo" data-gruppo={g.titolo}>
+              <input type="hidden" name="azione" value="aggiungi-link" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="gruppo" value={g.titolo} />
+              <label class="btn o piccolo carica-traccia">Aggiungi tracce<input type="file" data-uso="traccia" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" multiple class="sr" /></label>
+              <details class="con-link">
+                <summary class="btn o piccolo">Aggiungi un link</summary>
+                <div class="campi-link">
+                  <SceltaVoce voci={gruppiVoci} />
+                  <input type="url" name="link" placeholder="https://… (YouTube o altro sito)" aria-label="Link della traccia" />
+                  <button class="btn piccolo" type="submit">Aggiungi il link</button>
+                </div>
+              </details>
+            </form>
+          </div>
+        ))}
+        <details class="nuovo-gruppo" open={!inModifica.tracce.length}>
+          <summary>Nuovo gruppo di tracce</summary>
+          <form method="post" class="carica-gruppo nuovo">
+            <input type="hidden" name="azione" value="aggiungi-link" /><input type="hidden" name="id" value={inModifica.id} />
+            <label>Titolo del gruppo<input type="text" name="gruppo" maxlength="140" placeholder="Es. Opera intera, Kyrie – tempo lento" /></label>
+            {inModifica.brani.length > 0 && (
+              <fieldset><legend>Brani a cui si riferisce <small>(facoltativi)</small></legend>
+                <div class="caselle">{inModifica.brani.map((b, i) => <label class="casella"><input type="checkbox" name="brano" value={i} />{b.nome}</label>)}</div>
+              </fieldset>
+            )}
+            <label class="carica">File audio <small>(anche tutti insieme: la voce di ognuno si indovina dal nome del file, e si corregge prima di caricare)</small><input type="file" data-uso="traccia" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" multiple /></label>
+            <details class="con-link">
+              <summary class="btn o piccolo">Oppure un link</summary>
+              <div class="campi-link">
+                <SceltaVoce voci={gruppiVoci} />
+                <input type="url" name="link" placeholder="https://… (YouTube o altro sito)" aria-label="Link della traccia" />
+                <button class="btn piccolo" type="submit">Aggiungi il link</button>
+              </div>
+            </details>
+          </form>
+        </details>
+      </div>
+
+      <div class="scelta-voci" hidden>
+        <p class="eti-voci"><b>Di che voce è ogni traccia?</b> <span class="tenue">Controlla e correggi prima di caricare.</span></p>
+        <ul class="elenco-voci"></ul>
+        <template class="modello-voce"><li><span class="nome-file"></span><SceltaVoce voci={gruppiVoci} senzaNome /></li></template>
+        <div class="azioni-pezzo"><button class="btn piccolo carica-tracce" type="button">Carica le tracce</button><button class="btn o piccolo annulla-tracce" type="button">Annulla</button></div>
       </div>
       <div class="avanza-file" hidden>
         <progress max="100" value="0" aria-label="Caricamento"></progress>
@@ -224,19 +317,27 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
 </ul>
 
 <script>
-  // Brani: "Rinomina" apre sotto la riga il campo con il nome, "Annulla" lo richiude
-  document.querySelectorAll<HTMLElement>('.riga-brano').forEach((riga) => {
-    const apri = riga.querySelector<HTMLButtonElement>('.apri-rinomina')!;
-    const modulo = riga.querySelector<HTMLFormElement>('.rinomina-brano')!;
-    const campo = modulo.querySelector<HTMLInputElement>('input[name=nome]')!;
+  // Brani, spartiti e gruppi di tracce: «Rinomina» o «Modifica» aprono sotto la riga il modulo,
+  // «Annulla» (o Esc) lo richiude; il menu della voce di una traccia salva appena cambia
+  document.querySelectorAll<HTMLElement>('.riga-modificabile').forEach((riga) => {
+    const apri = riga.querySelector<HTMLButtonElement>(':scope > .azioni-file .apri-modifica, :scope > .testa-gruppo .apri-modifica')!;
+    const modulo = riga.querySelector<HTMLFormElement>(':scope > form.modifica')!;
+    if (!apri || !modulo) return;
+    const campo = modulo.querySelector<HTMLInputElement>('input[type=text]');
     const mostra = (si: boolean) => {
       modulo.hidden = !si;
       apri.setAttribute('aria-expanded', String(si));
-      if (si) { campo.focus(); campo.select(); } else { campo.value = campo.defaultValue; apri.focus(); }
+      if (si) { campo?.focus(); campo?.select(); } else { modulo.reset(); apri.focus(); }
     };
     apri.addEventListener('click', () => mostra(modulo.hidden));
-    modulo.querySelector('.chiudi-rinomina')!.addEventListener('click', () => mostra(false));
-    campo.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); mostra(false); } });
+    modulo.querySelector('.chiudi-modifica')!.addEventListener('click', () => mostra(false));
+    modulo.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); mostra(false); } });
+  });
+  document.querySelectorAll<HTMLSelectElement>('select[data-invia]').forEach((s) => s.addEventListener('change', () => s.form?.requestSubmit()));
+  // Una pagina scritta accende la casella del suo brano
+  document.querySelectorAll<HTMLElement>('.brano-pagina').forEach((r) => {
+    const casella = r.querySelector<HTMLInputElement>('input[type=checkbox]')!;
+    r.querySelector<HTMLInputElement>('input[type=number]')!.addEventListener('input', (e) => { if ((e.target as HTMLInputElement).value) casella.checked = true; });
   });
 </script>
 
@@ -270,22 +371,31 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
 </script>
 
 <script>
-  // Caricamento a pezzi (src/area/caricamento-client.ts): uno dopo l'altro, poi si ricarica la pagina
+  // Caricamento a pezzi (src/area/caricamento-client.ts): uno dopo l'altro, poi si ricarica la
+  // pagina. Gli spartiti partono subito; per le tracce prima si sceglie la voce di ogni file
+  // (indovinata dal nome, src/area/voci.ts), poi «Carica le tracce»
   import { carica } from './caricamento-client';
+  import { indovinaVoce, type Voce } from './voci';
+  import { preparaTendine } from '../motore/tendine';
   const box = document.querySelector<HTMLElement>('[data-file]');
   const avanza = box?.querySelector<HTMLElement>('.avanza-file');
   const barra = avanza?.querySelector('progress');
   const stato = box?.querySelector<HTMLElement>('.stato-caricamento');
+  const scelta = box?.querySelector<HTMLElement>('.scelta-voci');
+  const elencoVoci = scelta?.querySelector<HTMLUListElement>('.elenco-voci');
+  const modello = scelta?.querySelector<HTMLTemplateElement>('.modello-voce');
+  const voci: Voce[] = JSON.parse(box?.dataset.voci ?? '[]');
   // Modifiche al pezzo non ancora salvate: si salvano prima di caricare, perché alla fine la pagina si ricarica
   const modulo = document.querySelector<HTMLFormElement>('#modulo');
   let modificato = false;
   modulo?.addEventListener('input', () => { modificato = true; });
-  box?.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((input) => input.addEventListener('change', async () => {
-    const file = [...(input.files ?? [])];
-    if (!file.length) return;
-    box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = true));
-    // Avanzamento subito sotto il riquadro del file scelto, dove lo si sta guardando
-    input.closest('.carica, .traccia-riga')?.after(avanza!);
+  const blocca = (si: boolean) => box?.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input[type=file], .carica-tracce').forEach((i) => (i.disabled = si));
+
+  type DaCaricare = { file: File; extra: Record<string, string> };
+  async function caricaTutti(lista: DaCaricare[], vicino: Element, dove: string) {
+    if (!box) return;
+    blocca(true);
+    vicino.after(avanza!);
     avanza!.hidden = false;
     barra!.value = 0;
     avanza!.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -296,20 +406,66 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         if (!r.ok) throw new Error('Le modifiche al pezzo non si sono salvate: premi «Salva le modifiche» e riprova.');
         modificato = false;
       }
-      for (const [i, f] of file.entries()) {
-        await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, uso: input.dataset.uso!, ...(input.dataset.sezione ? { sezione: input.dataset.sezione } : {}), ...(input.dataset.parte ? { parte: input.dataset.parte } : {}) }, (q) => {
-          barra!.value = Math.round(((i + q) / file.length) * 100);
-          stato!.textContent = `Carico «${f.name}»${file.length > 1 ? ` (${i + 1} di ${file.length})` : ''}: ${Math.round(q * 100)}%`;
+      for (const [i, { file: f, extra }] of lista.entries()) {
+        await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, ...extra }, (q) => {
+          barra!.value = Math.round(((i + q) / lista.length) * 100);
+          stato!.textContent = `Carico «${f.name}»${lista.length > 1 ? ` (${i + 1} di ${lista.length})` : ''}: ${Math.round(q * 100)}%`;
         });
       }
       stato!.textContent = 'Caricato. Aggiorno la pagina…';
-      location.href = `${box.dataset.ritorno}&ok=1&caricato=1${input.dataset.parte ? `&parte=${encodeURIComponent(input.dataset.parte)}` : ''}&esito=${encodeURIComponent(file.length === 1 ? `«${file[0].name}» caricato.` : `${file.length} file caricati.`)}#file`;
+      location.href = `${box.dataset.ritorno}&ok=1&caricato=1&in=${dove}&esito=${encodeURIComponent(lista.length === 1 ? `«${lista[0].file.name}» caricato.` : `${lista.length} file caricati.`)}#${dove}`;
     } catch (e) {
       stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
       barra!.value = 0;
-      box.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((i) => (i.disabled = false));
+      blocca(false);
     }
+  }
+
+  box?.querySelectorAll<HTMLInputElement>('input[type=file][data-uso=spartito]').forEach((input) => input.addEventListener('change', () => {
+    const file = [...(input.files ?? [])];
+    if (file.length) caricaTutti(file.map((f) => ({ file: f, extra: { uso: 'spartito' } })), input.closest('.carica')!, 'spartiti');
   }));
+
+  // Tracce: il gruppo (titolo e brani) viene dal modulo in cui sta il pulsante
+  let gruppo: HTMLFormElement | undefined;
+  let scelti: File[] = [];
+  box?.querySelectorAll<HTMLInputElement>('input[type=file][data-uso=traccia]').forEach((input) => input.addEventListener('change', () => {
+    const file = [...(input.files ?? [])];
+    input.value = '';
+    if (!file.length || !scelta || !elencoVoci || !modello) return;
+    gruppo = input.form!;
+    const titolo = gruppo.querySelector<HTMLInputElement>('input[name=gruppo]')!;
+    if (!titolo.value.trim()) { alert('Scrivi prima il titolo del gruppo di tracce, per esempio «Opera intera».'); titolo.focus(); return; }
+    scelti = file;
+    elencoVoci.innerHTML = '';
+    for (const f of file) {
+      const riga = modello.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+      riga.querySelector('.nome-file')!.textContent = f.name;
+      const voce = riga.querySelector<HTMLSelectElement>('select[data-voce]')!;
+      const indovinata = indovinaVoce(f.name, voci);
+      voce.value = indovinata ?? voci[0]?.nome ?? '';
+      if (!indovinata) riga.classList.add('da-scegliere');
+      elencoVoci.append(riga);
+    }
+    gruppo.after(scelta);
+    scelta.hidden = false;
+    preparaTendine(scelta);
+    scelta.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }));
+  scelta?.querySelector('.annulla-tracce')?.addEventListener('click', () => { scelta.hidden = true; scelti = []; });
+  scelta?.querySelector('.carica-tracce')?.addEventListener('click', () => {
+    if (!gruppo || !scelti.length) return;
+    const titolo = gruppo.querySelector<HTMLInputElement>('input[name=gruppo]')!.value.trim();
+    const brani = [...gruppo.querySelectorAll<HTMLInputElement>('input[name=brano]:checked')].map((c) => c.closest('label')!.textContent!.trim()).join('\n');
+    const righe = [...elencoVoci!.children];
+    const lista = scelti.map((f, i) => {
+      const r = righe[i];
+      const voce = r.querySelector<HTMLSelectElement>('select[data-voce]')!.value;
+      return { file: f, extra: { uso: 'traccia', titolo, brani, voce, voceNuova: r.querySelector<HTMLInputElement>('input[name=voce-nuova]')!.value, sezioneNuova: r.querySelector<HTMLSelectElement>('select[name=sezione-nuova]')!.value } };
+    });
+    if (lista.some((x) => x.extra.voce === 'altra' && !x.extra.voceNuova.trim())) { alert('Scrivi il nome della voce nuova.'); return; }
+    caricaTutti(lista, scelta!, 'tracce');
+  });
 </script>
 
 <style>
@@ -337,25 +493,50 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .avanza-file[hidden] { display: none; }
   .avanza-file progress { width: 100%; height: 14px; accent-color: var(--primario); }
   .avanza-file small { color: var(--tenue); font-size: 13px; }
-  #file { scroll-margin-top: 140px; }
+  #file, #brani, #spartiti, #tracce { scroll-margin-top: 140px; }
   .titolo-elenco { font-family: var(--f-titoli); font-size: 22px; color: var(--primario); margin: 40px 0 14px; }
   .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 12px; }
   .titolo-elenco small { font-size: 15px; font-family: var(--f-testo); color: var(--tenue); font-weight: 400; }
   .azioni-pezzo { display: flex; gap: 8px; flex-wrap: wrap; }
   .azioni-pezzo form, .file-riga form { display: contents; }
-  .riga-brano { flex-wrap: wrap; }
-  .riga-brano .azioni-file { display: flex; gap: 8px; flex-shrink: 0; }
-  .riga-brano form.rinomina-brano { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
-  .riga-brano form.rinomina-brano[hidden] { display: none; }
-  .rinomina-brano input[type=text] { flex: 1 1 220px; min-width: 0; font: inherit; padding: 8px 10px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); }
+  .riga-modificabile { flex-wrap: wrap; }
+  .riga-modificabile .azioni-file { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+  .nome-brano { display: grid; gap: 2px; min-width: 0; flex: 1 1 220px; }
+  .nome-brano small { font-size: 13px; }
+  .riga-modificabile form.modifica { display: grid; gap: 12px; flex-basis: 100%; padding: 12px; background: var(--bianco); border-radius: var(--raggio); }
+  .riga-modificabile form.modifica.in-riga { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; background: none; }
+  .riga-modificabile form.modifica[hidden] { display: none; }
+  .modifica input[type=text] { flex: 1 1 220px; min-width: 0; }
+  .brani-pagine { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+  .brano-pagina { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  .modulo-pezzo .brano-pagina input[type=number] { width: 84px; padding: 6px 8px; }
+  .aggiungi-brani { display: grid; gap: 8px; }
+  .aggiungi-brani button { justify-self: start; }
+  /* Tracce: un riquadro per gruppo, con una riga per voce */
+  .gruppo-admin { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--linea); border-radius: var(--raggio); }
+  .testa-gruppo { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+  .testa-gruppo b { color: var(--primario); font-size: 16px; }
+  .cambia-voce select { font: inherit; padding: 6px 8px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); min-width: 150px; }
+  .carica-gruppo { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+  .carica-gruppo.nuovo { display: grid; gap: 14px; padding-top: 12px; }
+  .con-link > summary { list-style: none; cursor: pointer; }
+  .con-link > summary::-webkit-details-marker { display: none; }
+  .con-link[open] { flex-basis: 100%; }
+  .campi-link { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .modulo-pezzo .campi-link input[type=url] { flex: 1 1 240px; width: auto; padding: 8px 10px; }
+  .nuovo-gruppo { border: 2px dashed var(--linea); border-radius: var(--raggio); padding: 12px; }
+  .nuovo-gruppo > summary { cursor: pointer; font-weight: 700; color: var(--primario); }
+  .scelta-voci { display: grid; gap: 10px; padding: 12px; background: var(--fondo); border-radius: var(--raggio); }
+  .scelta-voci[hidden] { display: none; }
+  .eti-voci { margin: 0; }
+  .elenco-voci { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .elenco-voci li { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--bianco); border-radius: var(--raggio); }
+  .elenco-voci li.da-scegliere { box-shadow: inset 4px 0 0 var(--accento); }
+  .nome-file { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
   .caselle { display: flex; flex-wrap: wrap; gap: 8px 18px; }
   .modulo-pezzo label.casella { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--testo); cursor: pointer; }
   .modulo-pezzo label.casella input { width: 18px; height: 18px; accent-color: var(--primario); }
   .cancella-raccolta { margin: 0 0 8px; display: flex; justify-content: flex-end; }
-  .tracce-parte { flex-basis: 100%; }
-  .tracce-parte summary { cursor: pointer; font-size: 14px; color: var(--tenue); padding: 4px 0; }
-  .tracce-parte[open] summary { margin-bottom: 6px; }
-  .tracce-parte .traccia-riga { background: var(--bianco); margin-top: 6px; }
   .cancella { color: var(--rosso) !important; box-shadow: inset 0 0 0 2px var(--rosso) !important; }
   .messaggio { padding: 14px 18px; border-radius: var(--raggio); margin: 20px 0; border: 2px solid var(--linea); background: var(--bianco); }
   .messaggio.ok { border-color: #2e7d4f; }

@@ -1,0 +1,44 @@
+---
+// La voce di una traccia di studio (src/area/voci.ts) nei moduli del repertorio
+// (src/area/GestioneRepertorio.astro): le voci raggruppate per sezione, più «Altra voce…», che
+// mostra i campi per il nome e la sezione di una voce nuova (campi voce, voce-nuova, sezione-nuova).
+import { SEZIONI } from './dati';
+import type { Voce } from './voci';
+
+interface Props { voci: [string, Voce[]][]; scelta?: string; senzaNome?: boolean }
+const { voci, scelta } = Astro.props;
+---
+
+<span class="scelta-voce">
+  <select name="voce" data-voce aria-label="Voce">
+    {voci.map(([nome, elenco]) => <optgroup label={nome}>{elenco.map((v) => <option value={v.nome} selected={v.nome === scelta}>{v.nome}</option>)}</optgroup>)}
+    <option value="altra">Altra voce…</option>
+  </select>
+  <span class="voce-nuova" hidden>
+    <input type="text" name="voce-nuova" maxlength="40" placeholder="Es. Solista, Mezzosoprani" aria-label="Nome della voce nuova" />
+    <select name="sezione-nuova" aria-label="Sezione della voce nuova">
+      {SEZIONI.map((s) => <option value={s}>{s}</option>)}
+      <option value="">Per tutti</option>
+    </select>
+  </span>
+</span>
+
+<script>
+  // «Altra voce…» mostra nome e sezione della voce nuova (anche nelle righe aggiunte dallo script)
+  document.addEventListener('change', (e) => {
+    const s = e.target as HTMLSelectElement;
+    if (!s.matches?.('select[data-voce]')) return;
+    const nuova = s.closest('.scelta-voce')?.querySelector<HTMLElement>('.voce-nuova');
+    if (!nuova) return;
+    nuova.hidden = s.value !== 'altra';
+    if (!nuova.hidden) nuova.querySelector('input')?.focus();
+  });
+</script>
+
+<style>
+  .scelta-voce { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .voce-nuova { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+  .voce-nuova[hidden] { display: none; }
+  .scelta-voce :is(select, input) { font: inherit; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); }
+  .voce-nuova input { width: 180px; }
+</style>

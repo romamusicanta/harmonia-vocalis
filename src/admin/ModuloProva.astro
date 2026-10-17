@@ -52,7 +52,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 
   <h2>Per i coristi</h2>
   <div class="campo"><label for="sezioni">Sezioni</label><input id="sezioni" name="sezioni" placeholder="Soprani e contralti" value={r?.Sezioni} /><span class="aiuto">Vuoto = tutto il coro.</span></div>
-  <div class="campo"><SceltaPezzi nome="repertorio" etichetta="Spartiti" pezzi={pezzi} raccolte={raccolte} scelti={scelti} aiuto="Dal Repertorio: un pezzo intero oppure, sotto un'opera, una sola parte (un movimento o un estratto). Nell'area coristi il pezzo porta a spartito, tracce e note, la parte apre direttamente il suo spartito." /></div>
+  <div class="campo"><SceltaPezzi nome="repertorio" etichetta="Spartiti" pezzi={pezzi} raccolte={raccolte} scelti={scelti} aiuto="Dal Repertorio: un pezzo intero oppure, sotto un'opera, un solo brano (un movimento o un estratto). Nell'area coristi il pezzo porta a spartiti, tracce e note, il brano apre direttamente il suo spartito, alla sua pagina." /></div>
   <div class="campo"><label for="brani">Brani e passi</label><input id="brani" name="brani" placeholder="Lacrimosa, Domine Jesu: dalla battuta 20" value={r?.Brani} /><span class="aiuto">Cosa si prova in dettaglio, se il Maestro l'ha detto.</span></div>
   <div class="campo"><label for="note">Note</label><input id="note" name="note" placeholder="Si inizia puntuali: c'è il pianista" value={r?.Note} /></div>
   {/* Portare e il link a una registrazione esterna non si scrivono più (6/10/2026): quelli già scritti restano */}

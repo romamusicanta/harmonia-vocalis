@@ -1,23 +1,33 @@
 ---
 // Area coristi, pagina Repertorio: la scheda di un pezzo (src/area/RepertorioVero.astro), da sola o
-// dentro una raccolta. Una riga con autore, titolo, arrangiamento, stato e «Apri lo spartito», che si
-// apre solo se sotto c'è qualcosa: tracce per sezione dell'opera intera (in evidenza quella del
-// corista), esecuzione di riferimento, parti dell'opera (movimenti o estratti, ognuna col suo
-// spartito e, dal 13/10/2026, le sue tracce) e note del Maestro. ancora = false per le copie di un
-// pezzo che sta in più raccolte: l'ancora #<id> (Calendario, Concerti, Registrazioni) va alla prima.
+// dentro una raccolta. Una riga con autore, titolo, arrangiamento, stato e, se lo spartito è uno
+// solo, «Apri lo spartito»; si apre solo se sotto c'è qualcosa. Dal 17/10/2026 (src/area/repertorio.ts)
+// tre elenchi indipendenti: le tracce per lo studio a gruppi con un titolo, ognuno con una traccia
+// per voce (prima le voci della sezione del corista, in evidenza: per i bassi anche i baritoni),
+// gli spartiti con il loro titolo e i brani che contengono, e i brani dell'opera, ognuno con il suo
+// spartito alla sua pagina; poi esecuzione di riferimento e note del Maestro. I link arrivano già
+// passati dal sito (linkDelSito). ancora = false per le copie di un pezzo che sta in più raccolte:
+// l'ancora #<id> (Calendario, Concerti, Registrazioni) va alla prima.
 import Icona from '../componenti/Icona.astro';
-import type { Pezzo, Traccia } from './repertorio';
+import { allaPagina, spartitoDi, type Pezzo, type Traccia } from './repertorio';
 import { comeHtml } from './testo';
 
 interface Props { p: Pezzo; sezione?: string; ancora?: boolean; cerca: string }
 const { p, sezione, ancora = true, cerca } = Astro.props;
-// La propria sezione prima, poi le altre nell'ordine del coro
-const inOrdine = (tracce: Traccia[]) => [...tracce.filter((t) => t.sezione === sezione), ...tracce.filter((t) => t.sezione !== sezione)];
-const conTracceParti = p.brani.some((b) => b.tracce.length);
-const tua = p.tracce.some((t) => t.sezione === sezione) || p.brani.some((b) => b.tracce.some((t) => t.sezione === sezione));
-const espandibile = Boolean(p.tracce.length || p.brani.length || p.esecuzione || p.note);
+const mia = (t: Traccia) => Boolean(sezione && t.sezione === sezione);
+// La propria sezione prima, poi le altre nell'ordine del catalogo delle voci
+const inOrdine = (tracce: Traccia[]) => [...tracce.filter(mia), ...tracce.filter((t) => !mia(t))];
+const tua = p.tracce.some((g) => g.tracce.some(mia));
+const nTracce = p.tracce.reduce((n, g) => n + g.tracce.length, 0);
+// Lo spartito di un solo brano si apre dall'elenco dei brani: tra gli spartiti restano gli altri
+// (partitura completa, volumi); se ne resta uno, è il pulsante «Apri lo spartito»
+const generali = p.spartiti.filter((s) => s.brani.length !== 1 || !p.brani.some((b) => b.nome === s.brani[0].nome));
+const unico = generali.length === 1 ? generali[0] : undefined;
+const quante = (n: number, uno: string, tanti: string) => n && `${n} ${n === 1 ? uno : tanti}`;
+const espandibile = Boolean(nTracce || generali.length > 1 || p.brani.length || p.esecuzione || p.note);
 const Riga = espandibile ? 'details' : 'div';
 const Testa = espandibile ? 'summary' : 'div';
+const file = (link: string) => link.startsWith('/area/file/') || link.startsWith('/maestro/file/');
 ---
 
 <Riga class:list={['opera-studio', { fisso: !espandibile }]} id={ancora ? p.id : undefined} data-pezzo={p.id} data-cerca={cerca}>
@@ -26,66 +36,80 @@ const Testa = espandibile ? 'summary' : 'div';
       {p.autore && <span class="aut">{p.autore}</span>}
       <h2 style="margin-top:6px">{p.titolo}</h2>
       {p.arrangiatore && <span class="arr">arr. {p.arrangiatore}</span>}
-      <span class="tenue indicatori">{[tua && 'la tua traccia', p.tracce.length && `${p.tracce.length} ${p.tracce.length === 1 ? 'traccia' : 'tracce'}`, p.brani.length && `${p.brani.length} ${p.brani.length === 1 ? 'parte' : 'parti'}`, conTracceParti && 'tracce delle parti', p.note && 'note del Maestro'].filter(Boolean).join(' · ') || (p.spartito ? '' : 'materiali in arrivo')}</span>
+      <span class="tenue indicatori">{[tua && 'la tua traccia', generali.length > 1 && quante(generali.length, 'spartito', 'spartiti'), quante(p.brani.length, 'brano', 'brani'), quante(nTracce, 'traccia', 'tracce'), p.note && 'note del Maestro'].filter(Boolean).join(' · ') || (p.spartiti.length ? '' : 'materiali in arrivo')}</span>
     </div>
     <div class="lato-pezzo">
       <span class:list={['tag', { grigio: p.stato !== 'In studio' }]}>{p.stato}</span>
-      {p.spartito && <a class="btn piccolo" href={p.spartito} target="_blank" rel="noopener"><Icona nome="documento" />Apri lo spartito</a>}
+      {unico && <a class="btn piccolo" href={unico.link} target="_blank" rel="noopener"><Icona nome="documento" />Apri lo spartito</a>}
     </div>
   </Testa>
   {espandibile && (
     <div class="corpo-o">
-      {(p.tracce.length > 0 || p.esecuzione) && (
+      {(nTracce > 0 || p.esecuzione) && (
         <div class="colonna">
-          {p.tracce.length > 0 && (
-            <>
-              <h3>Tracce per lo studio{p.brani.length > 0 && ' · opera intera'}</h3>
+          {nTracce > 0 && <h3>Tracce per lo studio</h3>}
+          {p.tracce.map((g) => (
+            <div class="gruppo-tracce">
+              {(p.tracce.length > 1 || g.brani.length > 0 || g.titolo !== 'Tracce') && (
+                <p class="titolo-gruppo"><b>{g.titolo}</b>{g.brani.length > 0 && <small>{g.brani.join(' · ')}</small>}</p>
+              )}
               <div class="basi">
-                {inOrdine(p.tracce).map((t) => (
-                  <div class:list={['base', { tua: t.sezione === sezione }]}>
-                    <div><b>{t.sezione}{t.sezione === sezione && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
-                    {t.link.startsWith('/area/file/')
-                      ? <audio controls preload="none" src={t.link} aria-label={`Traccia: ${t.sezione}`}></audio>
-                      : <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri le tracce: ${t.sezione}`}><Icona nome="play" /></a></div>}
+                {inOrdine(g.tracce).map((t) => (
+                  <div class:list={['base', { tua: mia(t) }]}>
+                    <div><b>{t.voce}{mia(t) && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
+                    {file(t.link)
+                      ? <audio controls preload="none" src={t.link} aria-label={`Traccia ${t.voce}: ${g.titolo}`}></audio>
+                      : <div class="az-base"><a href={t.link} target="_blank" rel="noopener" aria-label={`Apri la traccia ${t.voce}: ${g.titolo}`}><Icona nome="play" /></a></div>}
                   </div>
                 ))}
               </div>
-            </>
-          )}
+            </div>
+          ))}
           {p.esecuzione && (
             <>
-              <h3 style={p.tracce.length ? 'margin-top:28px' : undefined}>Esecuzione di riferimento</h3>
+              <h3 style={nTracce ? 'margin-top:28px' : undefined}>Esecuzione di riferimento</h3>
               <a class="btn o piccolo" href={p.esecuzione} target="_blank" rel="noopener"><Icona nome="cuffie" />Ascolta</a>
             </>
           )}
         </div>
       )}
-      {(p.brani.length > 0 || p.note) && (
+      {(generali.length > 1 || p.brani.length > 0 || p.note) && (
         <div class="colonna">
-          {p.brani.length > 0 && (
+          {generali.length > 1 && (
             <>
-              <h3>Parti dell'opera</h3>
+              <h3>Spartiti</h3>
               <div class="parti">
-                {p.brani.map((b) => (
-                  <div class="parte">
-                    <a class="parte-spartito" href={b.link} target="_blank" rel="noopener"><span class="icona-q"><Icona nome="documento" classe="" /></span><b>{b.nome}</b><Icona nome="esterno" /></a>
-                    {b.tracce.length > 0 && (
-                      <div class="basi tracce-parte">
-                        {inOrdine(b.tracce).map((t) => (
-                          <div class:list={['base', { tua: t.sezione === sezione }]}>
-                            <div><b>{t.sezione}</b></div>
-                            <audio controls preload="none" src={t.link} aria-label={`Traccia ${t.sezione}: ${b.nome}`}></audio>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                {generali.map((s) => (
+                  <a class="parte-spartito parte" href={s.link} target="_blank" rel="noopener">
+                    <span class="icona-q"><Icona nome="documento" classe="" /></span>
+                    <span><b>{s.titolo}</b>{s.brani.length > 0 && <small>{s.brani.map((b) => b.nome).join(' · ')}</small>}</span>
+                    <Icona nome="esterno" />
+                  </a>
                 ))}
               </div>
             </>
           )}
+          {p.brani.length > 0 && (
+            <>
+              <h3 style={generali.length > 1 ? 'margin-top:28px' : undefined}>Brani</h3>
+              <ol class="brani-opera">
+                {p.brani.map((b) => {
+                  const s = spartitoDi(p, b.nome);
+                  return (
+                    <li>
+                      {s ? (
+                        <a href={allaPagina(s.spartito.link, s.pagina)} target="_blank" rel="noopener" title={`Spartito: ${s.spartito.titolo}${s.pagina ? `, pagina ${s.pagina}` : ''}`}>
+                          <span>{b.nome}</span><small>{s.pagina ? `${s.spartito.brani.length > 1 && generali.length > 1 ? `${s.spartito.titolo}, ` : ''}p. ${s.pagina}` : s.spartito.brani.length > 1 ? s.spartito.titolo : 'spartito'}</small>
+                        </a>
+                      ) : <span class="senza"><span>{b.nome}</span></span>}
+                    </li>
+                  );
+                })}
+              </ol>
+            </>
+          )}
           {p.note && (
-            <div class="nota-maestro" style={p.brani.length ? undefined : 'margin-top:0'}>
+            <div class="nota-maestro" style={p.brani.length || generali.length > 1 ? undefined : 'margin-top:0'}>
               <span class="eti">Note del Maestro</span>
               <div set:html={comeHtml(p.note)} />
             </div>
@@ -118,16 +142,29 @@ const Testa = espandibile ? 'summary' : 'div';
   .opera-studio[open] > summary h2::after { content: ' ▾'; }
   .arr { display: block; font-size: 14px; font-style: italic; color: var(--tenue); margin-top: 2px; }
   .indicatori { display: block; font-size: 14px; margin-top: 4px; }
-  /* Tracce caricate come file: lettore audio nella riga della sezione */
+  /* Gruppi di tracce: titolo e brani, poi una riga per voce */
+  .gruppo-tracce + .gruppo-tracce { margin-top: 18px; }
+  .titolo-gruppo { margin: 0 0 8px; display: grid; gap: 2px; }
+  .titolo-gruppo b { color: var(--primario); font-size: 16px; }
+  .titolo-gruppo small { color: var(--tenue); font-size: 13px; }
+  /* Tracce caricate come file: lettore audio nella riga della voce */
   .base:has(audio) { grid-template-columns: minmax(0, 1fr); }
   .base audio { width: 100%; height: 40px; }
-  /* Parti: lo spartito, e sotto le tracce della parte se ci sono */
+  /* Spartiti: titolo e, sotto, i brani che contengono */
   .parti { display: grid; gap: 10px; }
   .parte { border: 1px solid var(--linea); }
   .parte-spartito { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--bianco); }
   .parte-spartito:hover { background: var(--fondo); }
-  .parte-spartito b { color: var(--primario); font-size: 16px; line-height: 1.2; }
+  .parte-spartito b { display: block; color: var(--primario); font-size: 16px; line-height: 1.2; }
+  .parte-spartito small { display: block; color: var(--tenue); font-size: 13px; margin-top: 2px; }
   .parte-spartito > :global(svg:last-child) { margin-left: auto; color: var(--tenue); flex-shrink: 0; }
-  .tracce-parte { padding: 0 12px 12px; }
-  .tracce-parte .base { padding: 8px 10px; }
+  /* Brani: uno per riga, ognuno apre il suo spartito alla sua pagina */
+  .brani-opera { list-style: none; margin: 0; padding: 0; border: 1px solid var(--linea); background: var(--bianco); }
+  .brani-opera li + li { border-top: 1px solid var(--linea); }
+  .brani-opera a, .brani-opera .senza { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; min-height: 44px; align-items: center; }
+  .brani-opera a { color: var(--primario); font-weight: 600; }
+  .brani-opera a:hover { background: var(--fondo); }
+  .brani-opera a span { text-decoration: underline; }
+  .brani-opera small { color: var(--tenue); font-weight: 400; font-size: 13px; white-space: nowrap; }
+  .brani-opera .senza { color: var(--testo); }
 </style>

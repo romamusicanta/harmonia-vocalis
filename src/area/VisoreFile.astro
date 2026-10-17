@@ -216,6 +216,10 @@
       }
       dimensiona();
       corpo.append(avviso);
+      // Lo spartito di un brano si apre alla sua pagina (#page=N, src/area/repertorio.ts allaPagina)
+      const daPagina = Number(new URL(url, location.href).hash.match(/page=(\d+)/)?.[1]);
+      const prima = tele[daPagina - 1];
+      if (daPagina > 1 && prima) corpo.scrollTop += prima.getBoundingClientRect().top - corpo.getBoundingClientRect().top - 10;
       tele.forEach((t) => osserva.observe(t));
 
       const ingrandisci = (e: Event) => {
