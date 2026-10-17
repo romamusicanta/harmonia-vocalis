@@ -86,7 +86,7 @@ export interface SchedaCorista {
 
 export const SEZIONI = ['Soprani', 'Contralti', 'Tenori', 'Bassi'];
 // La sezione del Maestro (dal 17/10/2026): chi ne fa parte sta nella scheda Coristi, ma non canta in
-// una sezione, è esonerato dalle quote e non compare nella tesoreria (pagaLeQuote)
+// una sezione, è esonerato dalle quote e non compare nella tesoreria (pagaLeQuote) né nelle presenze (attivi)
 export const SEZIONE_MAESTRO = 'Maestro';
 // Le sezioni che si scelgono nella scheda Coristi
 export const SEZIONI_ELENCO = [...SEZIONI, SEZIONE_MAESTRO];
@@ -164,8 +164,8 @@ export async function coristi(): Promise<SchedaCorista[]> {
     .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it', { sensitivity: 'base' }));
 }
 
-// Chi faceva parte del coro quel giorno
-export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => nelCoro(c, giorno));
+// Chi faceva parte del coro quel giorno, per presenze e attesi: senza la sezione Maestro (dal 17/10/2026)
+export const attivi = (elenco: SchedaCorista[], giorno: string) => elenco.filter((c) => c.sezione !== SEZIONE_MAESTRO && nelCoro(c, giorno));
 
 // Il corista di un indirizzo, dell'associazione o personale. In modalità demo chi guarda, che non è
 // nella scheda, è un contralto inventato senza assenze né quote (dall'8/10/2026): così l'area coristi
