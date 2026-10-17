@@ -475,6 +475,13 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   .modulo-pezzo small { font-weight: 400; color: var(--tenue); }
   .modulo-pezzo :is(input:not([type=file]), textarea, select) { font: inherit; font-weight: 400; color: var(--testo); padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); width: 100%; }
   .modulo-pezzo .riga-campi { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  /* Campi affiancati: titoli in alto, campi tutti alla stessa altezza in fondo, anche se le
+     spiegazioni sotto i titoli sono lunghe diversamente */
+  .modulo-pezzo .riga-campi > label { display: flex; flex-direction: column; gap: 6px; }
+  .modulo-pezzo .riga-campi > label > :is(input, select) { margin-top: auto; height: 48px; }
+  .modulo-pezzo .riga-campi > label > :global(.tendina) { margin-top: auto; }
+  /* La tendina la aggiunge lo script (src/motore/tendine.ts): niente stile con ambito */
+  .modulo-pezzo .riga-campi > label > :global(.tendina > select) { height: 48px; }
   .modulo-pezzo fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
   .modulo-pezzo legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 10px; }
   .modulo-pezzo button[type=submit]:not(.piccolo) { justify-self: start; }
