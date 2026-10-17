@@ -256,7 +256,7 @@ async function testiSito(token) {
   console.log(`[drive] Testi del sito.json: ${Object.keys(testi).length} testi`);
 }
 
-// Le opere «In repertorio» (non le raccolte) della scheda Repertorio del foglio "Coristi e assenze":
+// Le opere «In repertorio» (non le raccolte né le opere che stanno in una raccolta) della scheda Repertorio del foglio "Coristi e assenze":
 // solo autore, titolo e arrangiatore, gli unici dati pubblici. Se il foglio non risponde resta il
 // file della build prima, se c'è (su Vercel non c'è: la pagina torna alle opere dell'archivio).
 async function repertorioPronto(token) {
@@ -266,10 +266,13 @@ async function repertorioPronto(token) {
   if (!r.ok) throw new Error(`foglio non letto (${r.status}): ${await r.text()}`);
   const [testa = [], ...righe] = (await r.json()).values ?? [];
   const col = (nome) => testa.indexOf(nome);
-  const [autore, titolo, stato, tipo, arrangiatore] = ['Autore', 'Titolo', 'Stato', 'Tipo', 'Arrangiatore'].map(col);
+  const [id, autore, titolo, stato, tipo, arrangiatore, contenuto] = ['ID', 'Autore', 'Titolo', 'Stato', 'Tipo', 'Arrangiatore', 'Contenuto'].map(col);
   if (autore < 0 || titolo < 0 || stato < 0) throw new Error('mancano le colonne Autore, Titolo o Stato');
+  // Le opere che stanno in una raccolta non si propongono da sole (dal 17/10/2026, richiesta di Mario)
+  const raccolte = righe.filter((v) => tipo >= 0 && v[tipo] === 'Raccolta');
+  const inRaccolta = new Set(contenuto < 0 ? [] : raccolte.flatMap((v) => (v[contenuto] ?? '').split('\n').map((r) => r.trim()).filter(Boolean)));
   const opere = righe
-    .filter((v) => v[titolo]?.trim() && v[stato]?.trim() === 'In repertorio' && (tipo < 0 || v[tipo] !== 'Raccolta'))
+    .filter((v) => v[titolo]?.trim() && v[stato]?.trim() === 'In repertorio' && (tipo < 0 || v[tipo] !== 'Raccolta') && !inRaccolta.has(v[id]?.trim()))
     .map((v) => ({ autore: (v[autore] ?? '').trim().replace(/\s+/g, ' ').replace(/(\p{Lu})\.(?=\S)/gu, '$1. '), titolo: v[titolo].trim(), arrangiatore: (arrangiatore >= 0 && v[arrangiatore]?.trim()) || undefined }));
   writeFileSync(new URL('repertorio.json', cartella), JSON.stringify(opere, null, 1));
   console.log(`[repertorio] ${opere.length} opere «In repertorio» → coro/immagini/drive/repertorio.json`);
