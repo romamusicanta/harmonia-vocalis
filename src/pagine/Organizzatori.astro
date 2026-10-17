@@ -162,20 +162,19 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
       <div class="w">
         <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2>{dati.repertorio && <p><ConLink testo={dati.repertorio} /></p>}</div>
         {/* Dati: opere «In repertorio» del foglio "Coristi e assenze" (coro/immagini/drive/repertorio.json), archivio (calendario "Concerti") e canale YouTube */}
-        <div class="schede">
+        <div class="schede-opere">
           {inScheda.map((o) => {
+            // Ogni scheda porta da qualche parte: al video, all'archivio o, se non è ancora stata eseguita, ai contatti
             const conVideo = conAscolta && o.eseguita?.video;
-            const corpo = <><span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span><h3>{o.titolo}</h3></>;
-            return o.eseguita ? (
-              <a class="sc opera" href={conVideo ? l(`/ascolta#${o.eseguita.video}`) : l('/concerti#archivio')}>
-                <div class="top">{conVideo ? <span class="tag">Video</span> : <span class="tag grigio">{en ? 'Archive' : 'Archivio'}</span>}</div>
-                <div class="corpo">{corpo}<span class="link">{conVideo ? (en ? 'Listen' : 'Ascolta') : (en ? 'In the archive' : 'Nell’archivio')} →</span></div>
+            const [href, azione] = conVideo ? [l(`/ascolta#${o.eseguita!.video}`), en ? 'Listen' : 'Ascolta']
+              : o.eseguita ? [l('/concerti#archivio'), en ? 'In the archive' : 'Nell’archivio']
+              : ['#contatti-ingaggi', en ? 'Ask for it' : 'Chiedila'];
+            return (
+              <a class="opera" href={href}>
+                <span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span>
+                <h3>{o.titolo}</h3>
+                <span class:list={['azione', { ascolto: conVideo }]}>{conVideo && <Icona nome="play" classe="" />}{azione} →</span>
               </a>
-            ) : (
-              <div class="sc opera">
-                <div class="top"><span class="tag grigio">{en ? 'Ready' : 'Pronta'}</span></div>
-                <div class="corpo">{corpo}</div>
-              </div>
             );
           })}
         </div>
