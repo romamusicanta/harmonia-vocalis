@@ -15,6 +15,7 @@ import PannelloProvaIniziale from '../componenti/PannelloProvaIniziale.astro';
 import { aspettoDi } from '../motore/url';
 import { vesti } from '../vesti';
 import TestaApp from '../componenti/TestaApp.astro';
+import InvitoApp from '../area/InvitoApp.astro';
 import type { Pagina } from '../motore/navigazione';
 import { datiCoro, type DatiStrutturati } from '../motore/seo';
 
@@ -103,6 +104,7 @@ const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immag
   <body class:list={{ area: Boolean(area) }}>
     <a class="salta" href="#contenuto">{lingua === 'en' ? 'Skip to content' : 'Vai al contenuto'}</a>
     {area ? <TestataArea veste={veste} sezione={area.sezione} conBarra={area.conBarra} maestro={area.maestro} tesoriere={area.tesoriere} /> : <Testata veste={veste} pagina={pagina} />}
+    {!area && !DEMO && <InvitoApp area="sito" />}
     <main id="contenuto" tabindex="-1">
       <slot />
     </main>

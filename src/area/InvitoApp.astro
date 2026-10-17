@@ -6,24 +6,29 @@
 // Safari e negli altri browser, per questo il testo resta generico), su Android dal menu ⋮ di Chrome.
 // Solo su telefoni e tablet, mai sul computer. Non compare se l'app è già aperta come app, né per
 // chi l'ha chiuso (localStorage hv-invito-app, una data per area, per 60 giorni).
+// Nel sito pubblico (area 'sito', da Base.astro, dal 17/10/2026) solo su Android e solo con il
+// pulsante: compare quando arriva la richiesta di installazione, cioè quando l'app non è installata.
 import Icona from '../componenti/Icona.astro';
+import { linguaDi } from '../motore/lingua';
 
-interface Props { area?: 'coristi' | 'maestro' | 'tesoriere' | 'admin' }
+interface Props { area?: 'coristi' | 'maestro' | 'tesoriere' | 'admin' | 'sito' }
 const { area = 'coristi' } = Astro.props;
-const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", tesoriere: "l'area del tesoriere", admin: "l'Amministrazione" }[area];
+const sito = area === 'sito';
+const en = sito && linguaDi(Astro.url) === 'en';
+const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", tesoriere: "l'area del tesoriere", admin: "l'Amministrazione", sito: "l'app del coro" }[area];
 ---
 
-<div class="invito-app" hidden data-chiave={area === 'coristi' ? 'hv-invito-app' : `hv-invito-app-${area}`}>
+<div class="invito-app" hidden data-chiave={area === 'coristi' ? 'hv-invito-app' : `hv-invito-app-${area}`} data-solo-android={sito ? '' : undefined}>
   <div class="w">
-    <img src={`/icone/icona-${area}-192.png`} alt="" width="44" height="44" />
+    <img src={sito ? '/icone/icona-192.png' : `/icone/icona-${area}-192.png`} alt="" width="44" height="44" />
     <div class="testo">
-      <b>Metti {nome} sul telefono</b>
-      <span class="breve">Si apre dalla schermata Home, come un'app.</span>
+      <b>{en ? "Put the choir's app on your phone" : `Metti ${nome} sul telefono`}</b>
+      <span class="breve">{en ? 'Concerts and news one tap away, from your Home screen.' : sito ? 'Concerti e novità a portata di tocco, dalla schermata Home.' : "Si apre dalla schermata Home, come un'app."}</span>
       <span class="android">In Chrome tocca <Icona nome="menu-punti" /> in alto a destra, poi <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>): {nome} si aprirà con un tocco, come un'app.</span>
       <span class="ios">Tocca <Icona nome="condividi-ios" /> <b>Condividi</b> (in Safari può stare nel menu <b>···</b>), poi <b>Aggiungi alla schermata Home</b>: {nome} si aprirà con un tocco, come un'app{(area === 'coristi' || area === 'maestro') && ', e potrai ricevere le notifiche del coro'}.</span>
     </div>
-    <button type="button" class="btn g piccolo installa">Installa</button>
-    <button type="button" class="chiudi-invito" aria-label="Non ora" title="Non ora"><Icona nome="chiudi" classe="" /></button>
+    <button type="button" class="btn g piccolo installa">{en ? 'Install' : 'Installa'}</button>
+    <button type="button" class="chiudi-invito" aria-label={en ? 'Not now' : 'Non ora'} title={en ? 'Not now' : 'Non ora'}><Icona nome="chiudi" classe="" /></button>
   </div>
 </div>
 
@@ -52,13 +57,15 @@ const nome = { coristi: "l'area coristi", maestro: "l'area del Maestro", tesorie
   // Gli iPad recenti si presentano come Mac con lo schermo tattile
   const android = /android/i.test(navigator.userAgent);
   const ios = !android && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+  // Sito pubblico: solo Android, e solo quando il browser offre l'installazione
+  const soloAndroid = invito?.dataset.soloAndroid !== undefined;
   let richiesta: (Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }) | undefined;
   const nascondi = () => { if (invito) invito.hidden = true; };
 
   // Solo su telefoni e tablet (Android, iPhone, iPad): mai sul computer, anche se il browser permette di installare
-  if (invito && !giaApp && !chiuso && (ios || android)) {
+  if (invito && !giaApp && !chiuso && (soloAndroid ? android : ios || android)) {
     invito.classList.add(ios ? 'su-ios' : 'su-android');
-    invito.hidden = false;
+    invito.hidden = soloAndroid;
     // Chrome, Samsung Internet: la richiesta di installazione arriva quando il sito è installabile
     addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
