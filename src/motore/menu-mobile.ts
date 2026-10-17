@@ -11,7 +11,17 @@ export function attivaMenu(bottone: HTMLButtonElement | null) {
     bottone.setAttribute('aria-expanded', String(aperto));
     bottone.setAttribute('aria-label', nomi[aperto ? 1 : 0]);
     if (aperto) menu?.querySelector<HTMLElement>('a, button')?.focus();
+    adatta();
   };
+  // Menu del sito pubblico, sotto la testata: alto fino al bordo vero dello schermo, che su Android
+  // cambia con la barra di Chrome; la testata può avere sopra la barra di servizio
+  const adatta = () => {
+    if (!menu?.classList.contains('menu-mobile') || !document.body.classList.contains('menu-aperto')) return;
+    const alto = (visualViewport?.height ?? innerHeight) - menu.getBoundingClientRect().top;
+    menu.style.setProperty('--menu-alto', `${Math.max(200, Math.floor(alto))}px`);
+  };
+  visualViewport?.addEventListener('resize', adatta);
+  addEventListener('resize', adatta);
   bottone.addEventListener('click', () => imposta(!document.body.classList.contains('menu-aperto')));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.body.classList.contains('menu-aperto')) { imposta(false); bottone.focus(); }

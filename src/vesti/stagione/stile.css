@@ -63,7 +63,7 @@ svg { flex-shrink: 0; }
 .servizio .dx .solo-largo { display: none; }
 @media (min-width: 1000px) { .servizio .dx .solo-largo { display: inline-flex; } }
 /* Le aree riservate nel menu del telefono */
-.riservate-mobile { margin-top: 26px; display: grid; gap: 2px; }
+.riservate-mobile { margin-top: 10px; display: grid; gap: 2px; }
 .riservate-mobile .eti { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .riservate-mobile a { display: flex; gap: 12px; align-items: center; padding: 12px 0; font-weight: 600; font-size: 17px; color: var(--primario); }
 .riservate-mobile a.on { box-shadow: inset 4px 0 0 var(--accento); padding-left: 14px; }
@@ -103,12 +103,15 @@ svg { flex-shrink: 0; }
 .testata .azioni .btn { white-space: nowrap; }
 @media (min-width: 1000px) and (max-width: 1199.98px) { .nav { gap: 18px; } .testata > .w { gap: 16px; } }
 
-.menu-mobile { display: none; border-top: 1px solid var(--linea); background: var(--bianco); max-height: calc(100vh - 80px); overflow-y: auto; }
+.menu-mobile { display: none; border-top: 1px solid var(--linea); background: var(--bianco); max-height: calc(100vh - 118px); max-height: var(--menu-alto, calc(100dvh - 118px)); overflow-y: auto; overscroll-behavior: contain; }
+/* Con il menu aperto la pagina sotto non scorre: si scorre solo il menu, che arriva al bordo vero
+   dello schermo (--menu-alto, da src/motore/menu-mobile.ts; 100dvh esclude la barra di Chrome su Android) */
+.menu-aperto:has(.menu-mobile) { overflow: hidden; }
 .menu-aperto .menu-mobile { display: block; }
-.menu-mobile .w { padding-top: 12px; padding-bottom: 28px; }
-.menu-mobile a.voce { font-family: var(--f-titoli); display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--linea); font-weight: var(--peso-titoli); font-size: 20px; letter-spacing: 0; color: var(--primario); }
+.menu-mobile .w { padding-top: 4px; padding-bottom: 20px; }
+.menu-mobile a.voce { font-family: var(--f-titoli); display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--linea); font-weight: var(--peso-titoli); font-size: 18px; letter-spacing: 0; color: var(--primario); }
 .menu-mobile a.voce.on { box-shadow: inset 4px 0 0 var(--accento); padding-left: 14px; }
-.menu-mobile .extra { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.menu-mobile .extra { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 @media (min-width: 1000px) { .menu-mobile, .menu-aperto .menu-mobile { display: none; } }
 
 /* ——— Bottoni e tag ——— */
