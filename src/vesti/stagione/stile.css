@@ -239,6 +239,10 @@ a.sc:hover { box-shadow: var(--ombra); }
 .sc h3 { font-size: 24px; }
 .sc .luogo { color: var(--tenue); font-size: 15px; }
 .sc .link { margin-top: auto; padding-top: 14px; font-weight: 700; font-size: 14px; color: var(--primario); border-top: 1px solid var(--linea); }
+/* Schede del Repertorio pronto (Per gli organizzatori): solo etichetta, autore e titolo, con aria sopra la riga del link */
+.sc.opera .top { padding: 20px 20px 0; }
+.sc.opera .corpo { padding-top: 16px; gap: 4px; }
+.sc.opera h3 { margin-bottom: 22px; line-height: 1.15; }
 .anagni { transform: scale(1.45); object-position: center 40%; }
 
 /* Scheda concerto orizzontale (concerto in programma) */

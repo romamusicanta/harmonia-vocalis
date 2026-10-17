@@ -12,6 +12,7 @@ import { concertoIn, videoIn } from '../motore/inglese';
 import { archivio, parti, semplifica } from '../motore/concerti';
 import { elencoVideo, titoloCompleto } from '../motore/video';
 import { testo } from '../motore/testi';
+import { perAutore } from '../motore/autori';
 import type { Concerto } from '../motore/tipi';
 
 interface Props { veste: Veste }
@@ -30,7 +31,8 @@ const videoEsiste = (id?: string) => Boolean(id && video.some((v) => v.id === id
 
 // ——— Repertorio pronto: un'opera per autore e titolo, dall'archivio ———
 // Numero di catalogo in coda al titolo: "Requiem K 626" → "K 626", "Requiem op. 48" → "op. 48"
-const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*[\w.\/]+(?:\s+n\.\s*\d+)?)$/;
+// (con almeno una cifra: "Te Deum" e "Laudate Dominum" non hanno un numero D)
+const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*(?=[\w.\/]*\d)[\w.\/]+(?:\s+n\.\s*\d+)?)$/;
 // La stessa opera può avere titoli diversi nei concerti ("Requiem", "Requiem in re minore K 626"):
 // si confrontano cognome dell'autore e titolo senza catalogo né tonalità
 const TONALITA = /\s+in\s+(?:(?:do|re|mi|fa|sol|la|si)(?:\s*(?:diesis|bemolle|#|b))?\s+(?:maggiore|minore)|[A-G](?:[-\s]?(?:flat|sharp|♭|♯))?\s+(?:major|minor))\b/i;
@@ -48,8 +50,28 @@ for (const c of arch) {
 }
 // Le più eseguite prima; a parità, la più recente (l'archivio è già dal più recente)
 const repertorio = [...opere.values()].sort((a, b) => b.concerti.length - a.concerti.length);
-const inScheda = repertorio.slice(0, 8);
-const altre = repertorio.slice(8);
+
+// Le schede (dal 17/10/2026, richiesta di Mario): tutte le opere «In repertorio» del repertorio dell'area
+// riservata, in ordine di cognome dell'autore, scaricate alla build da scripts/scarica-allegati.mjs in
+// coro/immagini/drive/repertorio.json; un'opera già eseguita prende video e titolo inglese dall'archivio.
+// Senza il file (demo, foglio che non risponde) le opere dell'archivio, sempre per autore.
+type Pronta = { autore: string; titolo: string; arrangiatore?: string };
+const filePronte = import.meta.glob<Pronta[]>('/coro/immagini/drive/repertorio.json', { eager: true, import: 'default' });
+const pronte = DEMO ? undefined : Object.values(filePronte)[0];
+const perTitolo = (titolo: string) => {
+  const k = semplifica(titolo.replace(CATALOGO, '').replace(TONALITA, ''));
+  const uguali = repertorio.filter((o) => semplifica(o.titolo.replace(CATALOGO, '').replace(TONALITA, '')) === k);
+  return uguali.length === 1 ? uguali[0] : undefined;
+};
+type Scheda = { autore: string; titolo: string; arrangiatore?: string; eseguita?: Opera };
+const inScheda: Scheda[] = (pronte?.length
+  ? pronte.map((p) => {
+      // Stessa chiave dell'archivio, oppure lo stesso titolo se è uno solo ("Haendel" e "Händel")
+      const eseguita = opere.get(chiaveOpera(p.autore, p.titolo)) ?? perTitolo(p.titolo);
+      return { ...p, titolo: en && eseguita ? eseguita.titolo : p.titolo, eseguita };
+    })
+  : repertorio.map((o) => ({ autore: o.autore, titolo: o.titolo, eseguita: o }))
+).sort(perAutore);
 
 // ——— Luoghi e rassegne, distinti, dal più recente ———
 const distinti = (valori: (string | undefined)[]) => [...new Set(valori.filter((v): v is string => Boolean(v)))];
@@ -138,21 +160,24 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
     <section style="background:var(--fondo)">
       <div class="w">
         <div class="testa"><h2>{en ? 'Ready repertoire' : 'Repertorio pronto'}</h2>{dati.repertorio && <p><ConLink testo={dati.repertorio} /></p>}</div>
-        {/* Dati: archivio (calendario "Concerti") (un'opera per autore e titolo) e canale YouTube */}
+        {/* Dati: opere «In repertorio» del foglio "Coristi e assenze" (coro/immagini/drive/repertorio.json), archivio (calendario "Concerti") e canale YouTube */}
         <div class="schede">
           {inScheda.map((o) => {
-            const conVideo = conAscolta && o.video;
-            return (
-              <a class="sc" href={conVideo ? l(`/ascolta#${o.video}`) : l('/concerti#archivio')}>
+            const conVideo = conAscolta && o.eseguita?.video;
+            const corpo = <><span class="aut">{o.autore}{o.arrangiatore && ` · arr. ${o.arrangiatore}`}</span><h3>{o.titolo.replace(CATALOGO, '')}</h3></>;
+            return o.eseguita ? (
+              <a class="sc opera" href={conVideo ? l(`/ascolta#${o.eseguita.video}`) : l('/concerti#archivio')}>
                 <div class="top">{conVideo ? <span class="tag">Video</span> : <span class="tag grigio">{en ? 'Archive' : 'Archivio'}</span>}</div>
-                <div class="corpo"><span class="aut">{o.autore}</span><h3>{o.catalogo ? o.titolo.replace(CATALOGO, '') : o.titolo}</h3><span class="link">{conVideo ? (en ? 'Listen' : 'Ascolta') : (en ? 'In the archive' : 'Nell’archivio')} →</span></div>
+                <div class="corpo">{corpo}<span class="link">{conVideo ? (en ? 'Listen' : 'Ascolta') : (en ? 'In the archive' : 'Nell’archivio')} →</span></div>
               </a>
+            ) : (
+              <div class="sc opera">
+                <div class="top"><span class="tag grigio">{en ? 'Ready' : 'Pronta'}</span></div>
+                <div class="corpo">{corpo}</div>
+              </div>
             );
           })}
         </div>
-        {altre.length > 0 && (
-          <p class="tenue" style="margin-top:24px;font-size:15px">{en ? 'And also' : 'E ancora'}: {altre.map((o, i) => <>{i > 0 && ', '}<em>{o.titolo}</em>{!o.titolo.includes(cognome(o.autore)!) && ` ${en ? 'by' : 'di'} ${cognome(o.autore)}`}</>)}.</p>
-        )}
       </div>
     </section>
   )}

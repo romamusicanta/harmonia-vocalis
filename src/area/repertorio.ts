@@ -37,6 +37,7 @@ import { adesso, aggiungiRighe, cancellaRiga, cancellaRighe, idScheda, leggiSche
 import { cartellaIn, linkFile, rispondiCaricamento } from './drive';
 import { spiegaTesto } from './errori';
 import { catalogoVoci, ordineVoce, type Voce } from './voci';
+import { confronta, perAutore } from '../motore/autori';
 
 const SCHEDA = 'Repertorio';
 const SCHEDA_FILE = 'File del repertorio';
@@ -170,19 +171,6 @@ function materiali(file: RigaFile[], voci: Voce[]) {
   return { spartiti, tracce };
 }
 
-// L'autore si scrive "W. A. Mozart" (iniziali puntate, poi il cognome), oppure "Anonimo" o
-// "Tradizionale": si ordina per cognome, poi per iniziali, poi per titolo
-const INIZIALI = /^((?:\p{Lu}\.\s*)+)/u;
-function cognomeEIniziali(autore: string) {
-  const a = autore.trim();
-  const iniziali = a.match(INIZIALI)?.[1] ?? '';
-  return { cognome: a.slice(iniziali.length).trim() || a, iniziali: iniziali.replace(/\s+/g, '') };
-}
-const confronta = (x: string, y: string) => x.localeCompare(y, 'it', { sensitivity: 'base' });
-const perAutore = (a: Pick<Pezzo, 'autore' | 'titolo'>, b: Pick<Pezzo, 'autore' | 'titolo'>) => {
-  const ka = cognomeEIniziali(a.autore), kb = cognomeEIniziali(b.autore);
-  return confronta(ka.cognome, kb.cognome) || confronta(ka.iniziali, kb.iniziali) || confronta(a.titolo, b.titolo);
-};
 // "W.A.  Mozart" → "W. A. Mozart"
 const scriviAutore = (v: string) => v.trim().replace(/\s+/g, ' ').replace(/(\p{Lu})\.(?=\S)/gu, '$1. ');
 

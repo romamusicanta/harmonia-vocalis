@@ -19,6 +19,8 @@
 //   quella che contiene Sito/Foto; vedi src/motore/testiSito.ts) in coro/immagini/drive/testi/testi.json,
 //   più i corpi in Markdown in coro/immagini/drive/testi/<nome>.md e en/<nome>.md, con l'intestazione
 //   del file di coro/testi.
+// - le opere «In repertorio» della scheda Repertorio del foglio "Coristi e assenze" (FOGLIO_CORISTI_ID)
+//   in coro/immagini/drive/repertorio.json, per il «Repertorio pronto» di Per gli organizzatori.
 // Astro poi le ottimizza come le altre foto.
 //
 // Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
@@ -78,7 +80,7 @@ async function accessoDrive() {
   const sa = await fetch(`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SERVICE_ACCOUNT_EMAIL}:generateAccessToken`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${federato}` },
-    body: JSON.stringify({ scope: ['https://www.googleapis.com/auth/drive.readonly'], lifetime: '600s' }),
+    body: JSON.stringify({ scope: ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/spreadsheets.readonly'], lifetime: '600s' }),
   });
   if (!sa.ok) throw new Error(`accesso all'account di servizio rifiutato (${sa.status}): ${await sa.text()}`);
   return (await sa.json()).accessToken;
@@ -254,9 +256,28 @@ async function testiSito(token) {
   console.log(`[drive] Testi del sito.json: ${Object.keys(testi).length} testi`);
 }
 
+// Le opere «In repertorio» (non le raccolte) della scheda Repertorio del foglio "Coristi e assenze":
+// solo autore, titolo e arrangiatore, gli unici dati pubblici. Se il foglio non risponde resta il
+// file della build prima, se c'è (su Vercel non c'è: la pagina torna alle opere dell'archivio).
+async function repertorioPronto(token) {
+  const foglio = process.env.FOGLIO_CORISTI_ID;
+  if (!foglio) return;
+  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${foglio}/values/${encodeURIComponent('Repertorio!A1:Z')}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) throw new Error(`foglio non letto (${r.status}): ${await r.text()}`);
+  const [testa = [], ...righe] = (await r.json()).values ?? [];
+  const col = (nome) => testa.indexOf(nome);
+  const [autore, titolo, stato, tipo, arrangiatore] = ['Autore', 'Titolo', 'Stato', 'Tipo', 'Arrangiatore'].map(col);
+  if (autore < 0 || titolo < 0 || stato < 0) throw new Error('mancano le colonne Autore, Titolo o Stato');
+  const opere = righe
+    .filter((v) => v[titolo]?.trim() && v[stato]?.trim() === 'In repertorio' && (tipo < 0 || v[tipo] !== 'Raccolta'))
+    .map((v) => ({ autore: (v[autore] ?? '').trim().replace(/\s+/g, ' ').replace(/(\p{Lu})\.(?=\S)/gu, '$1. '), titolo: v[titolo].trim(), arrangiatore: (arrangiatore >= 0 && v[arrangiatore]?.trim()) || undefined }));
+  writeFileSync(new URL('repertorio.json', cartella), JSON.stringify(opere, null, 1));
+  console.log(`[repertorio] ${opere.length} opere «In repertorio» → coro/immagini/drive/repertorio.json`);
+}
+
 async function main() {
   await copiaCalendario();
-  if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO && !process.env.DRIVE_CARTELLA_FOTO_CONCERTI) return;
+  if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO && !process.env.DRIVE_CARTELLA_FOTO_CONCERTI && !process.env.FOGLIO_CORISTI_ID) return;
   const token = await accessoDrive();
   if (!token) return;
   await allegatiCalendario(token).catch((err) => avviso(`allegati: ${err.message ?? err}`));
@@ -264,6 +285,7 @@ async function main() {
   await fotoConcerti(token).catch((err) => avviso(`foto dei concerti: ${err.message ?? err}`));
   await fotoMaestro(token).catch((err) => avviso(`foto del Maestro: ${err.message ?? err}`));
   await testiSito(token).catch((err) => avviso(`testi del sito: ${err.message ?? err}`));
+  await repertorioPronto(token).catch((err) => console.warn(`[repertorio] ${err.message ?? err}`));
 }
 
 await main().catch((err) => avviso(`${err.message ?? err}`));
