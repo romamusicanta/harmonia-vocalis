@@ -18,6 +18,12 @@ const mia = (t: Traccia) => Boolean(sezione && t.sezione === sezione);
 // La propria sezione prima, poi le altre nell'ordine del catalogo delle voci
 const inOrdine = (tracce: Traccia[]) => [...tracce.filter(mia), ...tracce.filter((t) => !mia(t))];
 const tua = p.tracce.some((g) => g.tracce.some(mia));
+// Di base solo le tracce della propria voce e quelle per tutti (Tutte le voci, Base); le altre
+// sezioni con «Tutte le tracce» (una casella, così funziona anche senza JavaScript). Senza sezione
+// (chi non è nella scheda Coristi) si vede tutto
+const perMe = (t: Traccia) => !sezione || mia(t) || !t.sezione;
+const altre = p.tracce.some((g) => g.tracce.some((t) => !perMe(t)));
+const nessunaPerMe = !p.tracce.some((g) => g.tracce.some(perMe));
 const nTracce = p.tracce.reduce((n, g) => n + g.tracce.length, 0);
 // Lo spartito di un solo brano si apre dall'elenco dei brani: tra gli spartiti restano gli altri
 // (partitura completa, volumi); se ne resta uno, è il pulsante «Apri lo spartito»
@@ -47,15 +53,21 @@ const file = (link: string) => link.startsWith('/area/file/') || link.startsWith
     <div class="corpo-o">
       {(nTracce > 0 || p.esecuzione) && (
         <div class="colonna">
-          {nTracce > 0 && <h3>Tracce per lo studio</h3>}
+          {nTracce > 0 && (
+            <div class="testa-tracce">
+              <h3>Tracce per lo studio</h3>
+              {altre && <label class="tutte-tracce"><input type="checkbox" class="mostra-tutte" />Tutte le tracce</label>}
+            </div>
+          )}
+          {nTracce > 0 && nessunaPerMe && <p class="tenue solo-mie" style="margin:0 0 8px">Nessuna traccia per la tua sezione: con «Tutte le tracce» vedi quelle delle altre.</p>}
           {p.tracce.map((g) => (
-            <div class="gruppo-tracce">
+            <div class:list={['gruppo-tracce', { 'solo-altre': !g.tracce.some(perMe) }]}>
               {(p.tracce.length > 1 || g.brani.length > 0 || g.titolo !== 'Tracce') && (
                 <p class="titolo-gruppo"><b>{g.titolo}</b>{g.brani.length > 0 && <small>{g.brani.join(' · ')}</small>}</p>
               )}
               <div class="basi">
                 {inOrdine(g.tracce).map((t) => (
-                  <div class:list={['base', { tua: mia(t) }]}>
+                  <div class:list={['base', { tua: mia(t), altra: !perMe(t) }]}>
                     <div><b>{t.voce}{mia(t) && <span class="tag" style="margin-left:6px">La tua sezione</span>}</b></div>
                     {file(t.link)
                       ? <audio controls preload="none" src={t.link} aria-label={`Traccia ${t.voce}: ${g.titolo}`}></audio>
@@ -144,6 +156,12 @@ const file = (link: string) => link.startsWith('/area/file/') || link.startsWith
   .indicatori { display: block; font-size: 14px; margin-top: 4px; }
   /* Gruppi di tracce: titolo e brani, poi una riga per voce */
   .gruppo-tracce + .gruppo-tracce { margin-top: 18px; }
+  /* Tracce delle altre sezioni: nascoste finché non si spunta «Tutte le tracce» */
+  .colonna:not(:has(.mostra-tutte:checked)) :is(.base.altra, .gruppo-tracce.solo-altre) { display: none; }
+  .colonna:has(.mostra-tutte:checked) .solo-mie { display: none; }
+  .testa-tracce { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+  .tutte-tracce { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 15px; font-weight: 600; color: var(--primario); text-decoration: underline; cursor: pointer; }
+  .tutte-tracce input { width: 18px; height: 18px; accent-color: var(--primario); }
   .titolo-gruppo { margin: 0 0 8px; display: grid; gap: 2px; }
   .titolo-gruppo b { color: var(--primario); font-size: 16px; }
   .titolo-gruppo small { color: var(--tenue); font-size: 13px; }
