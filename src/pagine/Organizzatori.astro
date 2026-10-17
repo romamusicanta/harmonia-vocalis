@@ -35,15 +35,14 @@ const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*[\w.\/]+(?:\s+n\.\
 // si confrontano cognome dell'autore e titolo senza catalogo né tonalità
 const TONALITA = /\s+in\s+(?:(?:do|re|mi|fa|sol|la|si)(?:\s*(?:diesis|bemolle|#|b))?\s+(?:maggiore|minore)|[A-G](?:[-\s]?(?:flat|sharp|♭|♯))?\s+(?:major|minor))\b/i;
 const chiaveOpera = (autore: string, titolo: string) => semplifica(`${cognome(autore)} ${titolo.replace(CATALOGO, '').replace(TONALITA, '')}`);
-type Opera = { autore: string; titolo: string; catalogo?: string; concerti: Concerto[]; luoghi: string[]; video?: string };
+type Opera = { autore: string; titolo: string; catalogo?: string; concerti: Concerto[]; video?: string };
 const opere = new Map<string, Opera>();
 for (const c of arch) {
   if (!c.autore) continue; // i programmi misti senza autore non sono un'opera da proporre
   const chiave = chiaveOpera(c.autore, c.titolo);
-  const o = opere.get(chiave) ?? { autore: c.autore, titolo: c.titolo, concerti: [], luoghi: [] };
+  const o = opere.get(chiave) ?? { autore: c.autore, titolo: c.titolo, concerti: [] };
   o.catalogo ??= c.titolo.match(CATALOGO)?.[1];
   o.concerti.push(c);
-  if (c.luogo && !o.luoghi.includes(c.luogo)) o.luoghi.push(c.luogo);
   if (!o.video && videoEsiste(c.video)) o.video = c.video;
   opere.set(chiave, o);
 }
@@ -146,7 +145,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
             return (
               <a class="sc" href={conVideo ? l(`/ascolta#${o.video}`) : l('/concerti#archivio')}>
                 <div class="top">{conVideo ? <span class="tag">Video</span> : <span class="tag grigio">{en ? 'Archive' : 'Archivio'}</span>}</div>
-                <div class="corpo"><span class="aut">{o.autore}</span><h3>{o.catalogo ? o.titolo.replace(CATALOGO, '') : o.titolo}</h3><span class="luogo">{o.luoghi.join(', ')}</span><span class="link">{conVideo ? (en ? 'Listen' : 'Ascolta') : (en ? 'In the archive' : 'Nell’archivio')} →</span></div>
+                <div class="corpo"><span class="aut">{o.autore}</span><h3>{o.catalogo ? o.titolo.replace(CATALOGO, '') : o.titolo}</h3><span class="link">{conVideo ? (en ? 'Listen' : 'Ascolta') : (en ? 'In the archive' : 'Nell’archivio')} →</span></div>
               </a>
             );
           })}
