@@ -62,7 +62,7 @@ export default {
   ],
   numeri: [
     { valore: '2019', testo: 'Anno di nascita, con la Missa in Angustiis di Haydn' },
-    { valore: '44', testo: 'Voci, in quattro sezioni' },
+    { valore: 'voci', testo: 'Voci, in quattro sezioni' }, // contate dalla scheda Coristi (coristi attuali)
     { valore: '70', testo: 'Coristi circa, insieme al Coro Ruggero Giovannelli' },
     // 'archivio': il numero dei concerti dell'archivio, contato a ogni pubblicazione
     { valore: 'archivio', testo: 'Concerti in archivio dal 2019 a oggi' },

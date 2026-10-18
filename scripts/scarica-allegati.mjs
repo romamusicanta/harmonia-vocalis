@@ -21,6 +21,8 @@
 //   del file di coro/testi.
 // - le opere «In repertorio» della scheda Repertorio del foglio "Coristi e assenze" (FOGLIO_CORISTI_ID)
 //   in coro/immagini/drive/repertorio.json, per il «Repertorio pronto» di Per gli organizzatori.
+// - il numero dei coristi attuali per sezione (scheda Coristi dello stesso foglio) in
+//   coro/immagini/drive/organico.json.
 // Astro poi le ottimizza come le altre foto.
 //
 // Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
@@ -278,6 +280,42 @@ async function repertorioPronto(token) {
   console.log(`[repertorio] ${opere.length} opere «In repertorio» → coro/immagini/drive/repertorio.json`);
 }
 
+// I coristi attuali per sezione, dalla scheda Coristi del foglio "Coristi e assenze": chi oggi (ora di
+// Roma) è dentro uno dei suoi periodi Dal–Al (una riga per periodo, più righe con la stessa email
+// dell'associazione), senza la sezione Maestro. Solo i numeri, in coro/immagini/drive/organico.json:
+// src/motore/coro.ts li mette nell'organico al posto di quelli di coro.config.ts (dal 18/10/2026).
+const SEZIONI_CORO = ['Soprani', 'Contralti', 'Tenori', 'Bassi'];
+const dataFoglio = (v = '') => {
+  const it = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (it) return `${it[3]}-${it[2].padStart(2, '0')}-${it[1].padStart(2, '0')}`;
+  return /^\d{4}-\d{2}-\d{2}/.test(v.trim()) ? v.trim().slice(0, 10) : undefined;
+};
+async function organico(token) {
+  const foglio = process.env.FOGLIO_CORISTI_ID;
+  if (!foglio) return;
+  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${foglio}/values/${encodeURIComponent('Coristi!A1:Z')}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) throw new Error(`foglio non letto (${r.status}): ${await r.text()}`);
+  const [testa = [], ...righe] = (await r.json()).values ?? [];
+  const [email, sezione, dal, al] = ['Email associazione', 'Sezione', 'Dal', 'Al'].map((n) => testa.indexOf(n));
+  if ([email, sezione, dal, al].some((i) => i < 0)) throw new Error('mancano le colonne Email associazione, Sezione, Dal o Al');
+  const oggi = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Rome' }).format(new Date());
+  // Per persona: la sezione della riga più recente, e se oggi è in uno dei suoi periodi
+  const persone = new Map();
+  for (const v of righe) {
+    const chi = v[email]?.trim().toLowerCase();
+    if (!chi) continue;
+    const da = dataFoglio(v[dal]), a = dataFoglio(v[al]);
+    const p = persone.get(chi) ?? { sezione: '', dal: '', attiva: false };
+    if ((da ?? '') >= p.dal) Object.assign(p, { sezione: v[sezione]?.trim() ?? '', dal: da ?? '' });
+    if ((!da || da <= oggi) && (!a || a >= oggi)) p.attiva = true;
+    persone.set(chi, p);
+  }
+  const voci = Object.fromEntries(SEZIONI_CORO.map((s) => [s, [...persone.values()].filter((p) => p.attiva && p.sezione === s).length]));
+  if (!Object.values(voci).some(Boolean)) throw new Error('nessun corista attuale nella scheda Coristi');
+  writeFileSync(new URL('organico.json', cartella), JSON.stringify(voci, null, 1));
+  console.log(`[organico] ${Object.entries(voci).map(([s, n]) => `${s} ${n}`).join(', ')} → coro/immagini/drive/organico.json`);
+}
+
 async function main() {
   await copiaCalendario();
   if (!process.env.CALENDARIO_CONCERTI_ICS && !process.env.DRIVE_CARTELLA_FOTO && !process.env.DRIVE_CARTELLA_FOTO_CONCERTI && !process.env.FOGLIO_CORISTI_ID) return;
@@ -289,6 +327,7 @@ async function main() {
   await fotoMaestro(token).catch((err) => avviso(`foto del Maestro: ${err.message ?? err}`));
   await testiSito(token).catch((err) => avviso(`testi del sito: ${err.message ?? err}`));
   await repertorioPronto(token).catch((err) => console.warn(`[repertorio] ${err.message ?? err}`));
+  await organico(token).catch((err) => console.warn(`[organico] ${err.message ?? err}`));
 }
 
 await main().catch((err) => avviso(`${err.message ?? err}`));

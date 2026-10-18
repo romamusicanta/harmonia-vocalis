@@ -16,6 +16,14 @@ export const coro = esito.data;
 // I testi principali cambiati dall'Amministrazione (src/motore/testiSito.ts), in italiano e in inglese
 applicaTestiCoro(coro, inglese);
 
+// I coristi attuali per sezione, contati alla build dalla scheda Coristi (scripts/scarica-allegati.mjs,
+// dal 18/10/2026): prendono il posto delle voci di coro.config.ts, che restano di riserva e per la demo
+const fileOrganico = import.meta.glob<Record<string, number>>('/coro/immagini/drive/organico.json', { eager: true, import: 'default' });
+const organicoVero = process.env.DEMO === '1' ? undefined : Object.values(fileOrganico)[0];
+if (organicoVero) for (const s of coro.organico) if (typeof organicoVero[s.sezione] === 'number') s.voci = organicoVero[s.sezione];
+// Il totale delle voci, anche per i numeri di Il coro (valore: 'voci')
+export const totaleVoci = () => coro.organico.reduce((n, s) => n + s.voci, 0);
+
 // Demo di vendita: pannello di scelta, area coristi aperta con dati di esempio, vesti alternative.
 // Si attiva con DEMO=1 (npm run dev, npm run build:demo).
 export const DEMO = process.env.DEMO === '1';
