@@ -127,7 +127,7 @@ const oggetto = `?subject=${encodeURIComponent(en ? 'Concert proposal' : 'Propos
     <div class="w">
       <div class="numeri" style="background:var(--primario-2);border-color:var(--primario-2)">
         <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{voci}</b><span style="color:var(--primario-chiaro)">{en ? 'Voices' : 'Voci'}: {sezioni}</span></div>
-        {repertorio.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{repertorio.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Works in the repertoire, already performed in concert' : 'Opere in repertorio, già eseguite in concerto'}</span></div>}
+        {inScheda.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{inScheda.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Works in the repertoire' : 'Opere in repertorio'}</span></div>}
         {luoghi.length > 0 && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{luoghi.length}</b><span style="color:var(--primario-chiaro)">{en ? 'Places where we have sung' : 'Località in cui abbiamo cantato'}</span></div>}
         {primo && <div class="numero" style="background:var(--primario)"><b style="color:var(--accento)">{parti(primo).anno}</b><span style="color:var(--primario-chiaro)">{en ? 'First concert' : 'Primo concerto'}: <em>{primo.titolo}</em>{primo.autore && !primo.titolo.includes(cognome(primo.autore)!) && ` ${en ? 'by' : 'di'} ${cognome(primo.autore)}`}</span></div>}
       </div>
