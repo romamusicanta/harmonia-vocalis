@@ -3,8 +3,8 @@
 // nell'Amministrazione e nell'area del Maestro: invia a <base>/prove/salva e torna all'elenco.
 // Convenzione dell'evento in src/admin/prove.ts; i pezzi da scegliere vengono dal repertorio.
 import { coro } from '../motore/coro';
-import { salaAbituale, SEPARATORE_PEZZI, type Prova } from './prove';
-import { catalogo, type Pezzo, type Raccolta } from '../area/repertorio';
+import { elencoProve, salaAbituale, SEPARATORE_PEZZI, type Prova } from './prove';
+import { catalogo, nomeBrano, nomeCompleto, trovaVoce, type Pezzo, type Raccolta } from '../area/repertorio';
 import SceltaPezzi from '../area/SceltaPezzi.astro';
 import { fileDellaProva, registrazioniPerWhatsapp, type Traccia } from '../area/registrazioni';
 import { linkWhatsapp } from '../area/bacheca';
@@ -20,8 +20,31 @@ let pezzi: Pezzo[] = [];
 let raccolte: Raccolta[] = [];
 try { ({ pezzi, raccolte } = await catalogo()); } catch { /* senza repertorio resta il campo Brani */ }
 const scelti = (r?.Repertorio ?? '').split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean);
-// Registrazioni: per le prove già fatte, nel modulo di Modifica dell'Amministrazione
 const oggi = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+// «Copia dalla prova precedente» (dal 19/10/2026): le prove vicine che hanno qualcosa da copiare
+// (luogo, sezioni, spartiti, brani o note); lo script sceglie l'ultima prima della data del modulo,
+// o l'ultima in assoluto se la data è vuota. Data, orari e tipo di prova non si copiano.
+const spostaGiorni = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+const riferimento = prova?.data ?? data ?? oggi;
+const voceScelta = (nome: string) => {
+  const v = trovaVoce(pezzi, nome);
+  const t = !v ? nome : v.brano ? nomeBrano(v.pezzo, v.brano) : nomeCompleto(v.pezzo);
+  return { titolo: t, testo: t };
+};
+const precedenti = await elencoProve(spostaGiorni(riferimento, -120), spostaGiorni(riferimento, 365))
+  .then((elenco) => elenco
+    .filter((p) => p.id !== prova?.id && (p.luogo || p.righe.Sezioni || p.righe.Repertorio || p.righe.Brani || p.righe.Note))
+    .map((p) => ({
+      data: p.data,
+      quando: `${/^prova( settimanale)?$/i.test(p.titolo) ? 'prova' : p.titolo.toLowerCase()} di ${giornoEsteso(p.data)}`,
+      luogo: p.luogo,
+      sezioni: p.righe.Sezioni,
+      repertorio: p.righe.Repertorio.split(SEPARATORE_PEZZI).map((x) => x.trim()).filter(Boolean).map(voceScelta),
+      brani: p.righe.Brani,
+      note: p.righe.Note,
+    })))
+  .catch(() => []);
+// Registrazioni: per le prove già fatte, nel modulo di Modifica dell'Amministrazione
 const conRegistrazioni = Boolean(prova && base === '/admin' && prova.data <= oggi);
 let registrate: Traccia[] = [];
 if (conRegistrazioni) registrate = await fileDellaProva(prova!).catch(() => []);
@@ -38,6 +61,13 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 
 <form class="modulo" id="modulo-prova" style="max-width:820px;margin-top:28px" novalidate data-base={base} data-dopo={dopo && dopo.startsWith('/admin/') ? dopo : undefined}>
   {prova && <input type="hidden" name="id" value={prova.id} />}
+  {precedenti.length > 0 && (
+    <div class="copia-prova" data-precedenti={JSON.stringify(precedenti)} hidden>
+      <p><b>Dalla prova precedente</b><br /><span class="tenue copia-da"></span></p>
+      <button class="btn o piccolo" type="button">Copia i dati</button>
+      <small class="aiuto">Luogo, sezioni, spartiti, brani e note: poi si correggono qui sotto prima di salvare.</small>
+    </div>
+  )}
   {prova?.ricorrente && <p class="messaggio">È una data della prova settimanale: le modifiche valgono solo per il {prova.data.split('-').reverse().join('/')}, le altre settimane restano come sono.</p>}
 
   <h2>Quando e dove</h2>
@@ -94,6 +124,39 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 <script>
   const modulo = document.getElementById('modulo-prova') as HTMLFormElement;
   const esito = document.getElementById('esito')!;
+  // Copia dalla prova precedente: l'ultima con dati prima della data scelta (si ricalcola cambiando la data)
+  const copia = modulo.querySelector<HTMLElement>('.copia-prova');
+  if (copia) {
+    type Precedente = { data: string; quando: string; luogo: string; sezioni: string; repertorio: { titolo: string; testo: string }[]; brani: string; note: string };
+    const elenco: Precedente[] = JSON.parse(copia.dataset.precedenti!);
+    const campoData = modulo.querySelector<HTMLInputElement>('#data')!;
+    const scritta = copia.querySelector<HTMLElement>('.copia-da')!;
+    const scegli = () => {
+      const d = campoData.value;
+      const p = (d ? elenco.filter((x) => x.data < d) : elenco).at(-1);
+      copia.hidden = !p;
+      if (p) scritta.textContent = p.quando[0].toUpperCase() + p.quando.slice(1);
+      return p;
+    };
+    scegli();
+    campoData.addEventListener('change', scegli);
+    copia.querySelector('button')!.addEventListener('click', () => {
+      const p = scegli();
+      if (!p) return;
+      const campi = { luogo: p.luogo, sezioni: p.sezioni, brani: p.brani, note: p.note };
+      const scelti = modulo.querySelectorAll('.scelta-pezzi[data-nome="repertorio"] .scelti li').length;
+      const pieni = Object.keys(campi).some((k) => (modulo.elements.namedItem(k) as HTMLInputElement | null)?.value.trim()) || scelti > 0;
+      if (pieni && !confirm(`Sostituire luogo, sezioni, spartiti, brani e note con quelli della ${p.quando}?`)) return;
+      for (const [k, v] of Object.entries(campi)) {
+        const campo = modulo.elements.namedItem(k) as HTMLInputElement | null;
+        if (campo) campo.value = v;
+      }
+      modulo.querySelector('.scelta-pezzi[data-nome="repertorio"]')?.dispatchEvent(new CustomEvent('imposta-pezzi', { detail: p.repertorio }));
+      modulo.dispatchEvent(new Event('input', { bubbles: true }));
+      esito.className = 'messaggio ok';
+      esito.textContent = `Copiati i dati della ${p.quando}: controllali e salva.`;
+    });
+  }
   // Cancella (per la prova settimanale solo questa data), poi torna all'elenco con il messaggio per WhatsApp
   const cancella = modulo.querySelector<HTMLButtonElement>('.cancella-prova');
   cancella?.addEventListener('click', async () => {
@@ -182,6 +245,9 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 </script>
 
 <style>
+  .copia-prova { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 12px 14px; margin-bottom: 8px; background: var(--bianco); border: 2px dashed var(--linea); border-radius: var(--raggio); }
+  .copia-prova p { margin: 0; flex: 1 1 260px; }
+  .copia-prova .aiuto { flex-basis: 100%; font-size: 13px; color: var(--tenue); }
   .elenco-reg { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; }
   .elenco-reg li { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 10px 12px; background: var(--fondo); border-radius: var(--raggio); }
   .elenco-reg a { font-weight: 600; color: var(--primario); text-decoration: underline; flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }

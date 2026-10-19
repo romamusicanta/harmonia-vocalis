@@ -110,20 +110,29 @@ const voce = (nome: string) => {
       apri(true);
       evidenzia(0);
     };
-    const aggiungi = (o: HTMLLIElement) => {
-      if (giaScelti().has(o.dataset.titolo!)) return;
+    const riga = (titolo: string, scritta: string) => {
       const li = document.createElement('li');
-      const nascosto = Object.assign(document.createElement('input'), { type: 'hidden', name: nome, value: o.dataset.titolo! });
-      const testo = Object.assign(document.createElement('span'), { textContent: o.dataset.testo! });
+      const nascosto = Object.assign(document.createElement('input'), { type: 'hidden', name: nome, value: titolo });
+      const testo = Object.assign(document.createElement('span'), { textContent: scritta });
       const togli = Object.assign(document.createElement('button'), { type: 'button', className: 'togli-pezzo', textContent: 'Togli' });
-      togli.setAttribute('aria-label', `Togli ${o.dataset.testo}`);
+      togli.setAttribute('aria-label', `Togli ${scritta}`);
       const frecce = ([[-1, '↑', 'su'], [1, '↓', 'giù']] as const).map(([verso, segno, dove]) => {
         const b = Object.assign(document.createElement('button'), { type: 'button', className: 'sposta-pezzo', textContent: segno });
         b.dataset.verso = String(verso);
-        b.setAttribute('aria-label', `Sposta ${dove} ${o.dataset.testo}`);
+        b.setAttribute('aria-label', `Sposta ${dove} ${scritta}`);
         return b;
       });
       li.append(nascosto, testo, ...frecce, togli);
+      return li;
+    };
+    // Da fuori (la copia dalla prova precedente, ModuloProva.astro): sostituisce tutti i pezzi scelti
+    box.addEventListener('imposta-pezzi', (e) => {
+      const voci = (e as CustomEvent<{ titolo: string; testo: string }[]>).detail;
+      scelti.replaceChildren(...voci.map((v) => riga(v.titolo, v.testo)));
+    });
+    const aggiungi = (o: HTMLLIElement) => {
+      if (giaScelti().has(o.dataset.titolo!)) return;
+      const li = riga(o.dataset.titolo!, o.dataset.testo!);
       scelti.append(li);
       li.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
       input.value = '';
