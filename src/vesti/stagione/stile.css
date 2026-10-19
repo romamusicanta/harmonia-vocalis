@@ -414,7 +414,7 @@ a.sc:hover { box-shadow: var(--ombra); }
 .modulo { display: grid; gap: 22px; }
 .modulo .riga-campi { display: grid; gap: 22px; }
 @media (min-width: 700px) { .modulo .riga-campi { grid-template-columns: 1fr 1fr; } }
-.campo { display: grid; gap: 8px; min-width: 0; }
+.campo { display: grid; gap: 8px; min-width: 0; align-content: start; }
 .campo > label, .campo > .lab { font-weight: 700; font-size: 14px; color: var(--primario); }
 /* Etichetta che contiene il suo campo (righe che si duplicano, come opere e interpreti) */
 .campo > label:has(input, select, textarea) { display: grid; gap: 8px; }
