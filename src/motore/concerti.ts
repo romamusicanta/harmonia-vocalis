@@ -172,3 +172,12 @@ export function linkCalendario() {
     outlookLavoro: outlook('outlook.office.com'),
   };
 }
+
+// ——— Le opere eseguite (Per gli organizzatori, la storia nella pagina Il Coro) ———
+// Numero di catalogo in coda al titolo: "Requiem K 626" → "K 626", "Requiem op. 48" → "op. 48"
+// (con almeno una cifra: "Te Deum" e "Laudate Dominum" non hanno un numero D)
+export const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*(?=[\w.\/]*\d)[\w.\/]+(?:\s+n\.\s*\d+)?)$/;
+// La stessa opera può avere titoli diversi nei concerti ("Requiem", "Requiem in re minore K 626"):
+// si confrontano cognome dell'autore e titolo senza catalogo né tonalità
+export const TONALITA = /\s+in\s+(?:(?:do|re|mi|fa|sol|la|si)(?:\s*(?:diesis|bemolle|#|b))?\s+(?:maggiore|minore)|[A-G](?:[-\s]?(?:flat|sharp|♭|♯))?\s+(?:major|minor))\b/i;
+export const chiaveOpera = (autore: string, titolo: string) => semplifica(`${autore.split(' ').at(-1)} ${titolo.replace(CATALOGO, '').replace(TONALITA, '')}`);

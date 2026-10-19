@@ -1,5 +1,9 @@
 ---
-// Pagina "Il Coro": storia, organico, numeri, direttivo, associazioni.
+// Pagina "Il Coro" (riorganizzata il 19/10/2026, proposta accettata da Mario): titolo, foto grande e
+// sotto la frase in evidenza; poi la storia in capitoli (uno per «## titolo» di coro/testi/storia.md),
+// ognuno con una foto accanto, alternata a destra e a sinistra; sotto il secondo capitolo la fila delle
+// opere cantate, dall'archivio dei concerti; i numeri con l'organico per sezione; direttivo e
+// associazioni affiancati.
 import ConLink from '../componenti/ConLink.astro';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
@@ -7,109 +11,176 @@ import Icona from '../componenti/Icona.astro';
 import Foto from '../componenti/Foto.astro';
 
 import { contesto } from '../motore/url';
-import { archivio } from '../motore/concerti';
-import { totaleVoci } from '../motore/coro';
+import { archivio, chiaveOpera, CATALOGO, slug } from '../motore/concerti';
+import { concertoIn } from '../motore/inglese';
+import { fotoInHome, totaleVoci } from '../motore/coro';
 import { testo } from '../motore/testi';
+import type { Concerto } from '../motore/tipi';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
 const { en, l, lingua, coro } = contesto(Astro.url, veste);
 
-const { dati, Contenuto } = testo<{ titolo: string; lead?: string; attacco?: string }>('storia', lingua);
+const { dati, html } = testo<{ titolo: string; attacco?: string }>('storia', lingua);
 // Il punto finale del titolo si colora con l'accento
 const titolo = dati.titolo.replace(/\.$/, '');
 
-const voci = coro.organico.reduce((n, s) => n + s.voci, 0);
+// I capitoli: il corpo diviso ai titoli «## …» (il testo prima del primo titolo, se c'è, va nel primo)
+const corpo = await html();
+let pezzi = corpo.split(/(?=<h2[\s>])/).map((p) => p.trim()).filter(Boolean);
+if (pezzi.length > 1 && !pezzi[0].startsWith('<h2')) {
+  const [inizio, ...resto] = pezzi;
+  resto[0] = resto[0].replace(/^(<h2[^>]*>[\s\S]*?<\/h2>)/, (h) => h + inizio);
+  pezzi = resto;
+}
+const capitoli = pezzi.map((p) => {
+  const h = p.match(/^<h2[^>]*>(.*?)<\/h2>/s);
+  const resto = h ? p.slice(h[0].length) : p;
+  // La citazione («> …») va nel riquadro giallo accanto al testo
+  const citazione = resto.match(/<blockquote>([\s\S]*?)<\/blockquote>/)?.[1];
+  return { titolo: h?.[1], testo: resto.replace(/<blockquote>[\s\S]*?<\/blockquote>/, ''), citazione };
+});
+
+// Le foto dei capitoli: prima quella delle prove (Sito/Foto), poi le foto «Home» dei concerti scelte dai
+// redattori, una per concerto; di riserva quelle generali del sito, mai la foto grande in alto
+const daiConcerti: string[] = [];
+for (const f of fotoInHome()) if (!daiConcerti.some((n) => n.includes(`/${f.data}/`))) daiConcerti.push(f.nome);
+const fotoCapitoli = [...new Set([coro.foto.prove, ...daiConcerti, ...fotoInHome().map((f) => f.nome), coro.foto.apertura, coro.foto.maestro].filter((f): f is string => Boolean(f) && f !== coro.foto.coro))];
+
+// Le opere cantate: una per autore e titolo (chiaveOpera, come in Per gli organizzatori), dalla prima
+// esecuzione, con il numero dei concerti; il link porta alla pagina del primo concerto che ce l'ha
+type Opera = { autore: string; titolo: string; prima: Concerto; volte: number };
+const opere = new Map<string, Opera>();
+for (const c of [...archivio].reverse().map((c) => concertoIn(c, lingua))) {
+  if (!c.autore) continue;
+  const k = chiaveOpera(c.autore, c.titolo);
+  const o = opere.get(k);
+  if (o) o.volte++;
+  else opere.set(k, { autore: c.autore, titolo: c.titolo.replace(CATALOGO, ''), prima: c, volte: 1 });
+}
+const cantate = [...opere.values()];
+const anno = (c: Concerto) => c.data.slice(0, 4);
+
+const voci = totaleVoci();
 const massimo = Math.max(...coro.organico.map((s) => s.voci), 1);
 const iconeAssociazioni = ['persone', 'nota'] as const;
 ---
 
 <Base veste={veste} titolo={en ? 'The Choir' : 'Il Coro'} pagina="il-coro" anteprima={coro.foto.coro} descrizione={en ? `History of the ${coro.nome}, founded in Rome in ${coro.fondazione}: ${voci} voices in four sections, board and affiliations.` : `La storia del ${coro.nome}, nato a ${coro.citta} nel ${coro.fondazione}: ${voci} voci in quattro sezioni, direttivo e associazioni.`}>
-  {/* Dati: coro/testi/storia.md (intestazione) */}
-  {/* Dal 19/10/2026 (richiesta di Mario): in testata solo il titolo, poi la foto e subito sotto l'introduzione */}
+  {/* Dati: coro/testi/storia.md (titolo, attacco, corpo) */}
   <header class="intesta">
     <div class="w">
-      <div>
-        <span class="eti" style="margin-bottom:20px">{en ? 'The Choir' : 'Il Coro'}</span>
-        <h1>{titolo}<span>.</span></h1>
-      </div>
+      <span class="eti" style="margin-bottom:20px">{en ? 'The Choir' : 'Il Coro'}</span>
+      <h1>{titolo}<span>.</span></h1>
     </div>
   </header>
 
-  {/* Dati: coro.config.ts → foto.coro */}
+  {/* Dati: coro.config.ts → foto.coro (o Sito/Foto su Drive) */}
   <div class="blocco-foto" style="min-height:clamp(260px,38vw,560px)">
-    <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="100vw" />
+    <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="100vw" caricamento="eager" />
   </div>
 
-  <section class="dopo-foto">
+  {dati.attacco && (
+    <section class="apertura-coro">
+      <div class="w"><p><ConLink testo={dati.attacco} /></p></div>
+    </section>
+  )}
+
+  <section class="storia">
     <div class="w">
-      {dati.lead && <p class="lead lead-coro"><ConLink testo={dati.lead} /></p>}
-      <div class="due-col">
-        {/* Dati: coro/testi/storia.md (attacco + corpo) */}
-        <div class="testo-lungo">
-          {dati.attacco && <p class="apertura-testo"><ConLink testo={dati.attacco} /></p>}
-          <Contenuto />
-        </div>
-        {/* Dati: coro.config.ts → organico */}
-        <aside class="appiccicoso">
-          <div class="riquadro giallo">
-            <span class="eti" style="color:var(--primario)">{en ? 'The voices' : 'L\'organico'}</span>
-            <p style="font-family:var(--f-titoli);font-weight:var(--peso-titoli);font-size:56px;line-height:.8;letter-spacing:-0.012em;margin:8px 0 24px">{voci}<span style="font-size:20px;letter-spacing:0;font-stretch:100%;font-weight:800;margin-left:10px">{en ? 'voices' : 'voci'}</span></p>
-            <ul class="organico">
-              {coro.organico.map((s) => (
-                <li>{s.sezione}<span class="barra" style="background:color-mix(in srgb, var(--primario) 15%, transparent)"><i style={`width:${Math.round((s.voci / massimo) * 1000) / 10}%`}></i></span><span class="n">{s.voci}</span></li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-      </div>
+      {capitoli.map((c, i) => (
+        <>
+          <article class:list={['capitolo', { inverso: i % 2 === 1 }]}>
+            <div class="testo-lungo">
+              {c.titolo && <h2 set:html={c.titolo} />}
+              <Fragment set:html={c.testo} />
+              {c.citazione && <blockquote class="citazione" set:html={c.citazione} />}
+            </div>
+            {fotoCapitoli[i] && (
+              <figure class="foto-capitolo">
+                <Foto nome={fotoCapitoli[i]} alt={c.titolo ? c.titolo.replace(/<[^>]+>/g, '') : ''} sizes="(min-width: 900px) 45vw, 100vw" />
+              </figure>
+            )}
+          </article>
+          {i === 1 && cantate.length > 0 && (
+            <div class="opere-cantate">
+              <ol>
+                {cantate.map((o) => (
+                  <li>
+                    <a href={o.prima.dataIncerta ? l('/concerti#archivio') : l(`/concerti/${slug(o.prima)}`)}>
+                      <span class="anno">{anno(o.prima)}</span>
+                      <span class="autore">{o.autore}</span>
+                      <b>{o.titolo}</b>
+                      <span class="volte">{o.volte === 1 ? (en ? '1 concert' : '1 concerto') : `${o.volte} ${en ? 'concerts' : 'concerti'}`}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+              <a class="link-freccia" href={l('/concerti#archivio')}>{en ? `All concerts since ${coro.fondazione}` : `Tutti i concerti dal ${coro.fondazione}`} <Icona nome="freccia" /></a>
+            </div>
+          )}
+        </>
+      ))}
     </div>
   </section>
 
   {coro.numeri.length > 0 && (
     <section style="background:var(--fondo)">
-      {/* Dati: coro.config.ts → numeri */}
+      {/* Dati: coro.config.ts → numeri; sotto il numero delle voci, l'organico per sezione */}
       <div class="w">
         <div class="numeri">
-          {coro.numeri.map((n) => <div class="numero"><b>{n.valore === 'archivio' ? archivio.length : n.valore === 'voci' ? totaleVoci() : n.valore}</b><span>{n.testo}</span></div>)}
+          {coro.numeri.map((n) => (
+            <div class="numero">
+              <b>{n.valore === 'archivio' ? archivio.length : n.valore === 'voci' ? voci : n.valore}</b><span>{n.testo}</span>
+              {n.valore === 'voci' && (
+                <ul class="organico organico-mini">
+                  {coro.organico.map((s) => (
+                    <li>{s.sezione}<span class="barra" style="background:color-mix(in srgb, var(--primario) 12%, transparent)"><i style={`width:${Math.round((s.voci / massimo) * 1000) / 10}%`}></i></span><span class="n">{s.voci}</span></li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </section>
   )}
 
-  {coro.direttivo.length > 0 && (
+  {(coro.direttivo.length > 0 || coro.associatoA.length > 0) && (
     <section>
-      {/* Dati: coro.config.ts → direttivo (il Maestro rimanda alla sua pagina) */}
-      <div class="w">
-        <div class="testa"><h2>{en ? 'The board' : 'Il direttivo'}</h2><p>{en ? 'The association is run by a board elected by its members.' : 'L\'associazione è guidata da un direttivo eletto dai soci.'}</p></div>
-        <div class="persone direttivo">
-          {coro.direttivo.map((p) => (
-            <div class="persona">
-              <span class="ruolo">{p.ruolo}</span><b>{p.nome}</b>
-              {p.nome === coro.maestro.nome && <a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>{en ? 'The Conductor' : 'Il Maestro'} <Icona nome="freccia" /></a>}
+      <div class="w affiancati">
+        {coro.direttivo.length > 0 && (
+          <div>
+            {/* Dati: coro.config.ts → direttivo (il Maestro rimanda alla sua pagina) */}
+            <div class="testa"><h2>{en ? 'The board' : 'Il direttivo'}</h2></div>
+            <p class="tenue" style="margin:-20px 0 28px">{en ? 'The association is run by a board elected by its members.' : 'L\'associazione è guidata da un direttivo eletto dai soci.'}</p>
+            <div class="persone direttivo">
+              {coro.direttivo.map((p) => (
+                <div class="persona">
+                  <span class="ruolo">{p.ruolo}</span><b>{p.nome}</b>
+                  {p.nome === coro.maestro.nome && <a class="link-freccia" style="margin-top:8px" href={l('/il-maestro')}>{en ? 'The Conductor' : 'Il Maestro'} <Icona nome="freccia" /></a>}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  {coro.associatoA.length > 0 && (
-    <section style="padding-top:0">
-      {/* Dati: coro.config.ts → associatoA */}
-      <div class="w">
-        <div class="testa"><h2>{en ? 'Member of' : 'Associati a'}</h2></div>
-        <div class="porte">
-          {coro.associatoA.map((a, i) => (
-            <div class="riquadro bordo" style={`display:flex;gap:20px;align-items:flex-start${i > 0 ? ';margin-top:0' : ''}`}>
-              <span class="icona-q g"><Icona nome={iconeAssociazioni[i % iconeAssociazioni.length]} classe="" /></span>
-              <div>
-                <h3>{a.url ? <a href={a.url} target="_blank" rel="noopener" style="text-decoration:underline;text-decoration-color:var(--accento);text-underline-offset:4px">{a.nome}</a> : a.nome}</h3>
-                <p class="tenue">{a.descrizione}</p>
-              </div>
+          </div>
+        )}
+        {coro.associatoA.length > 0 && (
+          <div>
+            {/* Dati: coro.config.ts → associatoA */}
+            <div class="testa"><h2>{en ? 'Member of' : 'Associati a'}</h2></div>
+            <div class="associazioni">
+              {coro.associatoA.map((a, i) => (
+                <div class="riquadro bordo" style="display:flex;gap:20px;align-items:flex-start;margin:0">
+                  <span class="icona-q g"><Icona nome={iconeAssociazioni[i % iconeAssociazioni.length]} classe="" /></span>
+                  <div>
+                    <h3>{a.url ? <a href={a.url} target="_blank" rel="noopener" style="text-decoration:underline;text-decoration-color:var(--accento);text-underline-offset:4px">{a.nome}</a> : a.nome}</h3>
+                    <p class="tenue">{a.descrizione}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   )}
@@ -122,7 +193,49 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
 </Base>
 
 <style>
-  /* L'introduzione, sotto la foto: come quella delle testate, prima della storia */
-  .dopo-foto { padding-top: 48px; }
-  .lead-coro { font-size: clamp(18px, 1.6vw, 21px); color: var(--tenue); max-width: 62ch; margin: 0 0 48px; }
+  /* La frase in evidenza, subito sotto la foto */
+  .apertura-coro { padding: 56px 0 8px; }
+  .apertura-coro p { font-family: var(--f-titoli); font-weight: 500; font-size: clamp(22px, 2.4vw, 32px); line-height: 1.35; color: var(--primario); max-width: 40ch; border-left: 4px solid var(--accento); padding-left: 24px; }
+
+  /* I capitoli: testo e foto affiancati, alternati */
+  .storia { padding-top: 56px; }
+  .capitolo { display: grid; gap: 28px; align-items: center; }
+  .capitolo + .capitolo, .opere-cantate + .capitolo { margin-top: 80px; }
+  .capitolo .testo-lungo h2 { margin-top: 0; font-size: clamp(26px, 2.6vw, 34px); color: var(--primario); }
+  .capitolo .testo-lungo > :global(p:last-child) { margin-bottom: 0; }
+  .foto-capitolo { margin: 0; aspect-ratio: 4 / 3; overflow: hidden; background: var(--fondo); }
+  .foto-capitolo :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @media (min-width: 900px) {
+    .capitolo { grid-template-columns: 1.1fr 1fr; gap: 64px; }
+    .capitolo.inverso .foto-capitolo { order: -1; }
+  }
+  @media (max-width: 899px) {
+    .foto-capitolo { order: -1; }
+  }
+  .citazione { margin: 28px 0; background: var(--accento); color: var(--primario); padding: 24px 28px; font-family: var(--f-titoli); font-weight: 600; font-size: 21px; line-height: 1.4; }
+  .citazione :global(p) { margin: 0; font-size: inherit; }
+
+  /* Le opere cantate, dalla prima esecuzione */
+  .opere-cantate { margin-top: 48px; display: grid; gap: 18px; }
+  .opere-cantate { justify-items: start; }
+  .opere-cantate > .link-freccia { white-space: nowrap; padding-left: 0; }
+  .opere-cantate ol { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .opere-cantate li { background: var(--bianco); border: 1px solid var(--linea); }
+  .opere-cantate a { display: grid; gap: 4px; align-content: start; height: 100%; padding: 18px 18px 20px; text-decoration: none; color: var(--testo); border-top: 3px solid transparent; transition: border-color .2s; }
+  .opere-cantate a:hover { border-top-color: var(--accento); }
+  .opere-cantate .anno { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 28px; line-height: 1; color: var(--primario); margin-bottom: 8px; }
+  .opere-cantate .autore { font-size: 13px; color: var(--tenue); }
+  .opere-cantate b { font-size: 16px; line-height: 1.3; color: var(--primario); }
+  .opere-cantate .volte { font-size: 13px; color: var(--tenue); margin-top: 6px; }
+
+  /* L'organico sotto il numero delle voci */
+  .organico-mini { margin-top: 18px; gap: 8px; }
+  .organico-mini li { grid-template-columns: minmax(0, 80px) 1fr 24px; gap: 10px; font-size: 13px; }
+
+  /* Direttivo e associazioni affiancati */
+  .affiancati { display: grid; gap: 64px; }
+  @media (min-width: 1000px) { .affiancati { grid-template-columns: 1.4fr 1fr; } }
+  .affiancati .direttivo { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); row-gap: 28px; }
+  @media (min-width: 560px) { .affiancati .direttivo { grid-template-columns: 1fr 1fr; } }
+  .associazioni { display: grid; gap: 16px; }
 </style>

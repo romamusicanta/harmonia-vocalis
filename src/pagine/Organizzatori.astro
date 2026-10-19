@@ -9,7 +9,7 @@ import NotaVideo from '../componenti/NotaVideo.astro';
 import { DEMO, elencoSezioni } from '../motore/coro';
 import { contesto } from '../motore/url';
 import { concertoIn, videoIn } from '../motore/inglese';
-import { archivio, parti, semplifica } from '../motore/concerti';
+import { archivio, CATALOGO, chiaveOpera, parti, semplifica, TONALITA } from '../motore/concerti';
 import { elencoVideo, titoloCompleto } from '../motore/video';
 import { testo } from '../motore/testi';
 import { perAutore } from '../motore/autori';
@@ -30,13 +30,6 @@ const video = (await elencoVideo()).map((v) => videoIn(v, lingua));
 const videoEsiste = (id?: string) => Boolean(id && video.some((v) => v.id === id));
 
 // ——— Repertorio pronto: un'opera per autore e titolo, dall'archivio ———
-// Numero di catalogo in coda al titolo: "Requiem K 626" → "K 626", "Requiem op. 48" → "op. 48"
-// (con almeno una cifra: "Te Deum" e "Laudate Dominum" non hanno un numero D)
-const CATALOGO = /\s+((?:K|KV|RV|BWV|HWV|D|Hob\.|op\.|Op\.)\s*(?=[\w.\/]*\d)[\w.\/]+(?:\s+n\.\s*\d+)?)$/;
-// La stessa opera può avere titoli diversi nei concerti ("Requiem", "Requiem in re minore K 626"):
-// si confrontano cognome dell'autore e titolo senza catalogo né tonalità
-const TONALITA = /\s+in\s+(?:(?:do|re|mi|fa|sol|la|si)(?:\s*(?:diesis|bemolle|#|b))?\s+(?:maggiore|minore)|[A-G](?:[-\s]?(?:flat|sharp|♭|♯))?\s+(?:major|minor))\b/i;
-const chiaveOpera = (autore: string, titolo: string) => semplifica(`${cognome(autore)} ${titolo.replace(CATALOGO, '').replace(TONALITA, '')}`);
 type Opera = { autore: string; titolo: string; catalogo?: string; concerti: Concerto[]; video?: string };
 const opere = new Map<string, Opera>();
 for (const c of arch) {

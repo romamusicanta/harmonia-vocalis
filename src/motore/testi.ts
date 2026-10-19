@@ -20,5 +20,7 @@ export function testo<T extends Record<string, any> = Record<string, any>>(nome:
     Contenuto: t.Content,
     titoli: t.getHeadings().filter((h) => h.depth === 2),
     markdown: t.rawContent(),
+    // Il corpo come HTML, per impaginarlo a pezzi (i capitoli della pagina Il Coro)
+    html: async () => String(await t.compiledContent()),
   };
 }
