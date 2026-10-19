@@ -108,7 +108,7 @@ lavori:
     video: uRrnUCW4meQ
 ---
 
-For over thirty years he has conducted the Coro Ruggero Giovannelli, which together with Harmonia Vocalis now forms a single choral group of about seventy voices, with a shared concert repertoire.
+For over thirty years he has conducted the Coro Ruggero Giovannelli, which together with Harmonia Vocalis now forms a single choral group of about eighty voices, with a shared concert repertoire.
 
 At the head of the ensemble, supported by the symphony orchestras he brings into his events, he covers almost the entire sacred and secular repertoire, from the Baroque to the twentieth century, up to the music of Ennio Morricone, with whom he collaborated in the early 2000s.
 

@@ -14,4 +14,4 @@ daSapere:
 
 Nato alla fine del 2019, affronta il grande repertorio sacro e sinfonico dal Barocco al Novecento, con orchestra e solisti. Il Maestro, da oltre trent'anni sul podio dei cori romani, è stato collaboratore di Ennio Morricone.
 
-Per le produzioni più grandi il coro canta insieme al Coro Ruggero Giovannelli: un unico gruppo corale di circa settanta voci con un repertorio condiviso.
+Per le produzioni più grandi il coro canta insieme al Coro Ruggero Giovannelli: un unico gruppo corale di circa ottanta voci con un repertorio condiviso.

@@ -111,7 +111,7 @@ lavori:
     video: uRrnUCW4meQ
 ---
 
-Da oltre trent'anni dirige il Coro Ruggero Giovannelli, che insieme a Harmonia Vocalis forma oggi un unico gruppo corale di circa settanta voci, con un repertorio condiviso da proporre in concerto.
+Da oltre trent'anni dirige il Coro Ruggero Giovannelli, che insieme a Harmonia Vocalis forma oggi un unico gruppo corale di circa ottanta voci, con un repertorio condiviso da proporre in concerto.
 
 Alla testa dell'ensemble, sostenuto dalle orchestre sinfoniche che coinvolge negli eventi, affronta la quasi totalità del repertorio sacro e profano, dal Barocco al Novecento, fino alla musica di Ennio Morricone, di cui è stato collaboratore nei primi anni Duemila.
 

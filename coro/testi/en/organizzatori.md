@@ -12,4 +12,4 @@ daSapere:
 
 Born at the end of 2019, the choir performs the great sacred and symphonic repertoire from the Baroque to the twentieth century, with orchestra and soloists. The Maestro, on the podium of Roman choirs for over thirty years, collaborated with Ennio Morricone.
 
-For larger productions the choir sings together with the Coro Ruggero Giovannelli: a single choral group of about seventy voices with a shared repertoire.
+For larger productions the choir sings together with the Coro Ruggero Giovannelli: a single choral group of about eighty voices with a shared repertoire.
