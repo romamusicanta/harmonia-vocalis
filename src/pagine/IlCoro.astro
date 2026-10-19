@@ -26,13 +26,13 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
 
 <Base veste={veste} titolo={en ? 'The Choir' : 'Il Coro'} pagina="il-coro" anteprima={coro.foto.coro} descrizione={en ? `History of the ${coro.nome}, founded in Rome in ${coro.fondazione}: ${voci} voices in four sections, board and affiliations.` : `La storia del ${coro.nome}, nato a ${coro.citta} nel ${coro.fondazione}: ${voci} voci in quattro sezioni, direttivo e associazioni.`}>
   {/* Dati: coro/testi/storia.md (intestazione) */}
+  {/* Dal 19/10/2026 (richiesta di Mario): in testata solo il titolo, poi la foto e subito sotto l'introduzione */}
   <header class="intesta">
-    <div class="w due">
+    <div class="w">
       <div>
         <span class="eti" style="margin-bottom:20px">{en ? 'The Choir' : 'Il Coro'}</span>
         <h1>{titolo}<span>.</span></h1>
       </div>
-      {dati.lead && <p class="lead"><ConLink testo={dati.lead} /></p>}
     </div>
   </header>
 
@@ -41,8 +41,9 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
     <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="100vw" />
   </div>
 
-  <section>
+  <section class="dopo-foto">
     <div class="w">
+      {dati.lead && <p class="lead lead-coro"><ConLink testo={dati.lead} /></p>}
       <div class="due-col">
         {/* Dati: coro/testi/storia.md (attacco + corpo) */}
         <div class="testo-lungo">
@@ -119,3 +120,9 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
       : <div class="w"><h2>{en ? 'Come and hear us' : 'Vieni ad ascoltarci'}</h2><div class="bottoni"><a class="btn" href={l('/concerti')}>{en ? 'Our concerts' : 'I nostri concerti'}</a><a class="btn o" href={l('/contatti')}>{en ? 'Contact' : 'Contatti'}</a></div></div>}
   </section>
 </Base>
+
+<style>
+  /* L'introduzione, sotto la foto: come quella delle testate, prima della storia */
+  .dopo-foto { padding-top: 48px; }
+  .lead-coro { font-size: clamp(18px, 1.6vw, 21px); color: var(--tenue); max-width: 62ch; margin: 0 0 48px; }
+</style>
