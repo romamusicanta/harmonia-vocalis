@@ -10,8 +10,17 @@ export const conLink = (s: string) => s.replace(LINK, (u) => {
   return `<a class="link-testo" href="${href}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//, '')}</a>`;
 });
 
+// Grassetto (dal 19/10/2026): **frase** come in Markdown, anche nei testi brevi. Gli asterischi devono
+// stare attaccati alle parole («** a **» resta com'è). Prima dei link, che si fermano al «<» del tag.
+const GRASSETTO = /\*\*(?=\S)([^*]+?)(?<=\S)\*\*/g;
+export const conGrassetto = (s: string) => s.replace(GRASSETTO, '<strong>$1</strong>');
+// Dove non si può mostrare il grassetto (description, anteprime dei link, dati per Google): solo il testo
+export const senzaGrassetto = (s = '') => s.replace(GRASSETTO, '$1');
+// In WhatsApp il grassetto è un asterisco solo: *frase*
+export const grassettoWhatsapp = (s: string) => s.replace(GRASSETTO, '*$1*');
+
 // Una riga o un paragrafo dentro un elemento già esistente (<p>, <dd>, <li>…): a capo con <br>
-export const inLinea = (testo = '') => conLink(protetto(testo.trim())).replace(/\n/g, '<br>');
+export const inLinea = (testo = '') => conLink(conGrassetto(protetto(testo.trim()))).replace(/\n/g, '<br>');
 
 // Più paragrafi: paragrafi alle righe vuote, a capo alle righe singole
 export const comeHtml = (testo: string) =>

@@ -10,6 +10,7 @@ import { adesso, cancellaRiga, idScheda, leggiScheda, oggi, scriviRiga } from '.
 import { avvisiDiEsempio, EMAIL_REDAZIONE, inDemo } from './demo';
 import { nelGruppo } from './servizio';
 import { spiegaTesto } from './errori';
+import { grassettoWhatsapp } from '../motore/testoLink';
 
 const SCHEDA = 'Bacheca';
 const COLONNE = ['ID', 'Pubblicato il', 'Firma', 'Titolo', 'Testo', 'Fino al', 'Scritto da', 'Modificato il'];
@@ -83,7 +84,7 @@ export const puoModificare = (a: Avviso, suoi: Ruolo[]) => suoi.some((r) => r.tu
 export function perWhatsapp(a: Pick<Avviso, 'titolo' | 'testo'> & { firma: string }, sito: string) {
   return [a.titolo && `*${a.titolo}*`, a.testo, `— ${a.firma}`, `${sito}/area`].filter(Boolean).join('\n\n');
 }
-export const linkWhatsapp = (testo: string) => `https://wa.me/?text=${encodeURIComponent(testo)}`;
+export const linkWhatsapp = (testo: string) => `https://wa.me/?text=${encodeURIComponent(grassettoWhatsapp(testo))}`;
 
 // Gestione da modulo (POST): azione=salva (id per modificare) o cancella. Restituisce un messaggio
 // per la pagina e, dopo un salvataggio, l'avviso salvato (per il pulsante WhatsApp).

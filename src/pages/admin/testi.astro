@@ -10,6 +10,7 @@ import { testiSuDrive } from '../../admin/operazioni';
 import { pubblicato, salvaGruppo } from '../../admin/testi';
 import { CAMPI_TESTO, GRUPPI_TESTO, type TestiSalvati } from '../../motore/testiSito';
 import { spiega } from '../../area/errori';
+import Strumenti from '../../admin/StrumentiTesto.astro';
 
 export const prerender = false;
 const s = Astro.locals.sessione!;
@@ -88,24 +89,33 @@ const inAttesa = CAMPI_TESTO.filter((c) => daPubblicare(c.id)).length;
             <input type="hidden" name={`prima-it:${c.id}`} value={it} />
             <input type="hidden" name={`prima-en:${c.id}`} value={en} />
             <div class="due-lingue">
-              <label><span>Italiano</span>
-                {c.tipo === 'riga'
-                  ? <input name={`it:${c.id}`} value={it} required data-id={c.id} class="testo-it" />
-                  : <textarea name={`it:${c.id}`} rows={righe(it, c.tipo === 'markdown' ? 8 : 3)} required data-id={c.id} class="testo-it">{it}</textarea>}
-              </label>
+              <div class="lingua">
+                <label><span>Italiano</span>
+                  {c.tipo === 'riga'
+                    ? <input name={`it:${c.id}`} value={it} required data-id={c.id} class="testo-it" />
+                    : <textarea name={`it:${c.id}`} rows={righe(it, c.tipo === 'markdown' ? 8 : 3)} required data-id={c.id} class="testo-it">{it}</textarea>}
+                </label>
+                {c.tipo !== 'riga' && <Strumenti anteprima={c.tipo === 'paragrafo'} />}
+              </div>
               {c.traduci === false
                 ? <p class="tenue piccolo" style="align-self:end">Uguale in inglese.</p>
                 : (
-                  <label><span>English <small class="rifare" data-id={c.id} hidden>· si riscrive salvando</small></span>
-                    {c.tipo === 'riga'
-                      ? <input name={`en:${c.id}`} value={en} lang="en" data-id={c.id} class="testo-en" />
-                      : <textarea name={`en:${c.id}`} rows={righe(en, c.tipo === 'markdown' ? 8 : 3)} lang="en" data-id={c.id} class="testo-en">{en}</textarea>}
-                  </label>
+                  <div class="lingua">
+                    <label><span>English <small class="rifare" data-id={c.id} hidden>· si riscrive salvando</small></span>
+                      {c.tipo === 'riga'
+                        ? <input name={`en:${c.id}`} value={en} lang="en" data-id={c.id} class="testo-en" />
+                        : <textarea name={`en:${c.id}`} rows={righe(en, c.tipo === 'markdown' ? 8 : 3)} lang="en" data-id={c.id} class="testo-en">{en}</textarea>}
+                    </label>
+                    {c.tipo !== 'riga' && <Strumenti anteprima={c.tipo === 'paragrafo'} />}
+                  </div>
                 )}
             </div>
           </div>
         );
       })}
+      {CAMPI_TESTO.some((c) => c.gruppo === g && c.tipo === 'paragrafo') && (
+        <p class="tenue piccolo">Grassetto: seleziona una frase e premi <b>G</b> (oppure scrivi **frase**). Premi di nuovo G sulla stessa frase per toglierlo.</p>
+      )}
       {CAMPI_TESTO.some((c) => c.gruppo === g && c.tipo === 'markdown') && (
         <p class="tenue piccolo">Nei testi lunghi: una riga vuota tra i paragrafi, «## Titolo» per un capitolo, **grassetto**, *corsivo*, [testo del link](https://…).</p>
       )}
@@ -127,6 +137,7 @@ const inAttesa = CAMPI_TESTO.filter((c) => daPubblicare(c.id)).length;
     .due-lingue label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--tenue); }
     .due-lingue input, .due-lingue textarea { width: 100%; font: inherit; font-size: 15px; font-weight: 400; color: var(--testo); padding: 8px 10px; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); line-height: 1.5; }
     .due-lingue textarea { resize: vertical; }
+    .lingua { display: grid; gap: 6px; align-content: start; }
     .due-lingue .da-rifare { background: var(--fondo); color: var(--tenue); }
     .rifare { color: var(--primario); font-weight: 700; }
     @media (max-width: 760px) { .due-lingue { grid-template-columns: 1fr; } }

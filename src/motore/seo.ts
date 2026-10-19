@@ -4,6 +4,7 @@
 // https://search.google.com/test/rich-results
 import type { Concerto } from './tipi';
 import type { coroIn } from './coro';
+import { senzaGrassetto } from './testoLink';
 
 type Coro = ReturnType<typeof coroIn>;
 export type DatiStrutturati = Record<string, unknown>;
@@ -32,7 +33,7 @@ export function datiCoro(coro: Coro, lingua: 'it' | 'en', immagine?: string): Da
       name: coro.nome,
       // Le forme con cui la gente cerca il coro, anche tutto attaccato come il dominio harmoniavocalis.com
       alternateName: nomiAlternativi(coro),
-      description: coro.descrizione,
+      description: senzaGrassetto(coro.descrizione),
       url: coro.url,
       logo: `${coro.url}/icone/icona-512.png`,
       image: immagine,
@@ -79,7 +80,7 @@ export function datiConcerto(
     '@context': 'https://schema.org',
     '@type': 'MusicEvent',
     name: opzioni.titolo,
-    description: opzioni.descrizione,
+    description: senzaGrassetto(opzioni.descrizione),
     url,
     image: opzioni.immagine ? [opzioni.immagine] : undefined,
     startDate: inizio,

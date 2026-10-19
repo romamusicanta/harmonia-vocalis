@@ -34,6 +34,7 @@ Rules:
 - Musical works: the title usual in English concert programmes; keep Latin and established original titles (Requiem, Stabat Mater, Carmina Burana, Messa di Gloria).
 - "Maestro" before the conductor's name stays "Maestro". "M°" becomes "Maestro".
 - Markdown texts: keep the Markdown exactly (headings "## ", lists, links, bold, italics, line breaks between paragraphs); translate only the words.
+- Bold is written **like this**, in every text: keep the two asterisks around the English words that correspond to the bold Italian ones.
 - Keep a single-line text on a single line.`,
     prompt: JSON.stringify(testi.map(({ id, it, tipo }) => ({ id, tipo, it }))),
   });

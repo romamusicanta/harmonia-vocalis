@@ -170,7 +170,7 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
       </a>
       <a class="porta" href={l('/il-maestro')}>
         <div class="img"><Foto nome={coro.maestro.foto} alt={en ? `Maestro ${coro.maestro.nome}` : `Il M° ${coro.maestro.nome}`} sizes="(min-width: 1000px) 33vw, 100vw" style="object-position:center 20%" /></div>
-        <div class="c"><h3>{en ? 'The Conductor' : 'Il Maestro'}</h3><p>{coro.maestro.nome}: {coro.maestro.presentazione.charAt(0).toLowerCase()}{coro.maestro.presentazione.slice(1)}</p><span class="btn o">{en ? 'Biography' : 'Biografia'}</span></div>
+        <div class="c"><h3>{en ? 'The Conductor' : 'Il Maestro'}</h3><p>{coro.maestro.nome}: <ConLink testo={coro.maestro.presentazione.charAt(0).toLowerCase() + coro.maestro.presentazione.slice(1)} /></p><span class="btn o">{en ? 'Biography' : 'Biografia'}</span></div>
       </a>
       {coro.funzioni.cantaConNoi && (
         <a class="porta" href={l('/canta-con-noi')}>

@@ -1,0 +1,64 @@
+---
+// Sotto un testo di Testi del sito (dal 19/10/2026): il pulsante G mette o toglie il grassetto
+// (**frase**, src/motore/testoLink.ts) sulla frase selezionata nel campo sopra; nei testi brevi
+// (anteprima) si vede come comparirà sul sito, finché c'è almeno un grassetto.
+interface Props { anteprima?: boolean }
+const { anteprima = false } = Astro.props;
+---
+
+<div class="strumenti-testo">
+  <button type="button" class="btn-grassetto" title="Grassetto: seleziona una frase e premi G" aria-label="Grassetto sulla frase selezionata">G</button>
+  <span class="suggerimento" hidden>Seleziona prima la frase da mettere in grassetto.</span>
+</div>
+{anteprima && <div class="anteprima-testo" hidden><small>Sul sito</small><p></p></div>}
+
+<style>
+  .strumenti-testo { display: flex; gap: 10px; align-items: center; }
+  .btn-grassetto { font: inherit; font-weight: 800; font-size: 15px; width: 34px; height: 30px; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--primario); cursor: pointer; }
+  .btn-grassetto:hover { border-color: var(--primario); }
+  .suggerimento { font-size: 13px; color: var(--tenue); }
+  .anteprima-testo { padding: 8px 10px; background: var(--fondo); border-radius: var(--raggio); font-size: 15px; color: var(--testo); }
+  .anteprima-testo small { display: block; font-size: 12px; font-weight: 700; color: var(--tenue); text-transform: uppercase; letter-spacing: .04em; }
+  .anteprima-testo p { margin: 4px 0 0; line-height: 1.5; }
+</style>
+
+<script>
+  // Le stesse regole di src/motore/testoLink.ts (conGrassetto), per l'anteprima
+  const GRASSETTO = /\*\*(?=\S)([^*]+?)(?<=\S)\*\*/g;
+  const protetto = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  document.querySelectorAll<HTMLElement>('.strumenti-testo').forEach((barra) => {
+    const campo = barra.closest('.lingua')?.querySelector<HTMLTextAreaElement>('textarea');
+    if (!campo) return;
+    const pulsante = barra.querySelector<HTMLButtonElement>('.btn-grassetto')!;
+    const suggerimento = barra.querySelector<HTMLElement>('.suggerimento')!;
+    const anteprima = barra.nextElementSibling?.classList.contains('anteprima-testo') ? barra.nextElementSibling as HTMLElement : undefined;
+    const mostra = () => {
+      if (!anteprima) return;
+      anteprima.hidden = !GRASSETTO.test(campo.value);
+      GRASSETTO.lastIndex = 0;
+      anteprima.querySelector('p')!.innerHTML = protetto(campo.value.trim()).replace(GRASSETTO, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    };
+    // Il pulsante non deve togliere la selezione al campo
+    pulsante.addEventListener('mousedown', (e) => e.preventDefault());
+    pulsante.addEventListener('click', () => {
+      let { selectionStart: a, selectionEnd: b, value: v } = campo;
+      // Senza spazi ai bordi, che lascerebbero gli asterischi staccati dalle parole
+      while (a < b && /\s/.test(v[a])) a++;
+      while (b > a && /\s/.test(v[b - 1])) b--;
+      if (a === b) { suggerimento.hidden = false; campo.focus(); return; }
+      suggerimento.hidden = true;
+      const gia = v.slice(a - 2, a) === '**' && v.slice(b, b + 2) === '**';
+      const dentro = v.slice(a, b);
+      const giaDentro = /^\*\*[^*]+\*\*$/.test(dentro);
+      if (gia) { v = v.slice(0, a - 2) + dentro + v.slice(b + 2); a -= 2; b -= 2; }
+      else if (giaDentro) { v = v.slice(0, a) + dentro.slice(2, -2) + v.slice(b); b -= 4; }
+      else { v = `${v.slice(0, a)}**${dentro.replace(/\*\*/g, '')}**${v.slice(b)}`; b = a + dentro.replace(/\*\*/g, '').length + 4; }
+      campo.value = v;
+      campo.focus();
+      campo.setSelectionRange(a, b);
+      campo.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    campo.addEventListener('input', () => { suggerimento.hidden = true; mostra(); });
+    mostra();
+  });
+</script>

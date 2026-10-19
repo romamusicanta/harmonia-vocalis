@@ -17,6 +17,7 @@ import { vesti } from '../vesti';
 import TestaApp from '../componenti/TestaApp.astro';
 import type { Pagina } from '../motore/navigazione';
 import { datiCoro, type DatiStrutturati } from '../motore/seo';
+import { senzaGrassetto } from '../motore/testoLink';
 
 interface Props {
   veste: Veste;
@@ -65,7 +66,7 @@ const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immag
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{titoloCompleto}</title>
-    <meta name="description" content={descrizione} />
+    <meta name="description" content={senzaGrassetto(descrizione)} />
     {!indicizzata && <meta name="robots" content="noindex, nofollow" />}
     {indicizzata && Astro.site && <link rel="canonical" href={indirizzo} />}
     {indicizzata && altra && (
@@ -82,7 +83,7 @@ const dati = indicizzata ? [...(pagina === 'home' ? datiCoro(coro, lingua, immag
         {altra && <meta property="og:locale:alternate" content={altra.lingua === 'en' ? 'en_GB' : 'it_IT'} />}
         <meta property="og:site_name" content={coro.nome} />
         <meta property="og:title" content={titolo ?? titoloCompleto} />
-        <meta property="og:description" content={descrizione} />
+        <meta property="og:description" content={senzaGrassetto(descrizione)} />
         <meta property="og:url" content={indirizzo} />
         {og && <meta property="og:image" content={immagineOg} />}
         {og && <meta property="og:image:width" content={String(og.attributes.width)} />}

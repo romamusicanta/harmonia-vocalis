@@ -2,6 +2,7 @@
 // Pagina "Il Maestro": presentazione con i ruoli, indice delle sottosezioni, biografia dal curriculum
 // (un capitolo per ogni "## titolo" di coro/testi/maestro.md), repertorio, critica con un video, lavori.
 import ConLink from '../componenti/ConLink.astro';
+import { senzaGrassetto } from '../motore/testoLink';
 import type { Veste } from '../motore/aspetto';
 import Base from '../layouts/Base.astro';
 import Foto from '../componenti/Foto.astro';
@@ -54,7 +55,7 @@ const sulPodio = videoIn((await elencoVideo()).find((v) => v.autore !== 'Il coro
 const numeroRiquadro = m.riquadro?.numero?.trim() ?? (m.anniPodio ? String(m.anniPodio) : '');
 const etichettaRiquadro = m.riquadro?.etichetta?.trim() ?? (en ? 'years on the podium' : 'anni sul podio');
 const fraseRiquadro = m.riquadro?.frase?.trim() ?? (en ? `Leading the ${coro.nome}.` : `Alla guida del ${coro.nome}.`);
-const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(1).replace(/\.$/, '');
+const attacco = senzaGrassetto(m.presentazione).charAt(0).toLowerCase() + senzaGrassetto(m.presentazione).slice(1).replace(/\.$/, '');
 ---
 
 <Base veste={veste} titolo={en ? 'The Conductor' : 'Il Maestro'} pagina="il-maestro" anteprima={m.foto} descrizione={en ? `Maestro ${m.nome}: ${attacco}.` : `Il M° ${m.nome}, ${attacco}.`}>
@@ -64,7 +65,7 @@ const attacco = m.presentazione.charAt(0).toLowerCase() + m.presentazione.slice(
       <div class="stagione" style="padding-top:72px">
         <span class="eti">{dati.etichetta ?? (en ? 'The conductor of the choir' : 'Il Maestro del coro')}</span>
         <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{nome}<span>.</span></h1>
-        <p>{m.presentazione}</p>
+        <p><ConLink testo={m.presentazione} /></p>
         {dati.ruoli && <ul class="ruoli" aria-label={en ? 'Roles' : 'Ruoli'}>{dati.ruoli.map((r) => <li>{r}</li>)}</ul>}
       </div>
       <div class="blocco-foto" style="min-height:520px">
