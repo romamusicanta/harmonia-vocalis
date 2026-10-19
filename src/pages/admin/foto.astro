@@ -8,7 +8,8 @@ import '../../admin/ordine.css';
 import Errore from '../../area/Errore.astro';
 import { fotoSitoSuDrive } from '../../admin/operazioni';
 import { fotoDelMaestro, type FotoMaestro } from '../../admin/fotoMaestro';
-import { coro, immagine, LIMITE_CAROSELLO } from '../../motore/coro';
+import { CAPITOLI_CORO, coro, fotoCapitoli, immagine, LIMITE_CAROSELLO } from '../../motore/coro';
+import { testo } from '../../motore/testi';
 
 export const prerender = false;
 
@@ -34,12 +35,24 @@ const nelCarosello = fotoMaestro.filter((f) => f.carosello);
 const fuori = fotoMaestro.filter((f) => !f.carosello);
 const quando = (iso: string) => new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' });
 
+// I titoli dei capitoli della storia (coro/testi/storia.md, «## titolo»), per riconoscerli
+const capitoli = Array.from({ length: CAPITOLI_CORO }, (_, i) => testo('storia').titoli[i]?.text);
+const scelteCapitoli = fotoCapitoli();
+
 const posti = [
   { nome: 'apertura', titolo: 'Apertura', dove: 'Home, in alto: la prima cosa che si vede; anche anteprima dei link condivisi.', consiglio: 'Il coro in concerto, orizzontale, almeno 2000 px.', attuale: coro.foto.apertura },
   { nome: 'coro', titolo: 'Il coro', dove: 'Pagina "Il coro" (a tutta larghezza) e sezione "Il coro" della home.', consiglio: 'Il coro intero, orizzontale, almeno 2400 px.', attuale: coro.foto.coro },
   { nome: 'prove', titolo: 'Prove', dove: 'Pagina "Canta con noi".', consiglio: 'Una prova del coro.', attuale: coro.foto.prove ?? coro.foto.coro },
   { nome: 'maestro', titolo: 'Il Maestro', dove: 'Home e anteprima della pagina "Il Maestro"; nella pagina, solo se il carosello qui sotto è vuoto.', consiglio: `Ritratto del M° ${coro.maestro.nome}, quadrato o verticale, almeno 1200 px.`, attuale: coro.maestro.foto },
   { nome: 'accesso', titolo: 'Accesso coristi', dove: "Pagina di accesso dell'area coristi (se manca, si usa l'apertura).", consiglio: 'Facoltativa.', attuale: coro.foto.accesso },
+  // Le foto dei capitoli della pagina «Il Coro» (dal 19/10/2026): senza, il sito ne sceglie una da solo
+  ...capitoli.map((titolo, i) => ({
+    nome: `capitolo-${i + 1}`,
+    titolo: `Il coro, capitolo ${i + 1}${titolo ? ` · «${titolo}»` : ''}`,
+    dove: `Pagina "Il coro", accanto al ${['primo', 'secondo', 'terzo'][i] ?? `${i + 1}°`} capitolo della storia.${scelteCapitoli[i]?.caricata ? '' : ' Per ora il sito usa una foto scelta da solo (le prove o una foto «Home» dei concerti).'}`,
+    consiglio: 'Orizzontale, almeno 1600 px: si ritaglia in 4:3.',
+    attuale: scelteCapitoli[i]?.nome ?? coro.foto.coro,
+  })),
 ];
 ---
 

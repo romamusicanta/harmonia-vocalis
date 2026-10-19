@@ -13,7 +13,7 @@ import Foto from '../componenti/Foto.astro';
 import { contesto } from '../motore/url';
 import { archivio, chiaveOpera, CATALOGO, slug } from '../motore/concerti';
 import { concertoIn } from '../motore/inglese';
-import { fotoInHome, totaleVoci } from '../motore/coro';
+import { fotoCapitoli, totaleVoci } from '../motore/coro';
 import { testo } from '../motore/testi';
 import type { Concerto } from '../motore/tipi';
 
@@ -41,11 +41,8 @@ const capitoli = pezzi.map((p) => {
   return { titolo: h?.[1], testo: resto.replace(/<blockquote>[\s\S]*?<\/blockquote>/, ''), citazione };
 });
 
-// Le foto dei capitoli: prima quella delle prove (Sito/Foto), poi le foto «Home» dei concerti scelte dai
-// redattori, una per concerto; di riserva quelle generali del sito, mai la foto grande in alto
-const daiConcerti: string[] = [];
-for (const f of fotoInHome()) if (!daiConcerti.some((n) => n.includes(`/${f.data}/`))) daiConcerti.push(f.nome);
-const fotoCapitoli = [...new Set([coro.foto.prove, ...daiConcerti, ...fotoInHome().map((f) => f.nome), coro.foto.apertura, coro.foto.maestro].filter((f): f is string => Boolean(f) && f !== coro.foto.coro))];
+// Le foto dei capitoli: quelle caricate in Foto del sito, altrimenti la scelta automatica (fotoCapitoli)
+const fotoDeiCapitoli = fotoCapitoli(capitoli.length);
 
 // Le opere cantate: una per autore e titolo (chiaveOpera, come in Per gli organizzatori), dalla prima
 // esecuzione, con il numero dei concerti; il link porta alla pagina del primo concerto che ce l'ha
@@ -96,9 +93,9 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
               <Fragment set:html={c.testo} />
               {c.citazione && <blockquote class="citazione" set:html={c.citazione} />}
             </div>
-            {fotoCapitoli[i] && (
+            {fotoDeiCapitoli[i] && (
               <figure class="foto-capitolo">
-                <Foto nome={fotoCapitoli[i]} alt={c.titolo ? c.titolo.replace(/<[^>]+>/g, '') : ''} sizes="(min-width: 900px) 45vw, 100vw" />
+                <Foto nome={fotoDeiCapitoli[i]!.nome} alt={c.titolo ? c.titolo.replace(/<[^>]+>/g, '') : ''} sizes="(min-width: 900px) 45vw, 100vw" />
               </figure>
             )}
           </article>

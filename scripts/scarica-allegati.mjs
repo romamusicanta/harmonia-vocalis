@@ -2,7 +2,8 @@
 // - le immagini allegate agli eventi del calendario "Concerti" (locandine e foto, allegate con la
 //   graffetta) in coro/immagini/drive/<id>.<ext>: src/motore/concerti.ts le collega ai concerti;
 // - le foto del sito dalla cartella Sito/Foto del Drive condiviso (DRIVE_CARTELLA_FOTO), con i nomi
-//   fissi apertura, coro, prove, maestro, accesso (.jpg, .png…), in coro/immagini/drive/sito/:
+//   fissi apertura, coro, prove, maestro, accesso, capitolo-1, capitolo-2, capitolo-3 (le foto dei capitoli
+//   della pagina Il Coro, dal 19/10/2026) (.jpg, .png…), in coro/immagini/drive/sito/:
 //   src/motore/coro.ts le usa al posto di quelle di coro.config.ts;
 // - le foto dei concerti caricate dai coristi che i redattori hanno messo nel sito pubblico
 //   (cartella Foto dei concerti, DRIVE_CARTELLA_FOTO_CONCERTI, una sottocartella per concerto, proprietà
@@ -39,7 +40,7 @@ import ical from 'node-ical';
 const cartella = new URL('../coro/immagini/drive/', import.meta.url);
 const cartellaSito = new URL('sito/', cartella);
 const cartellaConcerti = new URL('concerti/', cartella);
-const nomiFotoSito = ['apertura', 'coro', 'prove', 'maestro', 'accesso'];
+const nomiFotoSito = ['apertura', 'coro', 'prove', 'maestro', 'accesso', 'capitolo-1', 'capitolo-2', 'capitolo-3'];
 const estensioni = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
 const avviso = (m) => console.warn(`[drive] ${m}`);
 

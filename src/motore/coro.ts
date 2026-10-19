@@ -92,6 +92,24 @@ const elencoMaestro = import.meta.glob<string[]>('/coro/immagini/drive/maestro/e
 export const fotoCaroselloMaestro = () =>
   DEMO ? [] : (Object.values(elencoMaestro)[0] ?? []).filter((f) => `/coro/immagini/${f}` in immagini).slice(0, LIMITE_CAROSELLO);
 
+// Le foto dei capitoli della pagina «Il Coro» (dal 19/10/2026): quelle caricate in Foto del sito
+// (Sito/Foto/capitolo-1, -2, -3); dove manca, una scelta automatica: la foto delle prove, poi le foto
+// «Home» dei concerti, una per concerto, di riserva le altre foto del sito, mai la foto grande in alto
+// né una già usata da un altro capitolo. Le usano la pagina e Amministrazione → Foto del sito.
+export const CAPITOLI_CORO = 3;
+export function fotoCapitoli(quanti = CAPITOLI_CORO) {
+  const unaPerConcerto: string[] = [];
+  for (const f of fotoInHome()) if (!unaPerConcerto.some((n) => n.includes(`/${f.data}/`))) unaPerConcerto.push(f.nome);
+  const scelte = Array.from({ length: quanti }, (_, i) => fotoDrive(`capitolo-${i + 1}`));
+  const automatiche = [...new Set([coro.foto.prove, ...unaPerConcerto, ...fotoInHome().map((f) => f.nome), coro.foto.apertura, coro.maestro.foto])]
+    .filter((f): f is string => Boolean(f) && f !== coro.foto.coro && !scelte.includes(f));
+  return scelte.map((f) => {
+    if (f) return { nome: f, caricata: true };
+    const auto = automatiche.shift();
+    return auto ? { nome: auto, caricata: false } : undefined;
+  });
+}
+
 // Gli album: un concerto (giorno) con le sue foto, dal più recente
 export const albumFoto = () => {
   const giorni = [...new Set(fotoPubbliche().map((f) => f.data))].sort((a, b) => b.localeCompare(a));
