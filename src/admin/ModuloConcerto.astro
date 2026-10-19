@@ -171,9 +171,12 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   .stato-concerto .legenda-stato { display: block; font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 8px; }
   .stato-concerto legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 8px; }
   .scelte-stato { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
-  .scelte-stato label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--bianco); border: 2px solid var(--linea); border-radius: var(--raggio); cursor: pointer; }
+  .scelte-stato label { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; padding: 10px 12px; background: var(--bianco); border: 2px solid var(--linea); border-radius: var(--raggio); cursor: pointer; }
+  /* Pallino ed etichetta sulla prima riga, descrizione sotto l'etichetta */
+  .scelte-stato input { width: auto; margin: 0; padding: 0; }
+  .scelte-stato label > span { display: contents; }
+  .scelte-stato small { grid-column: 2; }
   .scelte-stato label:has(input:checked) { border-color: var(--primario); box-shadow: inset 4px 0 0 var(--accento); }
-  .scelte-stato input { margin-top: 3px; }
   .scelte-stato b { display: block; color: var(--primario); }
   .scelte-stato small { color: var(--tenue); font-size: 13px; }
   .spunta { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin: -4px 0 8px; }
