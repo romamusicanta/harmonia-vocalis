@@ -85,10 +85,10 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         </div>
         <div class="campo"><label>Opera in inglese<input name="operaEn" placeholder="Requiem in D minor K. 626" value={o.operaEn} lang="en" /></label></div>
         <div class="riga-campi">
-          <div class="campo"><label>Organico <small>(facoltativo)</small><input name="organico" placeholder="per soli, coro e orchestra" value={o.organico} /></label></div>
+          <div class="campo"><label><span>Organico <small>(facoltativo)</small></span><input name="organico" placeholder="per soli, coro e orchestra" value={o.organico} /></label></div>
           <div class="campo"><label>Organico in inglese<input name="organicoEn" placeholder="for soloists, choir and orchestra" value={o.organicoEn} lang="en" /></label></div>
         </div>
-        <div class="campo"><label>Brani <small>(facoltativi, separati da virgole)</small><input name="brani" placeholder="Introitus, Kyrie, Dies irae…" value={o.brani} /></label></div>
+        <div class="campo"><label><span>Brani <small>(facoltativi, separati da virgole)</small></span><input name="brani" placeholder="Introitus, Kyrie, Dies irae…" value={o.brani} /></label></div>
       </div>
     ))}
   </div>
