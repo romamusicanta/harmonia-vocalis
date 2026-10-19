@@ -6,9 +6,11 @@ lead: The Coro Harmonia Vocalis was born at the end of 2019 as the artistic voic
 attacco: "The idea came from a few singers: to make musical culture accessible to an audience wider than the one that goes to theatres and concert halls."
 ---
 
-## How it began
+## What we believe
 
-Listening to art music should not be the privilege of a few, and bringing it to every kind of community is the mission our conductor reminds us never to betray. Those singers looked for, and found, a conductor able to carry this idea: Maestro Claudio Maria Micheli, who has led the choir since its birth and shaped its growth.
+Listening to art music should not be the privilege of a few, and bringing it to every kind of community is the mission that Maestro Claudio Maria Micheli, who has led the choir since its birth and shaped its growth, shares with us and reminds us never to betray. In him the singers of Harmonia Vocalis found a conductor able to carry this idea.
+
+## How it began
 
 ## What we have sung
 

@@ -179,7 +179,7 @@ export async function caricaImmagini(s: Sessione, f: FormData, cartella: string)
 
 // Foto del sito: sostituisce il contenuto del file con quel nome in Sito/Foto (lo stesso file, così
 // resta la sua storia su Drive), oppure lo crea
-export const NOMI_FOTO_SITO = ['apertura', 'coro', 'prove', 'maestro', 'accesso', 'capitolo-1', 'capitolo-2', 'capitolo-3'] as const;
+export const NOMI_FOTO_SITO = ['apertura', 'coro', 'prove', 'maestro', 'accesso', 'capitolo-1', 'capitolo-2', 'capitolo-3', 'capitolo-4'] as const;
 
 export async function sostituisciFotoSito(s: Sessione, nome: (typeof NOMI_FOTO_SITO)[number], file: File) {
   const esistenti = (await elenca(s, `'${DRIVE_CARTELLA_FOTO}' in parents`)).filter((f) => f.name.replace(/\.[^.]+$/, '').trim().toLowerCase() === nome);

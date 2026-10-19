@@ -93,10 +93,10 @@ export const fotoCaroselloMaestro = () =>
   DEMO ? [] : (Object.values(elencoMaestro)[0] ?? []).filter((f) => `/coro/immagini/${f}` in immagini).slice(0, LIMITE_CAROSELLO);
 
 // Le foto dei capitoli della pagina «Il Coro» (dal 19/10/2026): quelle caricate in Foto del sito
-// (Sito/Foto/capitolo-1, -2, -3); dove manca, una scelta automatica: la foto delle prove, poi le foto
+// (Sito/Foto/capitolo-1 … capitolo-4); dove manca, una scelta automatica: la foto delle prove, poi le foto
 // «Home» dei concerti, una per concerto, di riserva le altre foto del sito, mai la foto grande in alto
 // né una già usata da un altro capitolo. Le usano la pagina e Amministrazione → Foto del sito.
-export const CAPITOLI_CORO = 3;
+export const CAPITOLI_CORO = 4;
 export function fotoCapitoli(quanti = CAPITOLI_CORO) {
   const unaPerConcerto: string[] = [];
   for (const f of fotoInHome()) if (!unaPerConcerto.some((n) => n.includes(`/${f.data}/`))) unaPerConcerto.push(f.nome);

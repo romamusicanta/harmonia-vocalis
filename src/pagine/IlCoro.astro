@@ -41,6 +41,11 @@ const capitoli = pezzi.map((p) => {
   const citazione = resto.match(/<blockquote>([\s\S]*?)<\/blockquote>/)?.[1];
   return { titolo: h?.[1], testo: resto.replace(/<blockquote>[\s\S]*?<\/blockquote>/, ''), citazione };
 });
+// L'introduzione («Introduzione» in Testi del sito) è il testo del capitolo lasciato vuoto nel corpo
+// («Come è nato»); se nessuno è vuoto, apre il primo
+const conIntroduzione = Math.max(0, capitoli.findIndex((c) => !c.testo.trim() && !c.citazione));
+// Le opere cantate vanno sotto il capitolo che ne parla («Cosa abbiamo cantato»), altrimenti sotto il secondo
+const conOpere = ((i) => (i < 0 ? 1 : i))(capitoli.findIndex((c) => /cantat|sung/i.test(c.titolo ?? '')));
 
 // Le foto dei capitoli: quelle caricate in Foto del sito, altrimenti la scelta automatica (fotoCapitoli)
 const fotoDeiCapitoli = fotoCapitoli(capitoli.length);
@@ -91,7 +96,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
           <article class:list={['capitolo', { inverso: i % 2 === 1 }]}>
             <div class="testo-lungo">
               {c.titolo && <h2 set:html={c.titolo} />}
-              {i === 0 && dati.lead && <Fragment set:html={comeHtml(dati.lead)} />}
+              {i === conIntroduzione && dati.lead && <Fragment set:html={comeHtml(dati.lead)} />}
               <Fragment set:html={c.testo} />
               {c.citazione && <blockquote class="citazione" set:html={c.citazione} />}
             </div>
@@ -101,7 +106,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
               </figure>
             )}
           </article>
-          {i === 1 && cantate.length > 0 && (
+          {i === conOpere && cantate.length > 0 && (
             <div class="opere-cantate">
               <ol>
                 {cantate.map((o) => (
@@ -217,11 +222,10 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
   /* Le opere cantate, dalla prima esecuzione */
   .opere-cantate { margin-top: 48px; display: grid; gap: 18px; }
   .opere-cantate { justify-items: start; }
-  .opere-cantate > .link-freccia { white-space: nowrap; padding-left: 0; }
   .opere-cantate ol { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
   .opere-cantate li { background: var(--bianco); border: 1px solid var(--linea); }
-  .opere-cantate a { display: grid; gap: 4px; align-content: start; height: 100%; padding: 18px 18px 20px; text-decoration: none; color: var(--testo); border-top: 3px solid transparent; transition: border-color .2s; }
-  .opere-cantate a:hover { border-top-color: var(--accento); }
+  .opere-cantate li a { display: grid; gap: 4px; align-content: start; height: 100%; padding: 18px 18px 20px; text-decoration: none; color: var(--testo); border-top: 3px solid transparent; transition: border-color .2s; }
+  .opere-cantate li a:hover { border-top-color: var(--accento); }
   .opere-cantate .anno { font-family: var(--f-titoli); font-weight: var(--peso-titoli); font-size: 28px; line-height: 1; color: var(--primario); margin-bottom: 8px; }
   .opere-cantate .autore { font-size: 13px; color: var(--tenue); }
   .opere-cantate b { font-size: 16px; line-height: 1.3; color: var(--primario); }

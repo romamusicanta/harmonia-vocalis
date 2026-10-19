@@ -49,7 +49,7 @@ const posti = [
   ...capitoli.map((titolo, i) => ({
     nome: `capitolo-${i + 1}`,
     titolo: `Il coro, capitolo ${i + 1}${titolo ? ` · «${titolo}»` : ''}`,
-    dove: `Pagina "Il coro", accanto al ${['primo', 'secondo', 'terzo'][i] ?? `${i + 1}°`} capitolo della storia.${scelteCapitoli[i]?.caricata ? '' : ' Per ora il sito usa una foto scelta da solo (le prove o una foto «Home» dei concerti).'}`,
+    dove: `Pagina "Il coro", accanto al ${['primo', 'secondo', 'terzo', 'quarto'][i] ?? `${i + 1}°`} capitolo della storia.${scelteCapitoli[i]?.caricata ? '' : ' Per ora il sito usa una foto scelta da solo (le prove o una foto «Home» dei concerti).'}`,
     consiglio: 'Orizzontale, almeno 1600 px: si ritaglia in 4:3.',
     attuale: scelteCapitoli[i]?.nome ?? coro.foto.coro,
   })),
