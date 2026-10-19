@@ -15,13 +15,14 @@ import { archivio, chiaveOpera, CATALOGO, slug } from '../motore/concerti';
 import { concertoIn } from '../motore/inglese';
 import { fotoCapitoli, totaleVoci } from '../motore/coro';
 import { testo } from '../motore/testi';
+import { comeHtml } from '../motore/testoLink';
 import type { Concerto } from '../motore/tipi';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
 const { en, l, lingua, coro } = contesto(Astro.url, veste);
 
-const { dati, html } = testo<{ titolo: string; attacco?: string }>('storia', lingua);
+const { dati, html } = testo<{ titolo: string; lead?: string; attacco?: string }>('storia', lingua);
 // Il punto finale del titolo si colora con l'accento
 const titolo = dati.titolo.replace(/\.$/, '');
 
@@ -90,6 +91,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
           <article class:list={['capitolo', { inverso: i % 2 === 1 }]}>
             <div class="testo-lungo">
               {c.titolo && <h2 set:html={c.titolo} />}
+              {i === 0 && dati.lead && <Fragment set:html={comeHtml(dati.lead)} />}
               <Fragment set:html={c.testo} />
               {c.citazione && <blockquote class="citazione" set:html={c.citazione} />}
             </div>

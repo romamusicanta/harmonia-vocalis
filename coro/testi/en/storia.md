@@ -2,12 +2,11 @@
 # "The choir" page, English version of coro/testi/storia.md.
 # DA VERIFICARE: translation to be reviewed by a fluent English speaker.
 titolo: A voice for art music.
+lead: The Coro Harmonia Vocalis was born at the end of 2019 as the artistic voice of the Associazione Culturale Musicale Roma Musicanta, founded in 2018 to spread art music across Rome.
 attacco: "The idea came from a few singers: to make musical culture accessible to an audience wider than the one that goes to theatres and concert halls."
 ---
 
 ## How it began
-
-The Coro Harmonia Vocalis was born at the end of 2019 as the artistic voice of the Associazione Culturale Musicale Roma Musicanta, founded in 2018 to spread art music across Rome.
 
 Listening to art music should not be the privilege of a few, and bringing it to every kind of community is the mission our conductor reminds us never to betray. Those singers looked for, and found, a conductor able to carry this idea: Maestro Claudio Maria Micheli, who has led the choir since its birth and shaped its growth.
 

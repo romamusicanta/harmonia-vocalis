@@ -24,6 +24,7 @@ export const CAMPI_TESTO: CampoTesto[] = [
   { id: 'coro:stagione.presentazione', gruppo: 'Home', etichetta: 'Presentazione della stagione', tipo: 'paragrafo', dove: 'Sotto la stagione, in alto nella home.' },
   { id: 'coro:descrizione', gruppo: 'Home', etichetta: 'Descrizione del coro', tipo: 'paragrafo', dove: 'Nel piè di pagina di tutte le pagine e nei risultati di Google.' },
   { id: 'testo:storia.titolo', gruppo: 'Il coro', etichetta: 'Titolo', tipo: 'riga', dove: 'Il titolo della pagina «Il coro».' },
+  { id: 'testo:storia.lead', gruppo: 'Il coro', etichetta: 'Introduzione', tipo: 'paragrafo', dove: 'All’inizio del primo capitolo («Come è nato»), prima del resto della storia. Una riga vuota separa i paragrafi.' },
   { id: 'testo:storia.attacco', gruppo: 'Il coro', etichetta: 'Frase in evidenza', tipo: 'paragrafo', dove: 'In grande, subito sotto la foto.' },
   { id: 'testo:storia.corpo', gruppo: 'Il coro', etichetta: 'La storia', tipo: 'markdown', dove: 'Ogni «## titolo» è un capitolo, con una foto accanto (prima le prove, poi le foto dei concerti); una riga che comincia con «> » è la citazione nel riquadro giallo. Sotto il secondo capitolo compaiono da sole le opere cantate, dall’archivio dei concerti.' },
   { id: 'coro:maestro.presentazione', gruppo: 'Il Maestro', etichetta: 'Presentazione breve', tipo: 'paragrafo', dove: 'Nella sezione del Maestro della home.' },
