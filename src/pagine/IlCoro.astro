@@ -79,8 +79,10 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
   </header>
 
   {/* Dati: coro.config.ts → foto.coro (o Sito/Foto su Drive) */}
-  <div class="blocco-foto" style="min-height:clamp(260px,38vw,560px)">
-    <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="100vw" caricamento="eager" />
+  <div class="w">
+    <div class="blocco-foto" style="min-height:clamp(260px,38vw,560px)">
+      <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="(min-width: 1320px) 1240px, 100vw" caricamento="eager" />
+    </div>
   </div>
 
   {dati.attacco && (
