@@ -67,7 +67,7 @@ export const onRequest = defineMiddleware(async (ctx, avanti) => {
       ctx.locals.corista = corista;
       return riservata(await conDemo(true, () => avanti()));
     }
-    // Amministratori: area del tesoriere in sola lettura
+    // Amministratori e redattori (se non sono anche nella tesoreria): area del tesoriere in sola lettura
     if (tesoriere && !scriveTesoriere(corista)) {
       if (ctx.request.method !== 'GET') return new Response(JSON.stringify({ errore: 'Hai l’area del tesoriere in sola lettura: solo il tesoriere può modificare i dati.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
       if (/^\/tesoriere\/avvisi\/?$/.test(pathname)) return ctx.redirect('/tesoriere');

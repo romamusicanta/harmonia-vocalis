@@ -27,7 +27,7 @@ export interface Corista {
   tesoreria?: boolean; // in uno dei gruppi dell'area del tesoriere (coro.coristi.tesoreria.gruppi; le sessioni di prima del 5/10/2026 non lo hanno)
   amministratore?: boolean; // nel gruppo degli amministratori del sito (coro.coristi.amministratori): vede tutte le aree
   demo?: boolean; // nel gruppo Demo: tutte le aree in sola lettura, con i dati personali nascosti
-  redattore?: boolean; // nel gruppo dei redattori (coro.amministrazione.gruppo): vede l'area del tesoriere in sola lettura (dal 7/10/2026)
+  redattore?: boolean; // nel gruppo dei redattori (coro.amministrazione.gruppo): vede l'area del tesoriere in sola lettura (dal 7 all'8/10/2026 e dal 20/10/2026)
 }
 
 export const eCorista = (c: Corista) => c.coro !== false;
@@ -35,10 +35,11 @@ export const eCorista = (c: Corista) => c.coro !== false;
 // gruppo Demo, che le aprono tutte (il gruppo Demo in sola lettura: lo blocca il middleware)
 export const apreArea = (c: Corista) => Boolean(eCorista(c) || c.amministratore || c.demo);
 export const apreMaestro = (c: Corista) => Boolean(c.direzione || c.amministratore || c.demo);
-export const apreTesoriere = (c: Corista) => Boolean(c.tesoreria || c.amministratore || c.demo);
+// L'area del tesoriere anche ai redattori, in sola lettura con i dati veri (dal 20/10/2026, richiesta di Mario)
+export const apreTesoriere = (c: Corista) => Boolean(c.tesoreria || c.amministratore || c.redattore || c.demo);
 export const apreRedattori = (c: Corista) => Boolean(c.redattore || c.amministratore || c.demo);
 // Nell'area del tesoriere scrive (quote, cassa, maestri, avvisi, sollecito) solo chi è nei gruppi della
-// tesoreria: gli amministratori la vedono in sola lettura
+// tesoreria: amministratori e redattori la vedono in sola lettura
 export const scriveTesoriere = (c: Corista) => Boolean(c.tesoreria);
 // La prima area di chi entra: coristi, Maestro, tesoriere, redattori, in quest'ordine
 export const areaDi = (c: Corista) => (eCorista(c) || c.demo ? '/area' : c.direzione ? '/maestro' : c.tesoreria ? '/tesoriere' : c.redattore ? '/admin' : '/area');
