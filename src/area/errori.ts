@@ -17,5 +17,10 @@ export function spiega(e: unknown): Spiegazione {
   return { testo: 'Qualcosa non ha funzionato con Google: riprova tra poco.', dettaglio };
 }
 
-// Solo il testo, per le risposte JSON degli endpoint
-export const spiegaTesto = (e: unknown) => spiega(e).testo;
+// Solo il testo, per le risposte JSON degli endpoint. Il messaggio generico porta con sé la risposta
+// di Google tra parentesi: senza, non si capisce cosa è andato storto (successo il 21/10/2026 con la
+// Modifica di un concerto)
+export function spiegaTesto(e: unknown) {
+  const { testo, dettaglio } = spiega(e);
+  return testo.startsWith('Qualcosa non ha funzionato') && dettaglio ? `${testo} (${dettaglio})` : testo;
+}

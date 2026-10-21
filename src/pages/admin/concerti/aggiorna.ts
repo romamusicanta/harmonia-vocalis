@@ -41,6 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const aggiornato = await salvaConcerto(id, { ...corpoEvento(d), attachments: allegati.map(({ fileUrl, title, mimeType }) => ({ fileUrl, title, mimeType })) }, statoValido(f.get('stato')));
     return json({ ok: true, evento: aggiornato.htmlLink, cartella: cartella && `https://drive.google.com/drive/folders/${cartella}`, avviso: avvisoInglese, inglese: ingleseScritto(d) });
   } catch (e) {
+    console.error('[concerto]', e);
     return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 };

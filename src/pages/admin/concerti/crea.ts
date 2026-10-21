@@ -31,6 +31,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const evento = await creaConcerto({ ...corpoEvento(d), attachments: allegati.nuovi }, statoValido(f.get('stato')) ?? 'da-confermare');
     return json({ ok: true, id: evento.id, evento: evento.htmlLink, cartella: `https://drive.google.com/drive/folders/${cartella}`, avviso: avvisoInglese, inglese: ingleseScritto(d) });
   } catch (e) {
+    console.error('[concerto]', e);
     return json({ ok: false, errore: spiegaTesto(e) }, 500);
   }
 };
