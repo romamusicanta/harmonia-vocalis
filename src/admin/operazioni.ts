@@ -69,8 +69,15 @@ export async function creaEventoIn(c: Calendario, corpo: object): Promise<Evento
 export async function leggiEventoIn(c: Calendario, id: string): Promise<EventoApi> {
   return calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`);
 }
+// PATCH unisce i campi a quelli dell'evento: un concerto che passa da «tutto il giorno» (date) a un
+// orario (dateTime), o viceversa, avrebbe tutti e due e Google risponde «Invalid start time»
+// (successo il 21/10/2026). Per questo inizio e fine azzerano sempre l'altra forma
+type Momento = { date?: string | null; dateTime?: string | null; timeZone?: string | null };
+const momento = (m: Momento) => (m.dateTime ? { date: null, ...m } : { dateTime: null, timeZone: null, ...m });
 export async function aggiornaEventoIn(c: Calendario, id: string, corpo: object): Promise<EventoApi> {
-  return calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}?supportsAttachments=true`, { method: 'PATCH', body: JSON.stringify(corpo) });
+  const { start, end, ...resto } = corpo as { start?: Momento; end?: Momento };
+  const tutto = { ...resto, ...(start && { start: momento(start) }), ...(end && { end: momento(end) }) };
+  return calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}?supportsAttachments=true`, { method: 'PATCH', body: JSON.stringify(tutto) });
 }
 export async function cancellaEventoIn(c: Calendario, id: string) {
   await calendario(`${CAL}/calendars/${idCal(c)}/events/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch((e) => {
