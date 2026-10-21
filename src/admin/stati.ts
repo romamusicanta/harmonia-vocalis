@@ -89,3 +89,18 @@ export async function creaConcerto(corpo: object, stato: Stato): Promise<EventoA
   const e = await creaEventoIn('prove', { ...corpo, extendedProperties: { private: { tipo: 'concerto', stato } } });
   return sincronizza(e);
 }
+
+// Elimina un concerto: l'evento e, se c'è, la copia nel calendario pubblico. I file su Drive
+// (cartella, locandina, foto) restano; convocazione e assenze rimaste nel foglio non si vedono più.
+// Restituisce se il concerto era nel calendario pubblico (allora il sito va ripubblicato).
+export async function eliminaConcerto(id: string): Promise<{ eraPubblico: boolean }> {
+  const { e, calendario } = await leggiConcerto(id);
+  if (calendario === 'concerti') {
+    await cancellaEventoIn('concerti', id);
+    return { eraPubblico: true };
+  }
+  const copia = proprieta(e).pubblico;
+  if (copia) await cancellaEventoIn('concerti', copia);
+  await cancellaEventoIn('prove', id);
+  return { eraPubblico: Boolean(copia) };
+}

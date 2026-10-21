@@ -154,6 +154,7 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <div class="bottoni" style="margin-top:12px">
     <button class="btn g" type="submit">{modifica ? 'Salva le modifiche' : 'Crea il concerto'}</button>
     {evento && <a class="btn o" href={evento.htmlLink} target="_blank" rel="noopener">Apri nel calendario</a>}
+    {evento && <button class="btn o elimina-concerto" type="button" style="margin-left:auto;color:var(--rosso);border-color:currentColor" data-evento={evento.id} data-quando={v?.data.slice(0, 10).split('-').reverse().join('/')} data-titolo={[v?.opere[0]?.opera, v?.data.slice(0, 10).split('-').reverse().join('/')].filter(Boolean).join(', ')}>Elimina il concerto</button>}
   </div>
   <p id="esito" role="status"></p>
 </form>
@@ -338,6 +339,24 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   }
 
   // "Pubblica ora" nel messaggio (data-pubblica): lo gestisce src/admin/pubblicazione-client.ts
+
+  // Elimina il concerto (e la sua copia sul calendario pubblico), poi torna all'elenco con il messaggio
+  const elimina = modulo.querySelector<HTMLButtonElement>('.elimina-concerto');
+  elimina?.addEventListener('click', async () => {
+    if (!confirm(`Eliminare il concerto del ${elimina.dataset.quando}? Sparisce dal calendario di coristi e Maestro e, dopo la pubblicazione, dal sito pubblico. Locandina e foto restano su Drive.`)) return;
+    elimina.disabled = true;
+    try {
+      const f = new FormData();
+      f.set('evento', elimina.dataset.evento!);
+      const r = await fetch('/admin/concerti/elimina', { method: 'POST', body: f });
+      const j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
+      if (!j.ok) throw new Error(j.errore);
+      location.href = `/admin/concerti?${new URLSearchParams({ eliminato: elimina.dataset.titolo ?? '', ...(j.eraPubblico ? { pubblico: '1' } : {}) })}`;
+    } catch (e) {
+      mostra(`Non eliminato: ${(e as Error).message}`, 'errore');
+      elimina.disabled = false;
+    }
+  });
 
   modulo.addEventListener('submit', async (ev) => {
     ev.preventDefault();

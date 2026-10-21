@@ -26,6 +26,9 @@ const futuri = righe.filter((r) => r.futuro);
 const passati = righe.filter((r) => !r.futuro).reverse();
 const conAvvisi = righe.filter((r) => r.avvisi.length).length;
 const daPubblicare = righe.filter((r) => r.daPubblicare).length;
+// Dopo l'eliminazione di un concerto (dalla Modifica)
+const eliminato = Astro.url.searchParams.get('eliminato');
+const eraPubblico = Astro.url.searchParams.get('pubblico') === '1';
 const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${c.data.slice(0, 10)}T12:00:00`));
 ---
 
@@ -34,6 +37,11 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
   <p class="tenue" style="max-width:64ch">Ogni concerto ha uno stato: <b>Da confermare</b> e <b>Confermato</b> li vedono solo coristi e Maestro (nel calendario "Prove"); <b>In cartellone</b> lo copia nel calendario pubblico "Concerti" e compare sul sito dopo la pubblicazione. La convocazione è per i coristi e vale subito.</p>
   <p style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px"><a class="btn g" href="/admin/concerti/nuovo">+ Nuovo concerto</a>{daPubblicare > 0 && <a class="btn o" href="/admin">{daPubblicare === 1 ? '1 da pubblicare' : `${daPubblicare} da pubblicare`}: vai a Pubblicazione</a>}</p>
   <p id="esito" role="status" hidden></p>
+  {eliminato !== null && (
+    <p class="messaggio ok">Concerto eliminato{eliminato ? `: ${eliminato}` : ''}. {eraPubblico
+      ? <>Era sul sito pubblico: sparisce con la prossima pubblicazione. <button type="button" class="btn g piccolo" data-pubblica>Pubblica ora</button></>
+      : 'Non era sul sito pubblico: coristi e Maestro non lo vedono già più.'}</p>
+  )}
 
   {erroreCalendario
     ? <Errore e={erroreCalendario} />
