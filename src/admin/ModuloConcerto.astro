@@ -271,10 +271,14 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         const input = modulo.elements.namedItem(campo) as HTMLInputElement;
         if (!input.value.trim()) input.value = d[campo] ?? input.value;
       }
-      if (righeVuote('opere')) riempiRighe('opere', d.opere);
-      // Organico e brani letti sono dell'ultima opera
+      const opereLette = righeVuote('opere');
+      if (opereLette) riempiRighe('opere', d.opere);
+      // Organico e brani letti sono dell'ultima opera della locandina: vanno solo nella stessa opera,
+      // non in un'altra scritta a mano
       const ultima = document.getElementById('opere')!.lastElementChild!;
-      for (const campo of ['organico', 'brani']) {
+      const titolo = (s: string | null | undefined) => (s ?? '').toLowerCase().replace(/[^\p{L}\d]/gu, '');
+      const stessaOpera = opereLette || (d.opere.length > 0 && titolo(ultima.querySelector<HTMLInputElement>('[name="opera"]')!.value) === titolo(d.opere.at(-1).opera));
+      for (const campo of stessaOpera ? ['organico', 'brani'] : []) {
         const input = ultima.querySelector<HTMLInputElement>(`[name="${campo}"]`)!;
         if (!input.value.trim()) input.value = d[campo] ?? '';
       }
