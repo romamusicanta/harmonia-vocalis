@@ -15,7 +15,8 @@ interface Props {
   stato?: Stato;
 }
 const { valori, evento, stato = 'da-confermare' } = Astro.props;
-// Un concerto passato ha lo stato "Passato", ricavato dalla data: lo stato salvato non si cambia più
+// Un concerto passato ha lo stato "Passato", ricavato dalla data: si sceglie solo se è sul sito
+// (in cartellone, nell'archivio) o no (lo stato salvato, o Confermato se era in cartellone)
 const giaPassato = Boolean(evento && valori && passato(valori.data));
 const v = valori;
 const modifica = Boolean(evento);
@@ -46,11 +47,14 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   <input type="hidden" name="prima" value={JSON.stringify(v?.prima ?? {})} />
 
   {giaPassato ? (
-    <div class="campo stato-concerto">
-      <input type="hidden" name="stato" value={stato} />
-      <span class="legenda-stato">Stato</span>
-      <p style="margin:0"><span class="tag grigio">Passato</span> <span class="tenue">{stato === 'in-cartellone' ? 'È nell’archivio del sito pubblico.' : 'Non è andato in cartellone: non è sul sito pubblico.'}</span></p>
-    </div>
+    <fieldset class="campo stato-concerto" data-stato-iniziale={stato}>
+      <legend>Stato: <span class="tag grigio">Passato</span></legend>
+      <div class="scelte-stato">
+        <label><input type="radio" name="stato" value="in-cartellone" checked={stato === 'in-cartellone'} /><span><b>Sul sito</b><small>nell’archivio della pagina Concerti, con la sua pagina</small></span></label>
+        <label><input type="radio" name="stato" value={stato === 'in-cartellone' ? 'confermato' : stato} checked={stato !== 'in-cartellone'} /><span><b>Non sul sito</b><small>lo vedono solo coristi e Maestro</small></span></label>
+      </div>
+      <span class="aiuto">Il concerto è già passato: qui si decide solo se resta visibile sul sito pubblico. Il cambio vale dopo la pubblicazione.</span>
+    </fieldset>
   ) : (
   <fieldset class="campo stato-concerto">
     <legend>Stato</legend>
@@ -169,7 +173,6 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
   .anteprime-file .da-salvare figcaption { font-weight: 700; color: var(--primario); }
   .anteprime-file .da-salvare img { outline: 3px solid var(--accento); outline-offset: -3px; }
   .stato-concerto { border: 0; padding: 0; margin: 0 0 8px; }
-  .stato-concerto .legenda-stato { display: block; font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 8px; }
   .stato-concerto legend { font-weight: 700; font-size: 14px; color: var(--primario); margin-bottom: 8px; }
   .scelte-stato { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
   .scelte-stato label { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; padding: 10px 12px; background: var(--bianco); border: 2px solid var(--linea); border-radius: var(--raggio); cursor: pointer; }
@@ -386,9 +389,17 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
       const idEvento = j.id ?? modulo.querySelector<HTMLInputElement>('[name=evento]')?.value;
       const pulsanti = `<span style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px"><button type="button" class="btn g piccolo" data-pubblica>Pubblica ora</button>${idEvento && (modulo.querySelector<HTMLInputElement>('[name=data]')?.value ?? '') >= new Date().toISOString().slice(0, 10) ? `<a class="btn o piccolo" href="/admin/convocazioni?modifica=${encodeURIComponent(idEvento)}#modulo">Scrivi la convocazione</a>` : ''}<a class="btn o piccolo" href="/admin/concerti">Torna ai concerti</a></span>`;
       const statoScelto = modulo.querySelector<HTMLInputElement>('[name=stato]:checked') ?? modulo.querySelector<HTMLInputElement>('[name=stato]');
+      const iniziale = modulo.querySelector<HTMLElement>('[data-stato-iniziale]')?.dataset.statoIniziale;
       const pubblica = statoScelto?.value === 'in-cartellone'
         ? `Sul sito pubblico comparirà dopo la pubblicazione.${pulsanti}`
+        : iniziale === 'in-cartellone'
+        ? `Non sarà più sul sito pubblico: sparisce dall’archivio con la prossima pubblicazione.${pulsanti}`
+        : iniziale
+        ? `Non è sul sito pubblico, coristi e Maestro lo vedono già.${pulsanti.replace('<button type="button" class="btn g piccolo" data-pubblica>Pubblica ora</button>', '')}`
         : `${statoScelto?.closest('label') ? `Stato «${statoScelto.closest('label')!.querySelector('b')?.textContent ?? ''}»: non` : 'Non'} è sul sito pubblico, coristi e Maestro lo vedono già.${pulsanti.replace('<button type="button" class="btn g piccolo" data-pubblica>Pubblica ora</button>', '')}`;
+      // Un secondo salvataggio parte dallo stato appena salvato
+      const riquadro = modulo.querySelector<HTMLElement>('[data-stato-iniziale]');
+      if (riquadro && statoScelto) riquadro.dataset.statoIniziale = statoScelto.value;
       if (modifica) {
         (document.getElementById('locandina') as HTMLInputElement).value = '';
         // Le immagini appena salvate prendono il posto di quelle attuali nelle anteprime

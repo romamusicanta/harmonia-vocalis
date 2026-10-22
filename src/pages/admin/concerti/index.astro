@@ -34,7 +34,7 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
 
 <LayoutAdmin titolo="Concerti" sezione="concerti">
   <h1>Concerti</h1>
-  <p class="tenue" style="max-width:64ch">Ogni concerto ha uno stato: <b>Da confermare</b> e <b>Confermato</b> li vedono solo coristi e Maestro (nel calendario "Prove"); <b>In cartellone</b> lo copia nel calendario pubblico "Concerti" e compare sul sito dopo la pubblicazione. La convocazione è per i coristi e vale subito.</p>
+  <p class="tenue" style="max-width:64ch">Ogni concerto ha uno stato: <b>Da confermare</b> e <b>Confermato</b> li vedono solo coristi e Maestro (nel calendario "Prove"); <b>In cartellone</b> lo copia nel calendario pubblico "Concerti" e compare sul sito dopo la pubblicazione. Dopo la data un concerto è <b>Passato</b>: dalla Modifica si sceglie se resta nell'archivio del sito o no. La convocazione è per i coristi e vale subito.</p>
   <p style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px"><a class="btn g" href="/admin/concerti/nuovo">+ Nuovo concerto</a>{daPubblicare > 0 && <a class="btn o" href="/admin">{daPubblicare === 1 ? '1 da pubblicare' : `${daPubblicare} da pubblicare`}: vai a Pubblicazione</a>}</p>
   <p id="esito" role="status" hidden></p>
   {eliminato !== null && (
@@ -57,7 +57,7 @@ const dataBreve = (c: Concerto) => new Intl.DateTimeFormat('it-IT', { day: 'nume
               <div><b style="color:var(--primario)">{dataBreve(c)}</b> · {[c.autore, c.titolo].filter(Boolean).join(', ')}{c.luogo && <span class="tenue"> · {c.luogo}</span>}</div>
               <div style="display:flex;gap:14px;font-size:14px;flex-wrap:wrap">
                 {passato(c.data)
-                  ? <span class="tag grigio" title={stato === 'in-cartellone' ? 'Nell’archivio del sito pubblico' : 'Mai andato in cartellone: non è sul sito pubblico'}>Passato{stato === 'in-cartellone' ? ' · nell’archivio' : ' · non pubblico'}</span>
+                  ? <span class="tag grigio" title={stato === 'in-cartellone' ? 'Nell’archivio del sito pubblico' : 'Non è sul sito pubblico: si cambia dalla Modifica'}>Passato{stato === 'in-cartellone' ? ' · nell’archivio' : ' · non pubblico'}</span>
                   : <span class:list={['tag', { grigio: stato !== 'in-cartellone' }]}>{nomeStato(stato)}</span>}
                 {daPubblicare && <span class="tag">{stato === 'in-cartellone' ? 'Da pubblicare' : 'Da togliere dal sito: pubblica'}</span>}
                 <label class="in-home" title="Mostra il concerto tra le schede della home page"><input type="checkbox" data-evento={e.id} checked={c.home ?? (futuro || (!c.dataIncerta && stagione(c).id === stagioneInCorso))} /> In home</label>
