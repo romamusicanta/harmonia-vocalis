@@ -1,0 +1,94 @@
+---
+// Visore delle foto dei concerti nelle aree riservate (dal 22/10/2026, richiesta di Mario): un tocco
+// su una miniatura (link a /area/file/<id> con data-visore-foto) apre la foto grande a schermo intero,
+// con frecce, tastiera (← → Esc) e scorrimento col dito tra tutte le foto dello stesso gruppo
+// (l'elemento più vicino con data-gruppo-foto), come il visore del sito pubblico
+// (src/componenti/Galleria.astro). Didascalia dall'attributo data-didascalia del link. Il visore
+// dei file (src/area/VisoreFile.astro) lascia passare questi link.
+import Icona from '../componenti/Icona.astro';
+---
+
+<dialog class="visore-foto" aria-label="Foto">
+  <div class="vfo-testa">
+    <span class="vfo-conta"></span>
+    <button type="button" class="vfo-chiudi" aria-label="Chiudi"><Icona nome="chiudi" classe="" /></button>
+  </div>
+  <div class="vfo-corpo">
+    <button type="button" class="vfo-vai vfo-prec" aria-label="Foto precedente"><Icona nome="indietro" classe="" /></button>
+    <img alt="" />
+    <button type="button" class="vfo-vai vfo-succ" aria-label="Foto successiva"><Icona nome="freccia" classe="" /></button>
+  </div>
+  <p class="vfo-piede"></p>
+</dialog>
+
+<style>
+  .visore-foto { border: 0; padding: 0; margin: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: rgb(8 12 16 / .96); color: #fff; }
+  .visore-foto::backdrop { background: rgb(8 12 16 / .96); }
+  .visore-foto[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); }
+  .vfo-testa { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; padding-top: max(10px, env(safe-area-inset-top)); }
+  .vfo-conta { font-size: 14px; opacity: .75; }
+  .vfo-corpo { position: relative; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; min-height: 0; min-width: 0; padding: 0 8px; touch-action: pan-y; }
+  .vfo-corpo img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; user-select: none; }
+  .visore-foto button { background: rgb(255 255 255 / .14); color: #fff; border: 0; border-radius: 50%; width: 48px; height: 48px; display: grid; place-items: center; cursor: pointer; }
+  .visore-foto button:hover { background: rgb(255 255 255 / .28); }
+  .visore-foto button :global(svg) { width: 22px; height: 22px; }
+  .vfo-vai { position: absolute; top: 50%; transform: translateY(-50%); }
+  .vfo-prec { left: 14px; }
+  .vfo-succ { right: 14px; }
+  .vfo-vai[hidden] { display: none; }
+  .vfo-piede { margin: 0; padding: 12px 16px 18px; padding-bottom: max(18px, env(safe-area-inset-bottom)); text-align: center; font-size: 15px; opacity: .9; }
+  /* Sul telefono le frecce restano, più piccole e sopra la foto */
+  @media (max-width: 759.98px) {
+    .visore-foto .vfo-vai { width: 40px; height: 40px; background: rgb(0 0 0 / .45); }
+    .vfo-prec { left: 8px; }
+    .vfo-succ { right: 8px; }
+  }
+</style>
+
+<script>
+  const v = document.querySelector<HTMLDialogElement>('dialog.visore-foto');
+  if (v) {
+    const img = v.querySelector('img')!;
+    const conta = v.querySelector<HTMLElement>('.vfo-conta')!;
+    const piede = v.querySelector<HTMLElement>('.vfo-piede')!;
+    const prec = v.querySelector<HTMLButtonElement>('.vfo-prec')!;
+    const succ = v.querySelector<HTMLButtonElement>('.vfo-succ')!;
+    let foto: HTMLAnchorElement[] = [];
+    let i = 0;
+    const mostra = (n: number) => {
+      i = (n + foto.length) % foto.length;
+      const a = foto[i];
+      img.src = a.href;
+      img.alt = a.querySelector('img')?.alt ?? '';
+      conta.textContent = foto.length > 1 ? `${i + 1} / ${foto.length}` : '';
+      piede.textContent = a.dataset.didascalia ?? '';
+      prec.hidden = succ.hidden = foto.length < 2;
+      // La successiva si prepara subito, così lo scorrimento è più rapido
+      if (foto.length > 1) new Image().src = foto[(i + 1) % foto.length].href;
+    };
+    document.addEventListener('click', (e) => {
+      const a = (e.target as Element | null)?.closest?.('a[data-visore-foto]') as HTMLAnchorElement | null;
+      if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      e.preventDefault();
+      const gruppo = a.closest('[data-gruppo-foto]') ?? document;
+      foto = [...gruppo.querySelectorAll<HTMLAnchorElement>('a[data-visore-foto]')];
+      mostra(foto.indexOf(a));
+      v.showModal();
+    });
+    v.querySelector('.vfo-chiudi')!.addEventListener('click', () => v.close());
+    v.addEventListener('close', () => img.removeAttribute('src'));
+    prec.addEventListener('click', () => mostra(i - 1));
+    succ.addEventListener('click', () => mostra(i + 1));
+    v.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') mostra(i - 1); if (e.key === 'ArrowRight') mostra(i + 1); });
+    // Un tocco sullo sfondo chiude; lo scorrimento col dito cambia foto
+    v.addEventListener('click', (e) => { if (e.target === v || (e.target as Element).classList.contains('vfo-corpo')) v.close(); });
+    let x0: number | undefined;
+    v.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    v.addEventListener('touchend', (e) => {
+      if (x0 === undefined) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      x0 = undefined;
+      if (Math.abs(dx) > 50) mostra(dx < 0 ? i + 1 : i - 1);
+    });
+  }
+</script>

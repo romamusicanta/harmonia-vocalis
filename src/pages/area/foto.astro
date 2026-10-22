@@ -13,6 +13,7 @@ import { vesteCorrente } from '../../motore/url';
 import { parti } from '../../motore/concerti';
 import { concertiPerFoto, configurato, fotoDeiConcerti, sulSito, type ConcertoConFoto, type ConcertoScelta } from '../../area/fotoConcerti';
 import { normalizza } from '../../area/servizio';
+import VisoreFoto from '../../area/VisoreFoto.astro';
 
 export const prerender = false;
 const veste = vesteCorrente(undefined);
@@ -87,10 +88,10 @@ const caricate = Number(Astro.url.searchParams.get('caricate')) || 0;
         <div class="carta galleria" id="foto">
           <div class="ct"><h2>{scelto.titolo}</h2><span class="tenue" style="font-size:14px">{quando(scelto.data)} · {foto.length} foto</span></div>
           {foto.length > 0 ? (
-            <ul class="foto-griglia">
+            <ul class="foto-griglia" data-gruppo-foto>
               {foto.map((f) => (
                 <li>
-                  <a href={`/area/file/${f.id}`} target="_blank" rel="noopener"><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
+                  <a href={`/area/file/${f.id}`} target="_blank" rel="noopener" data-visore-foto data-didascalia={`Foto di ${f.chi}`}><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
                   <span class="chi">{f.chi}{f.visibilita === 'home' ? <span class="tag">In home</span> : f.visibilita === 'pubblica' && <span class="tag grigio">Sul sito</span>}</span>
                   {normalizza(f.caricatoDa) === email && !sulSito(f.visibilita) && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
                 </li>
@@ -101,6 +102,7 @@ const caricate = Number(Astro.url.searchParams.get('caricate')) || 0;
       )}
     </div>
   </div>
+  <VisoreFoto />
 </Base>
 
 <style>

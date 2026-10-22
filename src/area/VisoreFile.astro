@@ -311,7 +311,7 @@
     // In fase di cattura, prima di CaricamentoPagina e degli altri script
     document.addEventListener('click', (e) => {
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
-      if (!a || e.button !== 0 || a.hasAttribute('download')) return;
+      if (!a || e.button !== 0 || a.hasAttribute('download') || a.hasAttribute('data-visore-foto')) return;
       const u = new URL(a.href, location.href);
       if (u.origin !== location.origin || !/^\/(area|maestro)\/file\//.test(u.pathname)) return;
       e.preventDefault();
