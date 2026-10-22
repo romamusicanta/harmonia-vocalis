@@ -3,7 +3,8 @@
 // su una miniatura (link a /area/file/<id> con data-visore-foto) apre la foto grande a schermo intero,
 // con frecce, tastiera (← → Esc) e scorrimento col dito tra tutte le foto dello stesso gruppo
 // (l'elemento più vicino con data-gruppo-foto), come il visore del sito pubblico
-// (src/componenti/Galleria.astro). Didascalia dall'attributo data-didascalia del link. Il visore
+// (src/componenti/Galleria.astro). Didascalia dall'attributo data-didascalia del link e, facoltativo,
+// un link sotto la foto (data-link, data-testo-link: in Bacheca, al concerto della foto). Il visore
 // dei file (src/area/VisoreFile.astro) lascia passare questi link.
 import Icona from '../componenti/Icona.astro';
 ---
@@ -18,7 +19,7 @@ import Icona from '../componenti/Icona.astro';
     <img alt="" />
     <button type="button" class="vfo-vai vfo-succ" aria-label="Foto successiva"><Icona nome="freccia" classe="" /></button>
   </div>
-  <p class="vfo-piede"></p>
+  <p class="vfo-piede"><span class="vfo-testo"></span> <a class="vfo-link"></a></p>
 </dialog>
 
 <style>
@@ -33,13 +34,18 @@ import Icona from '../componenti/Icona.astro';
   .visore-foto button:hover { background: rgb(255 255 255 / .28); }
   .visore-foto button :global(svg) { width: 22px; height: 22px; }
   .vfo-vai { position: absolute; top: 50%; transform: translateY(-50%); }
+  /* Sopra la foto: fondo scuro, perché si vedano anche su una foto chiara */
+  .visore-foto .vfo-vai { background: rgb(0 0 0 / .5); }
+  .visore-foto .vfo-vai:hover { background: rgb(0 0 0 / .75); }
   .vfo-prec { left: 14px; }
   .vfo-succ { right: 14px; }
   .vfo-vai[hidden] { display: none; }
+  .vfo-link { color: var(--accento); margin-left: 8px; }
+  .vfo-link:empty { display: none; }
   .vfo-piede { margin: 0; padding: 12px 16px 18px; padding-bottom: max(18px, env(safe-area-inset-bottom)); text-align: center; font-size: 15px; opacity: .9; }
   /* Sul telefono le frecce restano, più piccole e sopra la foto */
   @media (max-width: 759.98px) {
-    .visore-foto .vfo-vai { width: 40px; height: 40px; background: rgb(0 0 0 / .45); }
+    .visore-foto .vfo-vai { width: 40px; height: 40px; }
     .vfo-prec { left: 8px; }
     .vfo-succ { right: 8px; }
   }
@@ -50,7 +56,8 @@ import Icona from '../componenti/Icona.astro';
   if (v) {
     const img = v.querySelector('img')!;
     const conta = v.querySelector<HTMLElement>('.vfo-conta')!;
-    const piede = v.querySelector<HTMLElement>('.vfo-piede')!;
+    const testo = v.querySelector<HTMLElement>('.vfo-testo')!;
+    const link = v.querySelector<HTMLAnchorElement>('.vfo-link')!;
     const prec = v.querySelector<HTMLButtonElement>('.vfo-prec')!;
     const succ = v.querySelector<HTMLButtonElement>('.vfo-succ')!;
     let foto: HTMLAnchorElement[] = [];
@@ -58,10 +65,17 @@ import Icona from '../componenti/Icona.astro';
     const mostra = (n: number) => {
       i = (n + foto.length) % foto.length;
       const a = foto[i];
-      img.src = a.href;
+      // Subito la miniatura già caricata, poi la foto intera appena arriva
+      const intera = a.href;
+      img.src = a.querySelector('img')?.getAttribute('src') || intera;
+      const grande = new Image();
+      grande.onload = () => { if (foto[i] === a) img.src = intera; };
+      grande.src = intera;
       img.alt = a.querySelector('img')?.alt ?? '';
       conta.textContent = foto.length > 1 ? `${i + 1} / ${foto.length}` : '';
-      piede.textContent = a.dataset.didascalia ?? '';
+      testo.textContent = a.dataset.didascalia ?? '';
+      link.textContent = a.dataset.link ? a.dataset.testoLink ?? '' : '';
+      if (a.dataset.link) link.href = a.dataset.link; else link.removeAttribute('href');
       prec.hidden = succ.hidden = foto.length < 2;
       // La successiva si prepara subito, così lo scorrimento è più rapido
       if (foto.length > 1) new Image().src = foto[(i + 1) % foto.length].href;
