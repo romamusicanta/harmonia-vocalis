@@ -70,9 +70,27 @@ async function carica(): Promise<Concerto[]> {
   }
 }
 
-const dalCalendario = await carica();
 const oggi = giornoIso(new Date());
 const giorno = (c: Concerto) => c.data.slice(0, 10);
+
+// «Il primo concerto del coro» (dal 22/10/2026, richiesta di Mario) è il più antico dei concerti
+// passati del calendario pubblico, cioè di quelli visibili sul sito: un concerto tolto dal sito
+// (Amministrazione → Concerti → Modifica, «Non sul sito») passa la scritta al successivo. Per questo
+// un «Evidenza: Il primo concerto del coro» scritto a mano nell'evento si ignora e si ricalcola
+// qui; il concerto più antico tiene la sua evidenza, se ne ha un'altra.
+const PRIMO_IT = /^il primo concerto del coro$/i;
+const PRIMO_EN = /^the choir.s first concert$/i;
+function conPrimo(concerti: Concerto[]): Concerto[] {
+  const puliti = concerti.map((c) => {
+    if (!PRIMO_IT.test(c.evidenza?.trim() ?? '')) return c;
+    const en = c.en && PRIMO_EN.test(c.en.evidenza?.trim() ?? '') ? { ...c.en, evidenza: undefined } : c.en;
+    return { ...c, evidenza: undefined, en };
+  });
+  const primo = puliti.filter((c) => giorno(c) < oggi).sort((a, b) => a.data.localeCompare(b.data))[0];
+  return puliti.map((c) => (c === primo && !c.evidenza ? { ...c, evidenza: 'Il primo concerto del coro' } : c));
+}
+
+const dalCalendario = conPrimo(await carica());
 
 // In programma: dal più vicino
 const prossimi = dalCalendario.filter((c) => giorno(c) >= oggi).sort((a, b) => a.data.localeCompare(b.data));

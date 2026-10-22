@@ -61,11 +61,12 @@ export default {
     { sezione: 'Bassi', voci: 11 },
   ],
   numeri: [
-    { valore: '2019', testo: 'Anno di nascita, con la Missa in Angustiis di Haydn' },
+    // {primoConcerto}, {primoAnno}: il più antico concerto visibile sul sito (src/motore/primoConcerto.ts)
+    { valore: '2019', testo: 'Anno di nascita · primo concerto: {primoConcerto}' },
     { valore: 'voci', testo: 'Voci, in quattro sezioni' }, // contate dalla scheda Coristi (coristi attuali)
     { valore: '80', testo: 'Coristi circa, insieme al Coro Ruggero Giovannelli' },
     // 'archivio': il numero dei concerti dell'archivio, contato a ogni pubblicazione
-    { valore: 'archivio', testo: 'Concerti in archivio dal 2019 a oggi' },
+    { valore: 'archivio', testo: 'Concerti in archivio dal {primoAnno} a oggi' },
   ],
   associatoA: [
     { nome: 'ARCL Lazio', url: 'https://www.lazioincoro.it/', descrizione: 'Associazione Regionale Cori del Lazio APS: la rete dei cori della regione.' },

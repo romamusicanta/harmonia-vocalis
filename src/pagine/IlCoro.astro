@@ -11,7 +11,8 @@ import Icona from '../componenti/Icona.astro';
 import Foto from '../componenti/Foto.astro';
 
 import { contesto } from '../motore/url';
-import { archivio, chiaveOpera, CATALOGO, slug } from '../motore/concerti';
+import { archivio, chiaveOpera, CATALOGO, parti, slug } from '../motore/concerti';
+import { conPrimoConcerto } from '../motore/primoConcerto';
 import { concertoIn } from '../motore/inglese';
 import { fotoCapitoli, totaleVoci } from '../motore/coro';
 import { testo } from '../motore/testi';
@@ -23,11 +24,14 @@ const { veste } = Astro.props;
 const { en, l, lingua, coro } = contesto(Astro.url, veste);
 
 const { dati, html } = testo<{ titolo: string; lead?: string; attacco?: string }>('storia', lingua);
+// L'anno del primo concerto visibile sul sito (senza concerti, quello di nascita)
+const primoAnno = archivio.length ? parti(archivio.at(-1)!).anno : String(coro.fondazione);
 // Il punto finale del titolo si colora con l'accento
 const titolo = dati.titolo.replace(/\.$/, '');
 
 // I capitoli: il corpo diviso ai titoli «## …» (il testo prima del primo titolo, se c'è, va nel primo)
-const corpo = await html();
+// {primoAnno}, {primoConcerto}, {primoLuogo}: il primo concerto visibile sul sito (src/motore/primoConcerto.ts)
+const corpo = conPrimoConcerto(await html(), lingua, true);
 let pezzi = corpo.split(/(?=<h2[\s>])/).map((p) => p.trim()).filter(Boolean);
 if (pezzi.length > 1 && !pezzi[0].startsWith('<h2')) {
   const [inizio, ...resto] = pezzi;
@@ -122,7 +126,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
                   </li>
                 ))}
               </ol>
-              <a class="link-freccia" href={l('/concerti#archivio')}>{en ? `All concerts since ${coro.fondazione}` : `Tutti i concerti dal ${coro.fondazione}`} <Icona nome="freccia" /></a>
+              <a class="link-freccia" href={l('/concerti#archivio')}>{en ? `All concerts since ${primoAnno}` : `Tutti i concerti dal ${primoAnno}`} <Icona nome="freccia" /></a>
             </div>
           )}
         </>
@@ -137,7 +141,7 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
         <div class="numeri">
           {coro.numeri.map((n) => (
             <div class="numero">
-              <b>{n.valore === 'archivio' ? archivio.length : n.valore === 'voci' ? voci : n.valore}</b><span>{n.testo}</span>
+              <b>{n.valore === 'archivio' ? archivio.length : n.valore === 'voci' ? voci : n.valore}</b><span>{conPrimoConcerto(n.testo, lingua)}</span>
               {n.valore === 'voci' && (
                 <ul class="organico organico-mini">
                   {coro.organico.map((s) => (

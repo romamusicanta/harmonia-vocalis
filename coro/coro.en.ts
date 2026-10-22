@@ -20,10 +20,10 @@ export default {
   direttivo: [{ ruolo: 'President' }, { ruolo: 'Vice-president' }, { ruolo: 'Conductor' }, { ruolo: 'Treasurer' }],
   organico: [{ sezione: 'Sopranos' }, { sezione: 'Altos' }, { sezione: 'Tenors' }, { sezione: 'Basses' }],
   numeri: [
-    { testo: 'Year of foundation, with Haydn’s Missa in Angustiis' },
+    { testo: 'Year of foundation · first concert: {primoConcerto}' },
     { testo: 'Voices, in four sections' },
     { testo: 'Singers in all, approximately, together with the Coro Ruggero Giovannelli' },
-    { testo: 'Concerts in the archive, from 2019 to today' },
+    { testo: 'Concerts in the archive, from {primoAnno} to today' },
   ],
   associatoA: [
     { descrizione: 'Associazione Regionale Cori del Lazio APS: the network of choirs in the Lazio region.' },

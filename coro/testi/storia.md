@@ -15,7 +15,7 @@ L’ascolto della musica colta non è prerogativa di contesti privilegiati, e of
 
 ## Cosa abbiamo cantato
 
-Il primo concerto, alla fine del 2019, fu la *Missa in Angustiis* di Haydn, eseguita a Roma e a Segni. Da allora abbiamo affrontato il Requiem di Mozart, lo Stabat Mater e la Petite Messe Solennelle di Rossini, la Messa di Gloria di Puccini, i Carmina Burana di Orff, il Messiah di Händel.
+Il primo concerto fu {primoConcerto}, nel {primoAnno}, a {primoLuogo}. Da allora abbiamo affrontato il Requiem di Mozart, lo Stabat Mater e la Petite Messe Solennelle di Rossini, la Messa di Gloria di Puccini, i Carmina Burana di Orff, il Messiah di Händel.
 
 Il coro è giovane, ma non altrettanto le voci che lo animano: buona parte dei coristi vanta un'esperienza pluriennale in altre formazioni corali del territorio romano.
 
