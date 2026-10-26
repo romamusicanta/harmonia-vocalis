@@ -97,8 +97,8 @@ const [sigla1, sigla2] = coro.stagione.sigla.split('/');
         con più di una, un carosello che le alterna in dissolvenza (pallini per sceglierle). Senza, la foto di apertura */}
     <div class="blocco-foto">
       {fotoHome.length === 0
-        ? <Foto nome={coro.foto.apertura} alt={en ? `The ${coro.nome} in concert` : `Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" />
-        : <CaroselloFoto foto={fotoHome} etichetta={en ? 'Concert photos' : 'Foto dei concerti'} />}
+        ? <Foto nome={coro.foto.apertura} alt={en ? `The ${coro.nome} in concert` : `Il ${coro.nome} in concerto`} caricamento="eager" sizes="(min-width: 980px) 60vw, 100vw" />
+        : <CaroselloFoto foto={fotoHome} etichetta={en ? 'Concert photos' : 'Foto dei concerti'} sizes="(min-width: 980px) 60vw, 100vw" />}
       {prossimo && d && (
         <a class="scheda" href={l(`/concerti/${slug(prossimo)}`)}>
           <div class="n">{d.giorno}<small>{d.mese} · {d.giornoSettimana}</small></div>
