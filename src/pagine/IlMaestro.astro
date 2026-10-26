@@ -60,9 +60,9 @@ const attacco = senzaGrassetto(m.presentazione).charAt(0).toLowerCase() + senzaG
 
 <Base veste={veste} titolo={en ? 'The Conductor' : 'Il Maestro'} pagina="il-maestro" anteprima={m.foto} descrizione={en ? `Maestro ${m.nome}: ${attacco}.` : `Il M° ${m.nome}, ${attacco}.`}>
   {/* Dati: coro.config.ts → maestro; etichetta da coro/testi/maestro.md */}
-  <section class="apertura" style="border-bottom:1px solid var(--linea)">
-    <div class="w" style="padding-top:0">
-      <div class="stagione" style="padding-top:72px">
+  <section class="apertura">
+    <div class="w">
+      <div class="stagione">
         <span class="eti">{dati.etichetta ?? (en ? 'The conductor of the choir' : 'Il Maestro del coro')}</span>
         <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{nome}<span>.</span></h1>
         <p><ConLink testo={m.presentazione} /></p>
@@ -71,8 +71,8 @@ const attacco = senzaGrassetto(m.presentazione).charAt(0).toLowerCase() + senzaG
       <div class="blocco-foto" style="min-height:520px">
         {/* Le foto scelte dai redattori per il carosello (Foto del sito → Il Maestro, dal 13/10/2026); senza, la foto del Maestro */}
         {caroselloMaestro.length
-          ? <CaroselloFoto foto={caroselloMaestro.map((nome, n) => ({ nome, alt: en ? `Maestro ${m.nome}, photo ${n + 1}` : `Il M° ${m.nome}, foto ${n + 1}` }))} etichetta={en ? `Photos of Maestro ${m.nome}` : `Foto del M° ${m.nome}`} stile="object-position:center 20%" />
-          : <Foto nome={m.foto} alt={en ? `Maestro ${m.nome}` : `Il M° ${m.nome}`} caricamento="eager" sizes="(min-width: 980px) 50vw, 100vw" style="object-position:center 20%;mix-blend-mode:normal;opacity:1" />}
+          ? <CaroselloFoto foto={caroselloMaestro.map((nome, n) => ({ nome, alt: en ? `Maestro ${m.nome}, photo ${n + 1}` : `Il M° ${m.nome}, foto ${n + 1}` }))} etichetta={en ? `Photos of Maestro ${m.nome}` : `Foto del M° ${m.nome}`} stile="object-position:center 20%" sizes="(min-width: 980px) 60vw, 100vw" />
+          : <Foto nome={m.foto} alt={en ? `Maestro ${m.nome}` : `Il M° ${m.nome}`} caricamento="eager" sizes="(min-width: 980px) 60vw, 100vw" style="object-position:center 20%;mix-blend-mode:normal;opacity:1" />}
         {/* Dati: coro.config.ts → maestro.riquadro, cambiabile da Testi del sito */}
         {numeroRiquadro ? (
           <div class="scheda" style="max-width:300px"><div class="n" style="font-size:44px">{numeroRiquadro}{etichettaRiquadro && <small>{etichettaRiquadro}</small>}</div>{fraseRiquadro && <p style="font-size:16px;font-weight:600"><ConLink testo={fraseRiquadro} /></p>}</div>
