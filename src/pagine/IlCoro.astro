@@ -1,5 +1,5 @@
 ---
-// Pagina "Il Coro" (riorganizzata il 19/10/2026, proposta accettata da Mario): foto grande (dal 26/10/2026 in cima, sopra il titolo), titolo e
+// Pagina "Il Coro" (riorganizzata il 19/10/2026, proposta accettata da Mario): etichetta «Il coro», foto grande, titolo (dal 26/10/2026) e
 // sotto la frase in evidenza; poi la storia in capitoli (uno per «## titolo» di coro/testi/storia.md),
 // ognuno con una foto accanto, alternata a destra e a sinistra; sotto il secondo capitolo la fila delle
 // opere cantate, dall'archivio dei concerti; i numeri con l'organico per sezione; direttivo e
@@ -74,17 +74,17 @@ const iconeAssociazioni = ['persone', 'nota'] as const;
 ---
 
 <Base veste={veste} titolo={en ? 'The Choir' : 'Il Coro'} pagina="il-coro" anteprima={coro.foto.coro} descrizione={en ? `History of the ${coro.nome}, founded in Rome in ${coro.fondazione}: ${voci} voices in four sections, board and affiliations.` : `La storia del ${coro.nome}, nato a ${coro.citta} nel ${coro.fondazione}: ${voci} voci in quattro sezioni, direttivo e associazioni.`}>
-  {/* Dati: coro.config.ts → foto.coro (o Sito/Foto su Drive); in cima, sopra il titolo, con lo spazio della home (dal 26/10/2026) */}
+  {/* In cima l'etichetta «Il coro», poi la foto grande, poi il titolo (dal 26/10/2026, richiesta di Mario).
+      Dati: coro.config.ts → foto.coro (o Sito/Foto su Drive); coro/testi/storia.md (titolo, attacco, corpo) */}
   <div class="w" style="padding-top:48px">
+    <span class="eti" style="margin-bottom:20px">{en ? 'The Choir' : 'Il Coro'}</span>
     <div class="blocco-foto" style="min-height:clamp(260px,38vw,560px)">
       <Foto nome={coro.foto.coro} alt={en ? `The ${coro.nome}` : `Il ${coro.nome}`} sizes="(min-width: 1320px) 1240px, 100vw" caricamento="eager" />
     </div>
   </div>
 
-  {/* Dati: coro/testi/storia.md (titolo, attacco, corpo) */}
-  <header class="intesta" style="padding-top:56px">
+  <header class="intesta" style="padding-top:48px">
     <div class="w">
-      <span class="eti" style="margin-bottom:20px">{en ? 'The Choir' : 'Il Coro'}</span>
       <h1>{titolo}<span>.</span></h1>
     </div>
   </header>
