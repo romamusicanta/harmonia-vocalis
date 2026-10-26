@@ -40,9 +40,9 @@ const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((
 
 <Base veste={veste} titolo={en ? 'Sing with us' : 'Canta con noi'} anteprima={coro.foto.prove ?? coro.foto.coro} descrizione={en ? `Open auditions: the ${coro.nome} is looking for new voices in Rome.` : `Audizioni aperte: il ${coro.nome} cerca nuove voci a ${coro.citta}.`} pagina="canta-con-noi">
   {/* Dati: stagione e presentazione da coro.config.ts e coro/testi/canta-con-noi.md; organico e prove da coro.config.ts */}
-  <section class="apertura" style="border-bottom:1px solid var(--linea)">
-    <div class="w" style="padding-top:0">
-      <div class="stagione" style="padding-top:72px">
+  <section class="apertura">
+    <div class="w">
+      <div class="stagione">
         <span class="eti">{en ? 'Open auditions · Season' : 'Audizioni aperte · Stagione'} {coro.stagione.sigla}</span>
         <h1 style="font-size:clamp(32px,4.2vw,54px);line-height:1.05;letter-spacing:-0.012em">{en ? 'Sing with us' : 'Canta con noi'}<span>.</span></h1>
         <div>
