@@ -135,12 +135,10 @@ async function cartella(s: Sessione, genitore: string, nome: string): Promise<st
   return nuova.id;
 }
 
-// Concerti/<stagione>/<nome>/ con le sottocartelle Foto e Registrazioni (vedi il LEGGIMI su Drive)
+// Concerti/<stagione>/<nome>/, solo per la locandina (vedi il LEGGIMI su Drive): fino al 27/10/2026
+// c'erano anche le sottocartelle Foto e Registrazioni, mai usate; le foto stanno in "Foto dei concerti"
 export async function cartellaConcerto(s: Sessione, stagione: string, nome: string) {
-  const id = await cartella(s, await cartella(s, DRIVE_CARTELLA_CONCERTI!, stagione), nome);
-  await cartella(s, id, 'Foto');
-  await cartella(s, id, 'Registrazioni');
-  return id;
+  return cartella(s, await cartella(s, DRIVE_CARTELLA_CONCERTI!, stagione), nome);
 }
 
 interface FileDrive { id: string; name: string; webViewLink: string }
