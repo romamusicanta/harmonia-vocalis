@@ -17,7 +17,7 @@ L’ascolto della musica colta non è prerogativa di contesti privilegiati e off
 
 Alla fine del 2019 si tennero i tre concerti: furono la *Missa in Angustiis* di Haydn in ottobre a Roma e in novembre a Segni, e il Concerto di Capodanno (brani d’opera) a Velletri.
 
-Dal 2020 l’insorgenza del COVID-19 impedì il canto nei concerti: solo a novembre 2021 si tenne un concerto a Cerveteri, secondo le regole che al tempo la Conferenza delle Regioni indicava ai cori di osservare (mascherina, distanza…).
+Dal 2020 l’insorgenza del COVID-19 impedì il canto nei concerti: solo a dicembre 2021 si tenne un concerto a Cerveteri, secondo le regole che al tempo la Conferenza delle Regioni indicava ai cori di osservare (mascherina, distanza…).
 
 Gli anni successivi hanno visto la crescita del Coro, in termini di organico e capacità di canto, e l’esibizione in diversi concerti sul territorio di Roma e provincia.
 

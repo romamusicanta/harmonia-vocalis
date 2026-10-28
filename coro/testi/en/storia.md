@@ -16,7 +16,7 @@ Listening to art music is not the preserve of privileged circles, and offering i
 
 At the end of 2019 came the first three concerts: Haydn’s *Missa in Angustiis* in October in Rome and in November in Segni, and the New Year’s Concert (opera excerpts) in Velletri.
 
-From 2020 the outbreak of COVID-19 made singing in concerts impossible: only in November 2021 was a concert held, in Cerveteri, following the rules that the Conference of the Regions then asked choirs to observe (masks, distancing…).
+From 2020 the outbreak of COVID-19 made singing in concerts impossible: only in December 2021 was a concert held, in Cerveteri, following the rules that the Conference of the Regions then asked choirs to observe (masks, distancing…).
 
 The following years saw the Choir grow, in numbers and in singing ability, and perform in many concerts in Rome and the surrounding province.
 
