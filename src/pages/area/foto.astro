@@ -4,7 +4,7 @@
 // 13/10/2026 la pagina mostra solo le sue foto, per non caricare centinaia di miniature, e le foto caricate
 // vanno in quel concerto. Il caricamento: una o più foto; il browser le riduce (lato lungo 2400 px, JPEG)
 // e le carica una dopo l'altra (/area/foto/carica). Sotto, le foto del concerto che vedono i coristi (miniature da /area/foto/miniatura, la foto intera da /area/file),
-// con chi le ha caricate e "Sul sito" per quelle che i redattori hanno messo nel sito pubblico; chi
+// con "Sul sito" per quelle che i redattori hanno messo nel sito pubblico; chi
 // ha caricato una foto la può togliere, finché non è sul sito pubblico (poi solo i redattori).
 import Base from '../../layouts/Base.astro';
 import Icona from '../../componenti/Icona.astro';
@@ -91,8 +91,8 @@ const caricate = Number(Astro.url.searchParams.get('caricate')) || 0;
             <ul class="foto-griglia" data-gruppo-foto>
               {foto.map((f) => (
                 <li>
-                  <a href={`/area/file/${f.id}`} target="_blank" rel="noopener" data-visore-foto data-didascalia={`Foto di ${f.chi}`}><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
-                  <span class="chi">{f.chi}{f.visibilita === 'home' ? <span class="tag">In home</span> : f.visibilita === 'pubblica' && <span class="tag grigio">Sul sito</span>}</span>
+                  <a href={`/area/file/${f.id}`} target="_blank" rel="noopener" data-visore-foto data-didascalia={scelto.titolo}><img src={`/area/foto/miniatura/${f.id}`} alt={`Foto del concerto ${scelto.titolo}`} loading="lazy" /></a>
+                  {f.visibilita === 'home' ? <span class="chi"><span class="tag">In home</span></span> : f.visibilita === 'pubblica' && <span class="chi"><span class="tag grigio">Sul sito</span></span>}
                   {normalizza(f.caricatoDa) === email && !sulSito(f.visibilita) && <button type="button" class="togli-foto" data-id={f.id} title="Togli questa foto" aria-label="Togli questa foto"><Icona nome="chiudi" classe="" /></button>}
                 </li>
               ))}

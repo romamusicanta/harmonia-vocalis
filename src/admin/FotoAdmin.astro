@@ -26,8 +26,7 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
 <ul class="foto-admin">
   {foto.map((f) => (
     <li class:list={[f.visibilita]} data-id={f.id} data-pixel={f.larghezza && f.altezza ? f.larghezza * f.altezza : 0} data-byte={f.byte ?? 0} data-md5={f.md5 ?? ''} data-caricata={f.caricata} data-misura={misura(f)}>
-      <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
-      <small class="tenue" style="overflow-wrap:anywhere">{f.chi}</small>
+      <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt="Foto del concerto" loading="lazy" /></a>
       <small class="doppia" hidden></small>
       <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
         {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
