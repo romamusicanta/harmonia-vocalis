@@ -114,6 +114,22 @@ export async function rispondiCaricamento(
   completa?: (idFile: string, nome: string, dopo: Record<string, string>) => Promise<void>,
 ) {
   try {
+    // Importazione dal Chorus Repository (src/admin/repository.ts; solo dall'Amministrazione): corpo JSON
+    // con l'id del file nel repository e i dati della pagina, come per «inizia»; il file si copia da
+    // Drive a Drive nella stessa cartella in cui andrebbe caricato, poi si chiama completa
+    if (request.headers.get('x-azione') === 'importa') {
+      if (!new URL(request.url).pathname.startsWith('/admin/')) return json({ ok: false, errore: 'Si importa solo dall’area redattori.' }, 403);
+      const { leggiDalRepository, copiaDalRepository, giaImportato } = await import('../admin/repository');
+      const d = (await request.json()) as Richiesta & { id: string };
+      const origine = await leggiDalRepository(String(d.id));
+      if (origine.mimeType === CARTELLA) return json({ ok: false, errore: `«${origine.name}» è una cartella.` }, 400);
+      const dest = await prepara({ ...d, nome: origine.name, tipo: origine.mimeType, dimensione: Number(origine.size ?? 0) });
+      const prima = await giaImportato(dest.cartella, origine.id);
+      if (prima) return json({ ok: false, errore: `«${origine.name}» è già stato importato qui.` }, 409);
+      const copia = await copiaDalRepository(origine.id, dest);
+      await completa?.(copia.id, dest.nome, dest.dopo ?? {});
+      return json({ ok: true, fatto: true, id: copia.id });
+    }
     if (request.headers.get('x-azione') === 'inizia') {
       const d = (await request.json()) as Richiesta;
       d.nome = String(d.nome ?? '').trim().slice(0, 150) || 'file';

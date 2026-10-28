@@ -11,6 +11,7 @@ import { linkWhatsapp } from '../area/bacheca';
 import InvioNotifica from '../area/InvioNotifica.astro';
 import { giornoEsteso } from './prove';
 import Icona from '../componenti/Icona.astro';
+import { repositoryConfigurato } from './repository';
 
 // titolo e dopo: per una prova nuova creata da un'altra pagina (la prova generale dalla convocazione)
 interface Props { prova?: Prova; data?: string; base: '/admin' | '/maestro'; titolo?: string; dopo?: string }
@@ -115,6 +116,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
     <p class="stato-reg" role="status"></p>
     <div class="bottoni-reg">
       <button class="btn g" type="button" id="carica-reg" disabled>Carica la registrazione</button>
+      {repositoryConfigurato() && <button class="btn o importa-repository" type="button">Importa dal Chorus Repository</button>}
       {whatsapp && <a class="btn o" href={linkWhatsapp(whatsapp)} target="_blank" rel="noopener"><Icona nome="whatsapp" />Invia link con WhatsApp</a>}
       {whatsapp && <InvioNotifica messaggio={whatsapp} classe="btn o" />}
     </div>
@@ -199,6 +201,7 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
 <script>
   // Registrazioni della prova: caricamento a pezzi e "Togli" (/admin/prove/registrazione)
   import { carica } from '../area/caricamento-client';
+  import { scegliDalRepository, importaTutti, esitoImportazione } from './repository-client';
   const box = document.querySelector<HTMLElement>('.registrazioni-prova');
   if (box) {
     const input = box.querySelector<HTMLInputElement>('#file-reg')!;
@@ -232,6 +235,26 @@ const peso = (n?: number) => (n ? `${(n / 1024 / 1024).toFixed(1).replace('.', '
         stato.textContent = (e as Error).message;
         pulsante.disabled = input.disabled = false;
       }
+    });
+    // Importa dal Chorus Repository: i file audio si copiano nella cartella della prova
+    box.querySelector<HTMLButtonElement>('.importa-repository')?.addEventListener('click', async (ev) => {
+      const b = ev.currentTarget as HTMLButtonElement;
+      const scelti = await scegliDalRepository({ tipi: 'audio', titolo: 'Registrazioni dal Chorus Repository' });
+      if (!scelti.length) return;
+      b.disabled = pulsante.disabled = input.disabled = true;
+      avanza.hidden = false;
+      const titolo = scelti.length === 1 ? box.querySelector<HTMLInputElement>('#titolo-reg')!.value : '';
+      const { ids, errori } = await importaTutti(scelti, '/admin/prove/registrazione', () => ({ evento: box.dataset.evento!, titolo }), (q, m) => { barra.value = Math.round(q * 100); if (m) stato.textContent = m; });
+      if (ids.length && !errori.length) {
+        const u = new URL(location.href);
+        u.searchParams.set('caricate', ids.join(','));
+        u.hash = 'registrazioni';
+        location.replace(u);
+        return;
+      }
+      stato.textContent = esitoImportazione(ids.length, errori, ['registrazione importata', 'registrazioni importate']);
+      b.disabled = input.disabled = false;
+      if (ids.length) setTimeout(() => { const u = new URL(location.href); u.searchParams.set('caricate', ids.join(',')); u.hash = 'registrazioni'; location.replace(u); }, 5000);
     });
     box.querySelectorAll<HTMLButtonElement>('.togli-reg').forEach((b) => b.addEventListener('click', async () => {
       if (!confirm('Togliere questa registrazione? Va nel cestino del Drive del coro.')) return;

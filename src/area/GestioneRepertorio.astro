@@ -19,9 +19,12 @@ import Errore from './Errore.astro';
 import SceltaPezzi from './SceltaPezzi.astro';
 import VocePezzo from './VocePezzo.astro';
 import { comeHtml } from './testo';
+import { repositoryConfigurato } from '../admin/repository';
 
 interface Props { base: '/admin' | '/maestro' }
 const { base } = Astro.props;
+// «Importa dal Chorus Repository» accanto ai caricamenti, solo nell'area redattori
+const repository = base === '/admin' && repositoryConfigurato();
 const q = Astro.url.searchParams;
 
 let errore: unknown;
@@ -193,6 +196,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         ))}
         {!inModifica.spartiti.length && <p class="tenue">Nessuno spartito.</p>}
         <label class="carica">Carica spartiti <small>(PDF, anche più di uno: il nome del file diventa il titolo; se è il nome di un brano, lo spartito contiene quel brano)</small><input type="file" data-uso="spartito" accept="application/pdf,image/*" multiple /></label>
+        {repository && <button type="button" class="btn o piccolo importa-repository" data-uso="spartito">Importa spartiti dal Chorus Repository</button>}
       </div>
 
       <div class="file-gruppo" id="tracce">
@@ -232,6 +236,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
             <form method="post" class="carica-gruppo" data-gruppo={g.titolo}>
               <input type="hidden" name="azione" value="aggiungi-link" /><input type="hidden" name="id" value={inModifica.id} /><input type="hidden" name="gruppo" value={g.titolo} />
               <label class="btn o piccolo carica-traccia">Aggiungi tracce<input type="file" data-uso="traccia" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" multiple class="sr" /></label>
+              {repository && <button type="button" class="btn o piccolo importa-repository" data-uso="traccia">Importa tracce</button>}
               <details class="con-link">
                 <summary class="btn o piccolo">Aggiungi un link</summary>
                 <div class="campi-link">
@@ -254,6 +259,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
               </fieldset>
             )}
             <label class="carica">File audio <small>(anche tutti insieme: la voce di ognuno si indovina dal nome del file, e si corregge prima di caricare)</small><input type="file" data-uso="traccia" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.opus" multiple /></label>
+            {repository && <button type="button" class="btn o piccolo importa-repository" data-uso="traccia">Importa tracce dal Chorus Repository</button>}
             <details class="con-link">
               <summary class="btn o piccolo">Oppure un link</summary>
               <div class="campi-link">
@@ -375,6 +381,7 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   // pagina. Gli spartiti partono subito; per le tracce prima si sceglie la voce di ogni file
   // (indovinata dal nome, src/area/voci.ts), poi «Carica le tracce»
   import { carica } from './caricamento-client';
+  import { importa, scegliDalRepository, type Scelto } from '../admin/repository-client';
   import { indovinaVoce, type Voce } from './voci';
   import { preparaTendine } from '../motore/tendine';
   const box = document.querySelector<HTMLElement>('[data-file]');
@@ -389,9 +396,11 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
   const modulo = document.querySelector<HTMLFormElement>('#modulo');
   let modificato = false;
   modulo?.addEventListener('input', () => { modificato = true; });
-  const blocca = (si: boolean) => box?.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input[type=file], .carica-tracce').forEach((i) => (i.disabled = si));
+  const blocca = (si: boolean) => box?.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input[type=file], .carica-tracce, .importa-repository').forEach((i) => (i.disabled = si));
 
-  type DaCaricare = { file: File; extra: Record<string, string> };
+  // Un file scelto dal computer o dal Chorus Repository (src/admin/repository-client.ts: si copia su Drive)
+  type DaCaricare = { file: File | Scelto; extra: Record<string, string> };
+  const nomeDi = (f: File | Scelto) => (f instanceof File ? f.name : f.nome);
   async function caricaTutti(lista: DaCaricare[], vicino: Element, dove: string) {
     if (!box) return;
     blocca(true);
@@ -406,14 +415,27 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
         if (!r.ok) throw new Error('Le modifiche al pezzo non si sono salvate: premi «Salva le modifiche» e riprova.');
         modificato = false;
       }
+      const importati = lista.every((x) => !(x.file instanceof File));
       for (const [i, { file: f, extra }] of lista.entries()) {
+        const quale = lista.length > 1 ? ` (${i + 1} di ${lista.length})` : '';
+        if (!(f instanceof File)) {
+          barra!.value = Math.round((i / lista.length) * 100);
+          stato!.textContent = `Importo «${f.nome}»${quale}…`;
+          try {
+            await importa(box.dataset.file!, f.id, { pezzo: box.dataset.pezzo!, ...extra });
+          } catch (e) {
+            throw new Error(`«${f.nome}»: ${(e as Error).message}${i ? ` (i ${i} file prima sono stati importati)` : ''}`);
+          }
+          continue;
+        }
         await carica(box.dataset.file!, f, { pezzo: box.dataset.pezzo!, ...extra }, (q) => {
           barra!.value = Math.round(((i + q) / lista.length) * 100);
-          stato!.textContent = `Carico «${f.name}»${lista.length > 1 ? ` (${i + 1} di ${lista.length})` : ''}: ${Math.round(q * 100)}%`;
+          stato!.textContent = `Carico «${f.name}»${quale}: ${Math.round(q * 100)}%`;
         });
       }
-      stato!.textContent = 'Caricato. Aggiorno la pagina…';
-      location.href = `${box.dataset.ritorno}&ok=1&caricato=1&in=${dove}&esito=${encodeURIComponent(lista.length === 1 ? `«${lista[0].file.name}» caricato.` : `${lista.length} file caricati.`)}#${dove}`;
+      stato!.textContent = `${importati ? 'Importato' : 'Caricato'}. Aggiorno la pagina…`;
+      const fatto = importati ? ['importato', 'importati'] : ['caricato', 'caricati'];
+      location.href = `${box.dataset.ritorno}&ok=1&caricato=1&in=${dove}&esito=${encodeURIComponent(lista.length === 1 ? `«${nomeDi(lista[0].file)}» ${fatto[0]}.` : `${lista.length} file ${fatto[1]}.`)}#${dove}`;
     } catch (e) {
       stato!.textContent = `Caricamento non riuscito: ${(e as Error).message}`;
       barra!.value = 0;
@@ -426,32 +448,47 @@ const semplice = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '
     if (file.length) caricaTutti(file.map((f) => ({ file: f, extra: { uso: 'spartito' } })), input.closest('.carica')!, 'spartiti');
   }));
 
-  // Tracce: il gruppo (titolo e brani) viene dal modulo in cui sta il pulsante
+  box?.querySelector<HTMLButtonElement>('.importa-repository[data-uso=spartito]')?.addEventListener('click', async (e) => {
+    const scelti = await scegliDalRepository({ tipi: 'spartiti', titolo: 'Spartiti dal Chorus Repository' });
+    if (scelti.length) caricaTutti(scelti.map((f) => ({ file: f, extra: { uso: 'spartito' } })), (e.target as Element).closest('.importa-repository')!, 'spartiti');
+  });
+
+  // Tracce: il gruppo (titolo e brani) viene dal modulo in cui sta il pulsante; i file dal computer o dal
+  // Chorus Repository, poi per ognuno la voce
   let gruppo: HTMLFormElement | undefined;
-  let scelti: File[] = [];
+  let scelti: (File | Scelto)[] = [];
   box?.querySelectorAll<HTMLInputElement>('input[type=file][data-uso=traccia]').forEach((input) => input.addEventListener('change', () => {
     const file = [...(input.files ?? [])];
     input.value = '';
+    scegliVoci(file, input.form!);
+  }));
+  box?.querySelectorAll<HTMLButtonElement>('.importa-repository[data-uso=traccia]').forEach((b) => b.addEventListener('click', async () => {
+    const titolo = b.form!.querySelector<HTMLInputElement>('input[name=gruppo]')!;
+    if (!titolo.value.trim()) { alert('Scrivi prima il titolo del gruppo di tracce, per esempio «Opera intera».'); titolo.focus(); return; }
+    scegliVoci(await scegliDalRepository({ tipi: 'audio', titolo: 'Tracce dal Chorus Repository' }), b.form!);
+  }));
+  function scegliVoci(file: (File | Scelto)[], modulo: HTMLFormElement) {
     if (!file.length || !scelta || !elencoVoci || !modello) return;
-    gruppo = input.form!;
+    gruppo = modulo;
     const titolo = gruppo.querySelector<HTMLInputElement>('input[name=gruppo]')!;
     if (!titolo.value.trim()) { alert('Scrivi prima il titolo del gruppo di tracce, per esempio «Opera intera».'); titolo.focus(); return; }
     scelti = file;
     elencoVoci.innerHTML = '';
     for (const f of file) {
       const riga = modello.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
-      riga.querySelector('.nome-file')!.textContent = f.name;
+      riga.querySelector('.nome-file')!.textContent = nomeDi(f);
       const voce = riga.querySelector<HTMLSelectElement>('select[data-voce]')!;
-      const indovinata = indovinaVoce(f.name, voci);
+      const indovinata = indovinaVoce(nomeDi(f), voci);
       voce.value = indovinata ?? voci[0]?.nome ?? '';
       if (!indovinata) riga.classList.add('da-scegliere');
       elencoVoci.append(riga);
     }
+    scelta.querySelector('.carica-tracce')!.textContent = file.some((f) => f instanceof File) ? 'Carica le tracce' : 'Importa le tracce';
     gruppo.after(scelta);
     scelta.hidden = false;
     preparaTendine(scelta);
     scelta.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }));
+  }
   scelta?.querySelector('.annulla-tracce')?.addEventListener('click', () => { scelta.hidden = true; scelti = []; });
   scelta?.querySelector('.carica-tracce')?.addEventListener('click', () => {
     if (!gruppo || !scelti.length) return;

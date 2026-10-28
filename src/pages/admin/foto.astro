@@ -15,6 +15,7 @@ import { CAPITOLI_CORO, coro, fotoCapitoli, immagine, LIMITE_CAROSELLO } from '.
 import { testo } from '../../motore/testi';
 import { parti } from '../../motore/concerti';
 import { configurato, fotoDelCarosello } from '../../area/fotoConcerti';
+import { repositoryConfigurato } from '../../admin/repository';
 
 export const prerender = false;
 
@@ -115,6 +116,7 @@ const posti = [
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
             <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" required />
             <button class="btn g" type="submit">Sostituisci</button>
+            {repositoryConfigurato() && <button class="btn o piccolo importa-repository" type="button">Importa dal Chorus Repository</button>}
           </div>
         </div>
       </form>
@@ -127,6 +129,7 @@ const posti = [
     {erroreMaestro ? <Errore e={erroreMaestro} /> : <>
       <form class="carica-maestro">
         <label class="btn o piccolo scegli">Carica foto <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden /></label>
+        {repositoryConfigurato() && <button class="btn o piccolo importa-repository" type="button">Importa dal Chorus Repository</button>}
         <span class="stato-maestro tenue" role="status"></span>
       </form>
       {nelCarosello.length > 0 && (
@@ -189,6 +192,7 @@ const posti = [
   <script>
     import { riduci } from '../../admin/immagini';
     import { attivaOrdine, inviaJson } from '../../admin/ordine-client';
+    import { scegliDalRepository, esitoImportazione } from '../../admin/repository-client';
 
     const esito = document.getElementById('esito')!;
     const mostra = (html: string, classe: string) => { esito.className = `messaggio ${classe}`; esito.innerHTML = html; esito.scrollIntoView({ block: 'nearest' }); };
@@ -242,6 +246,28 @@ const posti = [
         stato.textContent = `${fatte} ${fatte === 1 ? 'foto caricata' : 'foto caricate'}.${errori.length ? ` Non caricate: ${errori.join(' · ')}` : ''}`;
         if (fatte) setTimeout(() => { location.hash = 'maestro'; location.reload(); }, errori.length ? 4000 : 600);
       });
+      // Importa dal Chorus Repository: ogni foto entra nel carosello in fondo, come una caricata
+      caricaMaestro.querySelector('.importa-repository')?.addEventListener('click', async () => {
+        const scelti = await scegliDalRepository({ tipi: 'immagini', titolo: 'Foto del Maestro dal Chorus Repository' });
+        if (!scelti.length) return;
+        let fatte = 0;
+        const errori: string[] = [];
+        for (const [i, f] of scelti.entries()) {
+          stato.textContent = `Importo la foto ${i + 1} di ${scelti.length}…`;
+          try {
+            const dati = new FormData();
+            dati.set('repository', f.id);
+            const r = await fetch('/admin/foto-maestro/carica', { method: 'POST', body: dati });
+            const j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+            if (!j.ok) throw new Error(j.errore);
+            fatte++;
+          } catch (e) {
+            errori.push(`${f.nome}: ${(e as Error).message}`);
+          }
+        }
+        stato.textContent = esitoImportazione(fatte, errori, ['foto importata', 'foto importate']);
+        if (fatte) setTimeout(() => { location.hash = 'maestro'; location.reload(); }, errori.length ? 4000 : 600);
+      });
       const lista = document.querySelector<HTMLOListElement>('.maestro-carosello ol.ordine-carosello');
       const esito = document.querySelector<HTMLElement>('.maestro-carosello .esito-ordine')!;
       if (lista) attivaOrdine(lista, esito, (ids) => inviaJson('/admin/foto-maestro/stato', { ids }), Number(lista.dataset.limite));
@@ -273,6 +299,36 @@ const posti = [
         if (img.src) URL.revokeObjectURL(img.src);
         scelta.hidden = !file;
         if (file) { img.src = URL.createObjectURL(file); didascalia.textContent = 'Scelta, non ancora caricata'; }
+      });
+
+      // Importa dal Chorus Repository: la foto scelta prende il posto di quella su Drive
+      modulo.querySelector<HTMLButtonElement>('.importa-repository')?.addEventListener('click', async (ev) => {
+        const b = ev.currentTarget as HTMLButtonElement;
+        const [scelta] = await scegliDalRepository({ tipi: 'immagini', multipli: false, titolo: 'Foto dal Chorus Repository' });
+        if (!scelta) return;
+        const nome = scelta.nome.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+        b.disabled = true;
+        mostra(`Importo «${nome}»…`, '');
+        try {
+          const dati = new FormData();
+          dati.set('nome', modulo.dataset.nome!);
+          dati.set('repository', scelta.id);
+          const r = await fetch('/admin/foto/carica', { method: 'POST', body: dati });
+          const j = await r.json().catch(() => ({ ok: false, errore: `Risposta inattesa dal server (${r.status})` }));
+          if (!j.ok) throw new Error(j.errore);
+          const img = modulo.querySelector<HTMLImageElement>('.da-salvare img')!;
+          if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+          img.src = `/admin/repository/miniatura/${scelta.id}`;
+          modulo.querySelector('.nuova')?.remove();
+          modulo.querySelector<HTMLElement>('.da-salvare')!.hidden = false;
+          modulo.querySelector('.da-salvare figcaption')!.textContent = 'Su Drive, da pubblicare';
+          modulo.reset();
+          mostra(`Foto "${modulo.dataset.nome}" sostituita su Drive con «${nome}». Per vederla sul sito: <a href="/admin">Pubblicazione</a> → "Pubblica ora".`, 'ok');
+        } catch (e) {
+          mostra(`Non importata: ${(e as Error).message}`, 'errore');
+        } finally {
+          b.disabled = false;
+        }
       });
 
       modulo.addEventListener('submit', async (ev) => {

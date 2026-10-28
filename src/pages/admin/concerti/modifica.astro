@@ -10,6 +10,7 @@ import { leggiConcerto, statoDi, type Stato } from '../../../admin/stati';
 import FotoAdmin from '../../../admin/FotoAdmin.astro';
 import Errore from '../../../area/Errore.astro';
 import { oggi } from '../../../area/dati';
+import { repositoryConfigurato } from '../../../admin/repository';
 import { concertiPerFoto, configurato, fotoDeiConcerti, sulSito, type ConcertoScelta, type FotoConcerto } from '../../../area/fotoConcerti';
 
 export const prerender = false;
@@ -67,6 +68,7 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
                 {perFoto && (
                   <form class="carica-foto" data-evento={perFoto.id}>
                     <label class="carica">Carica foto <small>(anche più di una; si riducono prima di partire)</small><input type="file" accept="image/*,.heic,.heif" multiple /></label>
+                    {repositoryConfigurato() && <button type="button" class="btn o piccolo importa-repository">Importa dal Chorus Repository</button>}
                     <div class="avanza" hidden><progress max="100" value="0"></progress><p class="stato" role="status"></p></div>
                   </form>
                 )}
@@ -78,6 +80,8 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
 <style>
   .foto-concerto { max-width: 820px; margin-top: 28px; display: grid; gap: 14px; }
   .carica-foto .carica { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); padding: 12px; border: 2px dashed var(--linea); border-radius: var(--raggio); }
+  .carica-foto { display: grid; gap: 10px; justify-items: start; }
+  .carica-foto .carica { justify-self: stretch; }
   .carica-foto .carica small { font-weight: 400; color: var(--tenue); }
   .carica-foto progress { width: 100%; }
   .carica-foto .stato { margin: 4px 0 0; font-weight: 600; color: var(--primario); }
@@ -88,6 +92,7 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
   // si ricarica la pagina sulle foto
   import { carica } from '../../../area/caricamento-client';
   import { riduci } from '../../../admin/immagini';
+  import { scegliDalRepository, importaTutti, esitoImportazione } from '../../../admin/repository-client';
 
   const f = document.querySelector<HTMLFormElement>('.carica-foto');
   const input = f?.querySelector<HTMLInputElement>('input[type=file]');
@@ -117,5 +122,21 @@ const titolo = valori ? [valori.opere[0]?.opera, valori.data.split('-').reverse(
     stato.textContent = `${fatte} ${fatte === 1 ? 'foto caricata' : 'foto caricate'}.${errori.length ? ` Non caricate: ${errori.join(' · ')}` : ''}`;
     if (fatte) setTimeout(() => { location.hash = 'foto'; location.reload(); }, errori.length ? 4000 : 600);
     input.disabled = false;
+  });
+
+  // Importa dal Chorus Repository (src/admin/repository-client.ts): le foto si copiano su Drive così come sono
+  f?.querySelector('.importa-repository')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    const scelti = await scegliDalRepository({ tipi: 'immagini', titolo: 'Foto dal Chorus Repository' });
+    if (!scelti.length || !f) return;
+    const avanza = f.querySelector<HTMLElement>('.avanza')!;
+    const barra = avanza.querySelector('progress')!;
+    const stato = avanza.querySelector<HTMLElement>('.stato')!;
+    b.disabled = input!.disabled = true;
+    avanza.hidden = false;
+    const { ids, errori } = await importaTutti(scelti, '/admin/foto-concerti/carica', () => ({ evento: f.dataset.evento! }), (q, m) => { barra.value = Math.round(q * 100); if (m) stato.textContent = m; });
+    stato.textContent = esitoImportazione(ids.length, errori, ['foto importata', 'foto importate']);
+    if (ids.length) setTimeout(() => { location.hash = 'foto'; location.reload(); }, errori.length ? 4000 : 600);
+    b.disabled = input!.disabled = false;
   });
 </script>
