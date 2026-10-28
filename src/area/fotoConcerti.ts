@@ -10,7 +10,7 @@
 // dei concerti); ogni corista può togliere le sue.
 import { DRIVE_CARTELLA_FOTO_CONCERTI } from 'astro:env/server';
 import { CARTELLA, cartellaIn, cestina, fileIn, fileInCartelle, leggiFile, rispondiCaricamento } from './drive';
-import { coristiVeri, eventi, eventiVeri, nomeBreve, nomeEvento, oggi, personaVista, piuGiorni } from './dati';
+import { concertiTra, coristiVeri, nomeBreve, nomeEvento, oggi, personaVista } from './dati';
 import { inDemo } from './demo';
 import { archivio } from '../motore/concerti';
 import { google, normalizza } from './servizio';
@@ -45,13 +45,15 @@ export interface FotoConcerto {
 export interface ConcertoScelta { id: string; data: string; titolo: string }
 export interface ConcertoConFoto { data: string; titolo: string; evento?: ConcertoScelta; foto: FotoConcerto[] }
 
+// Il coro è nato alla fine del 2019: nessun concerto prima
+const INIZIO_CORO = '2019-01-01';
 // I concerti per cui si possono caricare foto, il più recente prima: quelli già fatti (anche oggi)
-// dell'ultimo anno dal calendario, compresi quelli non pubblici, e tutti quelli dell'archivio del sito
+// del calendario, compresi quelli non pubblici e vecchi (dal 28/10/2026, prima solo dell'ultimo anno:
+// i concerti del 2019, fuori dal sito, non comparivano ai coristi), e tutti quelli dell'archivio del sito
 // pubblico con una data precisa (calendario "Concerti"), anche i più vecchi. Con veri, anche in
 // modalità demo i titoli veri (per l'elenco tenuto in cache, leggiFoto)
 export async function concertiPerFoto(veri = false): Promise<ConcertoScelta[]> {
-  const recenti = (await (veri ? eventiVeri : eventi)(piuGiorni(oggi(), -400), oggi()).catch(() => []))
-    .filter((e) => e.tipo === 'concerto')
+  const recenti = (await concertiTra(INIZIO_CORO, oggi(), veri).catch(() => []))
     .map((e) => ({ id: e.id, data: e.data, titolo: nomeEvento(e) }));
   const giorni = new Set(recenti.map((c) => c.data));
   const vecchi = archivio

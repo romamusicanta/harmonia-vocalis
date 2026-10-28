@@ -247,9 +247,9 @@ function evento(e: EventoApi, tipo: Evento['tipo']): Evento {
 
 // Nel calendario "Prove" ci sono anche i concerti (proprietà tipo = concerto); nel calendario
 // "Concerti" le copie pubbliche (proprietà origine) si saltano: il concerto è già quello in "Prove"
-async function eventiDi(calendario: string, tipo: Evento['tipo'], da: string, a: string) {
+async function eventiDi(calendario: string, tipo: Evento['tipo'], da: string, a: string, soloConcerti = false) {
   const p = new URLSearchParams({
-    singleEvents: 'true', orderBy: 'startTime', maxResults: '500', timeZone: FUSO,
+    singleEvents: 'true', orderBy: 'startTime', maxResults: '500', timeZone: FUSO, ...(soloConcerti ? { privateExtendedProperty: 'tipo=concerto' } : {}),
     timeMin: new Date(`${da}T00:00:00Z`).toISOString(), timeMax: new Date(`${piuGiorni(a, 1)}T00:00:00Z`).toISOString(),
   });
   const { items = [] } = await google<{ items?: EventoApi[] }>(`${CAL}/calendars/${encodeURIComponent(calendario)}/events?${p}`);
@@ -287,6 +287,22 @@ const eventoVisto = (e: Evento): Evento => {
 export async function eventi(da: string, a: string): Promise<Evento[]> {
   const elenco = await eventiVeri(da, a);
   return inDemo() ? elenco.map(eventoVisto) : elenco;
+}
+
+// Tutti i concerti tra due giorni, anche lontani e non pubblici, senza le prove (che in tanti anni
+// sarebbero troppe): quelli del calendario "Prove" e quelli scritti prima direttamente in "Concerti"
+export async function concertiTra(da: string, a: string, veri = false): Promise<Evento[]> {
+  const chiave = `concerti:${da}/${a}`;
+  let c = eventiInCache.get(chiave);
+  if (!c || Date.now() - c.letti > 60 * 1000) {
+    const [prove, concerti] = await Promise.all([
+      eventiDi(CALENDARIO_PROVE_ID!, 'prova', da, a, true),
+      CALENDARIO_CONCERTI_ID ? eventiDi(CALENDARIO_CONCERTI_ID, 'concerto', da, a).catch(() => []) : [],
+    ]);
+    c = { elenco: [...prove, ...concerti].filter((e) => e.tipo === 'concerto').sort((x, y) => x.inizioMs - y.inizioMs), letti: Date.now() };
+    eventiInCache.set(chiave, c);
+  }
+  return inDemo() && !veri ? c.elenco.map(eventoVisto) : c.elenco;
 }
 
 // Un evento entro un anno prima o dopo oggi, per id
