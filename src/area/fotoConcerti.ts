@@ -110,8 +110,10 @@ async function leggiFoto(): Promise<ConcertoConFoto[]> {
   return [...perConcerto.values()].sort((a, b) => b.data.localeCompare(a.data));
 }
 
-// Caricamento da un corista (/area/foto/carica): solo immagini, per un concerto già fatto
-export const rispondiFotoCorista = (request: Request, email: string) => rispondiCaricamento(request, async (d) => {
+// Caricamento da un corista (/area/foto/carica): solo immagini, per un concerto già fatto. I redattori
+// (dal modulo del concerto) passano anche cerca, che trova un concerto non ancora nell'elenco: per
+// esempio uno vecchio appena creato, che entra nell'archivio del sito solo dopo la pubblicazione
+export const rispondiFotoCorista = (request: Request, email: string, cerca?: (id: string) => Promise<ConcertoScelta | undefined>) => rispondiCaricamento(request, async (d) => {
   if (!configurato()) throw new Error('manca la variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server');
   // Il tipo, o almeno l'estensione: alcuni browser non dicono il tipo delle foto HEIC dell'iPhone
   if (!/^image\/(jpeg|png|webp|avif|heic|heif)$/.test(String(d.tipo)) && !/\.(jpe?g|png|webp|avif|heic|heif)$/i.test(d.nome)) throw new Error(`«${d.nome}» non è una foto (JPEG, PNG, WebP, HEIC).`);
@@ -120,8 +122,8 @@ export const rispondiFotoCorista = (request: Request, email: string) => rispondi
     const est = d.nome.toLowerCase().match(/\.([a-z]+)$/)?.[1] ?? '';
     d.tipo = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', avif: 'image/avif', heic: 'image/heic', heif: 'image/heif' }[est] ?? 'image/jpeg';
   }
-  const concerto = (await concertiPerFoto()).find((e) => e.id === String(d.evento));
-  if (!concerto) throw new Error('Concerto non trovato: si caricano le foto dei concerti già fatti.');
+  const concerto = (await concertiPerFoto()).find((e) => e.id === String(d.evento)) ?? (await cerca?.(String(d.evento)));
+  if (!concerto || concerto.data > oggi()) throw new Error('Concerto non trovato: si caricano le foto dei concerti già fatti.');
   const cartella = await cartellaIn(DRIVE_CARTELLA_FOTO_CONCERTI!, `${concerto.data} ${concerto.titolo}`.slice(0, 120));
   return { cartella, nome: d.nome, appProperties: { caricatoDa: email, evento: concerto.id, data: concerto.data, visibilita: 'coristi' } };
 }, async () => svuota());

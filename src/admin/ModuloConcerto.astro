@@ -6,6 +6,7 @@
 import { coro } from '../motore/coro';
 import type { DatiConcerto } from './concerto';
 import { STATI, passato, type Stato } from './stati';
+import { repositoryConfigurato } from './repository';
 
 interface Allegato { title: string; fileUrl: string; fileId?: string }
 interface Props {
@@ -152,7 +153,21 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
       )}
       <span class="aiuto">{modifica
         ? <>Nelle schede si vede la locandina. Senza locandina, dopo il concerto, la <b>copertina</b>: si sceglie con la stella ☆ tra le foto dei coristi, <a href="#foto" style="text-decoration:underline">in fondo a questa pagina</a> o in Foto dei concerti.</>
-        : 'Nelle schede si vede la locandina. Senza locandina, dopo il concerto, la copertina scelta con la stella tra le foto caricate dai coristi (in fondo alla Modifica del concerto o in Foto dei concerti).'}</span></div>
+        : 'Nelle schede si vede la locandina. Senza locandina, dopo il concerto, la copertina scelta con la stella tra le foto caricate dai coristi (in fondo alla Modifica del concerto o in Foto dei concerti).'}</span>
+      {/* Dal 28/10/2026 (richiesta di Mario) le foto del concerto si aggiungono anche da qui, dal computer o
+          dal Chorus Repository: partono dopo il salvataggio, con l'id dell'evento (/admin/foto-concerti/carica) */}
+      <div class="foto-nuove" data-foto-concerto>
+        <p class="aiuto solo-futuro">Le foto si aggiungono dal giorno del concerto.</p>
+        <div class="solo-passato">
+          <div class="scelta-foto">
+            <label class="btn o piccolo">Aggiungi foto<input type="file" id="foto-concerto" accept="image/*,.heic,.heif" multiple class="sr" /></label>
+            {repositoryConfigurato() && <button type="button" class="btn o piccolo importa-repository">Importa dal Chorus Repository</button>}
+          </div>
+          <ul class="coda-foto" aria-label="Foto da aggiungere"></ul>
+          <span class="aiuto">Le foto scelte si caricano quando premi «{modifica ? 'Salva le modifiche' : 'Crea il concerto'}». Arrivano come quelle dei coristi, visibili ai coristi: poi, {modifica ? <a href="#foto" style="text-decoration:underline">in fondo a questa pagina</a> : 'nella Modifica del concerto'}, scegli quali vanno sul sito e la copertina.</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="bottoni" style="margin-top:12px">
@@ -165,6 +180,16 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
 
 <style>
   .anteprime-file { display: flex; flex-wrap: wrap; gap: 12px; }
+  .foto-nuove { display: grid; gap: 8px; margin-top: 6px; }
+  .foto-nuove .solo-passato { display: grid; gap: 8px; }
+  .foto-nuove[data-futuro] .solo-passato, .foto-nuove:not([data-futuro]) .solo-futuro { display: none; }
+  .scelta-foto { display: flex; flex-wrap: wrap; gap: 10px; }
+  .coda-foto { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+  .coda-foto:empty { display: none; }
+  .coda-foto :global(li) { position: relative; width: 110px; }
+  .coda-foto :global(img) { display: block; width: 110px; height: 82px; object-fit: cover; border-radius: var(--raggio); background: var(--fondo); outline: 3px solid var(--accento); outline-offset: -3px; }
+  .coda-foto :global(small) { display: block; font-size: 12px; color: var(--tenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .coda-foto :global(button) { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgb(0 0 0 / .65); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
   .anteprime-file:empty { display: none; }
   .anteprime-file figure { margin: 0; width: 160px; }
   .anteprime-file img { display: block; width: 100%; height: 200px; border-radius: var(--raggio); background: var(--fondo); }
@@ -196,6 +221,8 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
 
 <script>
   import { riduci } from './immagini';
+  import { carica } from '../area/caricamento-client';
+  import { scegliDalRepository, importa, type Scelto } from './repository-client';
 
   const modulo = document.getElementById('modulo-concerto') as HTMLFormElement;
   const modifica = Boolean(modulo.dataset.modifica);
@@ -213,6 +240,70 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
     else img.removeAttribute('src');
   }
   for (const campo of ['locandina']) document.getElementById(campo)!.addEventListener('change', () => aggiornaAnteprima(campo));
+
+  // Foto del concerto da aggiungere: dal computer o dal Chorus Repository, in coda finché non si salva
+  type FotoInCoda = { file: File } | { scelto: Scelto };
+  let coda: FotoInCoda[] = [];
+  const boxFoto = modulo.querySelector<HTMLElement>('[data-foto-concerto]')!;
+  const elencoCoda = boxFoto.querySelector<HTMLUListElement>('.coda-foto')!;
+  const inputFoto = document.getElementById('foto-concerto') as HTMLInputElement;
+  const campoData = modulo.querySelector<HTMLInputElement>('[name=data]');
+  const giornoLocale = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const futuro = () => !campoData?.value || campoData.value.slice(0, 10) > giornoLocale();
+  const aggiornaData = () => { boxFoto.toggleAttribute('data-futuro', futuro()); };
+  campoData?.addEventListener('input', aggiornaData);
+  campoData?.addEventListener('change', aggiornaData);
+  // «Leggi la locandina» scrive la data senza eventi: si ricontrolla quando compare il suo messaggio
+  new MutationObserver(aggiornaData).observe(letto, { childList: true, subtree: true, characterData: true });
+  aggiornaData();
+  function mostraCoda() {
+    elencoCoda.querySelectorAll('img').forEach((i) => { if (i.src.startsWith('blob:')) URL.revokeObjectURL(i.src); });
+    elencoCoda.innerHTML = '';
+    coda.forEach((f, i) => {
+      const li = document.createElement('li');
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = 'file' in f ? URL.createObjectURL(f.file) : `/admin/repository/miniatura/${f.scelto.id}`;
+      const nome = document.createElement('small');
+      nome.textContent = 'file' in f ? f.file.name : f.scelto.nome;
+      const togli = document.createElement('button');
+      togli.type = 'button';
+      togli.textContent = '×';
+      togli.title = 'Togli dalle foto da aggiungere';
+      togli.addEventListener('click', () => { coda.splice(i, 1); mostraCoda(); });
+      li.append(img, nome, togli);
+      elencoCoda.append(li);
+    });
+  }
+  inputFoto.addEventListener('change', () => {
+    coda.push(...[...(inputFoto.files ?? [])].map((file) => ({ file })));
+    inputFoto.value = '';
+    mostraCoda();
+  });
+  boxFoto.querySelector('.importa-repository')?.addEventListener('click', async () => {
+    const presi = new Set(coda.flatMap((f) => ('scelto' in f ? [f.scelto.id] : [])));
+    coda.push(...(await scegliDalRepository({ tipi: 'immagini', titolo: 'Foto del concerto dal Chorus Repository' })).filter((s) => !presi.has(s.id)).map((scelto) => ({ scelto })));
+    mostraCoda();
+  });
+  // Dopo il salvataggio: le foto in coda, una alla volta, con il concerto appena salvato
+  async function caricaCoda(evento: string) {
+    const errori: string[] = [];
+    let fatte = 0;
+    for (const [i, f] of coda.entries()) {
+      const nome = 'file' in f ? f.file.name : f.scelto.nome;
+      mostra(`Aggiungo le foto: ${i + 1} di ${coda.length} («${nome.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`)}»)…`, '');
+      try {
+        if ('file' in f) await carica('/admin/foto-concerti/carica', await riduci(f.file).catch(() => f.file), { evento });
+        else await importa('/admin/foto-concerti/carica', f.scelto.id, { evento });
+        fatte++;
+      } catch (e) {
+        errori.push(`${nome}: ${(e as Error).message}`);
+      }
+    }
+    coda = [];
+    mostraCoda();
+    return { fatte, errori };
+  }
 
   // Righe ripetibili: si copia la prima, svuotata
   function aggiungiRiga(id: string) {
@@ -385,6 +476,15 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
         j = await r.json().catch(() => ({ ok: false, errore: `risposta inattesa dal server (${r.status})` }));
       }
       if (!j.ok) throw new Error(j.errore);
+      const idSalvato: string | undefined = j.id ?? modulo.querySelector<HTMLInputElement>('[name=evento]')?.value;
+      let foto = '';
+      if (coda.length && idSalvato && !futuro()) {
+        const { fatte, errori } = await caricaCoda(idSalvato);
+        const testo = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+        foto = ` ${fatte ? `${fatte} ${fatte === 1 ? 'foto aggiunta' : 'foto aggiunte'}` : 'Nessuna foto aggiunta'}${errori.length ? ` (non aggiunte: ${testo(errori.join(' · '))})` : ''}: <a href="/admin/concerti/modifica?id=${encodeURIComponent(idSalvato)}#foto">scegli quali vanno sul sito</a>.`;
+        // In modifica le foto nuove si vedono subito in fondo alla pagina
+        if (modifica && fatte && !errori.length) { location.hash = 'foto'; location.reload(); return; }
+      }
       const cartella = j.cartella ? ` · <a href="${j.cartella}" target="_blank" rel="noopener">Apri la cartella su Drive</a>` : '';
       const idEvento = j.id ?? modulo.querySelector<HTMLInputElement>('[name=evento]')?.value;
       const pulsanti = `<span style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px"><button type="button" class="btn g piccolo" data-pubblica>Pubblica ora</button>${idEvento && (modulo.querySelector<HTMLInputElement>('[name=data]')?.value ?? '') >= new Date().toISOString().slice(0, 10) ? `<a class="btn o piccolo" href="/admin/convocazioni?modifica=${encodeURIComponent(idEvento)}#modulo">Scrivi la convocazione</a>` : ''}<a class="btn o piccolo" href="/admin/concerti">Torna ai concerti</a></span>`;
@@ -425,13 +525,14 @@ const anteprima = (a?: Allegato) => a?.fileId && `/admin/drive/immagine?${new UR
           for (const nome of ['evidenzaEn', 'ingressoEn'] as const) (modulo.elements.namedItem(nome) as HTMLInputElement).value = j.inglese[nome];
           (modulo.elements.namedItem('prima') as HTMLInputElement).value = JSON.stringify(j.inglese.prima);
         }
-        mostra(`Modifiche salvate. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
+        mostra(`Modifiche salvate.${foto} <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
       } else {
         modulo.reset();
         for (const campo of ['locandina']) aggiornaAnteprima(campo);
         letto.className = '';
         letto.textContent = '';
-        mostra(`Concerto creato. <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
+        aggiornaData();
+        mostra(`Concerto creato.${foto} <a href="${j.evento}" target="_blank" rel="noopener">Apri l'evento nel calendario</a>${cartella}. ${pubblica}${j.avviso ? ` Attenzione: ${j.avviso}.` : ''}`, 'ok');
       }
     } catch (e) {
       mostra(`${modifica ? 'Non salvato' : 'Non creato'}: ${(e as Error).message}`, 'errore');
