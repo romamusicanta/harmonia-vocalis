@@ -13,7 +13,7 @@ export default {
   associazione: 'Associazione Culturale Musicale Roma Musicanta',
   affiliazioni: 'Associato ARCL e Feniarco',
   descrizione:
-    'Coro polifonico misto di Roma diretto dal M° Claudio Maria Micheli. Repertorio sacro e sinfonico, dal Barocco a Morricone.',
+    'Coro polifonico misto di Roma diretto dal M° Claudio Maria Micheli. Musica sacra, profana, lirica, dal barocco al contemporaneo.',
   url: 'https://romamusicanta.org',
   // Gruppo Google (1/10/2026): lo legge Francesco Cardillo
   email: 'info@romamusicanta.org',
