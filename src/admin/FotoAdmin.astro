@@ -27,7 +27,7 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
   {foto.map((f) => (
     <li class:list={[f.visibilita]} data-id={f.id} data-pixel={f.larghezza && f.altezza ? f.larghezza * f.altezza : 0} data-byte={f.byte ?? 0} data-md5={f.md5 ?? ''} data-caricata={f.caricata} data-misura={misura(f)}>
       <a href={`/admin/foto-concerti/intera/${f.id}`} target="_blank" rel="noopener"><img src={`/admin/foto-concerti/miniatura/${f.id}`} alt={`Foto di ${f.chi}`} loading="lazy" /></a>
-      <small class="tenue">{f.chi}</small>
+      <small class="tenue" style="overflow-wrap:anywhere">{f.chi}</small>
       <small class="doppia" hidden></small>
       <span class="scelta-visibilita" role="group" aria-label="Chi la vede">
         {(['nascosta', 'coristi', 'pubblica', 'home'] as const).map((v) => <button type="button" data-v={v} aria-pressed={f.visibilita === v ? 'true' : 'false'}>{ETICHETTE[v]}</button>)}
@@ -42,7 +42,7 @@ const ETICHETTE = { nascosta: 'Nascosta', coristi: 'Coristi', pubblica: 'Sito', 
 
 <style>
   .foto-admin { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-  .foto-admin li { display: grid; gap: 6px; align-content: start; }
+  .foto-admin li { display: grid; gap: 6px; align-content: start; min-width: 0; }
   .foto-admin a { display: block; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--fondo); outline: 3px solid transparent; }
   .foto-admin li:is(.pubblica, .home) a { outline-color: var(--primario); }
   .foto-admin li.home a { outline-color: var(--accento); outline-width: 4px; }

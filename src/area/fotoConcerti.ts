@@ -89,6 +89,13 @@ export async function fotoDeiConcerti(tutte = false): Promise<ConcertoConFoto[]>
 export const ultimeFoto = async (quante = 6) =>
   (await fotoDeiConcerti()).flatMap((g) => g.foto.map((f) => ({ ...f, titolo: g.titolo }))).sort((a, b) => b.caricata.localeCompare(a.caricata)).slice(0, quante);
 
+// Chi non è nella scheda Coristi (un redattore, un account di prova): «nome.cognome@…» → «Nome C.»
+const nomeDaEmail = (email: string) => {
+  const [nome = '', ...resto] = email.split('@')[0].split(/[._-]+/).filter(Boolean);
+  const cognome = resto.at(-1) ?? '';
+  return nome ? `${nome.charAt(0).toUpperCase()}${nome.slice(1)}${cognome ? ` ${cognome.charAt(0).toUpperCase()}.` : ''}` : email || 'Redazione';
+};
+
 // Tutte le foto da Drive, anche nascoste, per concerto
 async function leggiFoto(): Promise<ConcertoConFoto[]> {
   const [cartelle, elenco, concerti] = await Promise.all([fileIn(DRIVE_CARTELLA_FOTO_CONCERTI!, true), coristiVeri().catch(() => []), concertiPerFoto(true).catch(() => [] as ConcertoScelta[])]);
@@ -106,7 +113,7 @@ async function leggiFoto(): Promise<ConcertoConFoto[]> {
       if (!perConcerto.has(k)) perConcerto.set(k, { data, titolo: evento?.titolo ?? (c.name.slice(11) || 'Concerto'), evento, foto: [] });
       const email = p.caricatoDa ?? '';
       const cc = elenco.find((x) => x.email === normalizza(email) || (x.emailPersonale && normalizza(x.emailPersonale) === normalizza(email)));
-      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : email, visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum, copertina: p.copertina === 'sì', decisa: Boolean(p.decisaDa), ordineHome: p.ordineHome ? Number(p.ordineHome) : undefined });
+      perConcerto.get(k)!.foto.push({ id: f.id, data, evento: evento?.id, caricatoDa: email, chi: cc ? nomeBreve(cc) : nomeDaEmail(email), visibilita, caricata: f.createdTime, larghezza: f.imageMediaMetadata?.width, altezza: f.imageMediaMetadata?.height, byte: f.size ? Number(f.size) : undefined, md5: f.md5Checksum, copertina: p.copertina === 'sì', decisa: Boolean(p.decisaDa), ordineHome: p.ordineHome ? Number(p.ordineHome) : undefined });
     }
   }
   return [...perConcerto.values()].sort((a, b) => b.data.localeCompare(a.data));
