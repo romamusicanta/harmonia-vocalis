@@ -1,8 +1,11 @@
 ---
 // Foto del sito: le foto generali (cartella Sito/Foto del Drive condiviso) con quella pubblicata
 // adesso accanto, quella già su Drive ma non ancora pubblicata e il caricamento di una nuova, con
-// l'anteprima del file scelto. L'invio va a /admin/foto/carica. Sotto (dal 13/10/2026), il carosello
-// della pagina «Il Maestro» (src/admin/fotoMaestro.ts): caricamento, scelta e ordine delle foto.
+// l'anteprima del file scelto. L'invio va a /admin/foto/carica. In cima (dal 28/10/2026, prima in Foto
+// dei concerti, al posto del posto «Apertura»: la foto di apertura è la prima del carosello) il carosello
+// della home: le foto «Home» dei concerti nell'ordine in cui scorrono (/admin/foto-concerti/ordine). Sotto
+// (dal 13/10/2026), il carosello della pagina «Il Maestro» (src/admin/fotoMaestro.ts): caricamento, scelta
+// e ordine delle foto; dal 28/10/2026 la prima è la foto del Maestro, al posto del posto «Il Maestro».
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
 import '../../admin/ordine.css';
 import Errore from '../../area/Errore.astro';
@@ -10,6 +13,8 @@ import { fotoSitoSuDrive } from '../../admin/operazioni';
 import { fotoDelMaestro, type FotoMaestro } from '../../admin/fotoMaestro';
 import { CAPITOLI_CORO, coro, fotoCapitoli, immagine, LIMITE_CAROSELLO } from '../../motore/coro';
 import { testo } from '../../motore/testi';
+import { parti } from '../../motore/concerti';
+import { configurato, fotoDelCarosello } from '../../area/fotoConcerti';
 
 export const prerender = false;
 
@@ -31,6 +36,19 @@ try {
 } catch (e) {
   erroreMaestro = e;
 }
+// Il carosello della home: le foto «Home» dei concerti nell'ordine in cui scorrono
+let carosello: Awaited<ReturnType<typeof fotoDelCarosello>> = [];
+let erroreCarosello: unknown;
+if (!configurato()) erroreCarosello = 'Manca la cartella «Foto dei concerti» su Drive (variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server).';
+else {
+  try {
+    carosello = await fotoDelCarosello();
+  } catch (e) {
+    erroreCarosello = e;
+  }
+}
+const giorno = (iso: string) => { const d = parti({ data: iso }); return `${Number(d.giorno)} ${d.mese.toLowerCase()} ${d.anno}`; };
+
 const nelCarosello = fotoMaestro.filter((f) => f.carosello);
 const fuori = fotoMaestro.filter((f) => !f.carosello);
 const quando = (iso: string) => new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' });
@@ -40,10 +58,8 @@ const capitoli = Array.from({ length: CAPITOLI_CORO }, (_, i) => testo('storia')
 const scelteCapitoli = fotoCapitoli();
 
 const posti = [
-  { nome: 'apertura', titolo: 'Apertura', dove: 'Home, in alto: la prima cosa che si vede; anche anteprima dei link condivisi.', consiglio: 'Il coro in concerto, orizzontale, almeno 2000 px.', attuale: coro.foto.apertura },
   { nome: 'coro', titolo: 'Il coro', dove: 'Pagina "Il coro" (a tutta larghezza) e sezione "Il coro" della home.', consiglio: 'Il coro intero, orizzontale, almeno 2400 px.', attuale: coro.foto.coro },
   { nome: 'prove', titolo: 'Prove', dove: 'Pagina "Canta con noi".', consiglio: 'Una prova del coro.', attuale: coro.foto.prove ?? coro.foto.coro },
-  { nome: 'maestro', titolo: 'Il Maestro', dove: 'Home e anteprima della pagina "Il Maestro"; nella pagina, solo se il carosello qui sotto è vuoto.', consiglio: `Ritratto del M° ${coro.maestro.nome}, quadrato o verticale, almeno 1200 px.`, attuale: coro.maestro.foto },
   { nome: 'accesso', titolo: 'Accesso coristi', dove: "Pagina di accesso dell'area coristi (se manca, si usa l'apertura).", consiglio: 'Facoltativa.', attuale: coro.foto.accesso },
   // Le foto dei capitoli della pagina «Il Coro» (dal 19/10/2026): senza, il sito ne sceglie una da solo
   ...capitoli.map((titolo, i) => ({
@@ -60,6 +76,30 @@ const posti = [
   <h1>Foto del sito</h1>
   <p class="tenue" style="max-width:64ch">Accanto a ogni posto c'è la foto pubblicata adesso. Caricandone una nuova, sostituisce quella su Drive (cartella Sito/Foto); sul sito compare con la prossima pubblicazione (fino ad allora si vede qui accanto, "da pubblicare"). Prima di caricare: chi l'ha scattata e il consenso delle persone riconoscibili.</p>
   <p id="esito" role="status"></p>
+
+  <section class="scheda-admin carosello-admin" id="carosello">
+    <h2>Home: carosello della foto grande in alto <small class="tenue">· {carosello.length} foto «Home»</small></h2>
+    {erroreCarosello ? <Errore e={erroreCarosello} /> : carosello.length === 0
+      ? <p class="tenue" style="max-width:64ch;font-size:15px">Nessuna foto «Home»: in cima alla home c'è per ora la foto di riserva. Le foto del carosello si scelgono tra quelle dei concerti: in <a href="/admin/foto-concerti">Foto dei concerti</a>, «Home» sotto una foto.</p>
+      : <>
+          <p class="tenue" style="max-width:64ch;font-size:15px">La foto grande in cima alla home fa scorrere queste foto, in quest'ordine, al massimo {LIMITE_CAROSELLO}: riordinale trascinandole o con le frecce. La <b>prima</b> è anche l'anteprima dei link al sito condivisi (WhatsApp, Facebook…). Si aggiungono da <a href="/admin/foto-concerti">Foto dei concerti</a>, con «Home» sotto una foto; una foto messa «Home» da poco va in fondo. «Togli dal carosello» la rimette «Sito»: resta nella pagina del concerto. {carosello.length > LIMITE_CAROSELLO && <>Le foto oltre la {LIMITE_CAROSELLO}ª restano «Home» ma non si vedono: spostale più in alto o toglile dal carosello.</>} Tutto vale dopo la prossima <a href="/admin">pubblicazione</a>.</p>
+          <ol class="ordine-carosello home-carosello" data-limite={LIMITE_CAROSELLO}>
+            {carosello.map((f, i) => (
+              <li draggable="true" data-id={f.id} class:list={{ fuori: i >= LIMITE_CAROSELLO }}>
+                <span class="posto">{i + 1}</span>
+                <img src={`/admin/foto-concerti/miniatura/${f.id}`} alt="" loading="lazy" draggable="false" />
+                <small><b>{f.titolo}</b><br />{giorno(f.data)}<span class="non-scorre"> · non in carosello</span></small>
+                <span class="frecce">
+                  <button type="button" class="su" aria-label="Sposta prima">↑</button>
+                  <button type="button" class="giu" aria-label="Sposta dopo">↓</button>
+                </span>
+                <button type="button" class="togli-carosello" title="Togli dal carosello: la foto torna «Sito» e resta nella pagina del concerto">Togli dal carosello</button>
+              </li>
+            ))}
+          </ol>
+          <p class="esito-ordine esito-home tenue" role="status"></p>
+        </>}
+  </section>
 
   <div style="display:grid;gap:16px;margin-top:20px">
     {posti.map((p) => (
@@ -83,7 +123,7 @@ const posti = [
 
   <section class="scheda-admin maestro-carosello" id="maestro">
     <h2>Il Maestro: carosello della sua pagina <small class="tenue">· {nelCarosello.length} {nelCarosello.length === 1 ? 'foto' : 'foto'}</small></h2>
-    <p class="tenue" style="max-width:64ch;font-size:15px">Le foto del carosello scorrono, in quest'ordine, nella foto grande in cima alla pagina «Il Maestro» (al massimo {LIMITE_CAROSELLO}): riordinale trascinandole o con le frecce. Una foto caricata entra nel carosello in fondo; «Fuori dal carosello» la tiene da parte su Drive (cartella Sito/Foto/Maestro), «Togli» la mette nel cestino. Senza foto nel carosello resta la foto «Il Maestro» qui sopra. Tutto vale dopo la prossima <a href="/admin">pubblicazione</a>. Prima di caricare: chi l'ha scattata e il consenso.</p>
+    <p class="tenue" style="max-width:64ch;font-size:15px">Le foto del carosello scorrono, in quest'ordine, nella foto grande in cima alla pagina «Il Maestro» (al massimo {LIMITE_CAROSELLO}): riordinale trascinandole o con le frecce. Una foto caricata entra nel carosello in fondo; «Fuori dal carosello» la tiene da parte su Drive (cartella Sito/Foto/Maestro), «Togli» la mette nel cestino. La <b>prima</b> è anche la foto del Maestro nella home e l'anteprima dei link alla sua pagina. Senza foto nel carosello resta la foto di riserva. Tutto vale dopo la prossima <a href="/admin">pubblicazione</a>. Prima di caricare: chi l'ha scattata e il consenso.</p>
     {erroreMaestro ? <Errore e={erroreMaestro} /> : <>
       <form class="carica-maestro">
         <label class="btn o piccolo scegli">Carica foto <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden /></label>
@@ -129,6 +169,9 @@ const posti = [
 
   <style>
     .maestro-carosello { margin-top: 28px; }
+    .carosello-admin { margin-top: 20px; }
+    .maestro-carosello h2, .carosello-admin h2 { font-size: 19px; margin: 0 0 8px; }
+    .carosello-admin h2 small { font-size: 14px; font-weight: 400; }
     .maestro-carosello h2 { font-size: 19px; margin: 0 0 8px; }
     .maestro-carosello h2 small { font-size: 14px; font-weight: 400; }
     .carica-maestro { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 12px 0 4px; }
@@ -149,6 +192,29 @@ const posti = [
 
     const esito = document.getElementById('esito')!;
     const mostra = (html: string, classe: string) => { esito.className = `messaggio ${classe}`; esito.innerHTML = html; esito.scrollIntoView({ block: 'nearest' }); };
+
+    // Carosello della home: ordine salvato dopo una pausa; «Togli dal carosello» rimette la foto «Sito»
+    // (/admin/foto-concerti/stato, che cancella anche la sua posizione) e salva il nuovo ordine
+    const listaHome = document.querySelector<HTMLOListElement>('.home-carosello');
+    if (listaHome) {
+      const esitoHome = document.querySelector<HTMLElement>('.esito-home')!;
+      const { voci, salva } = attivaOrdine(listaHome, esitoHome, (ids) => inviaJson('/admin/foto-concerti/ordine', { ids }), Number(listaHome.dataset.limite));
+      listaHome.addEventListener('click', async (e) => {
+        const b = (e.target as Element).closest<HTMLButtonElement>('.togli-carosello');
+        if (!b) return;
+        const li = b.closest('li')!;
+        if (!confirm('Togliere questa foto dal carosello della home? Resta sul sito, nella pagina del concerto.')) return;
+        b.disabled = true;
+        try {
+          await inviaJson('/admin/foto-concerti/stato', { id: li.dataset.id, visibilita: 'pubblica' });
+          li.remove();
+          if (voci().length) salva(); else esitoHome.textContent = 'Nessuna foto nel carosello: in cima alla home tornerà la foto di riserva.';
+        } catch (err) {
+          b.disabled = false;
+          alert(`Non tolta: ${(err as Error).message}`);
+        }
+      });
+    }
 
     // Carosello del Maestro: caricamento (una foto alla volta, ridotta prima), ordine, dentro/fuori, cestino
     const caricaMaestro = document.querySelector<HTMLFormElement>('.carica-maestro');

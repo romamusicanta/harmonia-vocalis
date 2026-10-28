@@ -1,7 +1,6 @@
 ---
-// Amministrazione → Foto dei concerti (src/area/fotoConcerti.ts). In alto il carosello della home: le foto
-// «Home» di tutti i concerti nell'ordine in cui scorrono, da riordinare trascinandole o con le frecce
-// (/admin/foto-concerti/ordine; le prime LIMITE_CAROSELLO scorrono, le altre no). Sotto, un concerto alla
+// Amministrazione → Foto dei concerti (src/area/fotoConcerti.ts). Il carosello della home (l'ordine delle
+// foto «Home») dal 28/10/2026 sta in Foto del sito (/admin/foto#carosello). Qui, un concerto alla
 // volta (dal 13/10/2026, per non caricare centinaia di miniature: ?concerto=<id dell'evento o data>; di
 // base il primo con foto da guardare, cioè su cui nessun redattore ha ancora scelto, altrimenti il più
 // recente), le sue foto: per ognuna i redattori scelgono dove si vede, e ogni livello comprende quello
@@ -9,20 +8,18 @@
 // carosello della home); oppure Nascosta, o la tolgono (cestino del Drive condiviso). Si salva subito
 // (/admin/foto-concerti/stato); Sito, Home e l'ordine valgono dopo la pubblicazione.
 import LayoutAdmin from '../../admin/LayoutAdmin.astro';
-import '../../admin/ordine.css';
 import Errore from '../../area/Errore.astro';
 import FotoAdmin from '../../admin/FotoAdmin.astro';
 import { parti } from '../../motore/concerti';
-import { configurato, fotoDeiConcerti, fotoDelCarosello, LIMITE_CAROSELLO, sulSito, type ConcertoConFoto } from '../../area/fotoConcerti';
+import { configurato, fotoDeiConcerti, LIMITE_CAROSELLO, sulSito, type ConcertoConFoto } from '../../area/fotoConcerti';
 
 export const prerender = false;
 let errore: unknown;
 let gallerie: ConcertoConFoto[] = [];
-let carosello: Awaited<ReturnType<typeof fotoDelCarosello>> = [];
 if (!configurato()) errore = 'Manca la cartella «Foto dei concerti» su Drive (variabile DRIVE_CARTELLA_FOTO_CONCERTI sul server).';
 else {
   try {
-    [gallerie, carosello] = await Promise.all([fotoDeiConcerti(true), fotoDelCarosello()]);
+    gallerie = await fotoDeiConcerti(true);
   } catch (e) {
     errore = e;
   }
@@ -40,39 +37,13 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
   <ul class="legenda-foto tenue">
     <li><b>Coristi</b>: solo nell'area coristi (com'è appena caricata).</li>
     <li><b>Sito</b>: anche i visitatori, nella pagina del concerto e nel suo album della pagina Foto.</li>
-    <li><b>Home</b>: anche nella foto grande in apertura della home, che le fa scorrere nell'ordine scelto qui sotto (le prime {LIMITE_CAROSELLO}).</li>
+    <li><b>Home</b>: anche nella foto grande in apertura della home, che le fa scorrere (le prime {LIMITE_CAROSELLO}); l'ordine si sceglie in <a href="/admin/foto#carosello">Foto del sito</a>, dove la prima è anche l'anteprima dei link condivisi.</li>
     <li><b>Nascosta</b>: la vedono solo i redattori.</li>
   </ul>
   <p class="tenue" style="max-width:64ch">Con la stella <b>☆ Copertina</b> scegli, per ogni concerto, la copertina del suo album nella pagina Foto del sito; è anche la prima della galleria e, se il concerto non ha la locandina, la foto della sua scheda. Una per concerto, e sempre almeno «Sito».</p>
   <p class="tenue" style="max-width:64ch">Tutto vale dopo la prossima <a href="/admin">pubblicazione</a>. Le foto di un concerto si caricano e si gestiscono anche dalla sua Modifica (Concerti → Modifica, in fondo). Con «Cerca le foto doppie», sopra le foto del concerto, si tolgono le copie della stessa foto e resta quella a risoluzione più alta.</p>
   {errore && <Errore e={errore} />}
   {!errore && gallerie.length === 0 && <p class="tenue">Ancora nessuna foto.</p>}
-
-  {!errore && (
-    <section class="scheda-admin carosello-admin" id="carosello">
-      <h2>Carosello della home <small class="tenue">· {carosello.length} {carosello.length === 1 ? 'foto' : 'foto'} «Home»</small></h2>
-      {carosello.length === 0
-        ? <p class="tenue">Nessuna foto «Home»: in apertura della home c'è la foto di apertura di Foto del sito. Scegli «Home» sotto le foto di un concerto.</p>
-        : <>
-            <p class="tenue" style="max-width:64ch;font-size:15px">Scorrono in quest'ordine, al massimo {LIMITE_CAROSELLO}: riordinale trascinandole o con le frecce. «Togli dal carosello» la rimette «Sito»: resta nella pagina del concerto. {carosello.length > LIMITE_CAROSELLO && <>Le foto oltre la {LIMITE_CAROSELLO}ª restano «Home» ma non si vedono: spostale più in alto o toglile da «Home».</>} Una foto messa «Home» da poco va in fondo; ricarica la pagina per vederla qui.</p>
-            <ol class="ordine-carosello" data-limite={LIMITE_CAROSELLO}>
-              {carosello.map((f, i) => (
-                <li draggable="true" data-id={f.id} class:list={{ fuori: i >= LIMITE_CAROSELLO }}>
-                  <span class="posto">{i + 1}</span>
-                  <img src={`/admin/foto-concerti/miniatura/${f.id}`} alt="" loading="lazy" draggable="false" />
-                  <small><b>{f.titolo}</b><br />{quando(f.data)}<span class="non-scorre"> · non in carosello</span></small>
-                  <span class="frecce">
-                    <button type="button" class="su" aria-label="Sposta prima">↑</button>
-                    <button type="button" class="giu" aria-label="Sposta dopo">↓</button>
-                  </span>
-                  <button type="button" class="togli-carosello" title="Togli dal carosello: la foto torna «Sito» e resta nella pagina del concerto">Togli dal carosello</button>
-                </li>
-              ))}
-            </ol>
-            <p class="esito-ordine tenue" role="status"></p>
-          </>}
-    </section>
-  )}
 
   {scelta && (
     <section class="scheda-admin galleria-admin">
@@ -94,9 +65,7 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
 </LayoutAdmin>
 
 <style>
-  .galleria-admin, .carosello-admin { margin: 24px 0; }
-  .carosello-admin h2 { font-size: 19px; margin: 0 0 8px; }
-  .carosello-admin h2 small { font-size: 14px; font-weight: 400; }
+  .galleria-admin { margin: 24px 0; }
   .legenda-foto { margin: 0 0 12px; padding-left: 20px; font-size: 14px; display: grid; gap: 2px; }
   .scelta-concerto { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   .scelta-concerto label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; color: var(--primario); width: min(100%, 560px); }
@@ -105,38 +74,7 @@ const scelta = gallerie.find((g) => chiave(g) === richiesto || g.data === richie
 </style>
 
 <script>
-  import { attivaOrdine, inviaJson } from '../../admin/ordine-client';
-
   // Il concerto si cambia dal menu: la pagina si ricarica con le sue foto
   document.querySelector<HTMLSelectElement>('.scelta-concerto select')?.addEventListener('change', (e) => (e.target as HTMLSelectElement).form!.submit());
 
-  // Ordine del carosello: trascinamento o frecce, salvato dopo una pausa (src/admin/ordine-client.ts)
-  const lista = document.querySelector<HTMLOListElement>('.ordine-carosello');
-  if (lista) {
-    const esito = document.querySelector<HTMLElement>('.esito-ordine')!;
-    const { voci, salva } = attivaOrdine(lista, esito, (ids) => inviaJson('/admin/foto-concerti/ordine', { ids }), Number(lista.dataset.limite));
-    // Togli dal carosello: la foto torna «Sito» (/admin/foto-concerti/stato, che cancella anche la sua
-    // posizione); le altre si rinumerano e il nuovo ordine si salva
-    lista.addEventListener('click', async (e) => {
-      const b = (e.target as Element).closest<HTMLButtonElement>('.togli-carosello');
-      if (!b) return;
-      const li = b.closest('li')!;
-      if (!confirm('Togliere questa foto dal carosello della home? Resta sul sito, nella pagina del concerto.')) return;
-      b.disabled = true;
-      try {
-        await inviaJson('/admin/foto-concerti/stato', { id: li.dataset.id, visibilita: 'pubblica' });
-        li.remove();
-        // La stessa foto nell'elenco del concerto qui sotto, se c'è, passa a «Sito»
-        const sotto = document.querySelector<HTMLLIElement>(`.foto-admin li[data-id="${li.dataset.id}"]`);
-        if (sotto) {
-          sotto.querySelectorAll<HTMLButtonElement>('.scelta-visibilita button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === 'pubblica')));
-          sotto.className = 'pubblica';
-        }
-        if (voci().length) salva(); else esito.textContent = 'Nessuna foto nel carosello: in apertura della home tornerà la foto di apertura.';
-      } catch (err) {
-        b.disabled = false;
-        alert(`Non tolta: ${(err as Error).message}`);
-      }
-    });
-  }
 </script>

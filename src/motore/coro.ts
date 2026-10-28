@@ -80,6 +80,12 @@ export const fotoInHome = () =>
     .sort((a, b) => (a.ordineHome ?? Infinity) - (b.ordineHome ?? Infinity) || b.data.localeCompare(a.data) || (b.caricata ?? '').localeCompare(a.caricata ?? ''))
     .map((f) => ({ nome: f.file, data: f.data }));
 
+// La foto di apertura (dal 28/10/2026, richiesta di Mario) è la prima del carosello della home: anteprima
+// dei link condivisi, riserva della pagina Concerti. Il posto «Apertura» di Foto del sito non c'è più: la
+// foto `apertura` di Sito/Foto (o di coro.config.ts) resta solo per quando il carosello è vuoto
+const primaInHome = fotoInHome()[0]?.nome;
+if (primaInHome) coro.foto.apertura = primaInHome;
+
 // Le foto del concerto di quel giorno (AAAA-MM-GG), copertina per prima, come nomi per immagine()
 export const fotoDelConcerto = (data: string) => fotoPubbliche().filter((f) => f.data === data).sort(ordineAlbum).map((f) => f.file);
 
@@ -91,6 +97,11 @@ export const copertinaDelConcerto = (data: string) => fotoPubbliche().find((f) =
 const elencoMaestro = import.meta.glob<string[]>('/coro/immagini/drive/maestro/elenco.json', { eager: true, import: 'default' });
 export const fotoCaroselloMaestro = () =>
   DEMO ? [] : (Object.values(elencoMaestro)[0] ?? []).filter((f) => `/coro/immagini/${f}` in immagini).slice(0, LIMITE_CAROSELLO);
+// La foto del Maestro (home, anteprima della sua pagina; dal 28/10/2026, richiesta di Mario) è la prima del
+// suo carosello: il posto «Il Maestro» di Foto del sito non c'è più, la foto `maestro` di Sito/Foto (o di
+// coro.config.ts) resta solo per quando il carosello è vuoto
+const primaDelMaestro = fotoCaroselloMaestro()[0];
+if (primaDelMaestro) coro.maestro.foto = primaDelMaestro;
 
 // Le foto dei capitoli della pagina «Il Coro» (dal 19/10/2026): quelle caricate in Foto del sito
 // (Sito/Foto/capitolo-1 … capitolo-4); dove manca, una scelta automatica: la foto delle prove, poi le foto
