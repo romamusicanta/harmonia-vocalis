@@ -158,7 +158,7 @@ function vecchi(r: Record<string, string>, pezzo: string) {
 }
 
 // Spartiti e gruppi di tracce di un pezzo dalle sue righe di file, nell'ordine in cui sono state
-// aggiunte; i gruppi legati a brani nell'ordine dei brani dell'opera (dal 31/10/2026: prima un
+// aggiunte; i gruppi legati a brani nell'ordine dei brani dell'opera, al posto del primo che citano (dal 31/10/2026: prima un
 // gruppo aggiunto dopo finiva in fondo anche se era di un brano del mezzo), gli altri dopo; le voci
 // di un gruppo nell'ordine del catalogo
 function materiali(file: RigaFile[], voci: Voce[], brani: Brano[]) {
@@ -171,9 +171,14 @@ function materiali(file: RigaFile[], voci: Voce[], brani: Brano[]) {
     g.tracce.push({ id: f.id, voce: f.voce, sezione: f.sezione, link: f.link });
   }
   for (const g of tracce) g.tracce.sort((a, b) => ordineVoce(a.voce, voci) - ordineVoce(b.voce, voci));
+  // Il posto è quello del primo brano scritto nella riga del gruppo (anche con un nome di prima):
+  // «Hostias, Quam olim» sta all'Hostias, non al Quam olim che viene prima nell'opera
   const posto = (g: GruppoTracce) => {
-    const i = Math.min(...g.brani.map((n) => brani.findIndex((b) => confrontabile(b.nome) === confrontabile(n))).filter((i) => i >= 0));
-    return Number.isFinite(i) ? i : brani.length;
+    for (const n of g.brani) {
+      const i = brani.findIndex((b) => stessoBrano(b, n));
+      if (i >= 0) return i;
+    }
+    return brani.length;
   };
   // sort è stabile: a parità di brano resta l'ordine di inserimento
   tracce.sort((a, b) => posto(a) - posto(b));
