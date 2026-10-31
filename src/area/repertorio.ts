@@ -158,8 +158,10 @@ function vecchi(r: Record<string, string>, pezzo: string) {
 }
 
 // Spartiti e gruppi di tracce di un pezzo dalle sue righe di file, nell'ordine in cui sono state
-// aggiunte; le voci di un gruppo nell'ordine del catalogo
-function materiali(file: RigaFile[], voci: Voce[]) {
+// aggiunte; i gruppi legati a brani nell'ordine dei brani dell'opera (dal 31/10/2026: prima un
+// gruppo aggiunto dopo finiva in fondo anche se era di un brano del mezzo), gli altri dopo; le voci
+// di un gruppo nell'ordine del catalogo
+function materiali(file: RigaFile[], voci: Voce[], brani: Brano[]) {
   const spartiti: Spartito[] = file.filter((f) => f.tipo === 'Spartito').map((f) => ({ id: f.id, titolo: f.titolo || 'Spartito', link: f.link, brani: f.brani }));
   const tracce: GruppoTracce[] = [];
   for (const f of file.filter((x) => x.tipo === 'Traccia')) {
@@ -169,6 +171,12 @@ function materiali(file: RigaFile[], voci: Voce[]) {
     g.tracce.push({ id: f.id, voce: f.voce, sezione: f.sezione, link: f.link });
   }
   for (const g of tracce) g.tracce.sort((a, b) => ordineVoce(a.voce, voci) - ordineVoce(b.voce, voci));
+  const posto = (g: GruppoTracce) => {
+    const i = Math.min(...g.brani.map((n) => brani.findIndex((b) => confrontabile(b.nome) === confrontabile(n))).filter((i) => i >= 0));
+    return Number.isFinite(i) ? i : brani.length;
+  };
+  // sort è stabile: a parità di brano resta l'ordine di inserimento
+  tracce.sort((a, b) => posto(a) - posto(b));
   return { spartiti, tracce };
 }
 
@@ -198,7 +206,7 @@ export async function catalogo(): Promise<{ pezzi: Pezzo[]; raccolte: Raccolta[]
     arrangiatore: r['Arrangiatore'] ?? '',
     stato: r['Stato'] || STATI[0],
     brani,
-    ...materiali(file, voci),
+    ...materiali(file, voci, brani),
     file,
     daConvertire,
     esecuzione: r['Esecuzione di riferimento'] || undefined,

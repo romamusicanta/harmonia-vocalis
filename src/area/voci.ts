@@ -31,10 +31,16 @@ export function catalogoVoci(usate: Voce[] = []): Voce[] {
   return tutte;
 }
 
-// Ordine delle voci in un gruppo di tracce: quello del catalogo
+// Ordine delle voci in un gruppo di tracce: quello delle voci fisse del catalogo; una voce aggiunta
+// dai redattori che comincia con il nome di una fissa le sta subito dopo ("Soprani I A" dopo
+// "Soprani I", dal 31/10/2026), le altre in fondo nell'ordine del catalogo
 export const ordineVoce = (nome: string, catalogo: Voce[]) => {
-  const i = catalogo.findIndex((v) => v.nome === nome);
-  return i < 0 ? catalogo.length : i;
+  const i = VOCI.findIndex((v) => v.nome === nome);
+  if (i >= 0) return i;
+  const base = VOCI.map((v, j) => [v.nome, j] as const).filter(([n]) => nome.startsWith(`${n} `)).sort((a, b) => b[0].length - a[0].length)[0];
+  if (base) return base[1] + 0.5;
+  const k = catalogo.findIndex((v) => v.nome === nome);
+  return k < 0 ? catalogo.length : k;
 };
 
 // Dal nome del file la voce più probabile ("Kyrie_Sop1.mp3" → Soprani I, "gloria-bar.m4a" →
