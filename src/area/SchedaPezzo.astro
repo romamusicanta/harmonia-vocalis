@@ -11,9 +11,13 @@
 import Icona from '../componenti/Icona.astro';
 import { allaPagina, spartitoDi, type Pezzo, type Traccia } from './repertorio';
 import { comeHtml } from './testo';
+import { sitoDi, type Guida } from './guidaStudio';
 
-interface Props { p: Pezzo; sezione?: string; ancora?: boolean; cerca: string }
-const { p, sezione, ancora = true, cerca } = Astro.props;
+// guida e studio (l'indirizzo della guida): accanto a ogni gruppo di tracce il sito da cui viene
+interface Props { p: Pezzo; sezione?: string; ancora?: boolean; cerca: string; guida?: Guida; studio?: string }
+const { p, sezione, ancora = true, cerca, guida, studio } = Astro.props;
+// I siti da cui vengono le tracce del pezzo, una volta sola, sotto «Tracce per lo studio»
+const fonti = guida && studio ? [...new Map(p.tracce.map((g) => sitoDi(guida, g.titolo, g.tracce[0]?.link)).filter((f) => f).map((f) => [f!.id, f!])).values()] : [];
 const mia = (t: Traccia) => Boolean(sezione && t.sezione === sezione);
 // La propria sezione prima, poi le altre nell'ordine del catalogo delle voci
 const inOrdine = (tracce: Traccia[]) => [...tracce.filter(mia), ...tracce.filter((t) => !mia(t))];
@@ -60,6 +64,9 @@ const file = (link: string) => link.startsWith('/area/file/') || link.startsWith
             </div>
           )}
           {nTracce > 0 && nessunaPerMe && <p class="tenue solo-mie" style="margin:0 0 8px">Nessuna traccia per la tua sezione: con «Tutte le tracce» vedi quelle delle altre.</p>}
+          {fonti.length > 0 && (
+            <p class="fonte-tracce"><Icona nome="info" classe="" /><span>Come funziona{fonti.length > 1 ? 'no' : ''} {fonti.map((f, i) => <>{i > 0 && (i === fonti.length - 1 ? ' e ' : ', ')}<a href={`${studio}#${f.id}`}>{f.nome}</a></>)}</span></p>
+          )}
           {p.tracce.map((g) => (
             <div class:list={['gruppo-tracce', { 'solo-altre': !g.tracce.some(perMe) }]}>
               {(p.tracce.length > 1 || g.brani.length > 0 || g.titolo !== 'Tracce') && (
@@ -165,6 +172,9 @@ const file = (link: string) => link.startsWith('/area/file/') || link.startsWith
   .titolo-gruppo { margin: 0 0 8px; display: grid; gap: 2px; }
   .titolo-gruppo b { color: var(--primario); font-size: 16px; }
   .titolo-gruppo small { color: var(--tenue); font-size: 13px; }
+  .fonte-tracce { display: flex; align-items: center; gap: 6px; margin: 0 0 14px; font-size: 14px; color: var(--tenue); }
+  .fonte-tracce a { color: var(--primario); text-decoration: underline; font-weight: 600; }
+  .fonte-tracce :global(svg) { width: 16px; height: 16px; flex-shrink: 0; }
   /* Tracce caricate come file: lettore audio nella riga della voce */
   .base:has(audio) { grid-template-columns: minmax(0, 1fr); }
   .base audio { width: 100%; height: 40px; }

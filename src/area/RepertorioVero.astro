@@ -14,13 +14,16 @@ import Errore from './Errore.astro';
 import AiutoDrive from './AiutoDrive.astro';
 import SchedaPezzo from './SchedaPezzo.astro';
 import { linkDelSito, suDrive } from './file';
+import { guida as leggiGuida, type Guida } from './guidaStudio';
+import { link, vesteCorrente } from '../motore/url';
 
 let errore: unknown;
 let elenco: Pezzo[] = [];
 let raccolte: Raccolta[] = [];
 let sezione: string | undefined;
+let guida: Guida | undefined;
 try {
-  [{ pezzi: elenco, raccolte }, sezione] = await Promise.all([catalogo(), coristaDi(Astro.locals.corista!.email).then((c) => c?.sezione)]);
+  [{ pezzi: elenco, raccolte }, sezione, guida] = await Promise.all([catalogo(), coristaDi(Astro.locals.corista!.email).then((c) => c?.sezione), leggiGuida()]);
 } catch (e) {
   errore = e;
 }
@@ -35,6 +38,7 @@ raccolte = raccolte.filter((r) => r.contenuto.length);
 // L'ancora #<id> di un pezzo in più raccolte sta nella prima
 const giaVisti = new Set<string>();
 const prima = (id: string) => !giaVisti.has(id) && Boolean(giaVisti.add(id));
+const studio = link(vesteCorrente(Astro.params.veste), '/area/studio');
 const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.arrangiatore, ...p.brani.map((b) => b.nome), ...p.spartiti.map((s) => s.titolo), ...p.tracce.map((g) => g.titolo), ...altro].join(' '));
 ---
 
@@ -52,10 +56,15 @@ const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.
   <div class="w">
     {errore && <Errore e={errore} />}
     {suGoogle && <AiutoDrive />}
+    <a class="riquadro-studio" href={studio}>
+      <span class="icona-q"><Icona nome="cuffie" classe="" /></span>
+      <span><b>Dove studiare</b><small>I siti e i canali YouTube da cui vengono le tracce, come funzionano e dove cercarne altre.</small></span>
+      <Icona nome="freccia" classe="freccina-studio" />
+    </a>
     {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca per autore, titolo o raccolta…" aria-label="Cerca nel repertorio" />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
     {opere.length > 0 && raccolte.length > 0 && <h2 class="titolo-gruppo">Opere</h2>}
-    {opere.map((p) => <SchedaPezzo p={p} sezione={sezione} cerca={cerca(p)} />)}
+    {opere.map((p) => <SchedaPezzo p={p} sezione={sezione} cerca={cerca(p)} guida={guida} studio={studio} />)}
     {raccolte.length > 0 && (
       <>
         <h2 class="titolo-gruppo">Raccolte</h2>
@@ -68,7 +77,7 @@ const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.
             </summary>
             <div class="dentro">
               {r.note && <div class="nota-raccolta" set:html={comeHtml(r.note)} />}
-              {r.contenuto.map((id) => { const p = pezzoDi.get(id)!; return <SchedaPezzo p={p} sezione={sezione} ancora={prima(id)} cerca={cerca(p, r.titolo)} />; })}
+              {r.contenuto.map((id) => { const p = pezzoDi.get(id)!; return <SchedaPezzo p={p} sezione={sezione} ancora={prima(id)} cerca={cerca(p, r.titolo)} guida={guida} studio={studio} />; })}
             </div>
           </details>
         ))}
@@ -114,6 +123,12 @@ const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.
 </script>
 
 <style>
+  .riquadro-studio { display: flex; align-items: center; gap: 14px; padding: 14px 20px; margin-bottom: 18px; background: var(--bianco); border: 1px solid var(--linea); border-left: 4px solid var(--accento); color: var(--testo); }
+  .riquadro-studio:hover { background: var(--fondo); }
+  .riquadro-studio > span:nth-child(2) { flex: 1; min-width: 0; }
+  .riquadro-studio b { display: block; color: var(--primario); font-size: 17px; }
+  .riquadro-studio small { display: block; color: var(--tenue); font-size: 14px; margin-top: 2px; }
+  .riquadro-studio :global(.freccina-studio) { color: var(--tenue); flex-shrink: 0; }
   .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 14px; }
   .titolo-gruppo { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); font-weight: 800; margin: 28px 0 12px; }
   .titolo-gruppo:first-of-type { margin-top: 8px; }

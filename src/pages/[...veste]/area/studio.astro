@@ -1,0 +1,94 @@
+---
+// Area coristi: la guida allo studio delle parti (src/area/guidaStudio.ts), sotto la sezione
+// Repertorio. Ci portano il riquadro in cima al Repertorio e i nomi dei siti accanto ai gruppi di
+// tracce (#<sito>). Nella demo il testo del codice.
+import Base from '../../../layouts/Base.astro';
+import Icona from '../../../componenti/Icona.astro';
+import { AREA_CORISTI, DEMO } from '../../../motore/coro';
+import { link, percorsiVesti, vesteCorrente } from '../../../motore/url';
+import { guida, leggiGuida, TESTO_INIZIALE } from '../../../area/guidaStudio';
+import { comeHtml } from '../../../area/testo';
+
+export const getStaticPaths = () => (AREA_CORISTI ? percorsiVesti() : []);
+const veste = vesteCorrente(Astro.params.veste);
+const g = DEMO ? leggiGuida(TESTO_INIZIALE) : await guida();
+const dominio = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/[/#?].*$/, '');
+const canale = (u: string) => u.match(/youtube\.com\/(@[^/?#]+)/)?.[1];
+---
+
+<Base veste={veste} titolo="Dove studiare · Area coristi" area={{ sezione: 'repertorio' }}>
+  <div class="area-intesta">
+    <div class="w">
+      <div>
+        <a class="indietro-rep" href={link(veste, '/area/repertorio')}><Icona nome="indietro" classe="" />Repertorio</a>
+        <span class="eti" style="margin-bottom:12px">Risorse audio per lo studio</span>
+        <h1>Dove studiare</h1>
+        <p>I siti e i canali YouTube da cui vengono le tracce del Repertorio, e dove cercarne altre.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="area-main">
+    <div class="w"><div class="guida">
+      {g.introduzione && <div class="intro-guida" set:html={comeHtml(g.introduzione)} />}
+      {g.gruppi.length > 1 && (
+        <nav class="indice-guida" aria-label="Siti della guida">
+          {g.gruppi.map((gr) => (
+            <div>
+              {gr.titolo && <b>{gr.titolo}</b>}
+              <ul>{gr.siti.map((s) => <li><a href={`#${s.id}`}>{s.nome}</a></li>)}</ul>
+            </div>
+          ))}
+        </nav>
+      )}
+      {g.gruppi.map((gr) => (
+        <section>
+          {gr.titolo && <h2 class="titolo-gruppo-guida">{gr.titolo}</h2>}
+          {gr.siti.map((s) => (
+            <article class="sito-guida carta" id={s.id}>
+              <div class="testa-sito">
+                <span class="icona-q"><Icona nome={canale(s.link) ? 'youtube' : 'cuffie'} classe="" /></span>
+                <div>
+                  <h3>{s.nome}</h3>
+                  {s.link && <small>{canale(s.link) ? `YouTube · ${canale(s.link)}` : dominio(s.link)}</small>}
+                </div>
+                {s.link && <a class="btn o piccolo" href={s.link} target="_blank" rel="noopener"><Icona nome="esterno" />Apri</a>}
+              </div>
+              {s.descrizione && <div class="descrizione" set:html={comeHtml(s.descrizione)} />}
+              {s.immagine && <img src={s.immagine} alt={`Schermata di ${s.nome}`} loading="lazy" />}
+            </article>
+          ))}
+        </section>
+      ))}
+    </div></div>
+  </div>
+</Base>
+
+<style>
+  .indietro-rep { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--tenue); margin-bottom: 14px; }
+  .indietro-rep :global(svg) { width: 16px; height: 16px; }
+  .guida { max-width: 820px; }
+  .intro-guida { font-size: 17px; line-height: 1.6; }
+  .intro-guida :global(p) { margin: 0 0 14px; }
+  .indice-guida { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px 24px; margin: 28px 0 8px; padding: 18px 22px; background: var(--bianco); border: 1px solid var(--linea); }
+  .indice-guida b { display: block; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); margin-bottom: 6px; }
+  .indice-guida ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .indice-guida a { color: var(--primario); font-weight: 600; text-decoration: underline; }
+  .guida section { padding: 0; }
+  .titolo-gruppo-guida { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); font-weight: 800; margin: 40px 0 12px; }
+  .sito-guida { padding: 20px 22px; scroll-margin-top: 150px; }
+  .sito-guida + .sito-guida { margin-top: 12px; }
+  .sito-guida:target { outline: 3px solid var(--accento); }
+  .testa-sito { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+  .testa-sito h3 { margin: 0; font-family: var(--f-titoli); font-size: 22px; color: var(--primario); line-height: 1.15; }
+  .testa-sito small { display: block; color: var(--tenue); font-size: 14px; margin-top: 2px; overflow-wrap: anywhere; }
+  .descrizione { margin-top: 12px; line-height: 1.6; }
+  .descrizione :global(p) { margin: 0 0 10px; }
+  .descrizione :global(p:last-child) { margin-bottom: 0; }
+  .sito-guida img { display: block; width: 100%; height: auto; object-fit: contain; margin-top: 14px; border: 1px solid var(--linea); }
+  @media (max-width: 560px) {
+    .sito-guida { padding: 16px; }
+    .testa-sito { grid-template-columns: auto minmax(0, 1fr); }
+    .testa-sito .btn { grid-column: 1 / -1; justify-self: start; }
+  }
+</style>

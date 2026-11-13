@@ -1,0 +1,81 @@
+---
+// Area redattori → Repertorio → Guida allo studio (dal 13/11/2026): il testo della pagina «Dove
+// studiare» dell'area coristi (src/area/guidaStudio.ts), salvato su Drive nella cartella Spartiti.
+// Vale subito, senza pubblicare.
+import LayoutAdmin from '../../../admin/LayoutAdmin.astro';
+import Errore from '../../../area/Errore.astro';
+import Strumenti from '../../../admin/StrumentiTesto.astro';
+import { salvaGuida, testoGuida, leggiGuida, TESTO_INIZIALE } from '../../../area/guidaStudio';
+import { spiega } from '../../../area/errori';
+
+export const prerender = false;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const p = new URLSearchParams();
+  try {
+    await salvaGuida(f.get('iniziale') ? TESTO_INIZIALE : String(f.get('testo') ?? ''));
+    p.set('salvata', f.get('iniziale') ? 'iniziale' : '1');
+  } catch (e) {
+    p.set('errore', spiega(e).testo);
+  }
+  return Astro.redirect(`/admin/repertorio/guida?${p}`, 303);
+}
+
+let testo = TESTO_INIZIALE;
+let errore: unknown;
+try {
+  testo = (await testoGuida()).testo;
+} catch (e) {
+  errore = e;
+}
+const siti = leggiGuida(testo).gruppi.reduce((n, g) => n + g.siti.length, 0);
+const q = Astro.url.searchParams;
+---
+
+<LayoutAdmin titolo="Guida allo studio" sezione="repertorio">
+  <p><a href="/admin/repertorio">← Repertorio</a></p>
+  <h1>Guida allo studio</h1>
+  <p class="tenue" style="max-width:68ch">Il testo della pagina <a href="/area/studio" target="_blank" rel="noopener"><b>Dove studiare</b></a> dell'area coristi: i siti e i canali YouTube per lo studio delle parti. Ci si arriva dal riquadro in cima al Repertorio e, nella scheda di ogni pezzo, dal link «Come funziona …» accanto alle tracce che vengono da uno di questi siti (il nome del sito nel titolo del gruppo di tracce, come «Kyrie – Choralia»). Salvando, la pagina cambia subito, senza pubblicare.</p>
+
+  {errore && <Errore e={errore} />}
+  {q.get('errore') && <p class="messaggio errore">Non salvata: {q.get('errore')}</p>}
+  {q.get('salvata') && <p class="messaggio ok">{q.get('salvata') === 'iniziale' ? 'Rimesso il testo iniziale della guida.' : 'Guida salvata: i coristi la vedono già.'}</p>}
+
+  <form method="post" class="scheda-admin modulo-guida">
+    <div class="lingua">
+      <label for="testo-guida"><b>Testo della guida</b> <span class="tenue">· {siti} siti</span></label>
+      <textarea id="testo-guida" name="testo" rows="30" required>{testo}</textarea>
+      <Strumenti />
+    </div>
+    <details class="come-si-scrive">
+      <summary>Come si scrive</summary>
+      <ul>
+        <li>In testa l'introduzione, con una riga vuota tra i paragrafi.</li>
+        <li><code>## Titolo</code> apre un gruppo di siti (per esempio «Canali YouTube con spartito sincronizzato»).</li>
+        <li><code>### Nome</code> apre un sito; sulla riga sotto il suo indirizzo, poi la descrizione.</li>
+        <li><code>**frase**</code> per il grassetto (oppure seleziona e premi G); gli indirizzi diventano link da soli.</li>
+        <li>Il nome del sito collega le tracce del Repertorio alla guida: se cambia, cambia anche il titolo dei gruppi di tracce.</li>
+      </ul>
+    </details>
+    <p style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <button class="btn g" type="submit">Salva la guida</button>
+      <a class="btn o" href="/area/studio" target="_blank" rel="noopener">Vedi la pagina dei coristi</a>
+    </p>
+  </form>
+  <form method="post" style="margin-top:12px" onsubmit="return confirm('Rimettere il testo iniziale della guida? Le modifiche fatte qui si perdono (restano nella storia del file su Drive).')">
+    <input type="hidden" name="iniziale" value="1" />
+    <button class="link-semplice" type="submit">Rimetti il testo iniziale</button>
+  </form>
+
+  <style>
+    .modulo-guida { margin-top: 18px; }
+    .lingua { display: grid; gap: 6px; }
+    .lingua label { font-size: 15px; color: var(--primario); }
+    .lingua textarea { width: 100%; font: inherit; font-size: 15px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); color: var(--testo); resize: vertical; }
+    .come-si-scrive { margin: 14px 0; font-size: 14px; }
+    .come-si-scrive summary { cursor: pointer; color: var(--primario); font-weight: 600; }
+    .come-si-scrive ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+    .link-semplice { font: inherit; font-size: 14px; background: none; border: 0; padding: 0; color: var(--tenue); text-decoration: underline; cursor: pointer; }
+  </style>
+</LayoutAdmin>
