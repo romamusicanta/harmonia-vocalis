@@ -57,9 +57,13 @@ const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.
     {errore && <Errore e={errore} />}
     {suGoogle && <AiutoDrive />}
     <a class="riquadro-studio" href={studio}>
-      <span class="icona-q"><Icona nome="cuffie" classe="" /></span>
-      <span><b>Dove studiare</b><small>I siti e i canali YouTube da cui vengono le tracce, come funzionano e dove cercarne altre.</small></span>
-      <Icona nome="freccia" classe="freccina-studio" />
+      <span class="icona-studio"><Icona nome="cuffie" classe="" /></span>
+      <span class="testo-studio">
+        <span class="eti-studio">Risorse audio per lo studio</span>
+        <b>Dove studiare la tua parte</b>
+        <small>I siti e i canali YouTube da cui vengono le tracce del Repertorio: come funzionano, quale scegliere e dove cercarne altre.</small>
+      </span>
+      <span class="btn-studio">Apri la guida<Icona nome="freccia" classe="" /></span>
     </a>
     {elenco.length > 6 && <input class="filtra-pezzi" type="search" placeholder="Cerca per autore, titolo o raccolta…" aria-label="Cerca nel repertorio" />}
     {!errore && elenco.length === 0 && <p class="carta" style="padding:20px">Il repertorio non è ancora stato inserito.</p>}
@@ -123,12 +127,24 @@ const cerca = (p: Pezzo, ...altro: string[]) => semplice([p.autore, p.titolo, p.
 </script>
 
 <style>
-  .riquadro-studio { display: flex; align-items: center; gap: 14px; padding: 14px 20px; margin-bottom: 18px; background: var(--bianco); border: 1px solid var(--linea); border-left: 4px solid var(--accento); color: var(--testo); }
-  .riquadro-studio:hover { background: var(--fondo); }
-  .riquadro-studio > span:nth-child(2) { flex: 1; min-width: 0; }
-  .riquadro-studio b { display: block; color: var(--primario); font-size: 17px; }
-  .riquadro-studio small { display: block; color: var(--tenue); font-size: 14px; margin-top: 2px; }
-  .riquadro-studio :global(.freccina-studio) { color: var(--tenue); flex-shrink: 0; }
+  /* Il teaser della guida allo studio: in evidenza, nei colori della testata del sito */
+  .riquadro-studio { display: flex; align-items: center; gap: 20px; padding: 22px 26px; margin-bottom: 22px; background: var(--primario); color: #fff; border-left: 6px solid var(--accento); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+  .riquadro-studio:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+  .icona-studio { flex-shrink: 0; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--accento); color: var(--testo); }
+  .icona-studio :global(svg) { width: 28px; height: 28px; }
+  .testo-studio { flex: 1; min-width: 0; display: grid; gap: 4px; }
+  .eti-studio { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accento); }
+  .testo-studio b { font-family: var(--f-titoli); font-size: clamp(22px, 2.4vw, 28px); line-height: 1.15; color: #fff; }
+  .testo-studio small { font-size: 15px; line-height: 1.45; color: rgb(255 255 255 / .8); }
+  .btn-studio { flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; background: var(--accento); color: var(--testo); font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .btn-studio :global(svg) { width: 18px; height: 18px; }
+  @media (max-width: 640px) {
+    .riquadro-studio { flex-wrap: wrap; gap: 14px; padding: 18px; }
+    .icona-studio { width: 44px; height: 44px; align-self: flex-start; }
+    .icona-studio :global(svg) { width: 22px; height: 22px; }
+    .testo-studio { flex-basis: calc(100% - 58px); }
+    .btn-studio { width: 100%; justify-content: center; }
+  }
   .filtra-pezzi { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--bordo-campo, var(--linea)); border-radius: var(--raggio); background: var(--bianco); margin-bottom: 14px; }
   .titolo-gruppo { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); font-weight: 800; margin: 28px 0 12px; }
   .titolo-gruppo:first-of-type { margin-top: 8px; }
