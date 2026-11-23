@@ -11,6 +11,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
+# Cambia a ogni build (deploy-app): senza, una ricostruzione dello stesso commit riuserebbe dalla
+# cache di Docker le pagine di prima, senza rileggere calendario e Drive
+ARG WEB_BUILD_ID
 # Le traduzioni inglesi già fatte (src/motore/inglese.ts) e le immagini ottimizzate da Astro restano
 # tra una build e l'altra in una cache di BuildKit, come la cache di build di Vercel
 RUN --mount=type=secret,id=app.env,required=true \
