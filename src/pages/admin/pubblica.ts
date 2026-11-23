@@ -1,4 +1,4 @@
-// "Pubblica ora": chiama il deploy hook di Vercel, che ricostruisce il sito con i dati di adesso.
+// "Pubblica ora": chiede alla VPS di ricostruire il sito con i dati di adesso.
 // Dalla pagina Pubblicazione arriva con fetch e risponde in JSON; senza JavaScript, un modulo
 // normale torna alla pagina con il messaggio.
 import type { APIRoute } from 'astro';

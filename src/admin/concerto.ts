@@ -3,6 +3,7 @@
 // dall'evento ai valori con cui riempire il modulo. Il modulo è l'unico posto in cui si scrivono i
 // dati di un concerto del sito pubblico, traduzioni inglesi comprese (dal 6/10/2026).
 import { generateText, Output } from 'ai';
+import { SONNET } from '../motore/claude';
 import { z } from 'astro/zod';
 import { daEvento } from '../motore/calendario';
 import type { Brano } from '../motore/tipi';
@@ -110,8 +111,8 @@ export const ingleseScritto = (d: DatiConcerto) => ({
 const giaTradotto = (it: string) => daDizionario(it) ?? (traduzioniFatte as Record<string, string>)[it];
 
 // Prima di salvare: l'inglese vuoto si scrive, e così quello di un testo italiano cambiato se
-// l'inglese è rimasto com'era; l'inglese corretto a mano resta. Con Claude attraverso l'AI Gateway
-// (OIDC, come "Leggi la locandina"); se non risponde l'inglese resta vuoto e lo traduce la build.
+// l'inglese è rimasto com'era; l'inglese corretto a mano resta. Con Claude (src/motore/claude.ts,
+// come "Leggi la locandina"); se non risponde l'inglese resta vuoto e lo traduce la build.
 export async function completaInglese(d: DatiConcerto): Promise<string | undefined> {
   const campi = campiInglesi(d);
   for (const c of campi) if (!c.it) c.metti('');
@@ -121,7 +122,7 @@ export async function completaInglese(d: DatiConcerto): Promise<string | undefin
   try {
     const testi = [...new Set(resto.map((c) => c.it))];
     const { output } = await generateText({
-      model: 'anthropic/claude-sonnet-5.5',
+      model: SONNET,
       output: Output.object({ schema: z.object({ traduzioni: z.array(z.object({ it: z.string(), en: z.string() })) }) }),
       system: ISTRUZIONI,
       prompt: JSON.stringify(testi),

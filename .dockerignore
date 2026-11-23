@@ -1,0 +1,12 @@
+node_modules
+dist
+.astro
+.git
+.env*
+.vercel
+.claude
+coro/immagini/drive
+public/pdfjs
+stampa
+download.html
+logo-esempio.png

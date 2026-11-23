@@ -8,20 +8,22 @@
 //      che le fa tradurre a Claude al salvataggio e le lascia correggere a mano; "Titolo EN:" nelle
 //      righe di prima del 6/10/2026
 //   2. il dizionario di src/motore/traduzioni.ts, per le voci ricorrenti
-//   3. Claude (attraverso l'AI Gateway di Vercel, OIDC) per tutto il resto, una frase alla volta una
+//   3. Claude (src/motore/claude.ts) per tutto il resto, una frase alla volta una
 //      sola volta: le traduzioni stanno in coro/traduzioni.en.json (nel repository, aggiornato dalle
-//      build in locale) e nella cache di build di Vercel. Senza AI Gateway la frase resta in italiano.
+//      build in locale) e nella cache della build (sulla VPS una cache di Docker, vedi il Dockerfile).
+//      Senza ANTHROPIC_API_KEY la frase resta in italiano.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { generateText, Output } from 'ai';
 import { z } from 'astro/zod';
+import { HAIKU } from './claude';
 import { archivio, prossimiConcerti } from './concerti';
 import { daDizionario, ISTRUZIONI } from './traduzioni';
 import { elencoVideo } from './video';
 import type { Concerto, Video } from './tipi';
 import type { Lingua } from './lingua';
 
-// Percorsi dalla cartella del progetto: durante la build il modulo gira da .vercel/output
+// Percorsi dalla cartella del progetto: durante la build il modulo gira da dist/
 // Città con un nome inglese diverso
 const CITTA: Record<string, string> = { Roma: 'Rome', 'Città del Vaticano': 'Vatican City' };
 
@@ -47,7 +49,7 @@ const mancanti = [...new Set([...tutti.flatMap(testiDi), ...video.flatMap((v) =>
 if (mancanti.length) {
   try {
     const { output } = await generateText({
-      model: 'anthropic/claude-haiku-4.5',
+      model: HAIKU,
       output: Output.object({ schema: z.object({ traduzioni: z.array(z.object({ it: z.string(), en: z.string() })) }) }) as any,
       system: ISTRUZIONI,
       prompt: JSON.stringify(mancanti),
@@ -56,7 +58,7 @@ if (mancanti.length) {
     mkdirSync(dirname(CACHE), { recursive: true });
     writeFileSync(CACHE, JSON.stringify(memoria, null, 1));
     // In locale si aggiorna anche il file del repository, da salvare con il commit
-    if (!process.env.VERCEL) writeFileSync(FILE, JSON.stringify(Object.fromEntries(Object.entries(memoria).sort()), null, 1) + '\n');
+    if (process.env.APP_ENV !== 'production') writeFileSync(FILE, JSON.stringify(Object.fromEntries(Object.entries(memoria).sort()), null, 1) + '\n');
     console.log(`[inglese] tradotti ${mancanti.length} testi di concerti e video`);
   } catch (err) {
     console.warn(`[inglese] traduzione automatica non riuscita, restano in italiano ${mancanti.length} testi: ${(err as Error).message}`);

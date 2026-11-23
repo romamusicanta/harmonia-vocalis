@@ -1,11 +1,11 @@
 // Chi fa parte del coro, e i dati dell'area (foglio "Coristi e assenze", calendari Prove e Concerti,
 // vedi dati.ts): li chiede a Google l'account di servizio del sito (sito-harmonia-vocalis),
-// che ha il ruolo di amministratore "Lettore gruppi" in Workspace. Niente chiavi: la funzione si
-// presenta con il suo token OIDC di Vercel, che la federazione delle identità del progetto Google
-// Cloud scambia con un accesso temporaneo dell'account di servizio (come la build per Drive, vedi
-// scripts/scarica-allegati.mjs). In locale il token OIDC viene da `vercel env pull .env.local`.
-import { getVercelOidcToken } from '@vercel/oidc';
-import { GCP_PROJECT_NUMBER, GCP_SERVICE_ACCOUNT_EMAIL, GCP_WORKLOAD_IDENTITY_POOL_ID, GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID } from 'astro:env/server';
+// che ha il ruolo di amministratore "Lettore gruppi" in Workspace. Niente chiavi dell'account di
+// servizio: il sito si presenta con un token firmato da sé (src/area/tokenOidc.mjs), che la
+// federazione delle identità del progetto Google Cloud scambia con un accesso temporaneo
+// dell'account di servizio (come la build per Drive, vedi scripts/scarica-allegati.mjs).
+import { audienceGoogle, tokenOidc } from './tokenOidc.mjs';
+import { GCP_PROJECT_NUMBER, GCP_SERVICE_ACCOUNT_EMAIL } from 'astro:env/server';
 
 // Gruppi (chi entra), foglio "Coristi e assenze" (lettura e scrittura), calendari Prove e Concerti
 // (lettura e scrittura: dal 6/10/2026 li scrive solo il sito, src/admin/calendari.ts),
@@ -21,7 +21,7 @@ const CI = 'https://cloudidentity.googleapis.com/v1';
 // Il token dell'account di servizio dura un'ora: si tiene finché vale
 let inCache: { token: string; scade: number } | undefined;
 
-// L'accesso federato (il token OIDC di Vercel scambiato da Google): serve per agire come l'account di
+// L'accesso federato (il nostro token OIDC scambiato da Google): serve per agire come l'account di
 // servizio (tokenServizio) e per firmare a suo nome (src/area/posta.ts)
 export async function tokenFederato() {
   if (!GCP_PROJECT_NUMBER || !GCP_SERVICE_ACCOUNT_EMAIL) throw new Error('mancano le variabili GCP_* sul server');
@@ -30,10 +30,10 @@ export async function tokenFederato() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
-      audience: `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${GCP_WORKLOAD_IDENTITY_POOL_ID}/providers/${GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID}`,
+      audience: audienceGoogle(),
       scope: 'https://www.googleapis.com/auth/cloud-platform',
       requestedTokenType: 'urn:ietf:params:oauth:token-type:access_token',
-      subjectToken: await getVercelOidcToken(),
+      subjectToken: tokenOidc(audienceGoogle()),
       subjectTokenType: 'urn:ietf:params:oauth:token-type:jwt',
     }),
   });

@@ -1,9 +1,10 @@
-// Operazioni dell'area Amministrazione sui calendari, sul Drive condiviso e su Vercel. I calendari
+// Operazioni dell'area Amministrazione sui calendari, sul Drive condiviso e la ricostruzione del sito. I calendari
 // li scrive solo il sito, con l'account di servizio (src/admin/calendari.ts); dal 7/10/2026 anche
 // Drive (cartelle Concerti e Sito, dove l'account di servizio è Gestore contenuti): prima a nome di chi
 // era entrato, che però doveva dare a Google il permesso su Drive e quindi entrare con Google. Chi ha
 // caricato un file resta nelle sue proprietà (caricatoDa). La ripubblicazione con il deploy hook.
-import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, VERCEL_DEPLOY_HOOK } from 'astro:env/server';
+import { CALENDARIO_CONCERTI_ID, CALENDARIO_PROVE_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, RICHIESTA_RICOSTRUZIONE } from 'astro:env/server';
+import { writeFile } from 'node:fs/promises';
 import type ical from 'node-ical';
 import { tokenServizio } from '../area/servizio';
 import { CAL, calendario } from './calendari';
@@ -26,7 +27,7 @@ async function api<T = any>(_s: Sessione, url: string, init: RequestInit = {}): 
 const CARTELLA = 'application/vnd.google-apps.folder';
 
 export const configurazioneMancante = () =>
-  Object.entries({ CALENDARIO_CONCERTI_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, VERCEL_DEPLOY_HOOK }).filter(([, v]) => !v).map(([k]) => k);
+  Object.entries({ CALENDARIO_CONCERTI_ID, DRIVE_CARTELLA_CONCERTI, DRIVE_CARTELLA_FOTO, RICHIESTA_RICOSTRUZIONE }).filter(([, v]) => !v).map(([k]) => k);
 
 // ——— Calendario ———
 
@@ -252,7 +253,11 @@ export async function salvaTestiSuDrive(s: Sessione, testi: TestiSalvati) {
 
 // ——— Pubblicazione ———
 
+// Il sito è statico: si ricostruisce sulla VPS (dal 23/11/2026). Il server scrive la richiesta in un
+// file della cartella montata dalla VPS (RICHIESTA_RICOSTRUZIONE, /richieste/ricostruisci); un'unità
+// di systemd lo vede, lo toglie e rifà la build con il codice già pubblicato (deploy-app). Richieste
+// ravvicinate diventano una sola build; quella in corso ne fa partire un'altra alla fine.
 export async function pubblica() {
-  const r = await fetch(VERCEL_DEPLOY_HOOK!, { method: 'POST' });
-  if (!r.ok) throw new Error(`Vercel non ha accettato la richiesta (${r.status})`);
+  if (!RICHIESTA_RICOSTRUZIONE) throw new Error('manca RICHIESTA_RICOSTRUZIONE sul server');
+  await writeFile(RICHIESTA_RICOSTRUZIONE, `${new Date().toISOString()}\n`);
 }

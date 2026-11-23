@@ -1,6 +1,7 @@
-// Riepilogo notturno delle visite (src/area/visite.ts), chiamato dal cron di Vercel (vercel.json):
+// Riepilogo notturno delle visite (src/area/visite.ts), chiamato ogni notte dal timer della VPS
+// (deploy/, web-timer@harmonia-vocalis-statistiche):
 // i totali dei giorni finiti nella scheda "Visite per giorno" e via le visite più vecchie di 13 mesi.
-// Vercel firma la chiamata con CRON_SECRET; senza, non fa niente.
+// La chiamata porta CRON_SECRET (in app.env); senza, non fa niente.
 import type { APIRoute } from 'astro';
 import { CRON_SECRET } from 'astro:env/server';
 import { configurato, riepilogoNotturno } from '../../area/visite';

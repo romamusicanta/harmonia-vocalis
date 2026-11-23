@@ -2,7 +2,7 @@
 import { readdirSync } from 'node:fs';
 import { defineConfig, envField } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
-import vercel from '@astrojs/vercel';
+import node from '@astrojs/node';
 
 // Pagine fuori dalla sitemap (sono anche noindex): l'anteprima dell'area coristi, l'area
 // Amministrazione, l'area del Maestro e le vesti in prova, che stanno sotto /<veste>/
@@ -25,9 +25,9 @@ export default defineConfig({
   // Indirizzo ufficiale del sito (lo stesso di coro.url): per canonical e sitemap
   site: 'https://romamusicanta.org',
   integrations: [areaRiservata, sitemap({ filter: (pagina) => !escluse.test(new URL(pagina).pathname) })],
-  // Il sito è statico; solo l'area Amministrazione (src/pages/admin, prerender = false) e l'area
-  // coristi girano come funzione su Vercel
-  adapter: vercel(),
+  // Il sito è statico; solo l'area Amministrazione (src/pages/admin, prerender = false), le aree
+  // riservate e le API girano sul server Node (sulla VPS di OVH dal 23/11/2026, vedi deploy/)
+  adapter: node({ mode: 'standalone' }),
   // Variabili dell'area Amministrazione e dell'area coristi, lette quando la pagina viene richiesta
   // (non nella build)
   env: {
@@ -35,8 +35,9 @@ export default defineConfig({
       GOOGLE_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       GOOGLE_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
       SESSIONE_SEGRETO: envField.string({ context: 'server', access: 'secret', optional: true }),
-      VERCEL_DEPLOY_HOOK: envField.string({ context: 'server', access: 'secret', optional: true }),
-      // Firma delle chiamate del cron di Vercel a /api/ricostruisci
+      // File in cui "Pubblica ora" chiede la ricostruzione alla VPS (src/admin/operazioni.ts)
+      RICHIESTA_RICOSTRUZIONE: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Firma delle chiamate del timer notturno a /api/statistiche
       CRON_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
       CALENDARIO_CONCERTI_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
       DRIVE_CARTELLA_CONCERTI: envField.string({ context: 'server', access: 'secret', optional: true }),

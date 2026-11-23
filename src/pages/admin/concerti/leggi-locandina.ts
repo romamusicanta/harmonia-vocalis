@@ -1,18 +1,18 @@
 // Legge una locandina e ne ricava i campi del modulo "Nuovo concerto", con un modello che vede le
-// immagini (Claude, attraverso l'AI Gateway di Vercel: su Vercel si autentica da solo con OIDC,
-// in locale con VERCEL_OIDC_TOKEN di .env.local). I dati tornano al modulo da controllare: non
+// immagini (Claude, con l'API di Anthropic: src/motore/claude.ts). I dati tornano al modulo da controllare: non
 // si scrive niente finché chi è entrato non preme "Crea il concerto".
 import type { APIRoute } from 'astro';
 import { generateText, Output } from 'ai';
 import { z } from 'astro/zod';
+import { SONNET } from '../../../motore/claude';
 import { coro } from '../../../motore/coro';
 import { daEvento } from '../../../motore/calendario';
 import { comeIcal, eventiConcerti } from '../../../admin/operazioni';
 
 export const prerender = false;
 
-// Un ID del catalogo https://ai-gateway.vercel.sh/v1/models: vede le immagini e dà output strutturato
-const MODELLO = 'anthropic/claude-sonnet-5.5';
+// Vede le immagini e dà output strutturato
+const MODELLO = SONNET;
 
 const testo = z.string().nullable();
 const schema = z.object({
@@ -90,8 +90,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ ok: true, dati: output });
   } catch (e) {
     const messaggio = (e as Error).message;
-    // Senza credito l'AI Gateway serve solo modelli che non leggono le immagini
-    if (/free tier|credit|insufficient|budget/i.test(messaggio)) return json({ ok: false, errore: 'la lettura delle locandine richiede credito sull’AI Gateway di Vercel, che è finito o non c’è ancora: avvisa Mario. Intanto i campi si possono riempire a mano.' }, 402);
+    // Credito finito sull'account Anthropic
+    if (/free tier|credit|insufficient|budget/i.test(messaggio)) return json({ ok: false, errore: 'la lettura delle locandine richiede credito sull’account Anthropic, che è finito: avvisa Mario. Intanto i campi si possono riempire a mano.' }, 402);
     return json({ ok: false, errore: `lettura non riuscita: ${messaggio}` }, 500);
   }
 };

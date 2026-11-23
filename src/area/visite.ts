@@ -7,11 +7,10 @@
 // Dati nel foglio "Coristi e assenze", con l'account di servizio:
 // - scheda "Visite": una riga per pagina vista, tenuta 13 mesi;
 // - scheda "Visite per giorno": i totali di ogni giorno finito, tenuti per sempre, scritti ogni
-//   notte da /api/statistiche (cron di vercel.json), che cancella anche le righe più vecchie.
+//   notte da /api/statistiche (timer della VPS, deploy/), che cancella anche le righe più vecchie.
 // La pagina Amministrazione → Statistiche legge i totali e, per oggi (e per i giorni che il cron
 // non ha ancora riassunto), le righe di "Visite" da "Riga successiva" dell'ultimo totale in poi.
 import { createHmac } from 'node:crypto';
-import { waitUntil } from '@vercel/functions';
 import { FOGLIO_CORISTI_ID, SESSIONE_SEGRETO } from 'astro:env/server';
 import { google } from './servizio';
 import { idScheda, leggiScheda, oggi, piuGiorni } from './dati';
@@ -89,9 +88,8 @@ export function registra(riga: (string | number)[]) {
       }
     })();
   }
-  const attesa = invio!;
-  waitUntil(attesa);
-  return attesa;
+  // Il server Node resta acceso: l'invio finisce anche dopo la risposta
+  return invio!;
 }
 
 // ——— Totali di un giorno ———

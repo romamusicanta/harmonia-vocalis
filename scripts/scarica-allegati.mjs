@@ -26,16 +26,18 @@
 //   coro/immagini/drive/organico.json.
 // Astro poi le ottimizza come le altre foto.
 //
-// Nessuna chiave: su Vercel la build si presenta a Google con il suo token OIDC
-// (VERCEL_OIDC_TOKEN), che la federazione delle identità del progetto Google Cloud
-// harmonia-vocalis-510406 scambia con un accesso temporaneo dell'account di servizio
-// sito-harmonia-vocalis, lettore delle cartelle Concerti e Sito del Drive condiviso.
-// In locale il token si scarica con `vercel env pull .env.local` (dura qualche ora).
+// Nessuna chiave dell'account di servizio: la build si presenta a Google con un token firmato da
+// sé (src/area/tokenOidc.mjs, chiave in OIDC_CHIAVE), che la federazione delle identità del
+// progetto Google Cloud harmonia-vocalis-510406 scambia con un accesso temporaneo dell'account di
+// servizio sito-harmonia-vocalis, lettore delle cartelle Concerti e Sito del Drive condiviso.
+// Sulla VPS le variabili arrivano dal file app.env, montato come segreto della build (Dockerfile);
+// in locale da .env.local.
 //
 // Non blocca mai la build: se qualcosa manca o non risponde lo scrive con [drive] e il sito
 // usa la locandina generata.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import ical from 'node-ical';
+import { audienceGoogle, tokenOidc } from '../src/area/tokenOidc.mjs';
 
 const cartella = new URL('../coro/immagini/drive/', import.meta.url);
 const cartellaSito = new URL('sito/', cartella);
@@ -61,9 +63,9 @@ function allegati(evento) {
 }
 
 async function accessoDrive() {
-  const { VERCEL_OIDC_TOKEN, GCP_PROJECT_NUMBER, GCP_SERVICE_ACCOUNT_EMAIL, GCP_WORKLOAD_IDENTITY_POOL_ID, GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID } = process.env;
-  if (!VERCEL_OIDC_TOKEN || !GCP_PROJECT_NUMBER || !GCP_SERVICE_ACCOUNT_EMAIL) {
-    avviso('credenziali assenti (VERCEL_OIDC_TOKEN e variabili GCP_*): allegati non scaricati');
+  const { OIDC_CHIAVE, GCP_PROJECT_NUMBER, GCP_SERVICE_ACCOUNT_EMAIL } = process.env;
+  if (!OIDC_CHIAVE || !GCP_PROJECT_NUMBER || !GCP_SERVICE_ACCOUNT_EMAIL) {
+    avviso('credenziali assenti (OIDC_CHIAVE e variabili GCP_*): allegati non scaricati');
     return undefined;
   }
   const sts = await fetch('https://sts.googleapis.com/v1/token', {
@@ -71,10 +73,10 @@ async function accessoDrive() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       grantType: 'urn:ietf:params:oauth:grant-type:token-exchange',
-      audience: `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${GCP_WORKLOAD_IDENTITY_POOL_ID}/providers/${GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID}`,
+      audience: audienceGoogle(),
       scope: 'https://www.googleapis.com/auth/cloud-platform',
       requestedTokenType: 'urn:ietf:params:oauth:token-type:access_token',
-      subjectToken: VERCEL_OIDC_TOKEN,
+      subjectToken: tokenOidc(audienceGoogle()),
       subjectTokenType: 'urn:ietf:params:oauth:token-type:jwt',
     }),
   });
@@ -101,7 +103,7 @@ async function scarica(token, id, nome, destinazione) {
 
 // Il calendario "Concerti", unica fonte dei concerti del sito, si legge una volta sola per tutta la
 // build e si salva in coro/immagini/drive/concerti.ics (lo legge src/motore/concerti.ts). Se non
-// risponde (tre tentativi), su Vercel la pubblicazione si ferma e resta online il sito di prima:
+// risponde (tre tentativi), in produzione (APP_ENV) la build si ferma e resta online il sito di prima:
 // dal 6/10/2026 non ci sono più concerti di riserva nel codice.
 const fileCalendario = new URL('concerti.ics', cartella);
 async function copiaCalendario() {
@@ -122,7 +124,7 @@ async function copiaCalendario() {
       await new Promise((ok) => setTimeout(ok, 3000));
     }
   }
-  if (process.env.VERCEL) {
+  if (process.env.APP_ENV === 'production') {
     console.error(`[calendario] non raggiungibile (${errore}): pubblicazione annullata, resta online il sito di prima`);
     process.exit(1);
   }
@@ -261,7 +263,7 @@ async function testiSito(token) {
 
 // Le opere «In repertorio» (non le raccolte né le opere che stanno in una raccolta) della scheda Repertorio del foglio "Coristi e assenze":
 // solo autore, titolo e arrangiatore, gli unici dati pubblici. Se il foglio non risponde resta il
-// file della build prima, se c'è (su Vercel non c'è: la pagina torna alle opere dell'archivio).
+// file della build prima, se c'è (nella build sulla VPS non c'è: la pagina torna alle opere dell'archivio).
 async function repertorioPronto(token) {
   const foglio = process.env.FOGLIO_CORISTI_ID;
   if (!foglio) return;

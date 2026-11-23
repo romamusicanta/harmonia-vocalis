@@ -18,10 +18,9 @@
     "pdfjs": "node scripts/pdfjs.mjs"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.70",
+    "@astrojs/node": "11.1.14",
     "@astrojs/sitemap": "^3.7.4",
-    "@astrojs/vercel": "11.0.11",
-    "@vercel/functions": "^3.9.11",
-    "@vercel/oidc": "^3.8.9",
     "ai": "7.0.127",
     "astro": "7.3.5",
     "fast-xml-parser": "5.11.2",

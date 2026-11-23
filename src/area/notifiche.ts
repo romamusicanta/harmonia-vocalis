@@ -7,7 +7,7 @@
 // (InvioNotifica.astro): il testo è ricavato dal messaggio WhatsApp e si corregge prima dell'invio.
 // Arriva a tutti i dispositivi iscritti di chi è ancora nel gruppo dei coristi o della direzione; le
 // iscrizioni che il servizio push dà per scadute (404, 410) si tolgono dal foglio. Le chiavi VAPID
-// (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY) sono su Vercel: se cambiano, tutte le iscrizioni vanno rifatte.
+// (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY) stanno in app.env sulla VPS: se cambiano, tutte le iscrizioni vanno rifatte.
 import webpush, { type PushSubscription } from 'web-push';
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY } from 'astro:env/server';
 import { coro } from '../motore/coro';

@@ -1,0 +1,39 @@
+# Come gira il sito sulla VPS web di OVH (Strasburgo), dal template di
+# ~/projects/architecture/web-vps/app-template. deploy/vps.sh lo installa come
+# /opt/web/apps/harmonia-vocalis/compose.yml; la GitHub Action non lo cambia (avvisa se differisce).
+# deploy-app builda il Dockerfile (con app.env come segreto della build), tagga l'immagine
+# web-harmonia-vocalis:current e fa `docker compose up -d`.
+# Segreti in /opt/web/apps/harmonia-vocalis/app.env (600, solo sulla VPS), valori tra apici singoli
+# perché la build lo legge anche con la shell: le variabili di astro.config.mjs (Google, VAPID,
+# sessioni, CRON_SECRET), OIDC_CHIAVE e OIDC_KID (src/area/tokenOidc.mjs), ANTHROPIC_API_KEY,
+# CALENDARIO_CONCERTI_ICS e APP_ENV='production'.
+# I dati stanno tutti su Google: qui non c'è niente da salvare nel backup.
+name: harmonia-vocalis
+services:
+  app:
+    image: web-harmonia-vocalis:current      # required: deploy-app checks this line
+    pull_policy: never
+    restart: unless-stopped
+    env_file: app.env
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4321"
+      # «Pubblica ora» scrive qui; web-rebuild@harmonia-vocalis.path lo vede e rifà la build
+      RICHIESTA_RICOSTRUZIONE: /richieste/ricostruisci
+    volumes:
+      - ./richieste:/richieste
+    ports:
+      - "127.0.0.1:8404:4321"   # Docker bypasses ufw: localhost only, Caddy in front
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    healthcheck:                # deploy-app waits for "healthy" before keeping a new version
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4321/robots.txt"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s

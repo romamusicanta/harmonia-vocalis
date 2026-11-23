@@ -1,0 +1,38 @@
+# A ogni push su main manda il sorgente alla VPS web di OVH (Strasburgo), che builda il Dockerfile,
+# avvia il nuovo container e lo tiene solo se risulta sano (altrimenti torna la versione precedente e
+# questa run fallisce). La chiave WEB_VPS_SSH_KEY entra come utente deploy, che può solo lanciare
+# deploy-static → deploy-app: niente shell, niente gruppo docker. Le modifiche a deploy/compose.yml e
+# deploy/caddy.conf non le installa: avvisa, e si installano con ./deploy/vps.sh dal Mac.
+name: Deploy sulla VPS web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build e avvio sulla VPS
+        env:
+          SSH_KEY: ${{ secrets.WEB_VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.WEB_VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          git archive --format=tar HEAD | ssh -o BatchMode=yes -o ServerAliveInterval=30 deploy@51.91.127.232 \
+            "app harmonia-vocalis $(git rev-parse --short HEAD) $(sha256sum deploy/compose.yml | cut -c1-64) $(sha256sum deploy/caddy.conf | cut -c1-64)"
+      - name: Controlla il sito
+        run: curl -fsS -o /dev/null -w '%{http_code} https://romamusicanta.org/\n' https://romamusicanta.org/

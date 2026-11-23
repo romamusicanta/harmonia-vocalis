@@ -1,15 +1,15 @@
 // Testi del sito (/admin/testi): i valori di adesso, il salvataggio di un gruppo (una pagina) e la
-// traduzione inglese automatica dei testi cambiati, con Claude attraverso l'AI Gateway di Vercel
-// (OIDC; in locale con VERCEL_OIDC_TOKEN di .env.local). Vedi src/motore/testiSito.ts.
+// traduzione inglese automatica dei testi cambiati, con Claude (src/motore/claude.ts). Vedi src/motore/testiSito.ts.
 import { generateText, Output } from 'ai';
 import { z } from 'astro/zod';
+import { SONNET } from '../motore/claude';
 import { coro, coroIn } from '../motore/coro';
 import { testo } from '../motore/testi';
 import { CAMPI_TESTO, fonteDi, type CampoTesto, type TestiSalvati } from '../motore/testiSito';
 import { salvaTestiSuDrive, testiSuDrive } from './operazioni';
 import type { Sessione } from './sessione';
 
-const MODELLO = 'anthropic/claude-sonnet-5.5';
+const MODELLO = SONNET;
 
 // Il testo pubblicato adesso (codice più testi salvati alla build), in una lingua
 export function pubblicato(c: CampoTesto, lingua: 'it' | 'en'): string {

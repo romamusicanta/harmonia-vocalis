@@ -11,7 +11,7 @@ export const prerender = false;
 const nulla = () => new Response(null, { status: 204 });
 
 export const POST: APIRoute = async ({ request, cookies, clientAddress, url }) => {
-  if (!configurato() || (process.env.VERCEL_ENV !== 'production' && process.env.STATISTICHE_LOCALI !== '1')) return nulla();
+  if (!configurato() || (process.env.APP_ENV !== 'production' && process.env.STATISTICHE_LOCALI !== '1')) return nulla();
   if (request.headers.get('origin') !== url.origin) return nulla();
   const ua = request.headers.get('user-agent') ?? '';
   if (eUnBot(ua) || cookies.has('hv-coro') || cookies.has('hv-corista')) return nulla();
