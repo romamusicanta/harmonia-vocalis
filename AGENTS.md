@@ -3,7 +3,7 @@
 Sito statico del Coro Harmonia Vocalis (Associazione Culturale Musicale Roma Musicanta), pubblicato su https://romamusicanta.org (dal 1/10/2026).
 L'associazione usa Google Workspace for Nonprofits (edizione gratuita) sul dominio `romamusicanta.org`.
 
-Il sito è nato il 30/09/2026 come copia del modello Dimora Choir (`~/projects/dimorachoir`, prodotto di Mario per vendere siti ai cori), ma **da allora è indipendente**: il modello resta solo una vetrina e non si portano più aggiornamenti da lì. Il motore (`src/`) si modifica direttamente qui; i dati del coro stanno in `coro/`.
+Il sito è nato il 30/09/2026 come copia del modello Dimora Choir, un progetto di Mario abbandonato e cancellato il 23/11/2026: da allora il sito è **indipendente** e non c'è più un modello da cui portare aggiornamenti. Il motore (`src/`) si modifica direttamente qui; i dati del coro stanno in `coro/`.
 
 ## Comandi verificati
 
@@ -83,7 +83,7 @@ Essendo statico, il sito si aggiorna solo quando viene ricostruito, e decide in 
 ## Workflow
 
 1. Aggiornare i dati in `coro/`, oppure direttamente nel calendario Google e su YouTube. I testi principali del sito si cambiano dall'Amministrazione (Testi del sito): quelli salvati lì vincono su `coro/`.
-2. Motore e veste Stagione si modificano qui, in `src/`. Il modello `~/projects/dimorachoir` non si tocca da qui e non se ne portano aggiornamenti.
+2. Motore e veste Stagione si modificano qui, in `src/`.
 3. `npm run build` per verificare che la build passi. Per provare il calendario senza quello vero: servire un file `.ics` in locale (`python3 -m http.server`) e lanciare la build con `CALENDARIO_CONCERTI_ICS=http://localhost:<porta>/file.ics`.
 4. Controllo visivo con `npm run dev:sito`, anche a larghezza mobile (375px).
 
