@@ -19,7 +19,7 @@
         "http.server",
         "4890",
         "--directory",
-        ".vercel/output/static"
+        "dist/client"
       ],
       "port": 4890
     }
