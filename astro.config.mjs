@@ -67,6 +67,11 @@ export default defineConfig({
   },
   // Quando è stata costruita la versione online, per l'area Amministrazione
   vite: { define: { __ORA_BUILD__: JSON.stringify(new Date().toISOString()) } },
+  // Dietro Caddy (VPS, dal 23/11/2026) la richiesta arriva a http://localhost:4321: senza questo
+  // Astro.url e url.origin avrebbero l'indirizzo interno, e l'indirizzo di ritorno di Google
+  // (redirect_uri_mismatch) e il controllo dell'origine dei moduli (middleware, area/codice)
+  // fallirebbero. Si crede a X-Forwarded-Host/Proto solo per il dominio del sito.
+  security: { allowedDomains: [{ hostname: 'romamusicanta.org', protocol: 'https' }] },
   // Indirizzi senza barra finale, come nei link interni: /concerti, /area/prove
   trailingSlash: 'ignore',
   build: { format: 'directory' },
