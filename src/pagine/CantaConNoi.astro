@@ -119,8 +119,8 @@ const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((
             </div>
             <div class="campo"><label for="cand-email">Email</label><input id="cand-email" type="email" name="email" autocomplete="email" maxlength="200" required /></div>
             <div class="campo">
-              <label for="cand-esp">{en ? 'Previous choral experience' : 'Esperienze corali precedenti'} <small>{en ? '(optional)' : '(facoltativo)'}</small></label>
-              <textarea id="cand-esp" name="esperienze" maxlength="3000" placeholder={en ? 'Choirs you have sung in and for how long, music studies, whether you read music… “None” is perfectly fine too.' : 'Cori in cui hai cantato e per quanto tempo, studi musicali, se leggi la musica… Va benissimo anche «nessuna».'}></textarea>
+              <label for="cand-esp">{en ? 'Previous choral experience' : 'Esperienze corali precedenti'}</label>
+              <textarea id="cand-esp" name="esperienze" maxlength="3000" required placeholder={en ? 'Choirs you have sung in, for how long and in which section, the repertoire, music studies, whether you read music…' : 'Cori in cui hai cantato, per quanto tempo e in quale sezione, il repertorio, studi musicali, se leggi la musica…'}></textarea>
             </div>
             <div class="campo">
               <label for="cand-perche">{en ? `Why would you like to join ${nomeBreve}?` : `Perché vorresti entrare in ${nomeBreve}?`}</label>

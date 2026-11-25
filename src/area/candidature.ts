@@ -44,6 +44,7 @@ export function leggiCandidatura(f: FormData): Candidatura | { errore: string } 
   if (!Number.isInteger(eta) || eta < ETA_MINIMA || eta > 99) return { errore: en ? 'Please write your age.' : 'Scrivi la tua età.' };
   if (!EMAIL.test(email)) return { errore: en ? 'The email address does not look right.' : 'L’indirizzo email non sembra giusto.' };
   if (!registro) return { errore: en ? 'Please choose your voice type.' : 'Scegli il tuo registro vocale.' };
+  if (!esperienze) return { errore: en ? 'Please tell us about your previous choral experience.' : 'Raccontaci le tue esperienze corali precedenti.' };
   if (!motivazione) return { errore: en ? 'Please tell us why you would like to join.' : 'Raccontaci perché vorresti entrare nel coro.' };
   if (!f.get('impegno')) return { errore: en ? 'Please confirm the commitment statement.' : 'Conferma la dichiarazione di impegno.' };
   if (!f.get('privacy')) return { errore: en ? 'Please accept the privacy notice.' : 'Accetta l’informativa privacy.' };
@@ -75,7 +76,7 @@ function testoPerIlCoro(c: Candidatura, quando: string) {
     `Lingua del modulo: ${c.lingua === 'en' ? 'inglese' : 'italiano'}`,
     '',
     'Esperienze corali:',
-    c.esperienze || '(nessuna indicata)',
+    c.esperienze,
     '',
     'Perché vorrebbe entrare in Harmonia Vocalis:',
     c.motivazione,
