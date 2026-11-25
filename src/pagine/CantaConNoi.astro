@@ -7,12 +7,13 @@ import Icona from '../componenti/Icona.astro';
 import Foto from '../componenti/Foto.astro';
 import Video from '../componenti/Video.astro';
 import NotaVideo from '../componenti/NotaVideo.astro';
-import { AREA_CORISTI, DEMO, elencoSezioni, sezioneAlSingolare } from '../motore/coro';
+import { AREA_CORISTI, DEMO } from '../motore/coro';
 import { contesto } from '../motore/url';
 import { videoIn } from '../motore/inglese';
 import { linkMappa } from '../motore/concerti';
 import { elencoVideo } from '../motore/video';
 import { testo } from '../motore/testi';
+import { REGISTRI, ETA_MINIMA, MAGGIORE_ETA } from '../motore/candidatura';
 
 interface Props { veste: Veste }
 const { veste } = Astro.props;
@@ -31,7 +32,9 @@ const sigla = coro.organico.map((s) => (/^(contr|alt)/i.test(s.sezione) ? 'A' : 
 const inLettere = en ? ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'] : ['Nessuna', 'Una', 'Due', 'Tre', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Otto'];
 const n = coro.organico.length;
 const sezioni = `${inLettere[n] ?? n} ${en ? (n === 1 ? 'section' : 'sections') : n === 1 ? 'sezione' : 'sezioni'}`;
-const elencoVoci = elencoSezioni(coro.organico, lingua);
+// Le prove come le dice la dichiarazione di impegno del modulo di candidatura
+const PROVE = { it: 'tutti i mercoledì e due venerdì al mese, dalle 20:00 alle 22:00', en: 'every Wednesday and two Fridays a month, from 8 to 10 pm' };
+const nomeBreve = coro.nome.replace(/^Coro\s+/i, '');
 const minuscola = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 const indirizzoProve = `${coro.prove.indirizzo}, ${coro.prove.cap} ${en && coro.prove.citta === 'Roma' ? 'Rome' : coro.prove.citta}`;
@@ -91,37 +94,50 @@ const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((
       <div class="due-col">
         <div>
           <div class="testa"><h2>{en ? 'Apply' : 'Candidati'}</h2></div>
-          {DEMO ? (
-            // DA FARE: servizio di invio dei moduli. Per ora il modulo esiste solo nella demo.
-            <form class="modulo" data-finto>
-              <div class="riga-campi">
-                <div class="campo"><label for="nome">Nome e cognome</label><input id="nome" name="nome" autocomplete="name" required /></div>
-                <div class="campo"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="email" required /></div>
+          {/* Modulo di candidatura (dal 25/11/2026): /api/candidatura, src/area/candidature.ts. Nella demo non invia niente */}
+          <div class="conferma" id="candidatura-inviata" role="status" tabindex="-1"><b>{en ? 'Thank you, we have received your application.' : 'Grazie, abbiamo ricevuto la tua candidatura.'}</b>{en ? 'We have sent you a confirmation email and will write to you within a few days to arrange the audition.' : 'Ti abbiamo mandato un’email di conferma e ti scriveremo entro pochi giorni per fissare l’audizione.'}{DEMO && ' (Demo: nessun dato è stato inviato.)'}</div>
+          <div class="conferma errore-modulo" id="candidatura-errore" role="alert" tabindex="-1"><b>{en ? 'Your application was not sent.' : 'La candidatura non è partita.'}</b><span data-messaggio>{en ? 'Please check the fields and try again, or write to us by email.' : 'Controlla i campi e riprova, oppure scrivici per email.'}</span></div>
+          <form class="modulo candidatura" method="post" action="/api/candidatura" data-finto={DEMO ? '#candidatura-inviata' : undefined} data-candidatura={DEMO ? undefined : ''} data-maggiore={MAGGIORE_ETA}>
+            <input type="hidden" name="lingua" value={lingua} />
+            <input type="hidden" name="iniziato" value="" />
+            <div class="nascosto" aria-hidden="true"><label>Sito web <input name="sito" tabindex="-1" autocomplete="off" /></label></div>
+            <div class="campo"><label for="cand-nome">{en ? 'Name and surname' : 'Nome e cognome'}</label><input id="cand-nome" name="nome" autocomplete="name" maxlength="100" required /></div>
+            <div class="riga-campi">
+              <div class="campo">
+                <label for="cand-eta">{en ? 'Age' : 'Età'}</label>
+                <input id="cand-eta" name="eta" type="number" inputmode="numeric" min={ETA_MINIMA} max="99" required />
+                <span class="aiuto" data-minorenne hidden>{en ? 'Under 18: if the audition goes well, we will ask your parents or guardians for their consent.' : 'Minorenne: se l’audizione va bene, chiederemo la delega di chi ne fa le veci.'}</span>
               </div>
-              <div class="riga-campi">
-                <div class="campo"><label for="tel">Telefono</label><input id="tel" type="tel" name="telefono" autocomplete="tel" /><span class="aiuto">Facoltativo: ti chiamiamo per fissare l'audizione.</span></div>
-                <div class="campo"><span class="lab">La tua voce</span>
-                  {/* Dati: coro.organico in coro.config.ts, più "Non so" */}
-                  <div class="voci" role="radiogroup" aria-label="La tua voce">
-                    {coro.organico.map((s) => <label><input type="radio" name="voce" value={sezioneAlSingolare(s.sezione).toLowerCase()} /><span>{sezioneAlSingolare(s.sezione)}</span></label>)}
-                    <label><input type="radio" name="voce" value="non so" checked /><span>Non so</span></label>
-                  </div>
-                </div>
+              <div class="campo">
+                <label for="cand-registro">{en ? 'Voice type' : 'Registro vocale'}</label>
+                <select id="cand-registro" name="registro" required>
+                  <option value="" disabled selected>{en ? 'Choose…' : 'Scegli…'}</option>
+                  {REGISTRI.map((r) => <option value={r.it}>{en ? r.en : r.it}</option>)}
+                </select>
+                <span class="aiuto">{en ? 'Not sure? Choose “I don’t know”: we will find out at the audition.' : 'Non ne sei sicuro? Scegli «Non lo so»: lo scopriremo all’audizione.'}</span>
               </div>
-              <div class="campo"><label for="esp">Esperienze corali</label><textarea id="esp" name="esperienze" placeholder="Cori in cui hai cantato, studi musicali, se leggi la musica… Va benissimo anche «nessuna»."></textarea></div>
-              <div class="campo"><label for="msg">Messaggio</label><textarea id="msg" name="messaggio" style="min-height:90px" placeholder="Qualcosa che vuoi dirci?"></textarea></div>
-              <label class="consenso"><input type="checkbox" required /><span>Ho letto l'<a href={l('/privacy')}>informativa privacy</a> e acconsento al trattamento dei miei dati per essere ricontattato riguardo all'audizione.</span></label>
-              <div><button class="btn" type="submit">Invia la candidatura <Icona nome="freccia" /></button></div>
-              <div class="conferma" role="status"><b>Grazie, abbiamo ricevuto la tua candidatura.</b>Ti scriveremo entro pochi giorni per fissare l'audizione. (Demo: nessun dato è stato inviato.)</div>
-            </form>
-          ) : (
-            <div>
-              <p class="tenue" style="font-size:19px;margin:0 0 24px;max-width:48ch">{en
-                ? `Write us a few lines about yourself: the voice you think you have (${elencoVoci}, or “I don’t know”), your choral experience, how to reach you. We will reply to arrange the audition. Writing in English is fine.`
-                : `Scrivici due righe su di te: la voce che pensi di avere (${elencoVoci}, o «non so»), le tue esperienze corali, un recapito. Ti risponderemo per fissare l'audizione.`}</p>
-              <a class="btn" href={`mailto:${coro.email}?subject=${encodeURIComponent(en ? 'Application to the choir' : 'Candidatura al coro')}`}><Icona nome="email" />{coro.email}</a>
             </div>
-          )}
+            <div class="campo"><label for="cand-email">Email</label><input id="cand-email" type="email" name="email" autocomplete="email" maxlength="200" required /></div>
+            <div class="campo">
+              <label for="cand-esp">{en ? 'Previous choral experience' : 'Esperienze corali precedenti'} <small>{en ? '(optional)' : '(facoltativo)'}</small></label>
+              <textarea id="cand-esp" name="esperienze" maxlength="3000" placeholder={en ? 'Choirs you have sung in and for how long, music studies, whether you read music… “None” is perfectly fine too.' : 'Cori in cui hai cantato e per quanto tempo, studi musicali, se leggi la musica… Va benissimo anche «nessuna».'}></textarea>
+            </div>
+            <div class="campo">
+              <label for="cand-perche">{en ? `Why would you like to join ${nomeBreve}?` : `Perché vorresti entrare in ${nomeBreve}?`}</label>
+              <textarea id="cand-perche" name="motivazione" maxlength="3000" required placeholder={en ? 'We would love to know what motivates you!' : 'Ci farebbe piacere sapere cosa ti motiva!'}></textarea>
+            </div>
+            <div class="campo impegno">
+              <span class="lab">{en ? 'Commitment statement' : 'Dichiarazione di impegno'}</span>
+              <label class="consenso"><input type="checkbox" name="impegno" value="sì" required /><span>{en
+                ? `I understand that, if my audition is successful, taking part in ${nomeBreve} requires regular attendance at rehearsals (${PROVE.en}), constant individual study of the repertoire and a responsible commitment towards the group. I confirm that I am willing to sustain this commitment seriously and consistently. Applicants under 18 will be asked for the consent of their parents or guardians.`
+                : `Sono consapevole che la partecipazione al ${coro.nome}, in caso di esito positivo dell’audizione, richiede una presenza regolare alle prove (${PROVE.it}), uno studio individuale costante del repertorio e un impegno responsabile nei confronti del gruppo. Confermo di essere disponibile a sostenere con serietà e continuità tale impegno. In caso di corista minorenne verrà richiesta una delega alla partecipazione da parte dei genitori o di chi ne fa le veci.`}</span></label>
+            </div>
+            <label class="consenso"><input type="checkbox" name="privacy" value="sì" required /><span>{en
+              ? <>I have read the <a href={l('/privacy')}>privacy notice</a> and agree to the processing of my data so that I can be contacted about the audition.</>
+              : <>Ho letto l’<a href={l('/privacy')}>informativa privacy</a> e acconsento al trattamento dei miei dati per essere ricontattato riguardo all’audizione.</>}</span></label>
+            <div><button class="btn" type="submit">{en ? 'Send your application' : 'Invia la candidatura'} <Icona nome="freccia" /></button></div>
+            <p class="tenue" style="font-size:14px;margin:0">{en ? 'Prefer to write to us?' : 'Preferisci scriverci?'} <a href={`mailto:${coro.email}?subject=${encodeURIComponent(en ? 'Application to the choir' : 'Candidatura al coro')}`} style="color:var(--primario);text-decoration:underline">{coro.email}</a></p>
+          </form>
         </div>
         <aside class="appiccicoso">
           {/* Dati: coro/testi/canta-con-noi.md (domande) */}
@@ -131,13 +147,6 @@ const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((
               {dati.domande.map((d) => <div><dt style="font-weight:800">{d.domanda}</dt><dd>{d.risposta}</dd></div>)}
             </dl>
           </div>
-          {DEMO && (
-            <div class="riquadro">
-              <h3>Preferisci scriverci?</h3>
-              <p class="tenue" style="margin-bottom:14px">Mandaci due righe su di te.</p>
-              <a class="link-freccia" href={`mailto:${coro.email}`}><Icona nome="email" />{coro.email}</a>
-            </div>
-          )}
           {videoInvito && (
             <div style="margin-top:20px">
               {/* Dati: canale YouTube, primo video con autore "Il coro" */}
@@ -150,3 +159,43 @@ const videoInvito = videoIn(coro.funzioni.ascolta ? (await elencoVideo()).find((
     </div>
   </section>
 </Base>
+
+<script>
+  // Modulo di candidatura (src/area/candidature.ts): invio con fetch, conferma o errore senza
+  // ricaricare la pagina; senza JavaScript il modulo parte lo stesso e torna sull'ancora giusta
+  const f = document.querySelector<HTMLFormElement>('form.candidatura');
+  if (f) {
+    const iniziato = f.querySelector<HTMLInputElement>('[name=iniziato]')!;
+    iniziato.value = String(Date.now());
+    const eta = f.querySelector<HTMLInputElement>('[name=eta]')!;
+    const nota = f.querySelector<HTMLElement>('[data-minorenne]')!;
+    const maggiore = Number(f.dataset.maggiore);
+    eta.addEventListener('input', () => { const n = Number(eta.value); nota.hidden = !(eta.value && n > 0 && n < maggiore); });
+  }
+  const ok = document.getElementById('candidatura-inviata')!;
+  const ko = document.getElementById('candidatura-errore')!;
+  const mostra = (box: HTMLElement) => {
+    ok.classList.toggle('vista', box === ok);
+    ko.classList.toggle('vista', box === ko);
+    box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    box.focus({ preventScroll: true });
+  };
+  if (f?.dataset.candidatura !== undefined) {
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bottone = f.querySelector<HTMLButtonElement>('button[type=submit]')!;
+      bottone.disabled = true;
+      try {
+        const r = await fetch(f.action, { method: 'POST', body: new FormData(f), headers: { Accept: 'application/json' } });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) { f.style.display = 'none'; mostra(ok); return; }
+        if (d.errore) ko.querySelector('[data-messaggio]')!.textContent = d.errore;
+        mostra(ko);
+      } catch {
+        mostra(ko);
+      } finally {
+        bottone.disabled = false;
+      }
+    });
+  }
+</script>

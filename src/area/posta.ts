@@ -45,11 +45,12 @@ async function tokenPosta() {
 
 const intestazione = (testo: string) => `=?UTF-8?B?${Buffer.from(testo, 'utf8').toString('base64')}?=`;
 
-// Un'email di solo testo
-export async function spedisci(a: string, oggetto: string, testo: string) {
+// Un'email di solo testo; rispondiA: dove va il «Rispondi» (per esempio chi ha mandato una candidatura)
+export async function spedisci(a: string, oggetto: string, testo: string, rispondiA?: string) {
   const messaggio = [
     `From: ${intestazione(coro.nome)} <${coro.coristi!.mittenteCodici}>`,
     `To: ${a}`,
+    ...(rispondiA ? [`Reply-To: ${rispondiA}`] : []),
     `Subject: ${intestazione(oggetto)}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=UTF-8',

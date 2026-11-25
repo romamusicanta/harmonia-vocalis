@@ -15,7 +15,9 @@ The website does not use profiling cookies or third-party analytics tools, and i
 
 To know how many people visit the website we count visits anonymously: for each page viewed we record the day, the page, the language, the type of device (phone, tablet or computer) and the website you came from, if your browser provides it. To count only once someone who views several pages on the same day, we derive a short code from the IP address and the browser, using a key that changes every day: the IP address is not stored, and the code cannot be used to identify you or to recognise you on the following days. These data are kept in the association's records for 13 months; after that only the daily totals remain.
 
-The data you send with the contact and application forms (name, email, telephone if given, message) are used only to reply to you and, for applications, to arrange the audition. We do not share them with third parties and we delete them when they are no longer needed.
+## Applications
+
+If you apply with the form on the Sing with us page, we collect the data you write: name and surname, age, email, voice type, choral experience and why you would like to join the choir. They are used only to assess your application, to arrange the audition and to reply to you; we also send you a confirmation email. Only the Conductor and the people who look after the choir for the association can see them; they are kept in the association's records on Google Workspace and we do not share them with third parties. We keep them for at most 12 months; if you join the choir, those that are needed move to the list of choir members. If you are under 18, we will ask the person with parental responsibility for their consent before you take part in the choir's activities.
 
 ## YouTube videos
 

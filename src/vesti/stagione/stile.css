@@ -436,6 +436,12 @@ a.sc:hover { box-shadow: var(--ombra); }
 .conferma { display: none; background: var(--accento-chiaro); border-left: 4px solid var(--accento); padding: 20px 22px; }
 .conferma.vista { display: block; }
 .conferma b { color: var(--primario); display: block; font-size: 18px; margin-bottom: 4px; }
+/* Modulo di candidatura di Canta con noi: conferma ed errore anche senza JavaScript (ancora del ritorno) */
+.conferma:target { display: block; }
+.conferma.errore-modulo { background: #fdecea; border-left-color: #b3261e; }
+#candidatura-inviata, #candidatura-errore { margin-bottom: 22px; scroll-margin-top: 120px; outline: none; }
+.modulo .nascosto { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.modulo .impegno .consenso { font-size: 15px; font-weight: 400; color: var(--testo); line-height: 1.5; }
 
 /* Locandina generata */
 .locandina-cont { container-type: inline-size; max-width: 540px; width: 100%; }

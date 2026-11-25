@@ -5,6 +5,7 @@
 import type { APIRoute } from 'astro';
 import { CRON_SECRET } from 'astro:env/server';
 import { configurato, riepilogoNotturno } from '../../area/visite';
+import { pulisciCandidature } from '../../area/candidature';
 
 export const prerender = false;
 
@@ -13,7 +14,9 @@ export const GET: APIRoute = async ({ request }) => {
   if (!configurato()) return new Response('Statistiche non configurate', { status: 503 });
   try {
     const r = await riepilogoNotturno();
-    return new Response(`Giorni riassunti: ${r.riassunti}; visite vecchie cancellate: ${r.cancellate}`);
+    // Anche le candidature più vecchie di 12 mesi (src/area/candidature.ts), come dice la privacy
+    const candidature = await pulisciCandidature().catch((e) => { console.error(`[candidature] pulizia non riuscita: ${(e as Error).message}`); return 0; });
+    return new Response(`Giorni riassunti: ${r.riassunti}; visite vecchie cancellate: ${r.cancellate}; candidature vecchie cancellate: ${candidature}`);
   } catch (e) {
     console.error(`[visite] riepilogo non riuscito: ${(e as Error).message}`);
     return new Response('Riepilogo non riuscito', { status: 502 });

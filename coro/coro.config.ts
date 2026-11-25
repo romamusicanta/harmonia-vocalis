@@ -25,17 +25,17 @@ export default {
     cap: '00159',
     citta: 'Roma',
   },
-  // Confermato da Mario il 2/10/2026. Le prove sono anche nel calendario privato "Prove": il venerdì
-  // solo prove supplementari, aggiunte volta per volta quando sono confermate
+  // Confermato da Mario il 2/10/2026; dal 25/11/2026 (Mario) ogni mercoledì e due venerdì al mese.
+  // Le prove sono anche nel calendario privato "Prove", dove i venerdì si aggiungono quando sono fissati
   prove: {
     nome: 'Liceo Artistico Enzo Rossi',
     indirizzo: 'Via del Frantoio 2',
     cap: '00159',
     citta: 'Roma',
-    orari: 'Ogni mercoledì dalle 20:00 alle 22:00, a volte anche il venerdì',
+    orari: 'Ogni mercoledì e due venerdì al mese, dalle 20:00 alle 22:00',
     riquadri: [
       ['Mer', 'Ogni settimana'],
-      ['Ven', 'Prove supplementari'],
+      ['Ven', 'Due al mese'],
       ['20:00', 'Fino alle 22:00'],
     ],
   },

@@ -16,7 +16,9 @@ Il sito non usa cookie di profilazione né strumenti di statistica di terzi, e p
 
 Per sapere quante persone visitano il sito contiamo le visite in forma anonima: per ogni pagina vista registriamo il giorno, la pagina, la lingua, il tipo di dispositivo (telefono, tablet o computer) e il sito da cui arrivi, se il browser lo indica. Per contare una volta sola chi vede più pagine nello stesso giorno ricaviamo dall'indirizzo IP e dal browser un codice breve, con una chiave che cambia ogni giorno: l'indirizzo IP non viene salvato e il codice non permette di risalire a te né di riconoscerti nei giorni successivi. Questi dati restano negli archivi dell'associazione per 13 mesi; dopo restano solo i totali di ogni giorno.
 
-I dati che invii con i moduli di contatto e di candidatura (nome, email, eventuale telefono, messaggio) servono solo a risponderti e, per le candidature, a fissare l'audizione. Non li cediamo a terzi e li cancelliamo quando non servono più.
+## Candidature
+
+Se ti candidi con il modulo della pagina Canta con noi, raccogliamo i dati che scrivi: nome e cognome, età, email, registro vocale, esperienze corali e il motivo per cui vorresti entrare nel coro. Servono solo a valutare la candidatura, a fissare l'audizione e a risponderti; ti mandiamo anche un'email di conferma. Li vedono solo il Maestro e chi si occupa del coro per l'associazione, stanno negli archivi dell'associazione su Google Workspace e non li cediamo a terzi. Li conserviamo al più 12 mesi; se entri nel coro, quelli che servono passano nell'elenco dei coristi. Se hai meno di 18 anni, per partecipare alle attività del coro chiederemo la delega di chi esercita la responsabilità genitoriale.
 
 ## Video di YouTube
 
