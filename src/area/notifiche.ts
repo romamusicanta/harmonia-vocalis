@@ -114,7 +114,9 @@ export async function inviaRedattori(notifica: Notifica, tranne = '') {
     const indirizzi = [...new Set((await iscrizioni()).filter((i) => i.email).map((i) => normalizza(i.email)).filter((e) => e !== escluso))];
     const esiti = await Promise.all(indirizzi.map((e) => nelGruppo(e, gruppo).catch(() => false)));
     const redattori = indirizzi.filter((_, k) => esiti[k]);
-    if (redattori.length) await inviaPersonali([{ indirizzi: redattori, notifica }]);
+    const iscritti = (await iscrizioni()).filter((i) => i.email && redattori.includes(normalizza(i.email))).length;
+    const esito = redattori.length ? await inviaPersonali([{ indirizzi: redattori, notifica }]) : { raggiunte: 0 };
+    console.log(`[notifiche] ai redattori «${notifica.titolo}»: ${redattori.length} redattori con ${iscritti} dispositivi (${redattori.join(', ') || 'nessuno'}), ${esito.raggiunte ? 'inviata' : 'non arrivata'}`);
   } catch (e) {
     console.warn('[notifiche] ai redattori non riuscita:', spiegaTesto(e));
   }
