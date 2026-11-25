@@ -349,15 +349,15 @@ export async function assenze(): Promise<Assenza[]> {
 // "02/10/2026 21:43": il foglio (in italiano) la riconosce come data e ora
 export const adesso = () => `${oggi().split('-').reverse().join('/')} ${oraDi(new Date())}`;
 
-// Segna un'assenza; se c'è già, aggiorna la nota
-export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da: string) {
+// Segna un'assenza; se c'è già, aggiorna la nota. Dice se l'assenza è nuova
+export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da: string): Promise<boolean> {
   const esistente = (await assenze()).find((a) => a.idEvento === e.id && a.email === c.email);
   const p = new URLSearchParams({ valueInputOption: 'USER_ENTERED' });
   if (esistente) {
     await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`Assenze!G${esistente.riga}:I${esistente.riga}`)}?${p}`, {
       method: 'PUT', body: JSON.stringify({ values: [[nota, adesso(), da]] }),
     });
-    return;
+    return false;
   }
   const descrizione = e.tipo === 'concerto' ? `Concerto · ${e.titolo}` : /^prova\b/i.test(e.titolo) ? e.titolo : `Prova · ${e.titolo}`;
   const riga = [e.data, descrizione, `'${e.id}`, `${c.nome} ${c.cognome}`, c.email, c.sezione, nota, adesso(), da];
@@ -365,6 +365,7 @@ export async function segnaAssenza(e: Evento, c: SchedaCorista, nota: string, da
   await google(`${SHEETS}/${FOGLIO_CORISTI_ID}/values/${encodeURIComponent(`Assenze!A:${String.fromCharCode(64 + COLONNE_ASSENZE.length)}`)}:append?${new URLSearchParams({ valueInputOption: 'USER_ENTERED', insertDataOption: 'OVERWRITE' })}`, {
     method: 'POST', body: JSON.stringify({ values: [riga] }),
   });
+  return true;
 }
 
 // L'identificativo numerico di una scheda del foglio (serve per cancellare righe); se la scheda
@@ -442,10 +443,12 @@ export async function cancellaRighe(scheda: string, righe: number[], foglio = FO
 }
 
 // Toglie l'assenza (cioè: era presente)
-export async function togliAssenza(idEvento: string, email: string) {
+// Dice se c'era un'assenza da togliere
+export async function togliAssenza(idEvento: string, email: string): Promise<boolean> {
   const a = (await assenze()).find((x) => x.idEvento === idEvento && x.email === email);
-  if (!a) return;
+  if (!a) return false;
   await cancellaRiga('Assenze', a.riga);
+  return true;
 }
 
 // ——— Riepiloghi per le pagine ———

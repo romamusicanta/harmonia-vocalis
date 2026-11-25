@@ -97,6 +97,29 @@ export async function inviaPersonali(messaggi: { indirizzi: string[]; notifica: 
   return { conNotifiche: conIscrizioni.length, raggiunte };
 }
 
+// Ai redattori (dal 25/11/2026: le assenze che i coristi segnano o ritirano, src/pages/area/assenze.ts):
+// ai dispositivi iscritti con un indirizzo del gruppo redattori@ (che contiene admin@), tranne quelli di
+// chi ha fatto l'azione. Le iscrizioni si fanno dall'area coristi o del Maestro, quindi la ricevono i
+// redattori che hanno acceso l'interruttore lì. Manda solo in produzione (in locale con
+// NOTIFICHE_LOCALI=1, altrimenti lo scrive a console) e non fa mai fallire chi la chiama.
+export async function inviaRedattori(notifica: Notifica, tranne = '') {
+  const gruppo = coro.amministrazione?.gruppo;
+  if (!gruppo || !configurate()) return;
+  if (process.env.APP_ENV !== 'production' && process.env.NOTIFICHE_LOCALI !== '1') {
+    console.log(`[notifiche] ai redattori (non inviata in locale): «${notifica.titolo}» ${notifica.testo}`);
+    return;
+  }
+  try {
+    const escluso = normalizza(tranne);
+    const indirizzi = [...new Set((await iscrizioni()).filter((i) => i.email).map((i) => normalizza(i.email)).filter((e) => e !== escluso))];
+    const esiti = await Promise.all(indirizzi.map((e) => nelGruppo(e, gruppo).catch(() => false)));
+    const redattori = indirizzi.filter((_, k) => esiti[k]);
+    if (redattori.length) await inviaPersonali([{ indirizzi: redattori, notifica }]);
+  } catch (e) {
+    console.warn('[notifiche] ai redattori non riuscita:', spiegaTesto(e));
+  }
+}
+
 // La notifica ricavata da un messaggio WhatsApp del sito (bacheca.ts, prove.ts, convocazioni.ts,
 // registrazioni.ts): titolo = prima riga, testo = il resto senza gli indirizzi web,
 // link = l'ultimo indirizzo del sito (l'ultimo paragrafo, che ha solo il link, si toglie)

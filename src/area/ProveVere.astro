@@ -69,14 +69,17 @@ const righe = (e: Evento) => e.righe.filter(([k]) => k !== 'Registrazione');
       <details class="carta periodo-box">
         <summary><Icona nome="calendario" />Sarò via per un periodo</summary>
         <form class="periodo">
-          <p class="tenue" style="font-size:15px">Segna in una volta tutte le prove e i concerti tra due date.</p>
+          <p class="tenue" style="font-size:15px">Segna in una volta tutte le prove e i concerti tra due date, oppure ritira le assenze che avevi segnato in quelle date.</p>
           <div class="campi-periodo">
             <label>Dal<input type="date" name="dal" required min={oggiIso} /></label>
             <label>Al<input type="date" name="al" required min={oggiIso} /></label>
             <label style="flex:1 1 220px">Nota (facoltativa)<input name="nota" maxlength="300" placeholder="Es. viaggio di lavoro" /></label>
           </div>
           <p class="anteprima-periodo" aria-live="polite"></p>
-          <button class="btn g" type="submit">Segna le assenze</button>
+          <div class="pulsanti-periodo">
+            <button class="btn g" type="submit">Segna le assenze</button>
+            <button class="btn o ritira" type="submit" name="azione" value="ritira-periodo">Ritira le assenze</button>
+          </div>
         </form>
       </details>
     )}
@@ -140,7 +143,8 @@ const righe = (e: Evento) => e.righe.filter(([k]) => k !== 'Registrazione');
   .campi-periodo input { padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); font: inherit; min-height: 44px; }
   .anteprima-periodo { font-size: 15px; margin: 0; }
   .anteprima-periodo:empty { display: none; }
-  .periodo button { justify-self: start; }
+  .pulsanti-periodo { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pulsanti-periodo [hidden] { display: none; }
   .periodo input { padding: 10px 12px; border: 2px solid var(--linea); border-radius: var(--raggio); background: var(--bianco); min-height: 44px; font: inherit; }
 </style>
 
